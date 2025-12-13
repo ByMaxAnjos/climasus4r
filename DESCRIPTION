@@ -1,0 +1,44 @@
+Package: climasus4r
+Title: Integrated Analysis Toolkit for Health, Climate, and Environmental Data
+Version: 0.0.0.9000
+Authors@R: 
+    c(person(given = "Max",
+             family = "Anjos",
+             role = c("aut", "cre"),
+             email = "maxanjos@campus.ul.pt"),
+             comment = c(ORCID = "0000-0001-6394-1324"),
+      person(given = "João",
+             family = "Gobo",
+             role = "ctb",
+             comment = "Package development assistance"))
+Maintainer: Max Anjos <maxanjos@campus.ul.pt>
+Description: A computational toolkit to import, process, integrate, and analyze
+    climatic, air quality, and health data from the Brazilian Unified Health
+    System (SUS). Climasus4r automates the most laborious steps of data analysis,
+    ensuring standardized and reproducible research, specifically aligned with
+    the strategic goals of the INCT Conexão - Amazônia project.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Depends:
+    R (>= 4.1.0)
+Imports: 
+    dplyr (>= 1.0.0),
+    stringi (>= 1.7.0),
+    cli (>= 3.0.0),
+    lubridate (>= 1.9.0),
+    tidyr (>= 1.3.0), 
+    microdatasus
+remotes::
+    rfsaldanha/microdatasus
+    ByMaxAnjos/climasus4r
+Suggests:
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    ggplot2
+VignetteBuilder: knitr
+URL: https://github.com/ByMaxAnjos/climasus4r
+BugReports:https://github.com/ByMaxAnjos/climasus4r/issues
