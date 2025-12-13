@@ -4,3 +4,18 @@
 .httr-oauth
 .DS_Store
 .quarto
+# R build artifacts
+*.Rproj
+*.tar.gz
+*.check/
+*.log
+
+# Package directories
+/man/*
+!/man/*.Rd
+/vignettes/*.html
+/vignettes/*.pdf
+
+# Misc
+.DS_Store
+Thumbs.db
