@@ -19,51 +19,196 @@ sus_data_import(
 )
 }
 \arguments{
-\item{uf}{A string or vector of strings with state abbreviations (e.g., "RJ", c("SP", "MG")).}
+\item{uf}{A string or vector of strings with state abbreviations
+(e.g., "RJ", c("SP", "MG")). Valid UF codes: AC, AL, AP, AM, BA, CE, DF, ES,
+GO, MA, MT, MS, MG, PA, PB, PR, PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO.}
 
-\item{year}{An integer or vector of integers with the desired years.}
+\item{year}{An integer or vector of integers with the desired years (4 digits).}
 
-\item{month}{An integer or vector of integers with the desired months. This argument is only used with the healh information systems SIH, CNES and SIA}
+\item{month}{An integer or vector of integers with the desired months (1-12).
+This argument is only used with monthly-based health information systems:
+SIH, CNES, and SIA. For annual systems (SIM, SINAN, SINASC), this parameter
+is ignored.}
 
-\item{system}{A string indicating the information system ("SIM", "SINAN", "SIH", etc.).}
+\item{system}{A string indicating the information system. Available systems:
 
-\item{use_cache}{Logical. If TRUE, will use cached data to avoid re-downloads. Default is TRUE.}
+\strong{Mortality Systems (SIM - Sistema de Informações sobre Mortalidade):}
+\itemize{
+\item \code{"SIM-DO"}: Death certificates (Declarações de Óbito) - Complete dataset
+\item \code{"SIM-DOFET"}: Fetal deaths (Óbitos Fetais)
+\item \code{"SIM-DOEXT"}: External causes deaths (Óbitos por Causas Externas)
+\item \code{"SIM-DOINF"}: Infant deaths (Óbitos Infantis)
+\item \code{"SIM-DOMAT"}: Maternal deaths (Óbitos Maternos)
+}
 
-\item{cache_dir}{Character. Directory to store cached files. Default is "~/.climasus4r_cache".}
+\strong{Hospitalization Systems (SIH - Sistema de Informações Hospitalares):}
+\itemize{
+\item \code{"SIH-RD"}: Hospital Admission Authorizations (AIH - Autorizações de Internação Hospitalar)
+\item \code{"SIH-RJ"}: Hospital Admission Authorizations - Rio de Janeiro specific
+\item \code{"SIH-SP"}: Hospital Admission Authorizations - São Paulo specific
+\item \code{"SIH-ER"}: Emergency Room Records (Prontuários de Emergência)
+}
 
-\item{force_redownload}{Logical. If TRUE, ignores cache and re-downloads everything.}
+\strong{Notifiable Diseases (SINAN - Sistema de Informação de Agravos de Notificação):}
+\itemize{
+\item \code{"SINAN-DENGUE"}: Dengue fever cases
+\item \code{"SINAN-CHIKUNGUNYA"}: Chikungunya cases
+\item \code{"SINAN-ZIKA"}: Zika virus cases
+\item \code{"SINAN-MALARIA"}: Malaria cases
+\item \code{"SINAN-CHAGAS"}: Chagas disease cases
+\item \code{"SINAN-LEISHMANIOSE-VISCERAL"}: Visceral leishmaniasis cases
+\item \code{"SINAN-LEISHMANIOSE-TEGUMENTAR"}: Cutaneous leishmaniasis cases
+\item \code{"SINAN-LEPTOSPIROSE"}: Leptospirosis cases
+}
 
-\item{parallel}{Logical. If TRUE, will use parallel processing for multiple downloads. Default is TRUE.}
+\strong{Outpatient Systems (SIA - Sistema de Informações Ambulatoriais):}
+\itemize{
+\item \code{"SIA-AB"}: Primary Care (Atenção Básica)
+\item \code{"SIA-ABO"}: Dental Procedures (Procedimentos Odontológicos)
+\item \code{"SIA-ACF"}: Pharmaceutical Assistance (Assistência Farmacêutica)
+\item \code{"SIA-AD"}: High Complexity (Alta Complexidade/Diferenciada)
+\item \code{"SIA-AN"}: Home Care (Atenção Domiciliar)
+\item \code{"SIA-AM"}: Medical Specialties (Ambulatório de Especialidades)
+\item \code{"SIA-AQ"}: Strategic Actions (Ações Estratégicas)
+\item \code{"SIA-AR"}: Regulation (Regulação)
+\item \code{"SIA-ATD"}: Urgency/Emergency (Urgência/Emergência)
+\item \code{"SIA-PA"}: Hospital Outpatient (Procedimentos Ambulatoriais em Hospital)
+\item \code{"SIA-PS"}: Psychosocial Care (Atenção Psicossocial)
+\item \code{"SIA-SAD"}: Specialized Care (Atenção Especializada)
+}
 
-\item{workers}{Integer. Number of parallel workers to use. Default is 4.}
+\strong{Health Establishments (CNES - Cadastro Nacional de Estabelecimentos de Saúde):}
+\itemize{
+\item \code{"CNES-LT"}: Beds (Leitos)
+\item \code{"CNES-ST"}: Health Professionals (Profissionais de Saúde)
+\item \code{"CNES-DC"}: Equipment (Equipamentos) - Detailed
+\item \code{"CNES-EQ"}: Equipment (Equipamentos) - Summary
+\item \code{"CNES-SR"}: Specialized Services (Serviços Especializados)
+\item \code{"CNES-HB"}: Hospital Beds (Leitos Hospitalares)
+\item \code{"CNES-PF"}: Health Professionals Detailed (Pessoal Físico)
+\item \code{"CNES-EP"}: Teaching Participants (Participantes do Ensino)
+\item \code{"CNES-RC"}: Hospital Class (Classificação Hospitalar)
+\item \code{"CNES-IN"}: Hospital Indicators (Indicadores Hospitalares)
+\item \code{"CNES-EE"}: Educational Entities (Entidades de Ensino)
+\item \code{"CNES-EF"}: Teaching Facilities (Instalações de Ensino)
+\item \code{"CNES-GM"}: Management/Support (Gestão e Apoio)
+}
 
-\item{verbose}{Logical. If TRUE, prints detailed progress information. Default is TRUE.}
+\strong{Live Births (SINASC - Sistema de Informações sobre Nascidos Vivos):}
+\itemize{
+\item \code{"SINASC"}: Live Birth Declarations (Declarações de Nascidos Vivos)
+}}
+
+\item{use_cache}{Logical. If TRUE (default), will use cached data to avoid
+re-downloads. Cache is based on UF, year, month, and system parameters.}
+
+\item{cache_dir}{Character. Directory to store cached files.
+Default is "~/.climasus4r_cache".}
+
+\item{force_redownload}{Logical. If TRUE, ignores cache and re-downloads
+everything. Useful when you suspect cached data is corrupted or outdated.}
+
+\item{parallel}{Logical. If TRUE (default), will use parallel processing
+for multiple UF/year combinations. Significantly speeds up bulk downloads.}
+
+\item{workers}{Integer. Number of parallel workers to use. Default is 4.
+Set to 1 to disable parallel processing.}
+
+\item{verbose}{Logical. If TRUE (default), prints detailed progress
+information including cache status, download progress, and time estimates.}
 }
 \value{
-A \code{data.frame} (or \code{tibble}) with the requested data, combined if multiple UFs/years are requested.
+A \code{tibble} (or \code{data.frame}) with the requested data, combining
+multiple UFs/years when requested. The output includes:
+\itemize{
+\item All original variables from the DATASUS system
+\item Additional metadata columns: \code{source_system}, \code{download_timestamp}
+\item Standardized date formats (Date objects instead of strings)
+\item UTF-8 encoded character variables
+}
+
+\strong{Note}: Large datasets (especially SIA and SIH) may require significant
+memory (1GB+ for national annual data).
 }
 \description{
 This function acts as a wrapper for \code{microdatasus::fetch_datasus},
-simplifying the download and reading of data from systems like SIM, SINAN, and SIH.
+simplifying the download and reading of data from Brazilian public health
+information systems (SIM, SINAN, SIH, SIA, CNES, SINASC).
 It includes parallel processing, caching, and user-friendly CLI feedback.
+}
+\details{
+\subsection{Data Sources}{
+
+All data is sourced from the Brazilian Ministry of Health's DATASUS portal
+(http://datasus.saude.gov.br).
+}
+
+\subsection{Caching System}{
+
+The cache uses SHA-256 hashing of parameters to create unique cache keys.
+Cached files are stored as compressed RDS files and include metadata about
+the download date and parameter combination. Cache is automatically invalidated
+after 30 days for dynamic systems (CNES, SIA, SIH) and 365 days for static
+systems (SIM, SINAN, SINASC).
+}
+
+\subsection{Parallel Processing}{
+
+When downloading data for multiple states or years, parallel processing
+can reduce download time by up to 70\%. The function uses \code{future.apply}
+internally. For large downloads (>100 files), consider increasing \code{workers}
+up to 8 (if your system has sufficient cores and memory).
+}
 }
 \examples{
 \dontrun{
-# Use cache for faster repeated downloads
+# Basic example: Mortality data for Rio de Janeiro in 2022
 df_sim <- sus_data_import(
   uf = "RJ", 
   year = 2022, 
-  system = "SIM",
+  system = "SIM-DO",
   use_cache = TRUE
 )
 
-# Force re-download even if cached
+# Dengue cases for two states with parallel processing
 df_dengue <- sus_data_import(
   uf = c("SP", "MG"), 
   year = 2023, 
   system = "SINAN-DENGUE",
-  use_cache = TRUE,
-  force_redownload = TRUE
+  parallel = TRUE,
+  workers = 3
 )
+
+# Hospitalizations with monthly specification
+df_hospital <- sus_data_import(
+  uf = "SP",
+  year = 2024,
+  month = 1:6,  # January to June
+  system = "SIH-RD",
+  verbose = TRUE
+)
+
+# Force re-download ignoring cache
+df_births <- sus_data_import(
+  uf = "BA",
+  year = 2020:2022,
+  system = "SINASC",
+  use_cache = TRUE,
+  force_redownload = TRUE  # Refresh cached data
+)
+}
+
+}
+\references{
+Brazilian Ministry of Health. DATASUS. \url{http://datasus.saude.gov.br}
+
+SALDANHA, Raphael de Freitas; BASTOS, Ronaldo Rocha; BARCELLOS, Christovam. Microdatasus: pacote para download e pré-processamento de microdados do Departamento de Informática do SUS (DATASUS). Cad. Saúde Pública, Rio de Janeiro , v. 35, n. 9, e00032419, 2019. Available from https://doi.org/10.1590/0102-311x00032419.
+}
+\seealso{
+\itemize{
+\item Official DATASUS documentation: \url{http://datasus.saude.gov.br}
+\item Microdatasus package: \url{https://github.com/rfsaldanha/microdatasus}
+\item Data dictionary for each system: \code{\link{sus_data_dictionary}}
+\item For cleaning and standardizing: \code{\link{sus_data_clean}}
 }
 }

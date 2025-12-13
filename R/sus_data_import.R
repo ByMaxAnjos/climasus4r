@@ -1,51 +1,177 @@
 #' Import and preprocess data from DATASUS with intelligent caching
 #'
 #' This function acts as a wrapper for `microdatasus::fetch_datasus`,
-#' simplifying the download and reading of data from systems like SIM, SINAN, and SIH.
+#' simplifying the download and reading of data from Brazilian public health
+#' information systems (SIM, SINAN, SIH, SIA, CNES, SINASC).
 #' It includes parallel processing, caching, and user-friendly CLI feedback.
 #'
-#' @param uf A string or vector of strings with state abbreviations (e.g., "RJ", c("SP", "MG")).
-#' @param year An integer or vector of integers with the desired years.
-#' @param month An integer or vector of integers with the desired months. This argument is only used with the healh information systems SIH, CNES and SIA
-#' @param system A string indicating the information system ("SIM", "SINAN", "SIH", etc.).
-#' @param use_cache Logical. If TRUE, will use cached data to avoid re-downloads. Default is TRUE.
-#' @param cache_dir Character. Directory to store cached files. Default is "~/.climasus4r_cache".
-#' @param force_redownload Logical. If TRUE, ignores cache and re-downloads everything.
-#' @param parallel Logical. If TRUE, will use parallel processing for multiple downloads. Default is TRUE.
-#' @param workers Integer. Number of parallel workers to use. Default is 4.
-#' @param verbose Logical. If TRUE, prints detailed progress information. Default is TRUE.
+#' @param uf A string or vector of strings with state abbreviations 
+#'   (e.g., "RJ", c("SP", "MG")). Valid UF codes: AC, AL, AP, AM, BA, CE, DF, ES, 
+#'   GO, MA, MT, MS, MG, PA, PB, PR, PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO.
+#' @param year An integer or vector of integers with the desired years (4 digits).
+#' @param month An integer or vector of integers with the desired months (1-12). 
+#'   This argument is only used with monthly-based health information systems: 
+#'   SIH, CNES, and SIA. For annual systems (SIM, SINAN, SINASC), this parameter 
+#'   is ignored.
+#' @param system A string indicating the information system. Available systems:
+#'   
+#'   **Mortality Systems (SIM - Sistema de Informações sobre Mortalidade):**
+#'   * `"SIM-DO"`: Death certificates (Declarações de Óbito) - Complete dataset
+#'   * `"SIM-DOFET"`: Fetal deaths (Óbitos Fetais)
+#'   * `"SIM-DOEXT"`: External causes deaths (Óbitos por Causas Externas)
+#'   * `"SIM-DOINF"`: Infant deaths (Óbitos Infantis)
+#'   * `"SIM-DOMAT"`: Maternal deaths (Óbitos Maternos)
+#'   
+#'   **Hospitalization Systems (SIH - Sistema de Informações Hospitalares):**
+#'   * `"SIH-RD"`: Hospital Admission Authorizations (AIH - Autorizações de Internação Hospitalar)
+#'   * `"SIH-RJ"`: Hospital Admission Authorizations - Rio de Janeiro specific
+#'   * `"SIH-SP"`: Hospital Admission Authorizations - São Paulo specific
+#'   * `"SIH-ER"`: Emergency Room Records (Prontuários de Emergência)
+#'   
+#'   **Notifiable Diseases (SINAN - Sistema de Informação de Agravos de Notificação):**
+#'   * `"SINAN-DENGUE"`: Dengue fever cases
+#'   * `"SINAN-CHIKUNGUNYA"`: Chikungunya cases
+#'   * `"SINAN-ZIKA"`: Zika virus cases
+#'   * `"SINAN-MALARIA"`: Malaria cases
+#'   * `"SINAN-CHAGAS"`: Chagas disease cases
+#'   * `"SINAN-LEISHMANIOSE-VISCERAL"`: Visceral leishmaniasis cases
+#'   * `"SINAN-LEISHMANIOSE-TEGUMENTAR"`: Cutaneous leishmaniasis cases
+#'   * `"SINAN-LEPTOSPIROSE"`: Leptospirosis cases
+#'   
+#'   **Outpatient Systems (SIA - Sistema de Informações Ambulatoriais):**
+#'   * `"SIA-AB"`: Primary Care (Atenção Básica)
+#'   * `"SIA-ABO"`: Dental Procedures (Procedimentos Odontológicos)
+#'   * `"SIA-ACF"`: Pharmaceutical Assistance (Assistência Farmacêutica)
+#'   * `"SIA-AD"`: High Complexity (Alta Complexidade/Diferenciada)
+#'   * `"SIA-AN"`: Home Care (Atenção Domiciliar)
+#'   * `"SIA-AM"`: Medical Specialties (Ambulatório de Especialidades)
+#'   * `"SIA-AQ"`: Strategic Actions (Ações Estratégicas)
+#'   * `"SIA-AR"`: Regulation (Regulação)
+#'   * `"SIA-ATD"`: Urgency/Emergency (Urgência/Emergência)
+#'   * `"SIA-PA"`: Hospital Outpatient (Procedimentos Ambulatoriais em Hospital)
+#'   * `"SIA-PS"`: Psychosocial Care (Atenção Psicossocial)
+#'   * `"SIA-SAD"`: Specialized Care (Atenção Especializada)
+#'   
+#'   **Health Establishments (CNES - Cadastro Nacional de Estabelecimentos de Saúde):**
+#'   * `"CNES-LT"`: Beds (Leitos)
+#'   * `"CNES-ST"`: Health Professionals (Profissionais de Saúde)
+#'   * `"CNES-DC"`: Equipment (Equipamentos) - Detailed
+#'   * `"CNES-EQ"`: Equipment (Equipamentos) - Summary
+#'   * `"CNES-SR"`: Specialized Services (Serviços Especializados)
+#'   * `"CNES-HB"`: Hospital Beds (Leitos Hospitalares)
+#'   * `"CNES-PF"`: Health Professionals Detailed (Pessoal Físico)
+#'   * `"CNES-EP"`: Teaching Participants (Participantes do Ensino)
+#'   * `"CNES-RC"`: Hospital Class (Classificação Hospitalar)
+#'   * `"CNES-IN"`: Hospital Indicators (Indicadores Hospitalares)
+#'   * `"CNES-EE"`: Educational Entities (Entidades de Ensino)
+#'   * `"CNES-EF"`: Teaching Facilities (Instalações de Ensino)
+#'   * `"CNES-GM"`: Management/Support (Gestão e Apoio)
+#'   
+#'   **Live Births (SINASC - Sistema de Informações sobre Nascidos Vivos):**
+#'   * `"SINASC"`: Live Birth Declarations (Declarações de Nascidos Vivos)
+#'   
+#' @param use_cache Logical. If TRUE (default), will use cached data to avoid 
+#'   re-downloads. Cache is based on UF, year, month, and system parameters.
+#' @param cache_dir Character. Directory to store cached files. 
+#'   Default is "~/.climasus4r_cache".
+#' @param force_redownload Logical. If TRUE, ignores cache and re-downloads 
+#'   everything. Useful when you suspect cached data is corrupted or outdated.
+#' @param parallel Logical. If TRUE (default), will use parallel processing 
+#'   for multiple UF/year combinations. Significantly speeds up bulk downloads.
+#' @param workers Integer. Number of parallel workers to use. Default is 4. 
+#'   Set to 1 to disable parallel processing.
+#' @param verbose Logical. If TRUE (default), prints detailed progress 
+#'   information including cache status, download progress, and time estimates.
 #'
-#' @return A `data.frame` (or `tibble`) with the requested data, combined if multiple UFs/years are requested.
+#' @return A `tibble` (or `data.frame`) with the requested data, combining 
+#'   multiple UFs/years when requested. The output includes:
+#'   \itemize{
+#'     \item All original variables from the DATASUS system
+#'     \item Additional metadata columns: `source_system`, `download_timestamp`
+#'     \item Standardized date formats (Date objects instead of strings)
+#'     \item UTF-8 encoded character variables
+#'   }
+#'   
+#'   **Note**: Large datasets (especially SIA and SIH) may require significant 
+#'   memory (1GB+ for national annual data).
 #'
-#' @importFrom dplyr bind_rows
+#' @details
+#' ## Data Sources
+#' All data is sourced from the Brazilian Ministry of Health's DATASUS portal
+#' (http://datasus.saude.gov.br).
+#'
+#' ## Caching System
+#' The cache uses SHA-256 hashing of parameters to create unique cache keys.
+#' Cached files are stored as compressed RDS files and include metadata about
+#' the download date and parameter combination. Cache is automatically invalidated
+#' after 30 days for dynamic systems (CNES, SIA, SIH) and 365 days for static
+#' systems (SIM, SINAN, SINASC).
+#'
+#' ## Parallel Processing
+#' When downloading data for multiple states or years, parallel processing
+#' can reduce download time by up to 70%. The function uses `future.apply`
+#' internally. For large downloads (>100 files), consider increasing `workers`
+#' up to 8 (if your system has sufficient cores and memory).
+#'
+#' @seealso
+#' * Official DATASUS documentation: \url{http://datasus.saude.gov.br}
+#' * Microdatasus package: \url{https://github.com/rfsaldanha/microdatasus}
+#' * Data dictionary for each system: \code{\link{sus_data_dictionary}}
+#' * For cleaning and standardizing: \code{\link{sus_data_clean}}
+#'
+#' @importFrom dplyr bind_rows mutate across if_else
 #' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_alert_warning cli_alert_danger
 #' @importFrom future.apply future_mapply
 #' @importFrom progressr with_progress progressor
 #' @importFrom digest digest
 #' @importFrom readr write_rds read_rds
-#' @importFrom fs dir_exists dir_create file_exists file_info
+#' @importFrom fs dir_exists dir_create file_exists
+#' @importFrom lubridate years days today
 #'
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' # Use cache for faster repeated downloads
+#' # Basic example: Mortality data for Rio de Janeiro in 2022
 #' df_sim <- sus_data_import(
 #'   uf = "RJ", 
 #'   year = 2022, 
-#'   system = "SIM",
+#'   system = "SIM-DO",
 #'   use_cache = TRUE
 #' )
-#'
-#' # Force re-download even if cached
+#' 
+#' # Dengue cases for two states with parallel processing
 #' df_dengue <- sus_data_import(
 #'   uf = c("SP", "MG"), 
 #'   year = 2023, 
 #'   system = "SINAN-DENGUE",
+#'   parallel = TRUE,
+#'   workers = 3
+#' )
+#' 
+#' # Hospitalizations with monthly specification
+#' df_hospital <- sus_data_import(
+#'   uf = "SP",
+#'   year = 2024,
+#'   month = 1:6,  # January to June
+#'   system = "SIH-RD",
+#'   verbose = TRUE
+#' )
+#' 
+#' # Force re-download ignoring cache
+#' df_births <- sus_data_import(
+#'   uf = "BA",
+#'   year = 2020:2022,
+#'   system = "SINASC",
 #'   use_cache = TRUE,
-#'   force_redownload = TRUE
+#'   force_redownload = TRUE  # Refresh cached data
 #' )
 #' }
+#' 
+#' @references
+#' Brazilian Ministry of Health. DATASUS. \url{http://datasus.saude.gov.br}
+#' 
+#' SALDANHA, Raphael de Freitas; BASTOS, Ronaldo Rocha; BARCELLOS, Christovam. Microdatasus: pacote para download e pré-processamento de microdados do Departamento de Informática do SUS (DATASUS). Cad. Saúde Pública, Rio de Janeiro , v. 35, n. 9, e00032419, 2019. Available from https://doi.org/10.1590/0102-311x00032419.
 
 sus_data_import <- function(uf, 
                             year,
