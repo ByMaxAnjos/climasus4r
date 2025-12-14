@@ -24,10 +24,10 @@ Currently in development. Install the latest version from GitHub:
 
 ```r
 # Install devtools if you haven't already
-if (!require("devtools")) {
-  install.packages("devtools")
+if (!require("remotes")) {
+  install.packages("remotes")
 }
 
 # Install CLIMASUS4r
-devtools::install_github("ByMaxAnjos/climasus4r", upgrade = "never", quite = TRUE)
+remotes::install_github("ByMaxAnjos/climasus4r", upgrade = "never", quite = TRUE)
 ```
