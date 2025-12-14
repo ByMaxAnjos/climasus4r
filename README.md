@@ -81,3 +81,12 @@ remotes::install_github("ByMaxAnjos/climasus4r", upgrade = "never", quite = TRUE
 * Distributed lag non-linear models (DLNM)
 * Attributable fraction calculation
 * Machine learning prediction wrappers
+
+---
+# Funding
+
+Este projeto é desenvolvido no âmbito do Instituto Nacional de Ciência e Tecnologia de Pesquisa e Conhecimento de Excelência da Amazônia Ocidental (INCT-CONEXÃO), no contexto das atividades do:
+
+* Núcleo Permanente de Climatologia (NPC) do INCT-CONEXÃO
+
+* Núcleo Avançado de Climatologia (NAC) do INCT-CONEXÃO

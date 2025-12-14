@@ -378,7 +378,7 @@ sus_data_import <- function(uf,
         cli::cli_alert_info("Saving to cache: {system_i} - {uf_i} - {year_i}")
       }
     }
-    readr::read_rds(data, cache_path, compress = "gz")
+    readr::write_rds(data, cache_path, compress = "gz")
     return(data)
   }
 
