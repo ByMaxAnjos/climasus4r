@@ -42,3 +42,4 @@ Suggests:
 VignetteBuilder: knitr
 URL: https://github.com/ByMaxAnjos/climasus4r
 BugReports: https://github.com/ByMaxAnjos/climasus4r/issues
+Config/testthat/edition: 3
