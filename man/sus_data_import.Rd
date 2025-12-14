@@ -14,8 +14,7 @@ sus_data_import(
   force_redownload = FALSE,
   parallel = FALSE,
   workers = 4,
-  verbose = TRUE,
-  process = TRUE
+  verbose = TRUE
 )
 }
 \arguments{
@@ -32,24 +31,24 @@ is ignored.}
 
 \item{system}{A string indicating the information system. Available systems:
 
-\strong{Mortality Systems (SIM - Sistema de Informações sobre Mortalidade):}
+\strong{Mortality Systems (SIM - Mortality Information System):}
 \itemize{
-\item \code{"SIM-DO"}: Death certificates (Declarações de Óbito) - Complete dataset
-\item \code{"SIM-DOFET"}: Fetal deaths (Óbitos Fetais)
-\item \code{"SIM-DOEXT"}: External causes deaths (Óbitos por Causas Externas)
-\item \code{"SIM-DOINF"}: Infant deaths (Óbitos Infantis)
-\item \code{"SIM-DOMAT"}: Maternal deaths (Óbitos Maternos)
+\item \code{"SIM-DO"}: Death certificates (Declaracoes de Obito) - Complete dataset
+\item \code{"SIM-DOFET"}: Fetal deaths (Obitos Fetais)
+\item \code{"SIM-DOEXT"}: External causes deaths (Obitos por Causas Externas)
+\item \code{"SIM-DOINF"}: Infant deaths (Obitos Infantis)
+\item \code{"SIM-DOMAT"}: Maternal deaths (Obitos Maternos)
 }
 
-\strong{Hospitalization Systems (SIH - Sistema de Informações Hospitalares):}
+\strong{Hospitalization Systems (SIH - Hospital Information System):}
 \itemize{
-\item \code{"SIH-RD"}: Hospital Admission Authorizations (AIH - Autorizações de Internação Hospitalar)
+\item \code{"SIH-RD"}: Hospital Admission Authorizations (AIH - Autorizacoes de Internacao Hospitalar)
 \item \code{"SIH-RJ"}: Hospital Admission Authorizations - Rio de Janeiro specific
-\item \code{"SIH-SP"}: Hospital Admission Authorizations - São Paulo specific
-\item \code{"SIH-ER"}: Emergency Room Records (Prontuários de Emergência)
+\item \code{"SIH-SP"}: Hospital Admission Authorizations - Sao Paulo specific
+\item \code{"SIH-ER"}: Emergency Room Records (Prontuarios de Emergencia)
 }
 
-\strong{Notifiable Diseases (SINAN - Sistema de Informação de Agravos de Notificação):}
+\strong{Notifiable Diseases (SINAN - Notifiable Diseases Information System):}
 \itemize{
 \item \code{"SINAN-DENGUE"}: Dengue fever cases
 \item \code{"SINAN-CHIKUNGUNYA"}: Chikungunya cases
@@ -61,42 +60,42 @@ is ignored.}
 \item \code{"SINAN-LEPTOSPIROSE"}: Leptospirosis cases
 }
 
-\strong{Outpatient Systems (SIA - Sistema de Informações Ambulatoriais):}
+\strong{Outpatient Systems (SIA - Outpatient Information System):}
 \itemize{
-\item \code{"SIA-AB"}: Primary Care (Atenção Básica)
-\item \code{"SIA-ABO"}: Dental Procedures (Procedimentos Odontológicos)
-\item \code{"SIA-ACF"}: Pharmaceutical Assistance (Assistência Farmacêutica)
+\item \code{"SIA-AB"}: Primary Care (Atencao Basica)
+\item \code{"SIA-ABO"}: Dental Procedures (Procedimentos Odontologicos)
+\item \code{"SIA-ACF"}: Pharmaceutical Assistance (Assistencia Farmaceutica)
 \item \code{"SIA-AD"}: High Complexity (Alta Complexidade/Diferenciada)
-\item \code{"SIA-AN"}: Home Care (Atenção Domiciliar)
-\item \code{"SIA-AM"}: Medical Specialties (Ambulatório de Especialidades)
-\item \code{"SIA-AQ"}: Strategic Actions (Ações Estratégicas)
-\item \code{"SIA-AR"}: Regulation (Regulação)
-\item \code{"SIA-ATD"}: Urgency/Emergency (Urgência/Emergência)
+\item \code{"SIA-AN"}: Home Care (Atencao Domiciliar)
+\item \code{"SIA-AM"}: Medical Specialties (Ambulatorio de Especialidades)
+\item \code{"SIA-AQ"}: Strategic Actions (Acoes Estrategicas)
+\item \code{"SIA-AR"}: Regulation (Regulacao)
+\item \code{"SIA-ATD"}: Urgency/Emergency (Urgencia/Emergencia)
 \item \code{"SIA-PA"}: Hospital Outpatient (Procedimentos Ambulatoriais em Hospital)
-\item \code{"SIA-PS"}: Psychosocial Care (Atenção Psicossocial)
-\item \code{"SIA-SAD"}: Specialized Care (Atenção Especializada)
+\item \code{"SIA-PS"}: Psychosocial Care (Atencao Psicossocial)
+\item \code{"SIA-SAD"}: Specialized Care (Atencao Especializada)
 }
 
-\strong{Health Establishments (CNES - Cadastro Nacional de Estabelecimentos de Saúde):}
+\strong{Health Establishments (CNES - National Health Establishment Registry):}
 \itemize{
 \item \code{"CNES-LT"}: Beds (Leitos)
-\item \code{"CNES-ST"}: Health Professionals (Profissionais de Saúde)
+\item \code{"CNES-ST"}: Health Professionals (Profissionais de Saude)
 \item \code{"CNES-DC"}: Equipment (Equipamentos) - Detailed
 \item \code{"CNES-EQ"}: Equipment (Equipamentos) - Summary
-\item \code{"CNES-SR"}: Specialized Services (Serviços Especializados)
+\item \code{"CNES-SR"}: Specialized Services (Servicos Especializados)
 \item \code{"CNES-HB"}: Hospital Beds (Leitos Hospitalares)
-\item \code{"CNES-PF"}: Health Professionals Detailed (Pessoal Físico)
+\item \code{"CNES-PF"}: Health Professionals Detailed (Pessoal Fisico)
 \item \code{"CNES-EP"}: Teaching Participants (Participantes do Ensino)
-\item \code{"CNES-RC"}: Hospital Class (Classificação Hospitalar)
+\item \code{"CNES-RC"}: Hospital Class (Classificacao Hospitalar)
 \item \code{"CNES-IN"}: Hospital Indicators (Indicadores Hospitalares)
 \item \code{"CNES-EE"}: Educational Entities (Entidades de Ensino)
-\item \code{"CNES-EF"}: Teaching Facilities (Instalações de Ensino)
-\item \code{"CNES-GM"}: Management/Support (Gestão e Apoio)
+\item \code{"CNES-EF"}: Teaching Facilities (Instalacoes de Ensino)
+\item \code{"CNES-GM"}: Management/Support (Gestao e Apoio)
 }
 
-\strong{Live Births (SINASC - Sistema de Informações sobre Nascidos Vivos):}
+\strong{Live Births (SINASC - Live Birth Information System):}
 \itemize{
-\item \code{"SINASC"}: Live Birth Declarations (Declarações de Nascidos Vivos)
+\item \code{"SINASC"}: Live Birth Declarations (Declaracoes de Nascidos Vivos)
 }}
 
 \item{use_cache}{Logical. If TRUE (default), will use cached data to avoid
@@ -202,13 +201,11 @@ df_births <- sus_data_import(
 \references{
 Brazilian Ministry of Health. DATASUS. \url{http://datasus.saude.gov.br}
 
-SALDANHA, Raphael de Freitas; BASTOS, Ronaldo Rocha; BARCELLOS, Christovam. Microdatasus: pacote para download e pré-processamento de microdados do Departamento de Informática do SUS (DATASUS). Cad. Saúde Pública, Rio de Janeiro , v. 35, n. 9, e00032419, 2019. Available from https://doi.org/10.1590/0102-311x00032419.
+SALDANHA, Raphael de Freitas; BASTOS, Ronaldo Rocha; BARCELLOS, Christovam. Microdatasus: pacote para download e pre-processamento de microdados do Departamento de Informatica do SUS (DATASUS). Cad. Saude Publica, Rio de Janeiro , v. 35, n. 9, e00032419, 2019. Available from https://doi.org/10.1590/0102-311x00032419.
 }
 \seealso{
 \itemize{
 \item Official DATASUS documentation: \url{http://datasus.saude.gov.br}
 \item Microdatasus package: \url{https://github.com/rfsaldanha/microdatasus}
-\item Data dictionary for each system: \code{\link{sus_data_dictionary}}
-\item For cleaning and standardizing: \code{\link{sus_data_clean}}
 }
 }

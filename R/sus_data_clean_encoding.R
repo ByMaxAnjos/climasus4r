@@ -1,7 +1,7 @@
 #' Detect and correct character encoding issues
 #'
 #' This function scans text columns in a data.frame and corrects common encoding
-#' problems (e.g., "SÃ£o Paulo" to "São Paulo") that occur when Latin1 data is
+#' problems (e.g., "Sao Paulo") that occur when Latin1 data is
 #' incorrectly read as UTF-8. It acts as a final auditor to ensure all text data
 #' is properly encoded, complementing the preprocessing done by `microdatasus`.
 #' Supports multilingual output messages (English, Portuguese, Spanish).
@@ -21,6 +21,18 @@
 #'
 #' @examples
 #' \dontrun{
+#' # Create a sample dataset with encoding issues
+#' # In real data, this might happen with Brazilian Portuguese text
+#' df_problem <- data.frame(
+#'   id = 1:3,
+#'   city = c("Sao Paulo", "Rio de Janeiro", "Belo Horizonte"),
+#'   state = c("SP", "RJ", "MG"),
+#'   stringsAsFactors = FALSE
+#' )
+#' 
+#' # Simulate encoding issue (for demonstration only)
+#' # In practice, this happens when Latin1 text is read as UTF-8
+#' 
 #' # Correct encoding with English messages
 #' df_clean_en <- sus_data_clean_encoding(df_problem, lang = "en")
 #'

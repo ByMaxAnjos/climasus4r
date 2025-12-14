@@ -18,7 +18,6 @@ Description: A computational toolkit to import, process, integrate, and analyze
     the strategic goals of the INCT Conexão - Amazônia project.
 License: MIT + file LICENSE
 Encoding: UTF-8
-LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Depends:
@@ -27,17 +26,17 @@ Imports:
     dplyr (>= 1.0.0),
     stringi (>= 1.7.0),
     cli (>= 3.0.0),
-    lubridate (>= 1.9.0),
-    tidyr (>= 1.3.0),
     microdatasus,
     magrittr,
     digest,
     fs,
+    readr,
+    stats,
+    rlang,
     future.apply,
     progressr,
-    readr,
     stringr,
-    tibble
+    future
 Remotes: 
     rfsaldanha/microdatasus,
     ByMaxAnjos/climasus4r

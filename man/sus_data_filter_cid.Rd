@@ -93,24 +93,10 @@ Affects all console output and documentation of matched codes.
 \item{verbose}{Logical. If TRUE (default), prints detailed filtering
 information including: records processed, match statistics, common
 coding issues detected, and time elapsed.}
-
-\item{include_metadata}{Logical. If TRUE (default), adds metadata columns
-to the filtered results:
-\itemize{
-\item \verb{_filter_icd_codes}: Original filter codes used
-\item \verb{_filter_match_type}: Match type applied
-\item \verb{_filter_timestamp}: When filtering was performed
-\item \verb{_filter_description}: Human-readable description of matched categories
-}}
-
-\item{validate_codes}{Logical. If TRUE (default), validates ICD-10 codes
-against the Brazilian Ministry of Health official list and provides
-warnings for deprecated or invalid codes commonly found in SUS data.}
 }
 \value{
 A filtered \code{data.frame} or \code{tibble} containing only records matching
 the specified ICD-10 criteria. The output preserves all original columns
-and adds metadata columns if \code{include_metadata = TRUE}.
 }
 \description{
 Filters Brazilian Unified Health System (SUS) data based on ICD-10 codes
@@ -176,8 +162,6 @@ Important considerations for SUS data:
 \item \strong{Year Variations}: Coding practices changed over time in SUS
 \item \strong{Training Required}: Proper ICD-10 use requires training for accurate results
 }
-
-Use \code{sus_data_validate_icd()} to check data quality before filtering.
 }
 \section{ICD-10 Chapters Relevant to Climate-Health Research}{
 
@@ -196,8 +180,13 @@ Common chapters for environmental health studies:
 \examples{
 \dontrun{
 # Load example SIM dataset
-data("sim_example")  # Contains CAUSABAS column with ICD-10 codes
-
+# Contains CAUSABAS column with ICD-10 codes
+sim_example <- sus_data_import(
+  uf = "RJ", 
+  year = 2022, 
+  system = "SIM-DO",
+  use_cache = TRUE
+)
 # Example 1: Filter for respiratory diseases (Portuguese interface)
 df_respiratorio <- sus_data_filter_cid(
   df = sim_example,
@@ -217,7 +206,6 @@ df_climate <- sus_data_filter_cid(
   ),
   icd_column = "CAUSABAS",
   match_type = "range",
-  include_metadata = TRUE
 )
 
 # Example 3: Use SUS-specific categories
@@ -232,7 +220,6 @@ df_dengue <- sus_data_filter_cid(
   df = sinan_example,
   icd_codes = c("A90", "A91"),
   match_type = "fuzzy",  # Handles coding variations
-  validate_codes = TRUE  # Warn about invalid codes
 )
 
 # Example 5: Multi-language comparison
@@ -246,17 +233,8 @@ df_espanhol <- sus_data_filter_cid(df, "I10-I15", lang = "es")
 \enumerate{
 \item World Health Organization. (2016). ICD-10 International Statistical
 Classification of Diseases and Related Health Problems. 10th Revision.
-\item Brazilian Ministry of Health. (2023). Classificação Estatística
-Internacional de Doenças e Problemas Relacionados à Saúde - CID-10.
+\item Brazilian Ministry of Health. (2023). Classificacao Estatistica
+Internacional de Doencas e Problemas Relacionados a Saude - CID-10.
 DATASUS. \url{http://datasus.saude.gov.br/cid10}
-}
-}
-\seealso{
-\itemize{
-\item \code{\link{sus_data_validate_icd}} Validate and clean ICD-10 codes
-\item \code{\link{sus_data_group_causes}} Group ICD-10 codes into categories
-\item \code{\link{sus_data_multiple_causes}} Filter across multiple cause columns
-\item \code{\link{sus_data_import}} Import SUS data with ICD-10 codes
-\item \code{\link{sus_data_dictionary}} ICD-10 code descriptions
 }
 }

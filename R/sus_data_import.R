@@ -15,20 +15,20 @@
 #'   is ignored.
 #' @param system A string indicating the information system. Available systems:
 #'   
-#'   **Mortality Systems (SIM - Sistema de Informações sobre Mortalidade):**
-#'   * `"SIM-DO"`: Death certificates (Declarações de Óbito) - Complete dataset
-#'   * `"SIM-DOFET"`: Fetal deaths (Óbitos Fetais)
-#'   * `"SIM-DOEXT"`: External causes deaths (Óbitos por Causas Externas)
-#'   * `"SIM-DOINF"`: Infant deaths (Óbitos Infantis)
-#'   * `"SIM-DOMAT"`: Maternal deaths (Óbitos Maternos)
+#'   **Mortality Systems (SIM - Mortality Information System):**
+#'   * `"SIM-DO"`: Death certificates (Declaracoes de Obito) - Complete dataset
+#'   * `"SIM-DOFET"`: Fetal deaths (Obitos Fetais)
+#'   * `"SIM-DOEXT"`: External causes deaths (Obitos por Causas Externas)
+#'   * `"SIM-DOINF"`: Infant deaths (Obitos Infantis)
+#'   * `"SIM-DOMAT"`: Maternal deaths (Obitos Maternos)
 #'   
-#'   **Hospitalization Systems (SIH - Sistema de Informações Hospitalares):**
-#'   * `"SIH-RD"`: Hospital Admission Authorizations (AIH - Autorizações de Internação Hospitalar)
+#'   **Hospitalization Systems (SIH - Hospital Information System):**
+#'   * `"SIH-RD"`: Hospital Admission Authorizations (AIH - Autorizacoes de Internacao Hospitalar)
 #'   * `"SIH-RJ"`: Hospital Admission Authorizations - Rio de Janeiro specific
-#'   * `"SIH-SP"`: Hospital Admission Authorizations - São Paulo specific
-#'   * `"SIH-ER"`: Emergency Room Records (Prontuários de Emergência)
+#'   * `"SIH-SP"`: Hospital Admission Authorizations - Sao Paulo specific
+#'   * `"SIH-ER"`: Emergency Room Records (Prontuarios de Emergencia)
 #'   
-#'   **Notifiable Diseases (SINAN - Sistema de Informação de Agravos de Notificação):**
+#'   **Notifiable Diseases (SINAN - Notifiable Diseases Information System):**
 #'   * `"SINAN-DENGUE"`: Dengue fever cases
 #'   * `"SINAN-CHIKUNGUNYA"`: Chikungunya cases
 #'   * `"SINAN-ZIKA"`: Zika virus cases
@@ -38,37 +38,37 @@
 #'   * `"SINAN-LEISHMANIOSE-TEGUMENTAR"`: Cutaneous leishmaniasis cases
 #'   * `"SINAN-LEPTOSPIROSE"`: Leptospirosis cases
 #'   
-#'   **Outpatient Systems (SIA - Sistema de Informações Ambulatoriais):**
-#'   * `"SIA-AB"`: Primary Care (Atenção Básica)
-#'   * `"SIA-ABO"`: Dental Procedures (Procedimentos Odontológicos)
-#'   * `"SIA-ACF"`: Pharmaceutical Assistance (Assistência Farmacêutica)
+#'   **Outpatient Systems (SIA - Outpatient Information System):**
+#'   * `"SIA-AB"`: Primary Care (Atencao Basica)
+#'   * `"SIA-ABO"`: Dental Procedures (Procedimentos Odontologicos)
+#'   * `"SIA-ACF"`: Pharmaceutical Assistance (Assistencia Farmaceutica)
 #'   * `"SIA-AD"`: High Complexity (Alta Complexidade/Diferenciada)
-#'   * `"SIA-AN"`: Home Care (Atenção Domiciliar)
-#'   * `"SIA-AM"`: Medical Specialties (Ambulatório de Especialidades)
-#'   * `"SIA-AQ"`: Strategic Actions (Ações Estratégicas)
-#'   * `"SIA-AR"`: Regulation (Regulação)
-#'   * `"SIA-ATD"`: Urgency/Emergency (Urgência/Emergência)
+#'   * `"SIA-AN"`: Home Care (Atencao Domiciliar)
+#'   * `"SIA-AM"`: Medical Specialties (Ambulatorio de Especialidades)
+#'   * `"SIA-AQ"`: Strategic Actions (Acoes Estrategicas)
+#'   * `"SIA-AR"`: Regulation (Regulacao)
+#'   * `"SIA-ATD"`: Urgency/Emergency (Urgencia/Emergencia)
 #'   * `"SIA-PA"`: Hospital Outpatient (Procedimentos Ambulatoriais em Hospital)
-#'   * `"SIA-PS"`: Psychosocial Care (Atenção Psicossocial)
-#'   * `"SIA-SAD"`: Specialized Care (Atenção Especializada)
+#'   * `"SIA-PS"`: Psychosocial Care (Atencao Psicossocial)
+#'   * `"SIA-SAD"`: Specialized Care (Atencao Especializada)
 #'   
-#'   **Health Establishments (CNES - Cadastro Nacional de Estabelecimentos de Saúde):**
+#'   **Health Establishments (CNES - National Health Establishment Registry):**
 #'   * `"CNES-LT"`: Beds (Leitos)
-#'   * `"CNES-ST"`: Health Professionals (Profissionais de Saúde)
+#'   * `"CNES-ST"`: Health Professionals (Profissionais de Saude)
 #'   * `"CNES-DC"`: Equipment (Equipamentos) - Detailed
 #'   * `"CNES-EQ"`: Equipment (Equipamentos) - Summary
-#'   * `"CNES-SR"`: Specialized Services (Serviços Especializados)
+#'   * `"CNES-SR"`: Specialized Services (Servicos Especializados)
 #'   * `"CNES-HB"`: Hospital Beds (Leitos Hospitalares)
-#'   * `"CNES-PF"`: Health Professionals Detailed (Pessoal Físico)
+#'   * `"CNES-PF"`: Health Professionals Detailed (Pessoal Fisico)
 #'   * `"CNES-EP"`: Teaching Participants (Participantes do Ensino)
-#'   * `"CNES-RC"`: Hospital Class (Classificação Hospitalar)
+#'   * `"CNES-RC"`: Hospital Class (Classificacao Hospitalar)
 #'   * `"CNES-IN"`: Hospital Indicators (Indicadores Hospitalares)
 #'   * `"CNES-EE"`: Educational Entities (Entidades de Ensino)
-#'   * `"CNES-EF"`: Teaching Facilities (Instalações de Ensino)
-#'   * `"CNES-GM"`: Management/Support (Gestão e Apoio)
+#'   * `"CNES-EF"`: Teaching Facilities (Instalacoes de Ensino)
+#'   * `"CNES-GM"`: Management/Support (Gestao e Apoio)
 #'   
-#'   **Live Births (SINASC - Sistema de Informações sobre Nascidos Vivos):**
-#'   * `"SINASC"`: Live Birth Declarations (Declarações de Nascidos Vivos)
+#'   **Live Births (SINASC - Live Birth Information System):**
+#'   * `"SINASC"`: Live Birth Declarations (Declaracoes de Nascidos Vivos)
 #'   
 #' @param use_cache Logical. If TRUE (default), will use cached data to avoid 
 #'   re-downloads. Cache is based on UF, year, month, and system parameters.
@@ -116,17 +116,13 @@
 #' @seealso
 #' * Official DATASUS documentation: \url{http://datasus.saude.gov.br}
 #' * Microdatasus package: \url{https://github.com/rfsaldanha/microdatasus}
-#' * Data dictionary for each system: \code{\link{sus_data_dictionary}}
-#' * For cleaning and standardizing: \code{\link{sus_data_clean}}
 #'
-#' @importFrom dplyr bind_rows mutate across if_else
 #' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_alert_warning cli_alert_danger
 #' @importFrom future.apply future_mapply
+#' @importFrom future plan multisession sequential
 #' @importFrom progressr with_progress progressor
 #' @importFrom digest digest
-#' @importFrom readr write_rds read_rds
 #' @importFrom fs dir_exists dir_create file_exists
-#' @importFrom lubridate years days today
 #'
 #' @export
 #'
@@ -171,7 +167,7 @@
 #' @references
 #' Brazilian Ministry of Health. DATASUS. \url{http://datasus.saude.gov.br}
 #' 
-#' SALDANHA, Raphael de Freitas; BASTOS, Ronaldo Rocha; BARCELLOS, Christovam. Microdatasus: pacote para download e pré-processamento de microdados do Departamento de Informática do SUS (DATASUS). Cad. Saúde Pública, Rio de Janeiro , v. 35, n. 9, e00032419, 2019. Available from https://doi.org/10.1590/0102-311x00032419.
+#' SALDANHA, Raphael de Freitas; BASTOS, Ronaldo Rocha; BARCELLOS, Christovam. Microdatasus: pacote para download e pre-processamento de microdados do Departamento de Informatica do SUS (DATASUS). Cad. Saude Publica, Rio de Janeiro , v. 35, n. 9, e00032419, 2019. Available from https://doi.org/10.1590/0102-311x00032419.
 
 sus_data_import <- function(uf, 
                             year,
@@ -182,8 +178,7 @@ sus_data_import <- function(uf,
                             force_redownload = FALSE,
                             parallel = FALSE,
                             workers = 4,
-                            verbose = TRUE,
-                            process = TRUE) {
+                            verbose = TRUE) {
   
   # Input validation
   if (missing(uf) || missing(year) || missing(system)) {
@@ -306,7 +301,7 @@ sus_data_import <- function(uf,
   
   # Header
   if (verbose) {
-    cli::cli_h1("CLIMASUS4r Data Import")
+    cli::cli_h1("Climasus4r Data Import")
     cli::cli_alert_info("System: {system}")
     cli::cli_alert_info("States: {paste(uf, collapse = ', ')}")
     cli::cli_alert_info("Years: {paste(year, collapse = ', ')}")
@@ -383,10 +378,10 @@ sus_data_import <- function(uf,
         cli::cli_alert_info("Saving to cache: {system_i} - {uf_i} - {year_i}")
       }
     }
-    readr::write_rds(data, cache_path, compress = "gz")
+    readr::read_rds(data, cache_path, compress = "gz")
     return(data)
   }
-  
+
   
   # Auxiliary function to download and process a single combination
   download_one <- function(year_i, uf_i, system_i, month_i = NULL, p = NULL, 
@@ -408,9 +403,9 @@ sus_data_import <- function(uf,
     if (use_cache && !force_redownload && fs::file_exists(cache_path) && is_cache_valid(cache_path)) {
       if (verbose && !is.null(p)) {
         if (!is.null(month_i)) {
-          p(message = sprintf("✓ From cache: %s - %s - %s - Month %s", system_i, uf_i, year_i, month_i))
+          p(message = sprintf("From cache: %s - %s - %s - Month %s", system_i, uf_i, year_i, month_i))
         } else {
-          p(message = sprintf("✓ From cache: %s - %s - %s", system_i, uf_i, year_i))
+          p(message = sprintf("From cache: %s - %s - %s", system_i, uf_i, year_i))
         }
       }
       tryCatch({
@@ -453,9 +448,9 @@ sus_data_import <- function(uf,
       
       if (verbose && !is.null(p)) {
         if (!is.null(month_i)) {
-          p(message = sprintf("✓ Completed: %s - %s - %s - Month %s", system_i, uf_i, year_i, month_i))
+          p(message = sprintf("Completed: %s - %s - %s - Month %s", system_i, uf_i, year_i, month_i))
         } else {
-          p(message = sprintf("✓ Completed: %s - %s - %s", system_i, uf_i, year_i))
+          p(message = sprintf("Completed: %s - %s - %s", system_i, uf_i, year_i))
         }
       }
       
@@ -575,15 +570,6 @@ sus_data_import <- function(uf,
   }
   
   combined_data <- dplyr::bind_rows(list_of_dfs)
-  
-  if (process && !is.null(combined_data) && nrow(combined_data) > 0) {
-    if (verbose) {
-      cli::cli_h2("Data Processing")
-    }
-    combined_data <- process_data_by_system(combined_data, system, verbose)
-   }
-  
-  # === PREPROCESSING DATA ===  
   # Add cache metadata as attribute
   if (use_cache) {
     cache_info <- list(
@@ -591,32 +577,17 @@ sus_data_import <- function(uf,
       cached_items = nrow(params),
       retrieved_from_cache = nrow(params) - length(list_of_dfs),
       cache_size = sum(file.info(list.files(cache_dir, full.names = TRUE))$size, na.rm = TRUE),
-      timestamp = Sys.time(),
-      processed=process
+      timestamp = Sys.time()
     )
     attr(combined_data, "cache_info") <- cache_info
   }
-  
-  if (process) {
-    processing_info <- list(
-      system = system,
-      processing_function = get_processing_function(system),
-      processing_timestamp = Sys.time(),
-      rows_before_processing = if (exists("original_rows")) original_rows else nrow(combined_data),
-      rows_after_processing = nrow(combined_data)
-    )
-    attr(combined_data, "processing_info") <- processing_info
-  }
-  
+    
   if (verbose) {
     cli::cli_alert_success("Process completed successfully!")
     cli::cli_alert_info("Total records: {format(nrow(combined_data), big.mark = ',')}")
     cli::cli_alert_info("Total columns: {ncol(combined_data)}")
     if (use_cache) {
       cli::cli_alert_info("Cache saved to: {cache_dir}")
-    }
-    if (process) {
-      cli::cli_alert_info("Data processing: {ifelse(is.null(get_processing_function(system)), 'No specific processor', 'Applied')}")
     }
   }
   

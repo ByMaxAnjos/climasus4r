@@ -92,7 +92,7 @@ sus_data_standardize <- function(df,
     }
     
     if (verbose && renamed_cols > 0) {
-      lang_names <- list(en = "English", pt = "Português", es = "Español")
+      lang_names <- list(en = "English", pt = "Portugues", es = "Espanol")
       cli::cli_alert_success("{ui_msg$translated_columns} {lang_names[[lang]]}: {renamed_cols} {if (lang == 'en') 'columns' else if (lang == 'pt') 'colunas' else 'columnas'}")
     }
   }

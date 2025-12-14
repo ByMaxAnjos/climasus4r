@@ -66,24 +66,12 @@
 #'   - `"es"`: Spanish
 #'   Affects all console output and documentation of matched codes.
 #'   
-#' @param include_metadata Logical. If TRUE (default), adds metadata columns
-#'   to the filtered results:
-#'   - `_filter_icd_codes`: Original filter codes used
-#'   - `_filter_match_type`: Match type applied
-#'   - `_filter_timestamp`: When filtering was performed
-#'   - `_filter_description`: Human-readable description of matched categories
-#'   
-#' @param validate_codes Logical. If TRUE (default), validates ICD-10 codes
-#'   against the Brazilian Ministry of Health official list and provides
-#'   warnings for deprecated or invalid codes commonly found in SUS data.
-#'   
 #' @param verbose Logical. If TRUE (default), prints detailed filtering
 #'   information including: records processed, match statistics, common
 #'   coding issues detected, and time elapsed.
 #'
 #' @return A filtered `data.frame` or `tibble` containing only records matching
 #'   the specified ICD-10 criteria. The output preserves all original columns
-#'   and adds metadata columns if `include_metadata = TRUE`.
 #'
 #' @details
 #' ## ICD-10 in the Brazilian SUS Context
@@ -138,20 +126,23 @@
 #' 4. **Year Variations**: Coding practices changed over time in SUS
 #' 5. **Training Required**: Proper ICD-10 use requires training for accurate results
 #' 
-#' Use `sus_data_validate_icd()` to check data quality before filtering.
 #'
-#' @importFrom dplyr filter bind_rows mutate select contains across if_else
 #' @importFrom stringr str_detect str_trim str_to_upper str_remove_all
 #' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_alert_warning cli_alert_danger
-#' @importFrom tibble as_tibble
+#' @importFrom rlang .data
 #'
 #' @export
 #'
 #' @examples
 #' \dontrun{
 #' # Load example SIM dataset
-#' data("sim_example")  # Contains CAUSABAS column with ICD-10 codes
-#' 
+#' # Contains CAUSABAS column with ICD-10 codes
+#' sim_example <- sus_data_import(
+#'   uf = "RJ", 
+#'   year = 2022, 
+#'   system = "SIM-DO",
+#'   use_cache = TRUE
+#' )
 #' # Example 1: Filter for respiratory diseases (Portuguese interface)
 #' df_respiratorio <- sus_data_filter_cid(
 #'   df = sim_example,
@@ -171,7 +162,6 @@
 #'   ),
 #'   icd_column = "CAUSABAS",
 #'   match_type = "range",
-#'   include_metadata = TRUE
 #' )
 #' 
 #' # Example 3: Use SUS-specific categories
@@ -186,7 +176,6 @@
 #'   df = sinan_example,
 #'   icd_codes = c("A90", "A91"),
 #'   match_type = "fuzzy",  # Handles coding variations
-#'   validate_codes = TRUE  # Warn about invalid codes
 #' )
 #' 
 #' # Example 5: Multi-language comparison
@@ -199,16 +188,10 @@
 #' 1. World Health Organization. (2016). ICD-10 International Statistical 
 #'    Classification of Diseases and Related Health Problems. 10th Revision.
 #'    
-#' 2. Brazilian Ministry of Health. (2023). Classificação Estatística 
-#'    Internacional de Doenças e Problemas Relacionados à Saúde - CID-10.
+#' 2. Brazilian Ministry of Health. (2023). Classificacao Estatistica 
+#'    Internacional de Doencas e Problemas Relacionados a Saude - CID-10.
 #'    DATASUS. \url{http://datasus.saude.gov.br/cid10}
-#'
-#' @seealso
-#' - \code{\link{sus_data_validate_icd}} Validate and clean ICD-10 codes
-#' - \code{\link{sus_data_group_causes}} Group ICD-10 codes into categories
-#' - \code{\link{sus_data_multiple_causes}} Filter across multiple cause columns
-#' - \code{\link{sus_data_import}} Import SUS data with ICD-10 codes
-#' - \code{\link{sus_data_dictionary}} ICD-10 code descriptions
+
 sus_data_filter_cid <- function(df,
                                icd_codes,
                                icd_column = NULL,
@@ -254,7 +237,7 @@ sus_data_filter_cid <- function(df,
       auto_detected_msg <- list(
         en = "Auto-detected ICD column",
         pt = "Coluna CID detectada automaticamente",
-        es = "Columna CIE detectada automáticamente"
+        es = "Columna CIE detectada automaticamente"
       )
       cli::cli_alert_info("{auto_detected_msg[[lang]]}: '{icd_column}'")
     }
@@ -307,8 +290,8 @@ sus_data_filter_cid <- function(df,
     if (records_kept == 0) {
       no_match_msg <- list(
         en = "No records matched the specified ICD codes. Please verify your filter criteria.",
-        pt = "Nenhum registro correspondeu aos códigos CID especificados. Verifique seus critérios de filtro.",
-        es = "Ningún registro coincidió con los códigos CIE especificados. Verifique sus criterios de filtro."
+        pt = "Nenhum registro correspondeu aos codigos CID especificados. Verifique seus criterios de filtro.",
+        es = "Ningun registro coincidio con los codigos CIE especificados. Verifique sus criterios de filtro."
       )
       cli::cli_alert_warning(no_match_msg[[lang]])
     }
