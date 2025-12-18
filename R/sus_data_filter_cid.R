@@ -1,9 +1,9 @@
-#' Filter SUS health data by ICD-10 codes with multilingual support
+#' Filter SUS health data by ICD-10 codes or disease groups with multilingual support
 #'
-#' Filters Brazilian Unified Health System (SUS) data based on ICD-10 codes 
-#' (International Classification of Diseases, 10th Revision). This function 
+#' Filters Brazilian Unified Health System (SUS) data based on ICD-10 codes.
+#' (International Classification of Diseases, 10th Revision) or predefined epidemiological disease groups. This function 
 #' supports complex filtering scenarios including specific codes, code ranges, 
-#' chapters, and disease groups relevant to epidemiological research in Brazil.
+#' chapters, and 50+ disease groups relevant to epidemiological research in Brazil.
 #' Includes specialized support for SUS-specific coding practices and 
 #' multilingual interface (English, Portuguese, Spanish).
 #'
@@ -41,6 +41,12 @@
 #'   - `"tb_respiratoria"`: A15-A16 (Respiratory tuberculosis)
 #'   - `"covid19"`: U07.1 (COVID-19) + U07.2 (Suspected COVID-19)
 #'   - `"violencia"`: X85-Y09 (Assault) + Y35-Y36 (Legal intervention)
+#' 
+#'   **Note**: Either `icd_codes` OR `disease_group` must be provided, not both.
+#' 
+#' @param disease_group Character. Name of predefined disease group (e.g., "dengue", 
+#'   "cardiovascular", "respiratory"). Use `list_disease_groups()` to see all available groups.
+#'   Mutually exclusive with `icd_codes`.
 #'   
 #' @param icd_column Character. Name of the column containing ICD-10 codes.
 #'   If NULL (default), the function attempts auto-detection from common SUS
@@ -71,60 +77,31 @@
 #'   coding issues detected, and time elapsed.
 #'
 #' @return A filtered `data.frame` or `tibble` containing only records matching
-#'   the specified ICD-10 criteria. The output preserves all original columns
+#'   the specified ICD-10 codes or disease group. The output preserves all original columns
 #'
 #' @details
-#' ## ICD-10 in the Brazilian SUS Context
-#' The Brazilian Ministry of Health adopted ICD-10 in 1996 for mortality
-#' statistics (SIM) and later for morbidity (SIH, SINAN). Key characteristics:
+#' ## Automatic ICD Column Detection
 #' 
-#' 1. **Code Format**: Standard ICD-10 format (letter + 2 digits + optional decimal)
-#' 2. **SUS Extensions**: Some codes have Brazilian extensions (e.g., U07.1 for COVID-19)
-#' 3. **Multiple Causes**: SIM data includes up to 6 cause lines (linha_a to linha_f)
-#' 4. **Common Issues**: Inconsistent formatting, extra spaces, deprecated codes
+#' The function automatically identifies the appropriate ICD column based on the
+#' health system
 #' 
-#' ## Filtering Algorithm Details
+#' ## Disease Groups
 #' 
-#' **Exact Matching**: Case-insensitive exact string match
-#' **Starts_with Matching**: Uses regex `^CODE` for prefix matching
-#' **Range Matching**: Handles both simple (A00-A09) and complex ranges
-#' **Chapter Matching**: Maps single letters to full chapter ranges
-#' **Fuzzy Matching**: Accounts for common SUS data quality issues:
-#'   - Trailing/leading spaces
-#'   - Missing dots (A000 vs A00.0)
-#'   - Extra characters (A00.0X)
-#'   - Case variations
+#' The function includes 50+ predefined epidemiological groups organized by:
 #' 
-#' ## Performance Considerations
-#' - For large datasets (>1M rows), consider preprocessing ICD column
-#' - Range matching is slower than exact/starts_with
-#' - Fuzzy matching has additional computational cost
-#' - Metadata columns add minimal overhead
+#' - **ICD Chapters**: All major disease categories (A00-Y98)
+#' - **Climate-Sensitive Diseases**: Vector-borne, waterborne, heat-related, etc.
+#' - **Specific Conditions**: Dengue, malaria, cardiovascular, respiratory, etc.
+#' - **Syndromic Groups**: Fever, respiratory, diarrheal syndromes
+#' - **Age-Specific Groups**: Pediatric, elderly populations
 #' 
-#' ## SUS-Specific Features
-#' 1. **Automatic mapping** of Brazilian Portuguese disease groups
-#' 2. **Validation** against SUS-specific code lists
-#' 3. **Support** for multiple cause of death lines
-#' 4. **Detection** of common SUS data entry errors
-#' 5. **Integration** with other `climasus4r` functions
-#'
-#' @section ICD-10 Chapters Relevant to Climate-Health Research:
-#' Common chapters for environmental health studies:
-#' - **J00-J99**: Respiratory diseases (air pollution, climate)
-#' - **A00-A09**: Intestinal infectious diseases (water quality, temperature)
-#' - **A15-A19**: Tuberculosis (crowding, ventilation)
-#' - **A90-A99**: Viral fevers (dengue, Zika, climate vectors)
-#' - **I00-I99**: Circulatory diseases (heat waves, cold spells)
-#' - **T66-T78**: Other external causes (temperature extremes)
-#' - **X30-X39**: Exposure to forces of nature (climate events)
-#'
-#' @note
-#' Important considerations for SUS data:
-#' 1. **Code Updates**: ICD-10 is periodically updated; some older codes deprecated
-#' 2. **Data Quality**: SIM has >90% completeness, but coding errors occur
-#' 3. **Multiple Causes**: Consider filtering multiple cause columns for completeness
-#' 4. **Year Variations**: Coding practices changed over time in SUS
-#' 5. **Training Required**: Proper ICD-10 use requires training for accurate results
+#' Each group includes:
+#' - ICD code ranges
+#' - Multilingual labels and descriptions
+#' - Climate sensitivity flag
+#' - Associated climate factors
+#' 
+#' Use `list_disease_groups()` to see all available groups and their details.
 #' 
 #'
 #' @importFrom stringr str_detect str_trim str_to_upper str_remove_all
@@ -135,53 +112,49 @@
 #'
 #' @examples
 #' \dontrun{
-#' # Load example SIM dataset
-#' # Contains CAUSABAS column with ICD-10 codes
-#' sim_example <- sus_data_import(
-#'   uf = "RJ", 
-#'   year = 2022, 
-#'   system = "SIM-DO",
-#'   use_cache = TRUE
-#' )
-#' # Example 1: Filter for respiratory diseases (Portuguese interface)
-#' df_respiratorio <- sus_data_filter_cid(
-#'   df = sim_example,
-#'   icd_codes = "J00-J99",
-#'   lang = "pt",
-#'   verbose = TRUE
+#' # Example 1: Filter by explicit ICD codes
+#' df_cardio <- sus_data_filter_cid(
+#'   sim_data,
+#'   icd_codes = "I00-I99",
+#'   lang = "en"
 #' )
 #' 
-#' # Example 2: Filter for climate-sensitive diseases
-#' df_climate <- sus_data_filter_cid(
-#'   df = sim_example,
-#'   icd_codes = c(
-#'     "J00-J99",      # Respiratory
-#'     "A00-A09",      # Intestinal infectious
-#'     "A90-A99",      # Arthropod-borne viral
-#'     "I10-I15"       # Hypertensive diseases
-#'   ),
-#'   icd_column = "CAUSABAS",
-#'   match_type = "range",
-#' )
-#' 
-#' # Example 3: Use SUS-specific categories
-#' df_maternal <- sus_data_filter_cid(
-#'   df = sim_example,
-#'   icd_codes = "causas_maternas",  # Maps to O00-O99
+#' # Example 2: Filter by disease group (easier!)
+#' df_dengue <- sus_data_filter_cid(
+#'   sinan_data,
+#'   disease_group = "dengue",
 #'   lang = "pt"
 #' )
 #' 
-#' # Example 4: Filter with fuzzy matching for data quality issues
-#' df_dengue <- sus_data_filter_cid(
-#'   df = sinan_example,
-#'   icd_codes = c("A90", "A91"),
-#'   match_type = "fuzzy",  # Handles coding variations
+#' # Example 3: Climate-sensitive diseases
+#' df_climate <- sus_data_filter_cid(
+#'   sim_data,
+#'   disease_group = "climate_sensitive_all",
+#'   lang = "en"
 #' )
 #' 
-#' # Example 5: Multi-language comparison
-#' df_english <- sus_data_filter_cid(df, "I10-I15", lang = "en")
-#' df_portugues <- sus_data_filter_cid(df, "I10-I15", lang = "pt")
-#' df_espanhol <- sus_data_filter_cid(df, "I10-I15", lang = "es")
+#' # Example 4: Multiple specific codes
+#' df_ami_stroke <- sus_data_filter_cid(
+#'   sih_data,
+#'   icd_codes = c("I21", "I22", "I63", "I64"),
+#'   lang = "es"
+#' )
+#' 
+#' # Example 5: Respiratory diseases in children
+#' df_pediatric <- sus_data_filter_cid(
+#'   sih_data,
+#'   disease_group = "pediatric_respiratory",
+#'   lang = "pt"
+#' )
+#' 
+#' # List all available disease groups
+#' list_disease_groups(lang = "pt")
+#' 
+#' # List only climate-sensitive groups
+#' list_disease_groups(climate_sensitive_only = TRUE, lang = "en")
+#' 
+#' # Get details about a specific group
+#' get_disease_group_details("dengue", lang = "pt")
 #' }
 #'
 #' @references
@@ -191,192 +164,485 @@
 #' 2. Brazilian Ministry of Health. (2023). Classificacao Estatistica 
 #'    Internacional de Doencas e Problemas Relacionados a Saude - CID-10.
 #'    DATASUS. \url{http://datasus.saude.gov.br/cid10}
-
+#' 
 sus_data_filter_cid <- function(df,
-                               icd_codes,
-                               icd_column = NULL,
-                               match_type = "starts_with",
-                               lang = "en",
-                               verbose = TRUE) {
+                                icd_codes = NULL,
+                                disease_group = NULL,
+                                icd_column = NULL,
+                                match_type = "starts_with",
+                                lang = "en",
+                                verbose = TRUE) {
   
-  # Input validation
+  # ============================================================================
+  # Input Validation
+  # ============================================================================
+  
   if (!is.data.frame(df)) {
     cli::cli_alert_danger("Input 'df' must be a data.frame.")
     stop("Invalid input type.")
   }
   
-  if (missing(icd_codes) || length(icd_codes) == 0) {
-    cli::cli_alert_danger("Argument 'icd_codes' is required and cannot be empty.")
-    stop("Missing ICD codes.")
+  if (nrow(df) == 0) {
+    cli::cli_alert_warning("Input data frame is empty. Returning as-is.")
+    return(df)
   }
   
-  # Validate language and get UI messages
+  # Validate language
   if (!lang %in% c("en", "pt", "es")) {
     cli::cli_alert_warning("Language '{lang}' not supported. Using English (en).")
     lang <- "en"
   }
   
+  # Get UI messages
   ui_msg <- get_ui_messages(lang)
   
-  # Auto-detect ICD column if not specified
-  if (is.null(icd_column)) {
-    # Try multiple possible column names in different languages
-    possible_cols <- c(
-      "underlying_cause", "causa_basica", "CAUSABAS",  # Main cause
-      "cause_line_a", "linha_causa_a", "LINHAA"        # Alternative
+  # ============================================================================
+  # Handle icd_codes vs disease_group
+  # ============================================================================
+  
+  # Check that at least one is provided
+  if (is.null(icd_codes) && is.null(disease_group)) {
+    msg <- list(
+      en = "Either 'icd_codes' or 'disease_group' must be provided.",
+      pt = "E necessario fornecer 'icd_codes' ou 'disease_group'.",
+      es = "Debe proporcionar 'icd_codes' o 'disease_group'."
     )
-    icd_column <- possible_cols[possible_cols %in% names(df)][1]
+    cli::cli_alert_danger(msg[[lang]])
+    stop("Missing required parameter.")
+  }
+  
+  # Check that both are not provided
+  if (!is.null(icd_codes) && !is.null(disease_group)) {
+    msg <- list(
+      en = "Both 'icd_codes' and 'disease_group' provided. Using 'disease_group' and ignoring 'icd_codes'.",
+      pt = "Ambos 'icd_codes' e 'disease_group' fornecidos. Usando 'disease_group' e ignorando 'icd_codes'.",
+      es = "Se proporcionaron 'icd_codes' y 'disease_group'. Usando 'disease_group' e ignorando 'icd_codes'."
+    )
+    cli::cli_alert_warning(msg[[lang]])
+    icd_codes <- NULL  # Prioritize disease_group
+  }
+  
+  # ============================================================================
+  # Process disease_group if provided
+  # ============================================================================
+  
+  if (!is.null(disease_group)) {
     
-    if (is.na(icd_column)) {
-      cli::cli_alert_danger("Could not find ICD-10 column. Please specify 'icd_column' parameter.")
-      cli::cli_alert_info("Available columns: {paste(names(df), collapse = ', ')}")
-      stop("ICD column not found.")
+    # Validate disease group exists
+    if (!disease_group %in% names(.icd_disease_groups)) {
+      available_groups <- paste(names(.icd_disease_groups), collapse = ", ")
+      msg <- list(
+        en = paste0("Invalid disease group '", disease_group, "'. Available groups: ", available_groups),
+        pt = paste0("Grupo de doenca invalido '", disease_group, "'. Grupos disponiveis: ", available_groups),
+        es = paste0("Grupo de enfermedad invalido '", disease_group, "'. Grupos disponibles: ", available_groups)
+      )
+      cli::cli_alert_danger(msg[[lang]])
+      stop("Invalid disease_group parameter.")
+    }
+    
+    # Get group information
+    group_info <- get_disease_group_info(disease_group, lang)
+    
+    # Extract ICD codes from group
+    icd_codes <- group_info$codes
+    
+    # Print group information if verbose
+    if (verbose) {
+      msg_header <- list(
+        en = "Epidemiological Disease Group",
+        pt = "Grupo Epidemiologico de Doencas",
+        es = "Grupo Epidemiologico de Enfermedades"
+      )
+      cli::cli_h1(msg_header[[lang]])
+      
+      msg_group <- list(
+        en = paste0("Group: ", group_info$label),
+        pt = paste0("Grupo: ", group_info$label),
+        es = paste0("Grupo: ", group_info$label)
+      )
+      cli::cli_alert_info(msg_group[[lang]])
+      
+      if (!is.null(group_info$description)) {
+        msg_desc <- list(
+          en = paste0("Description: ", group_info$description),
+          pt = paste0("Descricao: ", group_info$description),
+          es = paste0("Descripcion: ", group_info$description)
+        )
+        cli::cli_alert_info(msg_desc[[lang]])
+      }
+      
+      msg_codes <- list(
+        en = paste0("ICD codes: ", paste(icd_codes, collapse = ", ")),
+        pt = paste0("Codigos CID: ", paste(icd_codes, collapse = ", ")),
+        es = paste0("Codigos CIE: ", paste(icd_codes, collapse = ", "))
+      )
+      cli::cli_alert_info(msg_codes[[lang]])
+      
+      if (group_info$climate_sensitive) {
+        msg_climate <- list(
+          en = "! Climate-sensitive disease group",
+          pt = "! Grupo sensivel a variaveis climaticas",
+          es = "! Grupo sensible a variables climaticas"
+        )
+        cli::cli_alert_warning(msg_climate[[lang]])
+        
+        if (!is.null(group_info$climate_factors)) {
+          msg_factors <- list(
+            en = paste0("Climate factors: ", paste(group_info$climate_factors, collapse = ", ")),
+            pt = paste0("Fatores climaticos: ", paste(group_info$climate_factors, collapse = ", ")),
+            es = paste0("Factores climaticos: ", paste(group_info$climate_factors, collapse = ", "))
+          )
+          cli::cli_alert_info(msg_factors[[lang]])
+        }
+      }
+    }
+  }
+  
+  # ============================================================================
+  # Auto-detect ICD column if not specified
+  # ============================================================================
+  
+  if (is.null(icd_column)) {
+    
+    # Detect health system
+    detected_system <- detect_health_system(df)
+
+    if(lang == "en"){ 
+    # Priority order by system (all 6 major SUS systems)
+    icd_column_priority <- list(
+      SIM = c("underlying_cause", "underlying_cause_original", "cause_line_a", "cause_line_b", "cause_line_c", "cause_line_d"),
+      SIH = c("primary_diagnosis", "secondary_diagnosis", "death_cause", "notified_cause", paste0("secondary_diagnosis_", 1:9)),
+      SIA = c("primary_icd", "secondary_icd", "associated_icd"),
+      SINASC = c("underlying_cause", "maternal_cause", "fetal_cause"),  # Birth system - uses ICD for maternal/fetal deaths
+      CNES = character(0),  # CNES does not use ICD-10 codes (establishment registry)
+      SINAN = character(0)  # SINAN uses disease-specific codes, not ICD-10
+    )
+    } else if (lang == "pt") {
+      icd_column_priority <- list(
+      SIM = c("causa_basica", "causa_basica_original", "linha_causa_a", "linha_causa_b", "linha_causa_c", "linha_causa_d"),
+      SIH = c("diagnostico_principal", "diagnostico_secundario", "causa_morte", "causa_notificada", paste0("diagnostico_secundario_", 1:9)),
+      SIA = c("cid_principal", "cid_secundario", "cid_associado"),
+      SINASC = c("causa_basica", "causa_materna", "causa_fetal"),
+      CNES = character(0),  # CNES nao usa codigos CID-10 (cadastro de estabelecimentos)
+      SINAN = character(0)  # SINAN usa codigos especificos de agravos, nao CID-10
+    )
+    } else { 
+      icd_column_priority <- list(
+      SIM = c("causa_basica", "causa_basica_original", "linea_causa_a", "linea_causa_b", "linea_causa_c", "linea_causa_d"),
+      SIH = c("diagnostico_principal", "diagnostico_secundario", "causa_muerte", "causa_notificada", paste0("diagnostico_secundario_", 1:9)),
+      SIA = c("cie_principal", "cie_secundario", "cie_asociado"),
+      SINASC = c("causa_basica", "causa_materna", "causa_fetal"),
+      CNES = character(0),  # CNES no usa codigos CIE-10 (registro de establecimientos)
+      SINAN = character(0)  # SINAN usa codigos especificos de enfermedades, no CIE-10
+    )
+    }
+    
+    if (detected_system %in% names(icd_column_priority)) {
+      possible_cols <- icd_column_priority[[detected_system]]
+      icd_column <- possible_cols[possible_cols %in% names(df)][1]
+    }
+    
+    # If still NULL, try common patterns
+    if (is.null(icd_column) || is.na(icd_column)) {
+      icd_pattern_cols <- grep("CID|CAUSA|DIAG", names(df), value = TRUE, ignore.case = TRUE)
+      if (length(icd_pattern_cols) > 0) {
+        icd_column <- icd_pattern_cols[1]
+      }
+    }
+    
+    # If still NULL, error
+    if (is.null(icd_column) || is.na(icd_column)) {
+      msg <- list(
+        en = "No ICD column found. This system may not use ICD-10 codes (e.g., SINAN, SINASC, CNES).",
+        pt = "Nenhuma coluna CID encontrada. Este sistema pode nao usar codigos CID-10 (ex: SINAN, SINASC, CNES).",
+        es = "No se encontro columna CIE. Este sistema puede no usar codigos CIE-10 (ej: SINAN, SINASC, CNES)."
+      )
+      cli::cli_alert_danger(msg[[lang]])
+      stop("No ICD column available for filtering.")
     }
     
     if (verbose) {
-      auto_detected_msg <- list(
-        en = "Auto-detected ICD column",
-        pt = "Coluna CID detectada automaticamente",
-        es = "Columna CIE detectada automaticamente"
+      msg_detected <- list(
+        en = paste0("Auto-detected ICD column: ", icd_column),
+        pt = paste0("Coluna CID detectada automaticamente: ", icd_column),
+        es = paste0("Columna CIE detectada automaticamente: ", icd_column)
       )
-      cli::cli_alert_info("{auto_detected_msg[[lang]]}: '{icd_column}'")
+      cli::cli_alert_info(msg_detected[[lang]])
     }
   }
   
-  # Verify column exists
+  # Validate column exists
   if (!icd_column %in% names(df)) {
-    cli::cli_alert_danger("Column '{icd_column}' not found in the data.")
-    stop("Invalid ICD column name.")
+    msg <- list(
+      en = paste0("Column '", icd_column, "' not found in data."),
+      pt = paste0("Coluna '", icd_column, "' nao encontrada nos dados."),
+      es = paste0("Columna '", icd_column, "' no encontrada en los datos.")
+    )
+    cli::cli_alert_danger(msg[[lang]])
+    stop("ICD column not found.")
   }
   
-  if (verbose) {
-    cli::cli_h1(ui_msg$filtering_header)
-    cli::cli_alert_info("{ui_msg$original_records}: {format(nrow(df), big.mark = ',')}")
-    cli::cli_alert_info("{ui_msg$icd_column}: '{icd_column}'")
-    cli::cli_alert_info("{ui_msg$filter_codes}: {paste(icd_codes, collapse = ', ')}")
-    cli::cli_alert_info("{ui_msg$match_type}: {match_type}")
-  }
+  # ============================================================================
+  # Process ICD codes and filter
+  # ============================================================================
   
-  # Process ICD codes and create filter patterns
-  filter_patterns <- process_icd_codes(icd_codes, match_type)
+  # Expand ICD code ranges
+  expanded_codes <- process_icd_codes(icd_codes)
   
-  # Apply filtering
-  filtered_df <- df
-  
+  # Create filter condition based on match_type
   if (match_type == "exact") {
-    # Exact matching
-    filtered_df <- dplyr::filter(df, .data[[icd_column]] %in% filter_patterns)
-    
+    filtered_df <- df[df[[icd_column]] %in% expanded_codes, ]
   } else if (match_type == "starts_with") {
-    # Pattern matching (starts with)
-    pattern_regex <- paste0("^(", paste(filter_patterns, collapse = "|"), ")")
-    filtered_df <- dplyr::filter(df, grepl(pattern_regex, .data[[icd_column]], ignore.case = TRUE))
-    
+    pattern <- paste0("^(", paste(expanded_codes, collapse = "|"), ")")
+    filtered_df <- df[grepl(pattern, df[[icd_column]], ignore.case = FALSE), ]
   } else if (match_type == "range") {
-    # Range matching
-    filtered_df <- filter_by_icd_range(df, icd_column, filter_patterns)
+    pattern <- paste(expanded_codes, collapse = "|")
+    filtered_df <- df[grepl(pattern, df[[icd_column]], ignore.case = FALSE), ]
+  } else {
+    cli::cli_alert_warning("Invalid match_type. Using 'starts_with'.")
+    pattern <- paste0("^(", paste(expanded_codes, collapse = "|"), ")")
+    filtered_df <- df[grepl(pattern, df[[icd_column]], ignore.case = FALSE), ]
   }
   
+  # ============================================================================
   # Report results
+  # ============================================================================
+  
   if (verbose) {
-    records_kept <- nrow(filtered_df)
-    records_removed <- nrow(df) - records_kept
-    pct_kept <- round(100 * records_kept / nrow(df), 2)
-    
-    cli::cli_alert_success("{ui_msg$filtering_completed}")
-    cli::cli_alert_info("{ui_msg$records_kept}: {format(records_kept, big.mark = ',')} ({pct_kept}%)")
-    cli::cli_alert_info("{ui_msg$records_removed}: {format(records_removed, big.mark = ',')}")
-    
-    if (records_kept == 0) {
-      no_match_msg <- list(
-        en = "No records matched the specified ICD codes. Please verify your filter criteria.",
-        pt = "Nenhum registro correspondeu aos codigos CID especificados. Verifique seus criterios de filtro.",
-        es = "Ningun registro coincidio con los codigos CIE especificados. Verifique sus criterios de filtro."
-      )
-      cli::cli_alert_warning(no_match_msg[[lang]])
-    }
+  # 1. Configurações de localidade rápidas
+  b_mark <- if(lang == "en") "," else "."
+  d_mark <- if(lang == "en") "." else ","
+  
+  # 2. Formatação dos valores
+  n_orig_txt <- format(nrow(df), big.mark = b_mark, decimal.mark = d_mark)
+  n_filt_txt <- format(nrow(filtered_df), big.mark = b_mark, decimal.mark = d_mark)
+  pct <- round(100 * nrow(filtered_df) / nrow(df), 1)
+  pct_txt <- gsub("\\.", d_mark, as.character(pct))
+  
+  # 3. Mensagens traduzidas
+  if (lang == "pt") {
+    cli::cli_alert_info("Registros originais: {n_orig_txt}")
+    cli::cli_alert_success("Registros filtrados: {n_filt_txt}")
+    cli::cli_alert_info("Percentual retido: {pct_txt}%")
+  } else if (lang == "es") {
+    cli::cli_alert_info("Registros originales: {n_orig_txt}")
+    cli::cli_alert_success("Registros filtrados: {n_filt_txt}")
+    cli::cli_alert_info("Porcentaje retenido: {pct_txt}%")
+  } else {
+    cli::cli_alert_info("Original records: {n_orig_txt}")
+    cli::cli_alert_success("Filtered records: {n_filt_txt}")
+    cli::cli_alert_info("Percentage retained: {pct_txt}%")
   }
+}
   
   return(filtered_df)
 }
 
 
-#' Process ICD codes into filter patterns
+#' List available disease groups
 #'
-#' Internal function to process user-provided ICD codes into filter patterns.
+#' Returns a data frame with all available disease groups, their labels,
+#' and climate sensitivity.
 #'
-#' @param icd_codes Character vector of ICD codes
-#' @param match_type Type of matching
+#' @param climate_sensitive_only Logical. If TRUE, returns only climate-sensitive groups.
+#' @param lang Character. Language for labels ("en", "pt", "es"). Default "en".
+#' @param verbose Logical. If TRUE, prints summary information. Default TRUE.
 #'
-#' @return Character vector of processed patterns
-#' @keywords internal
-process_icd_codes <- function(icd_codes, match_type) {
+#' @return A data.frame with columns: group_name, label, climate_sensitive, n_codes.
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' # List all groups in Portuguese
+#' list_disease_groups(lang = "pt")
+#' 
+#' # List only climate-sensitive groups in English
+#' list_disease_groups(climate_sensitive_only = TRUE, lang = "en")
+#' }
+list_disease_groups <- function(climate_sensitive_only = FALSE, lang = "en", verbose = TRUE) {
   
-  patterns <- c()
-  
-  for (code in icd_codes) {
-    # Check if it's a range (e.g., "J00-J99")
-    if (grepl("-", code)) {
-      if (match_type == "range") {
-        patterns <- c(patterns, code)
-      } else {
-        # For starts_with, extract the prefix
-        prefix <- sub("-.*", "", code)
-        patterns <- c(patterns, prefix)
-      }
-    } else {
-      # Single code or prefix
-      patterns <- c(patterns, code)
-    }
+  # Validate language
+  if (!lang %in% c("en", "pt", "es")) {
+    cli::cli_alert_warning("Language '{lang}' not supported. Using English (en).")
+    lang <- "en"
   }
   
-  return(unique(patterns))
+  # Get all group names
+  all_groups <- names(.icd_disease_groups)
+  
+  # Filter by climate sensitivity if requested
+  if (climate_sensitive_only) {
+    all_groups <- all_groups[sapply(.icd_disease_groups, function(x) x$climate_sensitive)]
+  }
+  
+  # Build data frame
+  result <- data.frame(
+    group_name = all_groups,
+    label = sapply(all_groups, function(g) .icd_disease_groups[[g]]$label[[lang]]),
+    climate_sensitive = sapply(all_groups, function(g) .icd_disease_groups[[g]]$climate_sensitive),
+    n_codes = sapply(all_groups, function(g) length(.icd_disease_groups[[g]]$codes)),
+    stringsAsFactors = FALSE
+  )
+  
+  rownames(result) <- NULL
+  
+  # Print summary if verbose
+  if (verbose) {
+    msg_header <- list(
+      en = "Available Disease Groups",
+      pt = "Grupos de Doencas Disponiveis",
+      es = "Grupos de Enfermedades Disponibles"
+    )
+    cli::cli_h1(msg_header[[lang]])
+    
+    msg_total <- list(
+      en = paste0("Total groups: ", nrow(result)),
+      pt = paste0("Total de grupos: ", nrow(result)),
+      es = paste0("Total de grupos: ", nrow(result))
+    )
+    cli::cli_alert_info(msg_total[[lang]])
+    
+    n_climate <- sum(result$climate_sensitive)
+    msg_climate <- list(
+      en = paste0("Climate-sensitive groups: ", n_climate),
+      pt = paste0("Grupos sensiveis ao clima: ", n_climate),
+      es = paste0("Grupos sensibles al clima: ", n_climate)
+    )
+    cli::cli_alert_info(msg_climate[[lang]])
+  }
+  
+  return(result)
 }
 
 
-#' Filter by ICD-10 code range
+#' Get disease group details
 #'
-#' Internal function to filter data by ICD-10 code ranges.
+#' Returns detailed information about a specific disease group including
+#' ICD codes, description, and climate factors.
 #'
-#' @param df Data frame
-#' @param icd_column Name of ICD column
-#' @param ranges Character vector of ranges
+#' @param group_name Character (e.g, "dengue", "cardiovascular"). Name of the disease group.
+#' @param lang Character. Language for output ("en", "pt", "es"). Default "en".
 #'
-#' @return Filtered data frame
+#' @return A list with detailed group information.
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' # Get details about dengue in Portuguese
+#' get_disease_group_details("dengue", lang = "pt")
+#' 
+#' # Get details about cardiovascular diseases in English
+#' get_disease_group_details("cardiovascular", lang = "en")
+#' }
+get_disease_group_details <- function(group_name, lang = "en") {
+  
+  # Validate language
+  if (!lang %in% c("en", "pt", "es")) {
+    cli::cli_alert_warning("Language '{lang}' not supported. Using English (en).")
+    lang <- "en"
+  }
+  
+  # Validate group exists
+  if (!group_name %in% names(.icd_disease_groups)) {
+    available <- paste(names(.icd_disease_groups), collapse = ", ")
+    msg <- list(
+      en = paste0("Invalid disease group '", group_name, "'. Available: ", available),
+      pt = paste0("Grupo invalido '", group_name, "'. Disponiveis: ", available),
+      es = paste0("Grupo invalido '", group_name, "'. Disponibles: ", available)
+    )
+    cli::cli_alert_danger(msg[[lang]])
+    stop("Invalid disease_group.")
+  }
+  
+  # Get group info
+  info <- get_disease_group_info(group_name, lang)
+  
+  # Print formatted output
+  msg_header <- list(
+    en = paste0("Disease Group: ", info$label),
+    pt = paste0("Grupo de Doencas: ", info$label),
+    es = paste0("Grupo de Enfermedades: ", info$label)
+  )
+  cli::cli_h1(msg_header[[lang]])
+  
+  msg_name <- list(
+    en = paste0("Internal name: ", info$name),
+    pt = paste0("Nome interno: ", info$name),
+    es = paste0("Nombre interno: ", info$name)
+  )
+  cli::cli_alert_info(msg_name[[lang]])
+  
+  if (!is.null(info$description)) {
+    msg_desc <- list(
+      en = paste0("Description: ", info$description),
+      pt = paste0("Descricao: ", info$description),
+      es = paste0("Descripcion: ", info$description)
+    )
+    cli::cli_alert_info(msg_desc[[lang]])
+  }
+  
+  msg_codes <- list(
+    en = paste0("ICD codes: ", paste(info$codes, collapse = ", ")),
+    pt = paste0("Codigos CID: ", paste(info$codes, collapse = ", ")),
+    es = paste0("Codigos CIE: ", paste(info$codes, collapse = ", "))
+  )
+  cli::cli_alert_info(msg_codes[[lang]])
+  
+  msg_climate <- list(
+    en = paste0("Climate-sensitive: ", ifelse(info$climate_sensitive, "Yes", "No")),
+    pt = paste0("Sensivel ao clima: ", ifelse(info$climate_sensitive, "Sim", "Nao")),
+    es = paste0("Sensible al clima: ", ifelse(info$climate_sensitive, "Si", "No"))
+  )
+  cli::cli_alert_info(msg_climate[[lang]])
+  
+  if (info$climate_sensitive && !is.null(info$climate_factors)) {
+    msg_factors <- list(
+      en = paste0("Climate factors: ", paste(info$climate_factors, collapse = ", ")),
+      pt = paste0("Fatores climaticos: ", paste(info$climate_factors, collapse = ", ")),
+      es = paste0("Factores climaticos: ", paste(info$climate_factors, collapse = ", "))
+    )
+    cli::cli_alert_info(msg_factors[[lang]])
+  }
+  
+  return(invisible(info))
+}
+
+
+#' Helper function to process ICD code ranges
+#'
 #' @keywords internal
-filter_by_icd_range <- function(df, icd_column, ranges) {
+#' @noRd
+process_icd_codes <- function(codes) {
+  expanded <- c()
   
-  # Initialize result as empty
-  result <- df[0, ]
-  
-  for (range in ranges) {
-    if (grepl("-", range)) {
-      # Parse range
-      parts <- strsplit(range, "-")[[1]]
+  for (code in codes) {
+    if (grepl("-", code)) {
+      parts <- strsplit(code, "-")[[1]]
       start_code <- trimws(parts[1])
       end_code <- trimws(parts[2])
       
-      # Extract chapter letter
-      chapter <- substr(start_code, 1, 1)
+      start_letter <- substr(start_code, 1, 1)
+      start_num_str <- substr(start_code, 2, nchar(start_code))
+      start_num <- if(nchar(start_num_str) > 0) as.numeric(start_num_str) else 0
       
-      # Extract numeric parts
-      start_num <- as.numeric(gsub("[^0-9]", "", start_code))
-      end_num <- as.numeric(gsub("[^0-9]", "", end_code))
+      end_letter <- substr(end_code, 1, 1)
+      end_num_str <- substr(end_code, 2, nchar(end_code))
+      end_num <- if(nchar(end_num_str) > 0) as.numeric(end_num_str) else 99
       
-      # Filter records within range
-      temp <- dplyr::filter(
-        df,
-        grepl(paste0("^", chapter), .data[[icd_column]]) &
-          as.numeric(gsub("[^0-9]", "", .data[[icd_column]])) >= start_num &
-          as.numeric(gsub("[^0-9]", "", .data[[icd_column]])) <= end_num
-      )
+      if (start_letter != end_letter) {
+        warning(paste0("ICD range '", code, "' spans different chapters. Using start chapter only."))
+        end_letter <- start_letter
+      }
       
-      result <- dplyr::bind_rows(result, temp)
+      for (num in start_num:end_num) {
+        expanded <- c(expanded, paste0(start_letter, sprintf("%02d", num)))
+      }
+    } else {
+      expanded <- c(expanded, code)
     }
   }
   
-  # Remove duplicates
-  result <- unique(result)
-  
-  return(result)
+  return(unique(expanded))
 }

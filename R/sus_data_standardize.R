@@ -58,9 +58,12 @@ sus_data_standardize <- function(df,
   
   trans_dict <- get_translation_dict(lang)
   ui_msg <- get_ui_messages(lang)
-  
+  # Detect health system
+  detected_system <- detect_health_system(df)
+
   if (verbose) {
     cli::cli_h1(ui_msg$standardization_header)
+    cli::cli_alert_info("{ui_msg$detected_system}:{detected_system}")
     cli::cli_alert_info("{ui_msg$original_columns}: {ncol(df)}")
     cli::cli_alert_info("{ui_msg$original_records}: {format(nrow(df), big.mark = ',')}")
   }

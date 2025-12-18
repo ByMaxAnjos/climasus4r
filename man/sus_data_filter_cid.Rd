@@ -2,11 +2,12 @@
 % Please edit documentation in R/sus_data_filter_cid.R
 \name{sus_data_filter_cid}
 \alias{sus_data_filter_cid}
-\title{Filter SUS health data by ICD-10 codes with multilingual support}
+\title{Filter SUS health data by ICD-10 codes or disease groups with multilingual support}
 \usage{
 sus_data_filter_cid(
   df,
-  icd_codes,
+  icd_codes = NULL,
+  disease_group = NULL,
   icd_column = NULL,
   match_type = "starts_with",
   lang = "en",
@@ -58,7 +59,13 @@ Multiple syntaxes are supported:
 \item \code{"tb_respiratoria"}: A15-A16 (Respiratory tuberculosis)
 \item \code{"covid19"}: U07.1 (COVID-19) + U07.2 (Suspected COVID-19)
 \item \code{"violencia"}: X85-Y09 (Assault) + Y35-Y36 (Legal intervention)
-}}
+}
+
+\strong{Note}: Either \code{icd_codes} OR \code{disease_group} must be provided, not both.}
+
+\item{disease_group}{Character. Name of predefined disease group (e.g., "dengue",
+"cardiovascular", "respiratory"). Use \code{list_disease_groups()} to see all available groups.
+Mutually exclusive with \code{icd_codes}.}
 
 \item{icd_column}{Character. Name of the column containing ICD-10 codes.
 If NULL (default), the function attempts auto-detection from common SUS
@@ -96,136 +103,90 @@ coding issues detected, and time elapsed.}
 }
 \value{
 A filtered \code{data.frame} or \code{tibble} containing only records matching
-the specified ICD-10 criteria. The output preserves all original columns
+the specified ICD-10 codes or disease group. The output preserves all original columns
 }
 \description{
-Filters Brazilian Unified Health System (SUS) data based on ICD-10 codes
-(International Classification of Diseases, 10th Revision). This function
+Filters Brazilian Unified Health System (SUS) data based on ICD-10 codes.
+(International Classification of Diseases, 10th Revision) or predefined epidemiological disease groups. This function
 supports complex filtering scenarios including specific codes, code ranges,
-chapters, and disease groups relevant to epidemiological research in Brazil.
+chapters, and 50+ disease groups relevant to epidemiological research in Brazil.
 Includes specialized support for SUS-specific coding practices and
 multilingual interface (English, Portuguese, Spanish).
 }
 \details{
-\subsection{ICD-10 in the Brazilian SUS Context}{
+\subsection{Automatic ICD Column Detection}{
 
-The Brazilian Ministry of Health adopted ICD-10 in 1996 for mortality
-statistics (SIM) and later for morbidity (SIH, SINAN). Key characteristics:
-\enumerate{
-\item \strong{Code Format}: Standard ICD-10 format (letter + 2 digits + optional decimal)
-\item \strong{SUS Extensions}: Some codes have Brazilian extensions (e.g., U07.1 for COVID-19)
-\item \strong{Multiple Causes}: SIM data includes up to 6 cause lines (linha_a to linha_f)
-\item \strong{Common Issues}: Inconsistent formatting, extra spaces, deprecated codes
-}
+The function automatically identifies the appropriate ICD column based on the
+health system
 }
 
-\subsection{Filtering Algorithm Details}{
+\subsection{Disease Groups}{
 
-\strong{Exact Matching}: Case-insensitive exact string match
-\strong{Starts_with Matching}: Uses regex \verb{^CODE} for prefix matching
-\strong{Range Matching}: Handles both simple (A00-A09) and complex ranges
-\strong{Chapter Matching}: Maps single letters to full chapter ranges
-\strong{Fuzzy Matching}: Accounts for common SUS data quality issues:
+The function includes 50+ predefined epidemiological groups organized by:
 \itemize{
-\item Trailing/leading spaces
-\item Missing dots (A000 vs A00.0)
-\item Extra characters (A00.0X)
-\item Case variations
-}
+\item \strong{ICD Chapters}: All major disease categories (A00-Y98)
+\item \strong{Climate-Sensitive Diseases}: Vector-borne, waterborne, heat-related, etc.
+\item \strong{Specific Conditions}: Dengue, malaria, cardiovascular, respiratory, etc.
+\item \strong{Syndromic Groups}: Fever, respiratory, diarrheal syndromes
+\item \strong{Age-Specific Groups}: Pediatric, elderly populations
 }
 
-\subsection{Performance Considerations}{
+Each group includes:
 \itemize{
-\item For large datasets (>1M rows), consider preprocessing ICD column
-\item Range matching is slower than exact/starts_with
-\item Fuzzy matching has additional computational cost
-\item Metadata columns add minimal overhead
-}
-}
-
-\subsection{SUS-Specific Features}{
-\enumerate{
-\item \strong{Automatic mapping} of Brazilian Portuguese disease groups
-\item \strong{Validation} against SUS-specific code lists
-\item \strong{Support} for multiple cause of death lines
-\item \strong{Detection} of common SUS data entry errors
-\item \strong{Integration} with other \code{climasus4r} functions
-}
-}
-}
-\note{
-Important considerations for SUS data:
-\enumerate{
-\item \strong{Code Updates}: ICD-10 is periodically updated; some older codes deprecated
-\item \strong{Data Quality}: SIM has >90\% completeness, but coding errors occur
-\item \strong{Multiple Causes}: Consider filtering multiple cause columns for completeness
-\item \strong{Year Variations}: Coding practices changed over time in SUS
-\item \strong{Training Required}: Proper ICD-10 use requires training for accurate results
-}
-}
-\section{ICD-10 Chapters Relevant to Climate-Health Research}{
-
-Common chapters for environmental health studies:
-\itemize{
-\item \strong{J00-J99}: Respiratory diseases (air pollution, climate)
-\item \strong{A00-A09}: Intestinal infectious diseases (water quality, temperature)
-\item \strong{A15-A19}: Tuberculosis (crowding, ventilation)
-\item \strong{A90-A99}: Viral fevers (dengue, Zika, climate vectors)
-\item \strong{I00-I99}: Circulatory diseases (heat waves, cold spells)
-\item \strong{T66-T78}: Other external causes (temperature extremes)
-\item \strong{X30-X39}: Exposure to forces of nature (climate events)
-}
+\item ICD code ranges
+\item Multilingual labels and descriptions
+\item Climate sensitivity flag
+\item Associated climate factors
 }
 
+Use \code{list_disease_groups()} to see all available groups and their details.
+}
+}
 \examples{
 \dontrun{
-# Load example SIM dataset
-# Contains CAUSABAS column with ICD-10 codes
-sim_example <- sus_data_import(
-  uf = "RJ", 
-  year = 2022, 
-  system = "SIM-DO",
-  use_cache = TRUE
-)
-# Example 1: Filter for respiratory diseases (Portuguese interface)
-df_respiratorio <- sus_data_filter_cid(
-  df = sim_example,
-  icd_codes = "J00-J99",
-  lang = "pt",
-  verbose = TRUE
+# Example 1: Filter by explicit ICD codes
+df_cardio <- sus_data_filter_cid(
+  sim_data,
+  icd_codes = "I00-I99",
+  lang = "en"
 )
 
-# Example 2: Filter for climate-sensitive diseases
-df_climate <- sus_data_filter_cid(
-  df = sim_example,
-  icd_codes = c(
-    "J00-J99",      # Respiratory
-    "A00-A09",      # Intestinal infectious
-    "A90-A99",      # Arthropod-borne viral
-    "I10-I15"       # Hypertensive diseases
-  ),
-  icd_column = "CAUSABAS",
-  match_type = "range",
-)
-
-# Example 3: Use SUS-specific categories
-df_maternal <- sus_data_filter_cid(
-  df = sim_example,
-  icd_codes = "causas_maternas",  # Maps to O00-O99
+# Example 2: Filter by disease group (easier!)
+df_dengue <- sus_data_filter_cid(
+  sinan_data,
+  disease_group = "dengue",
   lang = "pt"
 )
 
-# Example 4: Filter with fuzzy matching for data quality issues
-df_dengue <- sus_data_filter_cid(
-  df = sinan_example,
-  icd_codes = c("A90", "A91"),
-  match_type = "fuzzy",  # Handles coding variations
+# Example 3: Climate-sensitive diseases
+df_climate <- sus_data_filter_cid(
+  sim_data,
+  disease_group = "climate_sensitive_all",
+  lang = "en"
 )
 
-# Example 5: Multi-language comparison
-df_english <- sus_data_filter_cid(df, "I10-I15", lang = "en")
-df_portugues <- sus_data_filter_cid(df, "I10-I15", lang = "pt")
-df_espanhol <- sus_data_filter_cid(df, "I10-I15", lang = "es")
+# Example 4: Multiple specific codes
+df_ami_stroke <- sus_data_filter_cid(
+  sih_data,
+  icd_codes = c("I21", "I22", "I63", "I64"),
+  lang = "es"
+)
+
+# Example 5: Respiratory diseases in children
+df_pediatric <- sus_data_filter_cid(
+  sih_data,
+  disease_group = "pediatric_respiratory",
+  lang = "pt"
+)
+
+# List all available disease groups
+list_disease_groups(lang = "pt")
+
+# List only climate-sensitive groups
+list_disease_groups(climate_sensitive_only = TRUE, lang = "en")
+
+# Get details about a specific group
+get_disease_group_details("dengue", lang = "pt")
 }
 
 }

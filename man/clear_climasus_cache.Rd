@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{clear_climasus_cache}
 \alias{clear_climasus_cache}
-\title{Clear the CLIMASUS4r cache}
+\title{Clear the Climasus4r cache}
 \usage{
 clear_climasus_cache(
   cache_dir = "~/.climasus4r_cache",
@@ -18,7 +18,7 @@ clear_climasus_cache(
 \item{verbose}{Logical. If TRUE, prints information about what was cleared.}
 }
 \description{
-Clear the CLIMASUS4r cache
+Clear the Climasus4r cache
 }
 \examples{
 \dontrun{

@@ -2,9 +2,8 @@
 % Please edit documentation in R/utils.R
 \name{utils}
 \alias{utils}
-\title{Multilingual Translation System for CLIMASUS4r}
+\title{Utilities functions for climasus4r}
 \description{
-Internal functions to support Portuguese, Spanish, and English translations
-throughout the package.
+Utilities functions for climasus4r
 }
 \keyword{internal}
