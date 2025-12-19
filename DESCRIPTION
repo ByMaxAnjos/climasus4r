@@ -26,6 +26,7 @@ Imports:
     dplyr (>= 1.0.0),
     stringi (>= 1.7.0),
     cli (>= 3.0.0),
+    lubridate,
     microdatasus,
     magrittr,
     digest,

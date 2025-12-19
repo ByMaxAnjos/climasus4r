@@ -52,6 +52,28 @@ df_pt <- sus_data_standardize(df_raw, lang = "pt")
 df_es <- sus_data_standardize(df_raw, lang = "es")
 
 # Keep original columns for comparison
-df_compare <- sus_data_standardize(df_raw, lang = "pt", keep_original = TRUE)
+df_both <- sus_data_standardize(
+  df_raw,
+  lang = "en",
+  keep_original = TRUE
+)
+
+# Only translate column names (not values)
+df_cols_only <- sus_data_standardize(
+  df_raw,
+  lang = "en",
+  translate_columns = TRUE,
+  standardize_values = FALSE
+)
+
+# Complete pipeline
+df_analysis_ready <- sus_data_import(uf = "SP", year = 2023, system = "SIM-DO") |>
+  sus_data_clean_encoding() |>
+  sus_data_standardize(lang = "en")
 }
+}
+\references{
+Brazilian Ministry of Health. DATASUS. \url{http://datasus.saude.gov.br}
+
+SALDANHA, Raphael de Freitas; BASTOS, Ronaldo Rocha; BARCELLOS, Christovam. Microdatasus: pacote para download e pre-processamento de microdados do Departamento de Informatica do SUS (DATASUS). Cad. Saude Publica, Rio de Janeiro , v. 35, n. 9, e00032419, 2019. Available from https://doi.org/10.1590/0102-311x00032419.
 }

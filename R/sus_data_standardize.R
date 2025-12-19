@@ -35,151 +35,282 @@
 #' df_es <- sus_data_standardize(df_raw, lang = "es")
 #' 
 #' # Keep original columns for comparison
-#' df_compare <- sus_data_standardize(df_raw, lang = "pt", keep_original = TRUE)
+#' df_both <- sus_data_standardize(
+#'   df_raw,
+#'   lang = "en",
+#'   keep_original = TRUE
+#' )
+#'
+#' # Only translate column names (not values)
+#' df_cols_only <- sus_data_standardize(
+#'   df_raw,
+#'   lang = "en",
+#'   translate_columns = TRUE,
+#'   standardize_values = FALSE
+#' )
+#'
+#' # Complete pipeline
+#' df_analysis_ready <- sus_data_import(uf = "SP", year = 2023, system = "SIM-DO") |>
+#'   sus_data_clean_encoding() |>
+#'   sus_data_standardize(lang = "en")
 #' }
-sus_data_standardize <- function(df, 
-                                lang = "en",
-                                translate_columns = TRUE,
-                                standardize_values = TRUE,
-                                keep_original = FALSE,
-                                verbose = TRUE) {
-  
-  # Input validation
-  if (!is.data.frame(df)) {
-    cli::cli_alert_danger("Input 'df' must be a data.frame.")
-    stop("Invalid input type.")
-  }
-  
-  # Validate and get translation dictionary
-  if (!lang %in% c("en", "pt", "es")) {
-    cli::cli_alert_warning("Language '{lang}' not supported. Using English (en).")
-    lang <- "en"
-  }
-  
-  trans_dict <- get_translation_dict(lang)
-  ui_msg <- get_ui_messages(lang)
-  # Detect health system
-  detected_system <- detect_health_system(df)
+#' @references
+#' Brazilian Ministry of Health. DATASUS. \url{http://datasus.saude.gov.br}
+#' 
+#' SALDANHA, Raphael de Freitas; BASTOS, Ronaldo Rocha; BARCELLOS, Christovam. Microdatasus: pacote para download e pre-processamento de microdados do Departamento de Informatica do SUS (DATASUS). Cad. Saude Publica, Rio de Janeiro , v. 35, n. 9, e00032419, 2019. Available from https://doi.org/10.1590/0102-311x00032419.
 
-  if (verbose) {
-    cli::cli_h1(ui_msg$standardization_header)
-    cli::cli_alert_info("{ui_msg$detected_system}:{detected_system}")
-    cli::cli_alert_info("{ui_msg$original_columns}: {ncol(df)}")
-    cli::cli_alert_info("{ui_msg$original_records}: {format(nrow(df), big.mark = ',')}")
+sus_data_standardize <- function(df,
+                                   lang = "en",
+                                   translate_columns = TRUE,
+                                   standardize_values = TRUE,
+                                   keep_original = FALSE,
+                                   verbose = TRUE) {
+  
+  # Validate inputs
+  if (!is.data.frame(df)) {
+    stop("Input must be a data frame")
   }
   
-  # Store original column names for reporting
-  original_cols <- names(df)
+  if (!lang %in% c("en", "pt", "es")) {
+    stop("Language must be 'en', 'pt', or 'es'")
+  }
+  
+  if (nrow(df) == 0) {
+    if (verbose) cli::cli_alert_warning("Empty data frame - returning as is")
+    return(df)
+  }
+  
+  # Get UI messages
+  messages <- get_ui_messages_standardize(lang)
+  
+  # Detect health system
+  system <- detect_health_system(df)
+  
+  if (verbose) {
+    cli::cli_h2(messages$standardize_title)
+    cli::cli_alert_info(paste(messages$detected_system, get_system_description(system, lang)))
+    cli::cli_alert_info(paste(messages$language, toupper(lang)))
+  }
+  
+  # Get translation dictionaries
+  if(lang == "en"){
+  translations <- get_translation_dict_en()
+  } else if (lang == "pt") {
+  translations <- get_translation_dict_pt()
+  } else {
+  translations <- get_translation_dict_es()
+  }
   
   # ============================================================================
-  # STEP 1: Column Name Translation
+  # STEP 1: Translate Column Names
   # ============================================================================
   
   if (translate_columns) {
+    if (verbose) cli::cli_alert_info(messages$translating_columns)
     
-    renamed_cols <- 0
+    original_names <- names(df)
+    new_names <- original_names
     
-    for (old_name in names(trans_dict$columns)) {
-      if (old_name %in% names(df)) {
-        new_name <- trans_dict$columns[[old_name]]
-        
-        if (keep_original) {
-          # Keep original and create new column
-          df[[new_name]] <- df[[old_name]]
-        } else {
-          # Rename in place
-          names(df)[names(df) == old_name] <- new_name
-        }
-        renamed_cols <- renamed_cols + 1
+    # Translate column names
+    for (i in seq_along(original_names)) {
+      orig_name <- original_names[i]
+      if (orig_name %in% names(translations$columns)) {
+        new_names[i] <- translations$columns[[orig_name]]
       }
     }
     
-    if (verbose && renamed_cols > 0) {
-      lang_names <- list(en = "English", pt = "Portugues", es = "Espanol")
-      cli::cli_alert_success("{ui_msg$translated_columns} {lang_names[[lang]]}: {renamed_cols} {if (lang == 'en') 'columns' else if (lang == 'pt') 'colunas' else 'columnas'}")
+    # Count translations
+    n_translated <- sum(original_names != new_names)
+    
+    if (keep_original) {
+      # Create new columns with translated names
+      for (i in seq_along(original_names)) {
+        if (original_names[i] != new_names[i]) {
+          df[[new_names[i]]] <- df[[original_names[i]]]
+        }
+      }
+    } else {
+      # Rename columns in place
+      names(df) <- new_names
+    }
+    
+    if (verbose) {
+      cli::cli_alert_success(paste(
+        messages$columns_translated,
+        n_translated,
+        "of",
+        length(original_names)
+      ))
     }
   }
   
   # ============================================================================
-  # STEP 2: Value Standardization
+  # STEP 2: Translate Categorical Values
   # ============================================================================
   
   if (standardize_values) {
+    if (verbose) cli::cli_alert_info(messages$translating_values)
     
-    standardized_vars <- 0
+    current_names <- names(df)
+    n_variables_translated <- 0
+    n_values_translated <- 0
     
-    # Helper function to translate values
-    translate_values <- function(values, var_type) {
-      if (is.null(trans_dict$values[[var_type]][[lang]])) {
-        return(values)
+    # Translate categorical values
+    for (var_name in names(translations$values)) {
+      # Check if variable exists in data (original or translated name)
+      col_name <- NULL
+      
+      # Try original name
+      if (var_name %in% current_names) {
+        col_name <- var_name
+      }
+      # Try translated name
+      else if (var_name %in% names(translations$columns)) {
+        translated_name <- translations$columns[[var_name]]
+        if (translated_name %in% current_names) {
+          col_name <- translated_name
+        }
       }
       
-      translation_map <- trans_dict$values[[var_type]][[lang]]
-      
-      # Convert to character for matching
-      values_char <- as.character(values)
-      
-      # Apply translations
-      translated <- sapply(values_char, function(v) {
-        if (is.na(v)) return(NA_character_)
-        if (v %in% names(translation_map)) {
-          return(translation_map[[v]])
+      if (!is.null(col_name)) {
+        # Get value mappings
+        value_map <- translations$values[[var_name]]
+        
+        # Convert column to character for mapping
+        original_values <- as.character(df[[col_name]])
+        new_values <- original_values
+        
+        # Apply mappings
+        for (code in names(value_map)) {
+          new_values[original_values == code] <- value_map[[code]]
         }
-        return(v)
-      }, USE.NAMES = FALSE)
-      
-      return(translated)
+        
+        # Count translations
+        n_changed <- sum(original_values != new_values, na.rm = TRUE)
+        
+        if (n_changed > 0) {
+          if (keep_original) {
+            # Create new column with "_translated" suffix
+            new_col_name <- paste0(col_name, "_translated")
+            df[[new_col_name]] <- as.factor(new_values)
+          } else {
+            # Replace original column
+            df[[col_name]] <- as.factor(new_values)
+          }
+          
+          n_variables_translated <- n_variables_translated + 1
+          n_values_translated <- n_values_translated + n_changed
+        }
+      }
     }
     
-    # Sex standardization
-    sex_cols <- c("sex", "sexo", "SEXO")
-    sex_col <- sex_cols[sex_cols %in% names(df)][1]
-    
-    if (!is.na(sex_col)) {
-      df[[sex_col]] <- translate_values(df[[sex_col]], "sex")
-      standardized_vars <- standardized_vars + 1
-    }
-    
-    # Race/color standardization
-    race_cols <- c("race", "raca_cor", "raza_color", "RACACOR")
-    race_col <- race_cols[race_cols %in% names(df)][1]
-    
-    if (!is.na(race_col)) {
-      df[[race_col]] <- translate_values(df[[race_col]], "race")
-      standardized_vars <- standardized_vars + 1
-    }
-    
-    # Death type standardization
-    death_type_cols <- c("death_type", "tipo_obito", "tipo_muerte", "TIPOBITO")
-    death_type_col <- death_type_cols[death_type_cols %in% names(df)][1]
-    
-    if (!is.na(death_type_col)) {
-      df[[death_type_col]] <- translate_values(df[[death_type_col]], "death_type")
-      standardized_vars <- standardized_vars + 1
-    }
-    
-    # Marital status standardization
-    marital_cols <- c("marital_status", "estado_civil", "ESTCIV")
-    marital_col <- marital_cols[marital_cols %in% names(df)][1]
-    
-    if (!is.na(marital_col)) {
-      df[[marital_col]] <- translate_values(df[[marital_col]], "marital_status")
-      standardized_vars <- standardized_vars + 1
-    }
-    
-    if (verbose && standardized_vars > 0) {
-      cli::cli_alert_success("{ui_msg$standardized_values}: {standardized_vars}")
+    if (verbose) {
+      cli::cli_alert_success(paste(
+        messages$values_translated,
+        n_variables_translated,
+        "variables,",
+        n_values_translated,
+        "values"
+      ))
     }
   }
-  
   # ============================================================================
-  # STEP 3: Final Report
+  # STEP 3: Datetime formating 
+  # ============================================================================
+  if(lang == "en"){
+    date_patterns <- c("_date", "_time")
+    } else if (lang == "pt") {
+    date_patterns <- c("data_", "hora_")
+    } else {
+    date_patterns <- c("fecha_", "hora_")
+    }
+  
+  cols_to_fix <- names(df)[grepl(paste(date_patterns, collapse = "|"), names(df), ignore.case = TRUE)]
+
+  if(length(cols_to_fix) > 0) {
+    
+    for (col in cols_to_fix) {
+      vals <- as.character(df[[col]])
+      suppressWarnings({
+        parsed_dates <- lubridate::parse_date_time(vals, 
+          orders = c("dmy", "dmY", "ymd", "Ymd", "dmy HMS", "ymd HMS", "ym", "my"),
+          truncated = 3
+        )
+      })
+      if (!all(is.na(parsed_dates)) || all(is.na(vals))) {
+         df[[col]] <- as.Date(parsed_dates) 
+      }
+      }
+  }
+
+  # ============================================================================
+  # STEP 4: Final Summary
   # ============================================================================
   
   if (verbose) {
-    cli::cli_alert_success("{ui_msg$standardization_completed}")
-    cli::cli_alert_info("{ui_msg$final_columns}: {ncol(df)}")
+    cli::cli_alert_success(paste(
+      messages$standardization_complete,
+      nrow(df),
+      "rows,",
+      ncol(df),
+      "columns"
+    ))
   }
   
   return(df)
+}
+
+
+# ============================================================================
+# Helper function: Get UI messages in different languages
+# ============================================================================
+
+#' Get UI Messages
+#'
+#' Returns user interface messages in the specified language
+#'
+#' @param lang Character. Language code: "en", "pt", "es"
+#'
+#' @return List of translated UI messages
+#'
+#' @keywords internal
+get_ui_messages_standardize <- function(lang = "en") {
+  
+  messages <- list(
+    en = list(
+      standardize_title = "Standardizing SUS Data",
+      detected_system = "Detected system:",
+      language = "Language:",
+      translating_columns = "Translating column names...",
+      columns_translated = "Translated",
+      translating_values = "Translating categorical values...",
+      values_translated = "Translated",
+      standardization_complete = "Standardization complete:",
+      no_translations = "No translations available for this system"
+    ),
+    pt = list(
+      standardize_title = "Padronizando Dados SUS",
+      detected_system = "Sistema detectado:",
+      language = "Idioma:",
+      translating_columns = "Traduzindo nomes de colunas...",
+      columns_translated = "Traduzidas",
+      translating_values = "Traduzindo valores categoricos...",
+      values_translated = "Traduzidas",
+      standardization_complete = "Padronizacao completa:",
+      no_translations = "Nenhuma traducao disponivel para este sistema"
+    ),
+    es = list(
+      standardize_title = "Estandarizando Datos SUS",
+      detected_system = "Sistema detectado:",
+      language = "Idioma:",
+      translating_columns = "Traduciendo nombres de columnas...",
+      columns_translated = "Traducidas",
+      translating_values = "Traduciendo valores categoricos...",
+      values_translated = "Traducidas",
+      standardization_complete = "Estandarizacion completa:",
+      no_translations = "No hay traducciones disponibles para este sistema"
+    )
+  )
+  
+  return(messages[[lang]])
 }

@@ -139,7 +139,7 @@ df_es <- sus_data_standardize(df_clean, lang = "es")
 
 #### 4. `sus_data_filter_cid()` - ICD-10 Filtering
 
-Filter data by ICD-10 codes with [**54+ predefined disease groups**](https://github.com/ByMaxAnjos/climasus4r/blob/master/DISEASE_GROUPS_GUIDE.md) and flexible matching options.
+Filter data by ICD-10 codes with **54+ predefined disease groups** and flexible matching options.
 
 ```r
 # Filter by disease group (easiest!)
@@ -179,9 +179,6 @@ df_ami <- sus_data_filter_cid(
 | **Climate-Health Special** (4) | `climate_sensitive_all`, `heat_related`, `cold_related`, `extreme_weather` | Epidemiological priorities |
 | **Age-Specific** (2) | `pediatric_respiratory`, `elderly_cardiovascular` | Vulnerable populations |
 | **Syndromic** (3) | `fever_syndrome`, `respiratory_syndrome`, `diarrheal_syndrome` | Surveillance |
-
-#### For more details on Disease Groups [click here](https://github.com/ByMaxAnjos/climasus4r/blob/master/DISEASE_GROUPS_GUIDE.md)
-
 
 **List all available groups:**
 ```r
