@@ -1,6 +1,6 @@
 # climasus4r: Kit de Ferramentas Integrado para Análise de Dados de Saúde, Clima e Ambiente
 
-<img align="right" src="https://github.com/ByMaxAnjos/climasus4r/figures/climasus4r_logo.png?raw=true" alt="climasus4r Logo" width="140">
+<img align="right" src="https://github.com/ByMaxAnjos/climasus4r/blob/master/figures/climasus4r_logo.png?raw=true" alt="climasus4r Logo" width="140">
 
 
 <!-- badges: start -->
