@@ -6,11 +6,7 @@ Authors@R:
              family = "Anjos",
              role = c("aut", "cre"),
              email = "maxanjos@campus.ul.pt",
-             comment = c(ORCID = "0000-0001-6394-1324")),
-      person(given = "Marina",
-             family = "Anjos",
-             role = "ctb",
-             comment = "Package development assistance"))
+             comment = c(ORCID = "0000-0001-6394-1324")))
 Description: A computational toolkit to import, process, integrate, and analyze
     climatic, air quality, and health data from the Brazilian Unified Health
     System (SUS). Climasus4r automates the most laborious steps of data analysis,
@@ -30,6 +26,7 @@ Imports:
     microdatasus,
     magrittr,
     digest,
+    tidyr,
     fs,
     readr,
     stats,

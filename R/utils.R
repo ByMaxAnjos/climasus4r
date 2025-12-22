@@ -2852,6 +2852,24 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     ),
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "precipitation", "flooding")
+  ),
+  # ============================================================================
+  # NEUROLOGICAL
+  # ============================================================================
+  neurological_disorders = list(
+    codes = c("G00-G99"),
+    label = list(
+      pt = "Doencas neurologicas",
+      en = "Neurological disorders",
+      es = "Enfermedades neurologicas"
+    ),
+    description = list(
+      pt = "Doencas do sistema nervoso (inclui meningite, epilepsia, enxaqueca)",
+      en = "Diseases of the nervous system (includes meningitis, epilepsy, migraine)",
+      es = "Enfermedades del sistema nervioso (incluye meningitis, epilepsia, migrana)"
+    ),
+    climate_sensitive = TRUE,
+    climate_factors = c("temperature", "humidity", "seasonality", "weather space")
   )
 )
 

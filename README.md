@@ -1,4 +1,4 @@
-# climasus4r:: Integrated Analysis Toolkit for Health, Climate, and Environmental Data
+# climasus4r: Kit de Ferramentas Integrado para Análise de Dados de Saúde, Clima e Ambiente
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
@@ -6,129 +6,128 @@
 [![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen.svg)](https://github.com/ByMaxAnjos/climasus4r)
 <!-- badges: end -->
 
-## Overview
+## Visão Geral
 
-**climasus4r** is an integrated R toolkit designed to streamline the analysis of health (SUS), climate, and environmental data in Brazil. Developed as part of the **INCT Conexão - Amazônia** project, this package automates the most laborious steps of data acquisition, cleaning, integration, and analysis, ensuring standardized and reproducible research workflows.
+O **climasus4r** é um kit de ferramentas integrado em R, projetado para otimizar a análise de dados de saúde (SUS), clima e ambiente no Brasil. Desenvolvido como parte do projeto **INCT Conexão - Amazônia**, este pacote automatiza as etapas mais trabalhosas de aquisição, limpeza, integração e análise de dados, garantindo fluxos de trabalho de pesquisa padronizados e reprodutíveis.
 
-The package builds upon the excellent work provided by [`microdatasus`](https://github.com/rfsaldanha/microdatasus), adding specialized functions for climate-health research, including:
+O pacote se baseia no excelente trabalho fornecido pelo [`microdatasus`](https://github.com/rfsaldanha/microdatasus), adicionando funções especializadas para pesquisa em clima e saúde, incluindo:
 
-- **Parallel data acquisition** from multiple states and years
-- **Multi-system support** for all 6 major Brazilian health systems (SIM, SINASC, SINAN, SIH, SIA, CNES)
-- **Improved encoding correction** for Brazilian Portuguese text
-- **Standardized column names and values** with multilingual translations (EN/PT/ES)
-- **Comprehensive ICD-10 filtering** with 54+ predefined disease groups
-- **Climate-sensitive disease classification** for epidemiological research
-- **Fully multilingual interface** for international collaboration
+- **Aquisição de dados em paralelo** de múltiplos estados e anos
+- **Suporte multi-sistema** para todos os 6 principais sistemas de saúde brasileiros (SIM, SINASC, SINAN, SIH, SIA, CNES)
+- **Correção de codificação aprimorada** para texto em português do Brasil
+- **Nomes de colunas e valores padronizados** com traduções multilíngues (EN/PT/ES)
+- **Filtragem abrangente da CID-10** com mais de 54 grupos de doenças predefinidos
+- **Classificação de doenças sensíveis ao clima** para pesquisa epidemiológica
+- **Interface totalmente multilíngue** para colaboração internacional
 
-## Installation
+## Instalação
 
-Currently in development. Install the latest version from GitHub:
+Atualmente em desenvolvimento. Instale a versão mais recente do GitHub:
 
 ```r
-# Install remotes if you haven't already
+# Instale o remotes se ainda não o tiver
 if (!require("remotes")) {
   install.packages("remotes")
 }
 
-# Install CLIMASUS4r
+# Instale o CLIMASUS4r
 remotes::install_github("ByMaxAnjos/climasus4r", upgrade = "never", quiet = TRUE)
 
-# Upgrade often to get the latest improvements 
+# Atualize com frequência para obter as melhorias mais recentes
 remove.packages("climasus4r")
 remotes::install_github("ByMaxAnjos/climasus4r", upgrade = "never", quiet = TRUE)
 ```
 
-## Quick Start
+## Início Rápido
 
 ```r
 library(climasus4r)
 
-# Complete pipeline: Import → Clean → Standardize → Filter
-df_respiratory <- sus_data_import(
+# Pipeline completo: Importar → Limpar → Padronizar → Filtrar
+df_respiratorias <- sus_data_import(
   uf = "SP",
-  year = 2023,
-  system = "SIM-DO"
+  ano = 2023,
+  sistema = "SIM-DO"
 ) |>
   sus_data_clean_encoding() |>
-  sus_data_standardize(lang = "en") |>
-  sus_data_filter_cid(disease_group = "respiratory", lang = "en")
-
+  sus_data_standardize(lang = "pt") |>
+  sus_data_filter_cid(disease_group = "respiratory", lang = "pt")
 ```
 
-## Phase 1: Data Infrastructure ✅
+## Fase 1: Infraestrutura de Dados ✅
 
-### Core Functions
+### Funções Principais
 
-#### 1. `sus_data_import()` - Data Acquisition
+#### 1. `sus_data_import()` - Aquisição de Dados
 
-Import data from DATASUS with **parallel processing** support for multiple states and years.
+Importe dados do DATASUS com suporte a **processamento paralelo** para múltiplos estados e anos.
 
 ```r
-# Single state and year
-df <- sus_data_import(uf = "RJ", year = 2022, system = "SIM-DO")
+# Um único estado e ano
+df <- sus_data_import(uf = "RJ", ano = 2022, sistema = "SIM-DO")
 
-# Multiple states and years with parallel processing
+# Múltiplos estados e anos com processamento paralelo
 df <- sus_data_import(
   uf = c("RJ", "SP", "MG", "ES"),
-  year = 2018:2022,
-  system = "SIM-DO",
+  ano = 2018:2022,
+  sistema = "SIM-DO",
   parallel = TRUE,
   workers = 4,
   use_cache = TRUE
 )
 ```
 
-**Supported Systems:**
-- **SIM** (Mortality): `"SIM-DO"`, `"SIM-DOEXT"`, `"SIM-DOFET"`, `"SIM-DOMAT"`
-- **SINASC** (Live Births): `"SINASC"`
-- **SINAN** (Notifiable Diseases): `"SINAN-DENGUE"`, `"SINAN-CHIKUNGUNYA"`, `"SINAN-ZIKA"`, `"SINAN-MALARIA"`, etc.
-- **SIH** (Hospital Admissions): `"SIH-RD"`, `"SIH-SP"`
-- **SIA** (Outpatient): `"SIA-PA"`, `"SIA-PS"`
-- **CNES** (Health Establishments): `"CNES-ST"`, `"CNES-PF"`
+**Sistemas Suportados:**
+- **SIM** (Mortalidade): `"SIM-DO"`, `"SIM-DOEXT"`, `"SIM-DOFET"`, `"SIM-DOMAT"`
+- **SINASC** (Nascidos Vivos): `"SINASC"`
+- **SINAN** (Agravos de Notificação): `"SINAN-DENGUE"`, `"SINAN-CHIKUNGUNYA"`, `"SINAN-ZIKA"`, `"SINAN-MALARIA"`, etc.
+- **SIH** (Internações Hospitalares): `"SIH-RD"`, `"SIH-SP"`
+- **SIA** (Ambulatorial): `"SIA-PA"`, `"SIA-PS"`
+- **CNES** (Estabelecimentos de Saúde): `"CNES-ST"`, `"CNES-PF"`
 
-**Features:**
-- ✅ Automatic caching to avoid redundant downloads
-- ✅ Parallel processing for faster data acquisition
-- ✅ Progress bars with `cli` feedback
-
----
-
-#### 2. `sus_data_clean_encoding()` - Encoding Correction
-
-Detect and correct character encoding issues automatically.
-
-```r
-df_clean <- sus_data_clean_encoding(df_raw, lang = "en", verbose = TRUE)
-```
-
-**What it does:**
-- Scans all text columns for encoding problems
-- Corrects common Latin1/UTF-8 conflicts
-- Reports which columns were corrected
-- Acts as a safety net after `microdatasus` preprocessing
-- Supports multilingual messages (EN/PT/ES)
+**Recursos:**
+- ✅ Cache automático para evitar downloads redundantes
+- ✅ Processamento paralelo para aquisição de dados mais rápida
+- ✅ Barras de progresso com feedback do `cli`
 
 ---
 
-#### 3. `sus_data_standardize()` - Data Standardization
+#### 2. `sus_data_clean_encoding()` - Correção de Codificação
 
-Standardize column names and categorical values with **multilingual support**.
+Detecte e corrija problemas de codificação de caracteres automaticamente.
 
 ```r
-# English standardization (default)
-df_en <- sus_data_standardize(df_clean, lang = "en")
-
-# Portuguese standardization
-df_pt <- sus_data_standardize(df_clean, lang = "pt")
-
-# Spanish standardization
-df_es <- sus_data_standardize(df_clean, lang = "es")
+df_limpo <- sus_data_clean_encoding(df_bruto, lang = "pt", verbose = TRUE)
 ```
 
-**Transformations:**
+**O que faz:**
+- Verifica todas as colunas de texto em busca de problemas de codificação
+- Corrige conflitos comuns entre Latin1 e UTF-8
+- Informa quais colunas foram corrigidas
+- Atua como uma rede de segurança após o pré-processamento do `microdatasus`
+- Suporta mensagens multilíngues (EN/PT/ES)
 
-| Original (DATASUS) | English | Portuguese | Spanish |
-|--------------------|---------|------------|---------|
+---
+
+#### 3. `sus_data_standardize()` - Padronização de Dados
+
+Padronize nomes de colunas e valores categóricos com **suporte multilíngue**.
+
+```r
+# Padronização em inglês (padrão)
+df_en <- sus_data_standardize(df_limpo, lang = "en")
+
+# Padronização em português
+df_pt <- sus_data_standardize(df_limpo, lang = "pt")
+
+# Padronização em espanhol
+df_es <- sus_data_standardize(df_limpo, lang = "es")
+```
+
+**Transformações:**
+
+| Original (DATASUS) | Inglês | Português | Espanhol |
+|--------------------|------------------|--------------|----------------|
 | `DTOBITO` | `death_date` | `data_obito` | `fecha_muerte` |
 | `SEXO` | `sex` | `sexo` | `sexo` |
 | `RACACOR` | `race` | `raca` | `raza` |
@@ -137,19 +136,19 @@ df_es <- sus_data_standardize(df_clean, lang = "es")
 
 ---
 
-#### 4. `sus_data_filter_cid()` - ICD-10 Filtering
+#### 4. `sus_data_filter_cid()` - Filtragem CID-10
 
-Filter data by ICD-10 codes with **54+ predefined disease groups** and flexible matching options.
+Filtre dados por códigos CID-10 com **mais de 54 grupos de doenças predefinidos** e opções de correspondência flexíveis.
 
 ```r
-# Filter by disease group (easiest!)
-df_respiratory <- sus_data_filter_cid(
+# Filtrar por grupo de doenças (mais fácil!)
+df_respiratorias <- sus_data_filter_cid(
   df,
   disease_group = "respiratory",
-  lang = "en"
+  lang = "pt"
 )
 
-# Filter by explicit ICD codes
+# Filtrar por códigos CID explícitos
 df_cardio <- sus_data_filter_cid(
   df,
   icd_codes = "I00-I99",
@@ -157,133 +156,130 @@ df_cardio <- sus_data_filter_cid(
   lang = "pt"
 )
 
-# Filter by specific codes
-df_ami <- sus_data_filter_cid(
+# Filtrar por códigos específicos
+df_iam <- sus_data_filter_cid(
   df,
-  icd_codes = c("I21", "I22"),  # Acute myocardial infarction
+  icd_codes = c("I21", "I22"),  # Infarto agudo do miocárdio
   match_type = "starts_with",
-  lang = "es"
+  lang = "pt"
 )
 ```
 
-**54+ Predefined Disease Groups:**
+**Mais de 54 Grupos de Doenças Predefinidos:**
 
-| Category | Groups | Examples |
-|----------|--------|----------|
-| **Infectious Diseases** (15) | `dengue`, `zika`, `chikungunya`, `malaria`, `tuberculosis`, `covid19`, `waterborne`, `vectorborne` | Climate-sensitive infections |
-| **Cardiovascular** (6) | `cardiovascular`, `hypertensive`, `ischemic_heart`, `cerebrovascular`, `heart_failure` | Heat-related conditions |
-| **Respiratory** (6) | `respiratory`, `acute_respiratory`, `chronic_respiratory`, `pneumonia`, `asthma`, `copd` | Air quality impacts |
-| **Neoplasms** (2) | `neoplasms`, `malignant_neoplasms` | Cancer burden |
-| **Endocrine/Metabolic** (2) | `diabetes`, `metabolic` | Chronic diseases |
-| **External Causes** (6) | `external_causes`, `accidents`, `violence`, `transport_accidents`, `drowning`, `heat_exposure` | Climate disasters |
-| **Climate-Health Special** (4) | `climate_sensitive_all`, `heat_related`, `cold_related`, `extreme_weather` | Epidemiological priorities |
-| **Age-Specific** (2) | `pediatric_respiratory`, `elderly_cardiovascular` | Vulnerable populations |
-| **Syndromic** (3) | `fever_syndrome`, `respiratory_syndrome`, `diarrheal_syndrome` | Surveillance |
+| Categoria | Grupos | Exemplos | Descrição |
+|-------------------------|--------|--------------------------------------------------------------------------------|--------------------------------|
+| **Doenças Infecciosas** | 15 | `dengue`, `zika`, `chikungunya`, `malaria`, `tuberculose`, `covid19`, `hidricas`, `vetoriais` | Infecções sensíveis ao clima |
+| **Cardiovasculares** | 6 | `cardiovasculares`, `hipertensivas`, `isquemicas_coracao`, `cerebrovasculares`, `insuficiencia_cardiaca` | Condições relacionadas ao calor |
+| **Respiratórias** | 6 | `respiratorias`, `respiratorias_agudas`, `respiratorias_cronicas`, `pneumonia`, `asma`, `dpoc` | Impactos da qualidade do ar |
+| **Neoplasias** | 2 | `neoplasias`, `neoplasias_malignas` | Carga de câncer |
+| **Endócrinas/Metabólicas** | 2 | `diabetes`, `metabolicas` | Doenças crônicas |
+| **Causas Externas** | 6 | `causas_externas`, `acidentes`, `violencia`, `acidentes_transporte`, `afogamento`, `exposicao_calor` | Desastres climáticos |
+| **Especiais Clima-Saúde** | 4 | `sensiveis_clima_todas`, `relacionadas_calor`, `relacionadas_frio`, `clima_extremo` | Prioridades epidemiológicas |
+| **Por Faixa Etária** | 2 | `respiratorias_pediatricas`, `cardiovasculares_idosos` | Populações vulneráveis |
+| **Sindrômicos** | 3 | `sindrome_febril`, `sindrome_respiratoria`, `sindrome_diarreica` | Vigilância |
 
-**List all available groups:**
+**Listar todos os grupos disponíveis:**
 ```r
-# List all groups
-list_disease_groups(lang = "en")
+# Listar todos os grupos
+list_disease_groups(lang = "pt")
 
-# List only climate-sensitive groups
+# Listar apenas grupos sensíveis ao clima
 list_disease_groups(climate_sensitive_only = TRUE, lang = "pt")
 
-# Get details about a specific group
-get_disease_group_details("dengue", lang = "es")
+# Obter detalhes sobre um grupo específico
+get_disease_group_details("dengue", lang = "pt")
 ```
 ---
 
-### Complete Pipeline Example
+### Exemplo de Pipeline Completo
 
 ```r
 library(climasus4r)
 library(dplyr)
 
-# Pipeline 1: Respiratory diseases in English
-df_respiratory_en <- sus_data_import(
+# Pipeline 1: Doenças respiratórias em português
+df_respiratorias_pt <- sus_data_import(
   uf = "SP",
-  year = 2023,
-  system = "SIM-DO",
+  ano = 2023,
+  sistema = "SIM-DO",
   use_cache = TRUE
-) |>
-  sus_data_clean_encoding(lang = "en") |>
-  sus_data_standardize(lang = "en") |>
-  sus_data_filter_cid(disease_group = "respiratory", lang = "en")
-
-# Pipeline 2: Cardiovascular diseases in Portuguese
-df_cardio_pt <- sus_data_import(
-  uf = c("RJ", "SP", "MG"),
-  year = 2020:2023,
-  system = "SIM-DO",
-  parallel = TRUE
 ) |>
   sus_data_clean_encoding(lang = "pt") |>
   sus_data_standardize(lang = "pt") |>
-  sus_data_filter_cid(disease_group = "cardiovascular", lang = "pt")
+  sus_data_filter_cid(disease_group = "respiratory", lang = "pt")
 
-# Pipeline 3: Climate-sensitive diseases in Spanish
-df_climate_es <- sus_data_import(
+# Pipeline 2: Doenças cardiovasculares em inglês
+df_cardio_en <- sus_data_import(
+  uf = c("RJ", "SP", "MG"),
+  ano = 2020:2023,
+  sistema = "SIM-DO",
+  parallel = TRUE
+) |>
+  sus_data_clean_encoding(lang = "en") |>
+  sus_data_standardize(lang = "en") |>
+  sus_data_filter_cid(disease_group = "cardiovascular", lang = "en")
+
+# Pipeline 3: Doenças sensíveis ao clima em espanhol
+df_clima_es <- sus_data_import(
   uf = "AM",
-  year = 2023,
-  system = "SIM-DO"
+  ano = 2023,
+  sistema = "SIM-DO"
 ) |>
   sus_data_clean_encoding(lang = "es") |>
   sus_data_standardize(lang = "es") |>
   sus_data_filter_cid(disease_group = "climate_sensitive_all", lang = "es")
-
 ```
 
 ---
 
 ## Roadmap
 
-### Phase 2: Socioeconomic Integration (In Progress)
-* Geographic boundary linking
-* IBGE socioeconomic data integration (population, GDP, HDI)
-* Population-weighted spatial operations
-* Census tract matching
+### Fase 2: Integração Socioeconômica (Em Andamento)
+* Vinculação de limites geográficos
+* Integração de dados socioeconômicos do IBGE (população, PIB, IDH)
+* Operações espaciais ponderadas pela população
+* Correspondência de setores censitários
 
-### Phase 3: Environmental Integration (Planned)
-* INMET meteorological data import
-* Air quality data integration (CETESB, INPE)
-* Satellite data processing (MODIS, Sentinel)
-* Exposure matching algorithms
+### Fase 3: Integração Ambiental (Planejada)
+* Importação de dados meteorológicos do INMET
+* Integração de dados de qualidade do ar (CETESB, INPE)
+* Processamento de dados de satélite (MODIS, Sentinel)
+* Algoritmos de correspondência de exposição
 
-### Phase 4: Spatial Analysis (Planned)
-* Bayesian spatial smoothing
-* Spatial cluster detection (SaTScan, Kulldorff)
-* Local indicators of spatial association (LISA)
-* Spatial regression models
+### Fase 4: Análise Espacial (Planejada)
+* Suavização espacial bayesiana
+* Detecção de clusters espaciais (SaTScan, Kulldorff)
+* Indicadores locais de associação espacial (LISA)
+* Modelos de regressão espacial
 
-### Phase 5: Temporal & Predictive Analysis (Planned)
-* Distributed lag non-linear models (DLNM)
-* Attributable fraction calculation
-* Time series decomposition
-* Machine learning prediction wrappers
-
+### Fase 5: Análise Temporal e Preditiva (Planejada)
+* Modelos não lineares de defasagem distribuída (DLNM)
+* Cálculo de fração atribuível
+* Decomposição de séries temporais
+* Wrappers de previsão de aprendizado de máquina
 
 ---
 
-## Funding
+## Financiamento
 
-This climasus4r project is funded by the Fundação Oswaldo Cruz Noroeste – Unidade de Rondônia (FIOCRUZ/RO) related to **Instituto Nacional de Ciência e Tecnologia de Pesquisa e Conhecimento de Excelência da Amazônia Ocidental (INCT-CONEXÃO)**,  nº of process 408474/2024-6, that include:
+O projeto climasus4r é financiado pelo Ministério da Saúde e pela Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO), vinculado ao **Instituto Nacional de Ciência e Tecnologia de Pesquisa e Conhecimento de Excelência da Amazônia Ocidental - INCT-CONEXAO (@inct_conexao)**, processo nº 408474/2024-6. O fomento abrange o:
 
 * **Núcleo Permanente de Climatologia (NPC)** INCT-CONEXÃO
 * **Núcleo Avançado de Climatologia (NAC)** INCT-CONEXÃO
 
 ---
 
-## Acknowledgments
+## Agradecimentos
 
-- **microdatasus** team for the foundational data import infrastructure
-- **DATASUS** for providing open access to Brazilian health data
-- **INCT Conexão - Amazônia** for funding and institutional support
+- Equipe do **microdatasus** pela infraestrutura fundamental de importação de dados
+- **DATASUS** por fornecer acesso aberto aos dados de saúde brasileiros
 
 ---
 
-## Contact
+## Contato
 
-- **Maintainer**: Max Anjos
+- **Mantenedor**: Max Anjos
 - **Email**: [maxanjos@campus.ul.pt]
 - **GitHub**: [https://github.com/ByMaxAnjos/climasus4r](https://github.com/ByMaxAnjos/climasus4r)
 - **Issues**: [https://github.com/ByMaxAnjos/climasus4r/issues](https://github.com/ByMaxAnjos/climasus4r/issues)

@@ -218,11 +218,11 @@ sus_data_standardize <- function(df,
   # STEP 3: Datetime formating 
   # ============================================================================
   if(lang == "en"){
-    date_patterns <- c("_date", "_time")
+    date_patterns <- c("_date")
     } else if (lang == "pt") {
-    date_patterns <- c("data_", "hora_")
+    date_patterns <- c("data_")
     } else {
-    date_patterns <- c("fecha_", "hora_")
+    date_patterns <- c("fecha_")
     }
   
   cols_to_fix <- names(df)[grepl(paste(date_patterns, collapse = "|"), names(df), ignore.case = TRUE)]
