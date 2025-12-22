@@ -33,7 +33,6 @@ get_translation_dict_en <- function() {
     "CS_RACA" = "race",
     "ESTCIV" = "marital_status",
     "ESTCIVMAE" = "mother_marital_status",
-    
     # ------------------------------------------------------------------------
     # DATES (All Systems)
     # Birth, death, notification, and administrative dates
@@ -463,7 +462,6 @@ get_translation_dict_en <- function() {
       "3" = "Death by other causes",
       "9" = "Ignored"
     )
-
   )
   
   return(list(columns = columns, values = values))
