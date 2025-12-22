@@ -9,7 +9,8 @@
 [![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen.svg)](https://github.com/ByMaxAnjos/climasus4r)
 <!-- badges: end -->
 
-## Visão Geral
+
+---
 
 O **climasus4r** é um kit de ferramentas integrado em R, projetado para otimizar a análise de dados de saúde (SUS), clima e ambiente no Brasil. Desenvolvido como parte do projeto **INCT Conexão - Amazônia**, este pacote automatiza as etapas mais trabalhosas de aquisição, limpeza, integração e análise de dados, garantindo fluxos de trabalho de pesquisa padronizados e reprodutíveis.
 
