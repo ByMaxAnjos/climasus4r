@@ -205,7 +205,7 @@ sus_data_quality_report <- function(df,
     muni_freq <- muni_freq[order(-muni_freq$Count), ]
     muni_freq$Percentage <- round(100 * muni_freq$Count / sum(muni_freq$Count), 2)
     
-    report$geographic$top_municipalities <- utils::head(muni_freq, top_n)
+    report$geographic$top_municipalities <- head(muni_freq, top_n)
     report$geographic$n_unique_municipalities <- nrow(muni_freq)
   }
   

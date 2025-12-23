@@ -1,4 +1,4 @@
-# climasus4r: Kit de Ferramentas Integrado para Análise de Dados de Saúde, Clima e Ambiente
+# climasus4r:: Kit de Ferramentas Integrado para Análise de Dados de Saúde, Clima e Ambiente
 
 <img align="right" src="https://github.com/ByMaxAnjos/climasus4r/blob/master/figures/climasus4r_logo.png?raw=true" alt="climasus4r Logo" width="140">
 
@@ -53,7 +53,7 @@ remotes::install_github("ByMaxAnjos/climasus4r", dependencies = TRUE, upgrade = 
 library(climasus4r)
 library(dplyr)
 
-# Pipeline completo da Fase 1: Dados prontos para análise em 9 passos
+# Pipeline completo da Fase 1: Dados prontos para análise em 8 passos
 df_analise <- sus_data_import(
   uf = "SP",
   ano = 2023,
@@ -63,23 +63,21 @@ df_analise <- sus_data_import(
   sus_data_standardize(lang = "pt") |>
   sus_data_filter_cid(disease_group = "respiratory", lang = "pt") |>
   sus_create_variables(
-    age_groups = TRUE,
-    calendar_vars = TRUE,
-    season_method = "brazilian",
+    create_age_groups = TRUE,
+    create_calendar_vars = TRUE,
     lang = "pt"
   ) |>
   sus_data_filter_demographics(
     age_range = c(0, 5),  # Crianças menores de 5 anos
-    sex = "all",
+    sex = c("Feminino", "Masculino"),
     lang = "pt"
   ) |>
   sus_data_aggregate(
-    time_unit = "month",
-    fill_gaps = TRUE,
+    time_unit = "day",
     lang = "pt"
   ) |>
   sus_data_export(
-    path = "dados_respiratorias_pediatricas_sp_2023.csv",
+    file_path = "dados_respiratorias_pediatricas_sp_2023.csv",
     format = "csv",
     include_metadata = TRUE,
     lang = "pt"
@@ -88,7 +86,7 @@ df_analise <- sus_data_import(
 
 ---
 
-## Fase 1: Infraestrutura de Dados ✅ COMPLETA
+## Fase 1: Infraestrutura de Dados ✅ 
 
 A Fase 1 do `climasus4r` fornece um **pipeline end-to-end completo** para preparação de dados de saúde, desde a aquisição bruta até dados prontos para análise. Com **9 funções principais**, você pode transformar dados do DATASUS em séries temporais agregadas, padronizadas e prontas para modelagem em minutos.
 
@@ -207,7 +205,7 @@ df_es <- sus_data_standardize(df_limpo, lang = "es")
 
 #### 4. `sus_data_filter_cid()` - Filtragem CID-10
 
-Filtre dados por códigos CID-10 com **mais de 54 grupos de doenças predefinidos** e opções de correspondência flexíveis.
+Filtre dados por códigos CID-10 com **mais de 50 grupos de doenças predefinidos** e opções de correspondência flexíveis.
 
 ```r
 # Filtrar por grupo de doenças (mais fácil!)
@@ -411,7 +409,6 @@ df_mensal <- sus_data_aggregate(
   df,
   time_unit = "month",
   date_col = "death_date",
-  fill_gaps = TRUE,
   lang = "pt"
 )
 
@@ -419,7 +416,6 @@ df_mensal <- sus_data_aggregate(
 df_semanal <- sus_data_aggregate(
   df,
   time_unit = "week",
-  fill_gaps = TRUE,
   lang = "pt"
 )
 
@@ -427,7 +423,6 @@ df_semanal <- sus_data_aggregate(
 df_sazonal <- sus_data_aggregate(
   df,
   time_unit = "season",
-  fill_gaps = TRUE,
   lang = "pt"
 )
 
@@ -435,7 +430,6 @@ df_sazonal <- sus_data_aggregate(
 df_pentads <- sus_data_aggregate(
   df,
   time_unit = "5 days",
-  fill_gaps = TRUE,
   lang = "pt"
 )
 ```
@@ -468,7 +462,6 @@ df_agregado <- df |>
   sus_data_aggregate(
     time_unit = "month",
     group_by = c("municipality_code", "age_group"),
-    fill_gaps = TRUE,
     lang = "pt"
   )
 ```
@@ -483,7 +476,7 @@ Exporte dados com **metadados completos** para garantir reprodutibilidade.
 # Exportar como CSV com metadados
 sus_data_export(
   df,
-  path = "dados_analise.csv",
+  file_path = "dados_analise.csv",
   format = "csv",
   include_metadata = TRUE,
   lang = "pt"
@@ -492,7 +485,7 @@ sus_data_export(
 # Exportar como RDS (formato R nativo)
 sus_data_export(
   df,
-  path = "dados_analise.rds",
+  file_path = "dados_analise.rds",
   format = "rds",
   include_metadata = TRUE,
   lang = "pt"
@@ -501,7 +494,7 @@ sus_data_export(
 # Exportar como Parquet (formato eficiente)
 sus_data_export(
   df,
-  path = "dados_analise.parquet",
+  file_path = "dados_analise.parquet",
   format = "parquet",
   include_metadata = TRUE,
   lang = "pt"
@@ -534,7 +527,6 @@ sus_data_export(
 
 ```r
 library(climasus4r)
-library(dplyr)
 
 # Preparar dados de doenças respiratórias em crianças < 5 anos
 df_resp_ped <- sus_data_import(
@@ -550,23 +542,20 @@ df_resp_ped <- sus_data_import(
     age_groups = TRUE,
     age_breaks = c(0, 1, 5, Inf),
     age_labels = c("< 1 ano", "1-4 anos", "5+ anos"),
-    calendar_vars = TRUE,
-    season_method = "brazilian",
     lang = "pt"
   ) |>
   sus_data_filter_demographics(
     age_range = c(0, 5),
-    sex = "all",
+    sex = c("Feminino", "Masculino"),
     lang = "pt"
   ) |>
   sus_data_aggregate(
     time_unit = "month",
     group_by = "age_group",
-    fill_gaps = TRUE,
     lang = "pt"
   ) |>
   sus_data_export(
-    path = "respiratorias_pediatricas_sudeste_2018_2023.csv",
+    file_path = "respiratorias_pediatricas_sudeste_2018_2023.csv",
     format = "csv",
     include_metadata = TRUE,
     lang = "pt"
@@ -580,23 +569,22 @@ df_resp_ped <- sus_data_import(
 df_dengue <- sus_data_import(
   uf = "AM",
   ano = 2015:2023,
-  sistema = "SINAN-DENGUE"
+  sistema = "SINAN-DENGUE",
+  parallel = TRUE,
 ) |>
   sus_data_clean_encoding(lang = "pt") |>
   sus_data_standardize(lang = "pt") |>
   sus_create_variables(
-    age_groups = TRUE,
-    calendar_vars = TRUE,
-    season_method = "brazilian",  # Estações do Hemisfério Sul
+    create_age_groups = TRUE,
+    create_calendar_vars = TRUE,
     lang = "pt"
   ) |>
   sus_data_aggregate(
     time_unit = "season",  # Agregação por estação
-    fill_gaps = TRUE,
     lang = "pt"
   ) |>
   sus_data_export(
-    path = "dengue_sazonal_amazonas_2015_2023.csv",
+    file_path = "dengue_sazonal_amazonas_2015_2023.csv",
     format = "csv",
     include_metadata = TRUE,
     lang = "pt"
@@ -608,7 +596,7 @@ df_dengue <- sus_data_import(
 ```r
 # Preparar dados de mortalidade cardiovascular em idosos
 df_cardio_idosos <- sus_data_import(
-  uf = "SP",
+  uf = "AM",
   ano = 2020:2023,
   sistema = "SIM-DO"
 ) |>
@@ -616,16 +604,14 @@ df_cardio_idosos <- sus_data_import(
   sus_data_standardize(lang = "pt") |>
   sus_data_filter_cid(disease_group = "cardiovascular", lang = "pt") |>
   sus_create_variables(
-    age_groups = TRUE,
+    create_age_groups = TRUE,
     age_breaks = c(0, 65, 75, 85, Inf),
     age_labels = c("< 65", "65-74", "75-84", "85+"),
-    calendar_vars = TRUE,
-    season_method = "brazilian",
+    create_calendar_vars = TRUE,
     lang = "pt"
   ) |>
   sus_data_filter_demographics(
     age_range = c(65, Inf),  # Apenas idosos
-    sex = "all",
     lang = "pt"
   ) |>
   sus_data_quality_report(
@@ -636,23 +622,22 @@ df_cardio_idosos <- sus_data_import(
   sus_data_aggregate(
     time_unit = "week",
     group_by = "age_group",
-    fill_gaps = TRUE,
     lang = "pt"
   ) |>
   sus_data_export(
-    path = "cardio_idosos_sp_2020_2023.parquet",
+    file_path = "cardio_idosos_sp_2020_2023.parquet",
     format = "parquet",
     include_metadata = TRUE,
     lang = "pt"
   )
 ```
 
-#### Pipeline 4: Análise de Ondas de Calor (Pentads)
+#### Pipeline 4: Análise de Ondas de Calor
 
 ```r
 # Preparar dados para análise de ondas de calor usando pentads (5 dias)
 df_calor <- sus_data_import(
-  uf = c("SP", "RJ"),
+  uf = c("AM", "RO"),
   ano = 2023,
   sistema = "SIM-DO",
   parallel = TRUE
@@ -661,18 +646,15 @@ df_calor <- sus_data_import(
   sus_data_standardize(lang = "pt") |>
   sus_data_filter_cid(disease_group = "heat_related", lang = "pt") |>
   sus_create_variables(
-    age_groups = TRUE,
-    calendar_vars = TRUE,
-    season_method = "brazilian",
+    create_age_groups = TRUE,
     lang = "pt"
   ) |>
   sus_data_aggregate(
     time_unit = "5 days",  # Pentads para efeito cumulativo
-    fill_gaps = TRUE,
     lang = "pt"
   ) |>
   sus_data_export(
-    path = "ondas_calor_pentads_sp_rj_2023.csv",
+    file_path = "ondas_calor_pentads_sp_rj_2023.csv",
     format = "csv",
     include_metadata = TRUE,
     lang = "pt"
@@ -682,17 +664,6 @@ df_calor <- sus_data_import(
 ---
 
 ## Funções Helper
-
-### Detecção de Sistema de Saúde
-
-```r
-# Detectar automaticamente qual sistema de saúde
-sistema <- detect_health_system(df)
-# Retorna: "SIM", "SINASC", "SINAN", "SIH", "SIA", "CNES", ou "UNKNOWN"
-
-# Obter descrição do sistema
-descricao <- get_system_description(sistema, lang = "pt")
-```
 
 ### Grupos de Doenças
 
@@ -709,7 +680,7 @@ detalhes <- get_disease_group_details("dengue", lang = "pt")
 
 ---
 
-## Roadmap
+## Agenda
 
 ### ✅ Fase 1: Infraestrutura de Dados
 * ✅ Aquisição de dados em paralelo
@@ -770,16 +741,6 @@ O projeto climasus4r é financiado pelo Ministério da Saúde e pela Fundação 
 - **INCT Conexão - Amazônia** pelo financiamento e suporte
 - Todos os colaboradores e testadores que ajudaram a melhorar o pacote
 
----
-
-## Citação
-
-Se você usar o `climasus4r` em sua pesquisa, por favor cite:
-
-```
-Anjos, M. (2024). climasus4r: Kit de Ferramentas Integrado para Análise de Dados de Saúde, Clima e Ambiente. 
-R package version 0.3.0. https://github.com/ByMaxAnjos/climasus4r
-```
 
 ---
 
