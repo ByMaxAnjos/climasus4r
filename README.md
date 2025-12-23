@@ -711,7 +711,7 @@ detalhes <- get_disease_group_details("dengue", lang = "pt")
 
 ## Roadmap
 
-### ✅ Fase 1: Infraestrutura de Dados (COMPLETA)
+### ✅ Fase 1: Infraestrutura de Dados
 * ✅ Aquisição de dados em paralelo
 * ✅ Correção de codificação
 * ✅ Padronização multilíngue
@@ -729,8 +729,9 @@ detalhes <- get_disease_group_details("dengue", lang = "pt")
 * Correspondência de setores censitários
 
 ### 📅 Fase 3: Integração Ambiental (Planejada)
-* Importação de dados meteorológicos do INMET
+* Importação de dados meteorológicos do INMET e FIORES (INCT @inct_conexão)
 * Integração de dados de qualidade do ar (CETESB, INPE)
+* Integração de dados da rede de estações meteorológicas e de qualidade do ar do INCT-CONEXÃO
 * Processamento de dados de satélite (MODIS, Sentinel)
 * Algoritmos de correspondência de exposição
 
@@ -739,12 +740,16 @@ detalhes <- get_disease_group_details("dengue", lang = "pt")
 * Detecção de clusters espaciais (SaTScan, Kulldorff)
 * Indicadores locais de associação espacial (LISA)
 * Modelos de regressão espacial
+* Modelos de risco relativo às internações e mortes
+* Modelo bivariado quasi poison
 
 ### 📅 Fase 5: Análise Temporal e Preditiva (Planejada)
 * Modelos não lineares de defasagem distribuída (DLNM)
 * Cálculo de fração atribuível
 * Decomposição de séries temporais
 * Wrappers de previsão de aprendizado de máquina
+* Modelo de bioprognose baseado na previsão do tempo para 3 dias futuros
+* Modelos de bioprognose baseados em cenários climáticos de curto (3 meses) médio (5-10 anos) e longo prazo (50-100 anos)
 
 ---
 
@@ -755,11 +760,6 @@ O projeto climasus4r é financiado pelo Ministério da Saúde e pela Fundação 
 * **Núcleo Permanente de Climatologia (NPC)** INCT-CONEXÃO
 * **Núcleo Avançado de Climatologia (NAC)** INCT-CONEXÃO
 
----
-
-## Contribuindo
-
-Contribuições são bem-vindas! Por favor, consulte nosso [Guia de Contribuição](CONTRIBUTING.md) para detalhes sobre como participar do desenvolvimento do `climasus4r`.
 
 ---
 
