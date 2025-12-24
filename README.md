@@ -75,8 +75,9 @@ df_analise <- sus_data_import(
   sus_data_aggregate(
     time_unit = "day",
     lang = "pt"
-  ) |>
-  sus_data_export(
+  )
+#Save
+sus_data_export(df_analise,
     file_path = "dados_respiratorias_pediatricas_sp_2023.csv",
     format = "csv",
     include_metadata = TRUE,
