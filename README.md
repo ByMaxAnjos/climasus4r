@@ -40,24 +40,24 @@ if (!require("remotes")) {
 }
 
 # Instale o CLIMASUS4r
-remotes::install_github("ByMaxAnjos/climasus4r", dependencies = TRUE, upgrade = "never", quiet = TRUE)
+remotes::install_github("ByMaxAnjos/climasus4r", dependencies = TRUE, upgrade = "never")
 
 # Atualize com frequência para obter as melhorias mais recentes
 remove.packages("climasus4r")
-remotes::install_github("ByMaxAnjos/climasus4r", dependencies = TRUE, upgrade = "never", quiet = TRUE)
+remotes::install_github("ByMaxAnjos/climasus4r", dependencies = TRUE, upgrade = "never")
 ```
 
 ## Início Rápido
 
 ```r
 library(climasus4r)
-library(dplyr)
+library(dplyr) #To active the operador "%>%" ou "|>"
 
 # Pipeline completo da Fase 1: Dados prontos para análise em 8 passos
 df_analise <- sus_data_import(
   uf = "SP",
-  ano = 2023,
-  sistema = "SIM-DO"
+  year = 2023,
+  system = "SIM-DO"
 ) |>
   sus_data_clean_encoding(lang = "pt") |>
   sus_data_standardize(lang = "pt") |>
@@ -131,11 +131,10 @@ df <- sus_data_import(uf = "RJ", ano = 2022, sistema = "SIM-DO")
 # Múltiplos estados e anos com processamento paralelo
 df <- sus_data_import(
   uf = c("RJ", "SP", "MG", "ES"),
-  ano = 2018:2022,
-  sistema = "SIM-DO",
+  year = 2018:2022,
+  system = "SIM-DO",
   parallel = TRUE,
-  workers = 4,
-  use_cache = TRUE
+  workers = 4
 )
 ```
 
@@ -267,11 +266,10 @@ Crie automaticamente variáveis de **idade**, **calendário** e **sazonalidade**
 ```r
 df_com_vars <- sus_create_variables(
   df,
-  age_groups = TRUE,
+  create_age_groups = TRUE,
   age_breaks = c(0, 5, 15, 25, 45, 65, Inf),
   age_labels = c("0-4", "5-14", "15-24", "25-44", "45-64", "65+"),
-  calendar_vars = TRUE,
-  season_method = "brazilian",  # Estações do Hemisfério Sul
+  create_calendar_vars = TRUE,
   lang = "pt"
 )
 ```
@@ -308,11 +306,10 @@ A função usa uma hierarquia de 3 níveis para calcular idade:
 df_dengue <- df |>
   sus_data_filter_cid(disease_group = "dengue", lang = "pt") |>
   sus_create_variables(
-    age_groups = TRUE,
+    create_age_groups = TRUE,
     age_breaks = c(0, 15, 60, Inf),
     age_labels = c("Criancas", "Adultos", "Idosos"),
-    calendar_vars = TRUE,
-    season_method = "brazilian",
+    create_calendar_vars = TRUE,
     lang = "pt"
   )
 ```
@@ -328,7 +325,7 @@ Filtre dados por **idade**, **sexo** e **raça/cor** com suporte multilíngue.
 df_pediatrico <- sus_data_filter_demographics(
   df,
   age_range = c(0, 5),
-  sex = "all",
+  sex = c("Masculino"),
   lang = "pt"
 )
 
@@ -337,16 +334,15 @@ df_idosos_masc <- sus_data_filter_demographics(
   df,
   age_range = c(65, Inf),
   sex = "male",
-  lang = "pt"
+  lang = "en"
 )
 
 # Filtrar adultos por raça/cor
 df_adultos_pretos <- sus_data_filter_demographics(
   df,
   age_range = c(18, 60),
-  sex = "all",
   race = "black",
-  lang = "pt"
+  lang = "en"
 )
 ```
 
@@ -355,8 +351,8 @@ df_adultos_pretos <- sus_data_filter_demographics(
 | Parâmetro | Opções | Descrição |
 |-----------|--------|-----------|
 | `age_range` | `c(min, max)` | Intervalo de idade em anos (use `Inf` para sem limite) |
-| `sex` | `"male"`, `"female"`, `"all"` | Sexo biológico |
-| `race` | `"white"`, `"black"`, `"brown"`, `"yellow"`, `"indigenous"`, `"all"` | Raça/cor (IBGE) |
+| `sex` | `"male"`, `"female"`, `"ignoared"` | Sexo biológico |
+| `race` | `"white"`, `"black"`, `"brown"`, `"yellow"`, `"indigenous"` | Raça/cor (IBGE) |
 
 ---
 
@@ -395,7 +391,7 @@ verificacoes <- sus_data_quality_report(
 - `"console"`: Imprime no console
 - `"html"`: Relatório HTML interativo
 - `"pdf"`: Relatório PDF para publicação
-- `"json"`: Dados estruturados para processamento
+
 
 ---
 
@@ -517,7 +513,6 @@ sus_data_export(
 - `"csv"`: Texto delimitado (universal)
 - `"rds"`: Formato R nativo (preserva tipos)
 - `"parquet"`: Formato colunar eficiente (recomendado para big data)
-- `"xlsx"`: Excel (para compartilhamento com não-programadores)
 
 ---
 
@@ -531,15 +526,15 @@ library(climasus4r)
 # Preparar dados de doenças respiratórias em crianças < 5 anos
 df_resp_ped <- sus_data_import(
   uf = c("SP", "RJ", "MG"),
-  ano = 2018:2023,
-  sistema = "SIM-DO",
+  year = 2018:2023,
+  system = "SIM-DO",
   parallel = TRUE
 ) |>
   sus_data_clean_encoding(lang = "pt") |>
   sus_data_standardize(lang = "pt") |>
   sus_data_filter_cid(disease_group = "respiratory", lang = "pt") |>
   sus_create_variables(
-    age_groups = TRUE,
+    create_age_groups = TRUE,
     age_breaks = c(0, 1, 5, Inf),
     age_labels = c("< 1 ano", "1-4 anos", "5+ anos"),
     lang = "pt"
@@ -553,8 +548,9 @@ df_resp_ped <- sus_data_import(
     time_unit = "month",
     group_by = "age_group",
     lang = "pt"
-  ) |>
-  sus_data_export(
+  )
+#Save
+  sus_data_export(df_resp_ped,
     file_path = "respiratorias_pediatricas_sudeste_2018_2023.csv",
     format = "csv",
     include_metadata = TRUE,
@@ -568,8 +564,8 @@ df_resp_ped <- sus_data_import(
 # Preparar dados de dengue com foco em sazonalidade
 df_dengue <- sus_data_import(
   uf = "AM",
-  ano = 2015:2023,
-  sistema = "SINAN-DENGUE",
+  year = 2015:2023,
+  system = "SINAN-DENGUE",
   parallel = TRUE,
 ) |>
   sus_data_clean_encoding(lang = "pt") |>
@@ -582,8 +578,9 @@ df_dengue <- sus_data_import(
   sus_data_aggregate(
     time_unit = "season",  # Agregação por estação
     lang = "pt"
-  ) |>
-  sus_data_export(
+  )
+  #save
+  sus_data_export(df_dengue,
     file_path = "dengue_sazonal_amazonas_2015_2023.csv",
     format = "csv",
     include_metadata = TRUE,
@@ -638,8 +635,8 @@ df_cardio_idosos <- sus_data_import(
 # Preparar dados para análise de ondas de calor usando pentads (5 dias)
 df_calor <- sus_data_import(
   uf = c("AM", "RO"),
-  ano = 2023,
-  sistema = "SIM-DO",
+  year = 2023,
+  system = "SIM-DO",
   parallel = TRUE
 ) |>
   sus_data_clean_encoding(lang = "pt") |>
