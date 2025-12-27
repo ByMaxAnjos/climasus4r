@@ -1904,13 +1904,13 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
 # @noRd
 
 .icd_disease_groups <- list(
-  
+
   # ============================================================================
   # CHAPTER I: INFECTIOUS AND PARASITIC DISEASES (A00-B99)
   # ============================================================================
-  
+
   # --- Climate-Sensitive Infectious Diseases ---
-  
+
   diarrheal = list(
     codes = c("A00-A09"),
     label = list(
@@ -1926,7 +1926,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "precipitation", "flooding")
   ),
-  
+
   tuberculosis = list(
     codes = c("A15-A19"),
     label = list(
@@ -1942,7 +1942,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "humidity", "seasonality")
   ),
-  
+
   zoonotic_bacterial = list(
     codes = c("A20-A28"),
     label = list(
@@ -1958,7 +1958,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("precipitation", "flooding", "temperature")
   ),
-  
+
   leptospirosis = list(
     codes = c("A27"),
     label = list(
@@ -1974,7 +1974,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("precipitation", "flooding")
   ),
-  
+
   hansen = list(
     codes = c("A30"),
     label = list(
@@ -1990,7 +1990,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = FALSE,
     climate_factors = NULL
   ),
-  
+
   vector_borne = list(
     codes = c("A75-A79", "A90-A99"),
     label = list(
@@ -2006,7 +2006,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "precipitation", "humidity")
   ),
-  
+
   dengue = list(
     codes = c("A90", "A91"),
     label = list(
@@ -2022,7 +2022,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "precipitation", "humidity")
   ),
-  
+
   chikungunya = list(
     codes = c("A92.0"),
     label = list(
@@ -2038,7 +2038,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "precipitation")
   ),
-  
+
   zika = list(
     codes = c("A92.5", "P35.4", "Q02"),
     label = list(
@@ -2054,7 +2054,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "precipitation")
   ),
-  
+
   yellow_fever = list(
     codes = c("A95"),
     label = list(
@@ -2070,7 +2070,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "precipitation", "deforestation")
   ),
-  
+
   malaria = list(
     codes = c("B50-B54"),
     label = list(
@@ -2086,7 +2086,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "precipitation", "humidity")
   ),
-  
+
   leishmaniasis = list(
     codes = c("B55"),
     label = list(
@@ -2102,7 +2102,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "humidity", "deforestation")
   ),
-  
+
   chagas = list(
     codes = c("B57"),
     label = list(
@@ -2118,7 +2118,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "housing_conditions")
   ),
-  
+
   schistosomiasis = list(
     codes = c("B65"),
     label = list(
@@ -2134,7 +2134,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("water_availability", "temperature")
   ),
-  
+
   helminthiasis = list(
     codes = c("B65-B83"),
     label = list(
@@ -2150,11 +2150,11 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "humidity", "sanitation")
   ),
-  
+
   # ============================================================================
   # CHAPTER II: NEOPLASMS (C00-D48)
   # ============================================================================
-  
+
   skin_cancer = list(
     codes = c("C43-C44"),
     label = list(
@@ -2170,7 +2170,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("uv_radiation", "temperature")
   ),
-  
+
   respiratory_cancer = list(
     codes = c("C30-C39"),
     label = list(
@@ -2186,11 +2186,11 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("air_pollution")
   ),
-  
+
   # ============================================================================
   # CHAPTER IV: ENDOCRINE, NUTRITIONAL AND METABOLIC DISEASES (E00-E90)
   # ============================================================================
-  
+
   diabetes = list(
     codes = c("E10-E14"),
     label = list(
@@ -2206,7 +2206,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "heatwaves")
   ),
-  
+
   malnutrition = list(
     codes = c("E40-E46"),
     label = list(
@@ -2222,11 +2222,65 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("drought", "food_security")
   ),
-  
+
+  # ============================================================================
+  # CHAPTER V: MENTAL AND BEHAVIORAL DISORDERS (F00-F99)
+  # ============================================================================
+
+  mental_disorders = list(
+    codes = c("F00-F99"),
+    label = list(
+      pt = "Transtornos mentais e comportamentais",
+      en = "Mental and behavioral disorders",
+      es = "Trastornos mentales y del comportamiento"
+    ),
+    description = list(
+      pt = "Capítulo V da CID-10, abrangendo todos os transtornos mentais, incluindo depressão, ansiedade, esquizofrenia e transtornos por uso de substâncias.",
+      en = "Chapter V of ICD-10, covering all mental disorders, including depression, anxiety, schizophrenia, and substance use disorders.",
+      es = "Capítulo V de la CIE-10, que abarca todos los trastornos mentales, incluyendo depresión, ansiedad, esquizofrenia y trastornos por uso de sustancias."
+    ),
+    climate_sensitive = TRUE,
+    climate_factors = c("temperature_extremes", "heat_waves", "natural_disasters", "seasonal_changes", "air_pollution"),
+    data_sources = list(
+      primary = c("SIH", "SIA", "SIM"),
+      notes = list(
+        pt = "Dados de transtornos mentais podem ser encontrados no SIH (internações), SIA (atendimentos ambulatoriais) e SIM (mortalidade por suicídio, que é uma consequência, mas registrada em outro capítulo).",
+        en = "Mental health data can be found in SIH (hospitalizations), SIA (outpatient care), and SIM (suicide mortality, which is a consequence but registered in another chapter).",
+        es = "Los datos de salud mental se pueden encontrar en SIH (hospitalizaciones), SIA (atención ambulatoria) y SIM (mortalidad por suicidio, que es una consecuencia pero registrada en otro capítulo)."
+      )
+    ),
+    research_notes = list(
+      pt = "Transtornos mentais são altamente sensíveis a fatores climáticos como ondas de calor (aumento de agitação, suicídios), desastres naturais (TEPT), variações sazonais (depressão sazonal) e poluição do ar (inflamação neural).",
+      en = "Mental disorders are highly sensitive to climate factors such as heat waves (increased agitation, suicides), natural disasters (PTSD), seasonal variations (seasonal depression), and air pollution (neural inflammation).",
+      es = "Los trastornos mentales son altamente sensibles a factores climáticos como olas de calor (aumento de agitación, suicidios), desastres naturales (TEPT), variaciones estacionales (depresión estacional) y contaminación del aire (inflamación neural)."
+    )
+  ),
+
+  climate_sensitive_mental_disorders = list(
+    codes = c("F30-F33", "F41", "F43", "F50"),
+    label = list(
+      pt = "Transtornos mentais sensíveis ao clima",
+      en = "Climate-sensitive mental disorders",
+      es = "Trastornos mentales sensibles al clima"
+    ),
+    description = list(
+      pt = "Subconjunto de transtornos mentais com forte evidência de sensibilidade a fatores climáticos: transtornos do humor (depressão, bipolar), ansiedade, reação ao estresse e transtornos alimentares.",
+      en = "Subset of mental disorders with strong evidence of sensitivity to climate factors: mood disorders (depression, bipolar), anxiety, stress-related disorders, and eating disorders.",
+      es = "Subconjunto de trastornos mentales con fuerte evidencia de sensibilidad a factores climáticos: trastornos del humor (depresión, bipolar), ansiedad, trastornos relacionados con el estrés y trastornos alimentarios."
+    ),
+    climate_sensitive = TRUE,
+    climate_factors = c("heat_waves", "seasonal_light_changes", "natural_disasters", "air_pollution", "temperature_variability"),
+    notes = list(
+      pt = "Inclui: Transtornos do humor (F30-F33), Transtornos de ansiedade (F41), Reação ao estresse grave (F43), Transtornos alimentares (F50).",
+      en = "Includes: Mood disorders (F30-F33), Anxiety disorders (F41), Reaction to severe stress (F43), Eating disorders (F50).",
+      es = "Incluye: Trastornos del humor (F30-F33), Trastornos de ansiedad (F41), Reacción al estrés grave (F43), Trastornos alimentarios (F50)."
+    )
+  ),
+
   # ============================================================================
   # CHAPTER IX: CIRCULATORY SYSTEM (I00-I99)
   # ============================================================================
-  
+
   cardiovascular = list(
     codes = c("I00-I99"),
     label = list(
@@ -2242,7 +2296,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "heatwaves", "cold_spells")
   ),
-  
+
   ischemic_heart = list(
     codes = c("I20-I25"),
     label = list(
@@ -2258,7 +2312,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "heatwaves", "cold_spells", "air_pollution")
   ),
-  
+
   acute_myocardial_infarction = list(
     codes = c("I21-I22"),
     label = list(
@@ -2274,7 +2328,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "air_pollution")
   ),
-  
+
   cerebrovascular = list(
     codes = c("I60-I69"),
     label = list(
@@ -2290,7 +2344,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "heatwaves", "cold_spells")
   ),
-  
+
   stroke = list(
     codes = c("I63-I64"),
     label = list(
@@ -2306,7 +2360,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "air_pollution")
   ),
-  
+
   hypertension = list(
     codes = c("I10-I15"),
     label = list(
@@ -2322,11 +2376,11 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "heatwaves")
   ),
-  
+
   # ============================================================================
   # CHAPTER X: RESPIRATORY SYSTEM (J00-J99)
   # ============================================================================
-  
+
   respiratory = list(
     codes = c("J00-J99"),
     label = list(
@@ -2342,7 +2396,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "air_pollution", "humidity", "seasonality")
   ),
-  
+
   acute_respiratory = list(
     codes = c("J00-J06", "J20-J22"),
     label = list(
@@ -2358,7 +2412,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "humidity", "seasonality")
   ),
-  
+
   influenza_pneumonia = list(
     codes = c("J09-J18"),
     label = list(
@@ -2374,7 +2428,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "humidity", "seasonality")
   ),
-  
+
   pneumonia = list(
     codes = c("J12-J18"),
     label = list(
@@ -2390,7 +2444,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "humidity", "air_pollution")
   ),
-  
+
   asthma = list(
     codes = c("J45-J46"),
     label = list(
@@ -2406,7 +2460,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("air_pollution", "temperature", "humidity", "allergens")
   ),
-  
+
   copd = list(
     codes = c("J40-J44"),
     label = list(
@@ -2422,11 +2476,11 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("air_pollution", "temperature")
   ),
-  
+
   # ============================================================================
   # CHAPTER XI: DIGESTIVE SYSTEM (K00-K93)
   # ============================================================================
-  
+
   digestive = list(
     codes = c("K00-K93"),
     label = list(
@@ -2442,11 +2496,11 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = FALSE,
     climate_factors = NULL
   ),
-  
+
   # ============================================================================
   # CHAPTER XII: SKIN AND SUBCUTANEOUS TISSUE (L00-L99)
   # ============================================================================
-  
+
   skin_infections = list(
     codes = c("L00-L08"),
     label = list(
@@ -2462,11 +2516,11 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "humidity")
   ),
-  
+
   # ============================================================================
   # CHAPTER XIV: GENITOURINARY SYSTEM (N00-N99)
   # ============================================================================
-  
+
   renal = list(
     codes = c("N00-N29"),
     label = list(
@@ -2482,11 +2536,11 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "dehydration")
   ),
-  
+
   # ============================================================================
   # CHAPTER XV: PREGNANCY, CHILDBIRTH AND PUERPERIUM (O00-O99)
   # ============================================================================
-  
+
   pregnancy_complications = list(
     codes = c("O00-O99"),
     label = list(
@@ -2502,11 +2556,11 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "heatwaves")
   ),
-  
+
   # ============================================================================
   # CHAPTER XVI: PERINATAL PERIOD (P00-P96)
   # ============================================================================
-  
+
   perinatal = list(
     codes = c("P00-P96"),
     label = list(
@@ -2522,11 +2576,11 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "heatwaves")
   ),
-  
+
   # ============================================================================
   # CHAPTER XVII: CONGENITAL MALFORMATIONS (Q00-Q99)
   # ============================================================================
-  
+
   congenital = list(
     codes = c("Q00-Q99"),
     label = list(
@@ -2542,7 +2596,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = FALSE,
     climate_factors = NULL
   ),
-  
+
   microcephaly = list(
     codes = c("Q02"),
     label = list(
@@ -2558,11 +2612,11 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "precipitation")
   ),
-  
+
   # ============================================================================
   # CHAPTER XVIII: ILL-DEFINED CONDITIONS (R00-R99)
   # ============================================================================
-  
+
   ill_defined = list(
     codes = c("R00-R99"),
     label = list(
@@ -2578,11 +2632,11 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = FALSE,
     climate_factors = NULL
   ),
-  
+
   # ============================================================================
   # CHAPTER XIX: INJURIES (S00-T98)
   # ============================================================================
-  
+
   injuries = list(
     codes = c("S00-T98"),
     label = list(
@@ -2598,11 +2652,11 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("extreme_weather", "flooding", "heatwaves")
   ),
-  
+
   # ============================================================================
   # CHAPTER XX: EXTERNAL CAUSES (V01-Y98)
   # ============================================================================
-  
+
   transport_accidents = list(
     codes = c("V01-V99"),
     label = list(
@@ -2618,7 +2672,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("extreme_weather", "flooding")
   ),
-  
+
   drowning = list(
     codes = c("W65-W74"),
     label = list(
@@ -2634,7 +2688,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("flooding", "precipitation")
   ),
-  
+
   heat_exposure = list(
     codes = c("X30"),
     label = list(
@@ -2650,7 +2704,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "heatwaves")
   ),
-  
+
   cold_exposure = list(
     codes = c("X31"),
     label = list(
@@ -2666,7 +2720,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "cold_spells")
   ),
-  
+
   natural_disasters = list(
     codes = c("X36-X39"),
     label = list(
@@ -2675,18 +2729,39 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
       es = "Desastres naturales"
     ),
     description = list(
-      pt = "Vitimas de raios, terremotos, inundacoes, tempestades",
+      pt = "Vitimas de raios, terremotos, inundacoes, , tempestades",
       en = "Victims of lightning, earthquakes, floods, storms",
       es = "Victimas de rayos, terremotos, inundaciones, tormentas"
     ),
     climate_sensitive = TRUE,
     climate_factors = c("extreme_weather", "precipitation", "flooding")
   ),
-  
+
+  suicide_self_harm = list(
+    codes = c("X60-X84", "Y87.0"),
+    label = list(
+      pt = "Suicídio e autolesão",
+      en = "Suicide and self-harm",
+      es = "Suicidio y autolesión"
+    ),
+    description = list(
+      pt = "Lesões autoprovocadas intencionalmente e suicídio (CID-10 capítulo XX)",
+      en = "Intentional self-harm and suicide (ICD-10 chapter XX)",
+      es = "Lesiones autoinfligidas intencionalmente y suicidio (CID-10 capítulo XX)"
+    ),
+    climate_sensitive = TRUE,
+    climate_factors = c("temperature_extremes", "seasonality", "sunlight_exposure", "heat_waves", "natural_disasters"),
+    research_notes = list(
+      pt = "Taxas de suicídio mostram correlação com variações sazonais (maior incidência na primavera), ondas de calor (aumento de impulsividade) e eventos climáticos extremos (perdas econômicas e sociais).",
+      en = "Suicide rates show correlation with seasonal variations (higher incidence in spring), heat waves (increased impulsivity) and extreme weather events (economic and social losses).",
+      es = "Las tasas de suicidio muestran correlación con variaciones estacionales (mayor incidencia en primavera), olas de calor (aumento de impulsividad) y eventos climáticos extremos (pérdidas económicas y sociales)."
+    )
+  ),
+
   # ============================================================================
   # SPECIAL CLIMATE-HEALTH GROUPS
   # ============================================================================
-  
+
   heat_related = list(
     codes = c("E86", "T67", "X30"),
     label = list(
@@ -2702,7 +2777,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "heatwaves")
   ),
-  
+
   waterborne = list(
     codes = c("A00-A09", "A27"),
     label = list(
@@ -2718,7 +2793,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("precipitation", "flooding", "water_quality")
   ),
-  
+
   air_pollution_related = list(
     codes = c("J20-J22", "J40-J46", "I20-I25", "I60-I69"),
     label = list(
@@ -2734,7 +2809,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("air_pollution", "temperature")
   ),
-  
+
   climate_sensitive_all = list(
     codes = c(
       "A00-A09", "A15-A19", "A20-A28", "A75-A79", "A90-A99",
@@ -2763,11 +2838,11 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "precipitation", "humidity", "air_pollution", "extreme_weather")
   ),
-  
+
   # ============================================================================
   # AGE-SPECIFIC GROUPS
   # ============================================================================
-  
+
   pediatric_respiratory = list(
     codes = c("J00-J06", "J09-J18", "J20-J22"),
     label = list(
@@ -2783,7 +2858,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "humidity", "air_pollution")
   ),
-  
+
   elderly_cardiovascular = list(
     codes = c("I20-I25", "I60-I69"),
     label = list(
@@ -2799,11 +2874,11 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "heatwaves", "cold_spells", "air_pollution")
   ),
-  
+
   # ============================================================================
   # SYNDROMIC GROUPS (for surveillance)
   # ============================================================================
-  
+
   fever_syndrome = list(
     codes = c("A90-A99", "B50-B54"),
     label = list(
@@ -2819,7 +2894,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "precipitation", "humidity")
   ),
-  
+
   respiratory_syndrome = list(
     codes = c("J00-J22", "J40-J46"),
     label = list(
@@ -2835,7 +2910,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "air_pollution", "humidity")
   ),
-  
+
   diarrheal_syndrome = list(
     codes = c("A00-A09"),
     label = list(
@@ -2851,9 +2926,11 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_sensitive = TRUE,
     climate_factors = c("temperature", "precipitation", "flooding")
   ),
+  
   # ============================================================================
   # NEUROLOGICAL
   # ============================================================================
+  
   neurological_disorders = list(
     codes = c("G00-G99"),
     label = list(
@@ -2870,6 +2947,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     climate_factors = c("temperature", "humidity", "seasonality", "weather space")
   )
 )
+
 
 
 #' Get available disease groups
