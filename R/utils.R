@@ -212,9 +212,9 @@ get_translation_dict_en <- function() {
     
     # SEXO - Sex of deceased
     "SEXO" = c(
-      "M" = "Male",
-      "F" = "Female",
-      "I" = "Ignored"
+      "1" = "Male",
+      "2" = "Female",
+      "0" = "Ignored"
     ),
     
     # RACACOR - Race/color
@@ -842,9 +842,9 @@ get_translation_dict_pt <- function() {
     
     # SEXO - Sexo do falecido
     "SEXO" = c(
-      "M" = "Masculino",
-      "F" = "Feminino",
-      "I" = "Ignorado"
+      "1" = "Masculino",
+      "2" = "Feminino",
+      "0" = "Ignorado"
     ),
     
     # RACACOR - Raca/cor
@@ -1421,9 +1421,9 @@ get_translation_dict_es <- function() {
     
     # SEXO - Sexo del fallecido
     "SEXO" = c(
-      "M" = "Masculino",
-      "F" = "Femenino",
-      "I" = "Ignorado"
+      "1" = "Masculino",
+      "2" = "Femenino",
+      "0" = "Ignorado"
     ),
     
     # RACACOR - Raza/color
