@@ -160,19 +160,19 @@ sus_create_variables <- function(df,
   
   # Validate inputs
   if (!is.data.frame(df)) {
-    stop("df must be a data frame")
+    cli::cli_abort("df must be a data frame")
   }
   
   if (nrow(df) == 0) {
-    stop("df is empty (0 rows)")
+     cli::cli_abort("df is empty (0 rows)")
   }
   
   if (!lang %in% c("en", "pt", "es")) {
-    stop("lang must be one of: 'en', 'pt', 'es'")
+     cli::cli_abort("lang must be one of: 'en', 'pt', 'es'")
   }
   
   if (!hemisphere %in% c("south", "north")) {
-    stop("hemisphere must be 'south' or 'north'")
+     cli::cli_abort("hemisphere must be 'south' or 'north'")
   }
   
   # Track which variables were created
@@ -391,11 +391,10 @@ try_detect_age_column <- function(df) {
   # Patterns for age in years (after standardization or processing)
   age_patterns <- c(
     "age_years",      # English standardized
-    "age",            # Generic
-    "idade_anos",
-    "idade",     # Portuguese standardized
-    "edad_anos",
-    "edad"       # Spanish standardized
+    "age_code",            # Generic
+    "codigo_idade",
+    "codigo_edad",
+    "IDADE"
   )
   
   for (pattern in age_patterns) {
@@ -426,7 +425,7 @@ try_calculate_age_from_dates <- function(df, lang, verbose) {
   # Find birth date column
   birth_date_patterns <- c(
     "birth_date", "data_nascimento", "fecha_nacimiento",  # Standardized
-    "DTNASC", "NASC", "DT_NASC"                           # Original DATASUS
+    "DTNASC"                          # Original DATASUS
   )
   
   birth_col <- NULL
@@ -524,7 +523,7 @@ try_decode_datasus_age <- function(df, lang, verbose) {
   # Find age code column
   age_code_patterns <- c(
     "age_code",  # ADD THIS - matches your column name
-    "age", "idade", "codigo_idade", "codigo_edad", "edad",
+    "codigo_idade", "codigo_edad",
     "NU_IDADE_N",  # SINAN standard
     "IDADE"        # SIH standard
   )

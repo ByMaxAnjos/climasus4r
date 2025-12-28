@@ -105,15 +105,15 @@ sus_data_aggregate <- function(df,
   
   # Validate inputs
   if (!is.data.frame(df)) {
-    stop("df must be a data frame")
+    cli::cli_abort("df must be a data frame")
   }
   
   if (nrow(df) == 0) {
-    stop("df is empty (0 rows)")
+    cli::cli_abort("df is empty (0 rows)")
   }
   
   if (!lang %in% c("en", "pt", "es")) {
-    stop("lang must be one of: 'en', 'pt', 'es'")
+    cli::cli_abort("lang must be one of: 'en', 'pt', 'es'")
   }
   
   # Auto-detect date column if not specified
@@ -179,7 +179,7 @@ sus_data_aggregate <- function(df,
       time_unit_label <- get_time_unit_label(time_unit, lang)
       
     }, error = function(e) {
-      stop(paste0(
+      cli::cli_abort(paste0(
         "Invalid time_unit: '", time_unit, "'. ",
         "Use formats like 'day', 'week', 'month', 'quarter', 'year', 'season', ",
         "or multi-period like '2 days', '5 days', '14 days', '3 months', etc. The '2 weeks' period does not work in this version "
@@ -194,7 +194,7 @@ sus_data_aggregate <- function(df,
     # Validate group_by columns exist
     missing_cols <- setdiff(group_by, names(df))
     if (length(missing_cols) > 0) {
-      stop(paste0("Grouping columns not found: ", paste(missing_cols, collapse = ", ")))
+      cli::cli_abort(paste0("Grouping columns not found: ", paste(missing_cols, collapse = ", ")))
     }
     group_vars <- c("agg_date", group_by)
   }
@@ -306,7 +306,7 @@ detect_date_column <- function(df) {
   }
   
   # If still no match, error
-  stop("Could not auto-detect date column. Please specify 'date_col' parameter.")
+  cli::cli_abort("Could not auto-detect date column. Please specify 'date_col' parameter.")
 }
 
 

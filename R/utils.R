@@ -14,6 +14,8 @@ NULL
 #'
 #' Internal function - Returns EN translations
 #' @keywords internal
+#' @noRd
+
 get_translation_dict_en <- function() {
   
   # ==========================================================================
@@ -24,274 +26,174 @@ get_translation_dict_en <- function() {
   columns <- c(
     
     # ------------------------------------------------------------------------
-    # COMMON DEMOGRAPHICS (All Systems)
-    # Used across SIM, SINASC, SINAN, SIH
+    # BASIC IDENTIFICATION AND DEATH TYPE
     # ------------------------------------------------------------------------
-    "SEXO" = "sex",
-    "CS_SEXO" = "sex",
-    "RACACOR" = "race",
-    "CS_RACA" = "race",
-    "ESTCIV" = "marital_status",
-    "ESTCIVMAE" = "mother_marital_status",
-    # ------------------------------------------------------------------------
-    # DATES (All Systems)
-    # Birth, death, notification, and administrative dates
-    # ------------------------------------------------------------------------
+    "TIPOBITO" = "death_type",
     "DTOBITO" = "death_date",
     "HORAOBITO" = "death_time",
-    "DTNASC" = "birth_date",
-    "DT_NASC" = "birth_date",
-    "NASC" = "birth_date",
-    "DT_NOTIFIC" = "notification_date",
-    "DT_SIN_PRI" = "symptom_date",
-    "DT_INTER" = "admission_date",
-    "DT_SAIDA" = "discharge_date",
+    "NUMERODO" = "death_certificate_number",
+    "CAUSABAS" = "underlying_cause",
+    "CAUSABAS_O" = "original_underlying_cause",
+    "CB_PRE" = "pre_selection_underlying_cause",
+    "CAUSAMAT" = "maternal_cause",
     
     # ------------------------------------------------------------------------
-    # AGE VARIABLES (All Systems)
-    # Age codes and decomposed age units
+    # DECEASED PERSONAL DATA
     # ------------------------------------------------------------------------
-    "IDADE" = "age_code",
-    "NU_IDADE_N" = "age",
-    "IDADEMAE" = "mother_age",
-    "IDADEPAI" = "father_age",
-    
-    # ------------------------------------------------------------------------
-    # GEOGRAPHIC CODES (All Systems)
-    # Municipality and region codes for residence, birth, occurrence
-    # ------------------------------------------------------------------------
-    "CODMUNRES" = "residence_municipality_code",
-    "ID_MN_RESI" = "residence_municipality",
-    "MUNIC_RES" = "residence_municipality",
+    "NATURAL" = "birthplace_municipality",
     "CODMUNNATU" = "birthplace_municipality_code",
-    "CODMUNNASC" = "birth_municipality_code",
-    "CODMUNOCOR" = "occurrence_municipality_code",
-    "CODUFMUN" = "municipality_code",
+    "DTNASC" = "birth_date",
+    "IDADE" = "age_code",
+    "SEXO" = "sex",
+    "RACACOR" = "race",
+    "ESTCIV" = "marital_status",
     
     # ------------------------------------------------------------------------
-    # EDUCATION & OCCUPATION (SIM, SINASC, SINAN)
-    # Schooling years and occupation codes
+    # DECEASED EDUCATION AND OCCUPATION
     # ------------------------------------------------------------------------
     "ESC" = "education",
-    "ESCMAE" = "mother_education",
-    "CS_ESCOL_N" = "education",
+    "ESC2010" = "education_2010",
+    "SERIESCFAL" = "deceased_education_grade",
+    "ESCFALAGRI" = "aggregated_deceased_education",
     "OCUP" = "occupation",
-    "CODOCUPMAE" = "mother_occupation_code",
-    "ID_OCUPA_N" = "occupation",
     
     # ------------------------------------------------------------------------
-    # ICD/DIAGNOSIS - SIM (Mortality System) - Used by sus_data_filter_cid
-    # Underlying and contributing causes of death
+    # RESIDENCE AND OCCURRENCE LOCATION
     # ------------------------------------------------------------------------
-    "CAUSABAS" = "underlying_cause",
-    "CAUSABAS_O" = "underlying_cause_original",
+    "CODMUNRES" = "residence_municipality_code",
+    "LOCOCOR" = "death_location",
+    "CODMUNOCOR" = "occurrence_municipality_code",
+    
+    # ------------------------------------------------------------------------
+    # MOTHER DATA (FOR FETAL DEATH OR UNDER 1 YEAR)
+    # ------------------------------------------------------------------------
+    "IDADEMAE" = "mother_age",
+    "ESCMAE" = "mother_education",
+    "ESCMAE2010" = "mother_education_2010",
+    "SERIESCMAE" = "mother_education_grade",
+    "ESCMAEAGR1" = "aggregated_mother_education",
+    "OCUPMAE" = "mother_occupation",
+    "QTDFILVIVO" = "number_of_living_children",
+    "QTDFILMORT" = "number_of_dead_children",
+    
+    # ------------------------------------------------------------------------
+    # PREGNANCY AND BIRTH DATA
+    # ------------------------------------------------------------------------
+    "SEMAGESTAC" = "gestational_weeks",
+    "GESTACAO" = "gestational_age",
+    "GRAVIDEZ" = "pregnancy_type",
+    "PARTO" = "delivery_type",
+    "OBITOPARTO" = "death_timing_delivery",
+    "MORTEPARTO" = "death_timing_partum",
+    "PESO" = "birth_weight",
+    "NUMERODN" = "birth_certificate_number",
+    
+    # ------------------------------------------------------------------------
+    # CAUSES OF DEATH (DEATH CERTIFICATE LINES)
+    # ------------------------------------------------------------------------
     "LINHAA" = "cause_line_a",
     "LINHAB" = "cause_line_b",
     "LINHAC" = "cause_line_c",
     "LINHAD" = "cause_line_d",
     "LINHAII" = "cause_line_ii",
+    "ATESTADO" = "death_certificate",
     
     # ------------------------------------------------------------------------
-    # ICD/DIAGNOSIS - SIH (Hospital Admissions)
-    # Primary and secondary diagnoses for hospitalizations
+    # MATERNAL AND PREGNANCY-RELATED DEATH
     # ------------------------------------------------------------------------
-    "DIAG_PRINC" = "primary_diagnosis",
-    "DIAG_SECUN" = "secondary_diagnosis",
-    "DIAGSEC1" = "secondary_diagnosis_1",
-    "DIAGSEC2" = "secondary_diagnosis_2",
-    "DIAGSEC3" = "secondary_diagnosis_3",
-    "DIAGSEC4" = "secondary_diagnosis_4",
-    "DIAGSEC5" = "secondary_diagnosis_5",
-    "DIAGSEC6" = "secondary_diagnosis_6",
-    "DIAGSEC7" = "secondary_diagnosis_7",
-    "DIAGSEC8" = "secondary_diagnosis_8",
-    "DIAGSEC9" = "secondary_diagnosis_9",
-    "CID_MORTE" = "death_cause",
-    "CID_NOTIF" = "notifiable_disease",
+    "TPMORTEOCO" = "death_timing_pregnancy",
+    "TPOBITOCOR" = "corrected_death_type",
+    "OBITOGRAV" = "death_during_pregnancy",
+    "OBITOPUERP" = "death_during_puerperium",
     
     # ------------------------------------------------------------------------
-    # ICD/DIAGNOSIS - SIA (Outpatient)
-    # ICD codes for ambulatory procedures
+    # DEATH CIRCUMSTANCES
     # ------------------------------------------------------------------------
-    "PA_CIDPRI" = "primary_icd",
-    "PA_CIDSEC" = "secondary_icd",
-    "PA_CIDCAS" = "associated_icd",
-    
-    # ------------------------------------------------------------------------
-    # DEATH CIRCUMSTANCES - SIM
-    # Type, location, and circumstances of death
-    # ------------------------------------------------------------------------
-    "TIPOBITO" = "death_type",
-    "LOCOCOR" = "death_location",
     "CIRCOBITO" = "death_circumstance",
     "ACIDTRAB" = "work_accident",
     "FONTE" = "information_source",
     
     # ------------------------------------------------------------------------
-    # MATERNAL DEATH - SIM
-    # Pregnancy-related death indicators
+    # MEDICAL ASSISTANCE AND PROCEDURES
     # ------------------------------------------------------------------------
-    "OBITOGRAV" = "death_during_pregnancy",
-    "OBITOPUERP" = "death_during_puerperium",
-    "OBITOPARTO" = "death_during_delivery",
     "ASSISTMED" = "medical_assistance",
     "NECROPSIA" = "autopsy",
+    "EXAME" = "examination_performed",
+    "CIRURGIA" = "surgery_performed",
     
     # ------------------------------------------------------------------------
-    # BIRTH INFORMATION - SINASC
-    # Place, weight, APGAR, gestation, delivery type
+    # INVESTIGATION INFORMATION
     # ------------------------------------------------------------------------
-    "NUMERODV" = "birth_certificate_number",
-    "LOCNASC" = "birth_place",
-    "PESO" = "birth_weight",
-    "APGAR1" = "apgar_1min",
-    "APGAR5" = "apgar_5min",
-    "GESTACAO" = "gestational_age",
-    "SEMAGESTAC" = "gestational_weeks",
-    "GRAVIDEZ" = "pregnancy_type",
-    "PARTO" = "delivery_type",
-    "CONSULTAS" = "prenatal_consultations",
-    "DTULTMENST" = "last_menstruation_date",
-    "TPMETESTIM" = "gestational_age_estimation_method",
-    "TPAPRESENT" = "fetal_presentation",
-    "STTRABPART" = "labor_induced",
-    "STCESPARTO" = "cesarean_before_labor",
+    "DTINVESTIG" = "investigation_date",
+    "DTCONINV" = "investigation_conclusion_date",
+    "DTCADINV" = "investigation_registration_date",
+    "DTCONCASO" = "case_conclusion_date",
+    "DTCADINF" = "information_registration_date",
+    "FONTENV" = "investigation_source",
+    "FONTES" = "combined_sources",
+    "TPRESGINFO" = "information_retrieval_type",
+    "TPNIVELINV" = "investigator_level_type",
+    "ALTCAUSA" = "cause_modified",
+    "TPPOS" = "death_investigated",
     
     # ------------------------------------------------------------------------
-    # MOTHER INFORMATION - SINASC
-    # Previous pregnancies, children, race
+    # ADMINISTRATIVE AND SYSTEM DATA
     # ------------------------------------------------------------------------
-    "QTDFILMORT" = "previous_dead_children",
-    "QTDGESTANT" = "previous_pregnancies",
-    "QTDPARTNOR" = "previous_normal_deliveries",
-    "QTDPARTCES" = "previous_cesarean_deliveries",
-    "RACACORMAE" = "mother_race",
-    "RACACORPAI" = "father_race",
-    
-    # ------------------------------------------------------------------------
-    # CONGENITAL ANOMALY - SINASC
-    # Presence and code of congenital anomalies
-    # ------------------------------------------------------------------------
-    "IDANOMAL" = "congenital_anomaly",
-    "CODANOMAL" = "congenital_anomaly_code",
-    
-    # ------------------------------------------------------------------------
-    # SINAN SPECIFIC
-    # Notifiable diseases system variables
-    # ------------------------------------------------------------------------
-    "SEM_NOT" = "notification_week",
-    "NU_ANO" = "year",
-    "SG_UF_NOT" = "notification_state",
-    "ID_AGRAVO" = "disease_code",
-    "SEM_PRI" = "symptom_week",
-    "CS_GESTANT" = "pregnant",
-    "ID_RG_RESI" = "residence_region",
-    "ID_PAIS" = "country",
-    "DT_INVEST" = "investigation_date",
-    "ID_UNIDADE" = "health_unit",
-    "DT_DIGITA" = "digitization_date",
-    "CLASSI_FIN" = "final_classification",
-    "EVOLUCAO" = "outcome",
-    "DT_ENCERRA" = "closure_date",
-    "DT_OBITO" = "death_date",
-    
-    # ------------------------------------------------------------------------
-    # SIH SPECIFIC (Hospital Admissions)
-    # AIH number, procedures, costs, length of stay
-    # ------------------------------------------------------------------------
-    "N_AIH" = "aih_number",
-    "IDENT" = "identification",
-    "CEP" = "postal_code",
-    "QT_DIARIAS" = "length_of_stay",
-    "PROC_REA" = "procedure_performed",
-    "VAL_TOT" = "total_value",
-    "VAL_UTI" = "icu_value",
-    "US_TOT" = "total_daily_rate",
-    "DT_ATEND" = "care_date",
-    "RACA_COR" = "race",
-    "MORTE" = "death",
-    "COBRANCA" = "billing_reason",
-    "NATUREZA" = "facility_type",
-    "GESTAO" = "management_type",
-    "MUNIC_MOV" = "movement_municipality",
-    "COD_IDADE" = "age_unit",
-    
-    # ------------------------------------------------------------------------
-    # SIA SPECIFIC (Outpatient)
-    # Authorization, procedures, costs
-    # ------------------------------------------------------------------------
-    "PA_AUTORIZ" = "authorization_number",
-    "PA_PROC_ID" = "procedure_id",
-    "PA_TPUPS" = "facility_type",
-    "PA_TIPPRE" = "billing_type",
-    "PA_MN_IND" = "individual_municipality",
-    "PA_CNPJCPF" = "provider_cnpj_cpf",
-    "PA_CNPJMNT" = "maintainer_cnpj",
-    "PA_CNSMED" = "physician_cns",
-    "PA_CBOCOD" = "occupation_code",
-    "PA_QTDPRO" = "procedure_quantity",
-    "PA_QTDAPR" = "approved_quantity",
-    "PA_VALAPR" = "approved_value",
-    "PA_UFDIF" = "different_state",
-    "PA_MNDIF" = "different_municipality",
-    "PA_DIF_VAL" = "value_difference",
-    "IDADEMIN" = "age_min",
-    "IDADEMAX" = "age_max",
-    "NU_VPA_TOT" = "total_vpa",
-    "NU_PA_TOT" = "total_pa",
-    "PA_CMP" = "competence",
-    "PA_DTATEN" = "care_date",
-    
-    # ------------------------------------------------------------------------
-    # CNES SPECIFIC (Health Establishments)
-    # Facility codes, type, management, administrative data
-    # ------------------------------------------------------------------------
-    "CNES" = "cnes_code",
-    "REGSAUDE" = "health_region",
-    "MICR_REG" = "micro_region",
-    "DISTRSAN" = "sanitary_district",
-    "DISTRADM" = "administrative_district",
-    "TPGESTAO" = "management_type",
-    "PF_PJ" = "legal_entity_type",
-    "CPF_CNPJ" = "cpf_cnpj",
-    "NIV_HIER" = "hierarchical_level",
-    "TP_UNID" = "facility_type",
-    "TURNO_AT" = "operating_hours",
-    "NIV_ATEN" = "care_level",
-    "RETENCAO" = "retention",
-    "ATIVIDAD" = "activity",
-    "CLIENTEL" = "clientele",
-    "TP_PREST" = "provider_type",
-    "CO_BANCO" = "bank_code",
-    "CO_AGENC" = "agency_code",
-    "C_CORREN" = "account_number",
-    "CONTRATM" = "contract_month",
-    "CONTRATA" = "contract_year",
-    "DT_PUBLM" = "publication_month",
-    "DT_PUBLA" = "publication_year",
-    "DT_EXTRM" = "extraction_month",
-    "DT_EXTRA" = "dt_extra",
-    "ESFERA_A" = "administrative_sphere",
-    "ATIVIDA2" = "activity_2",
-    "RETENC2" = "retention_2",
-    "NATUREZ2" = "legal_nature_2",
-    "CLIENTE2" = "clientele_2",
-    "TP_PRES2" = "provider_type_2",
-    "NIVATE_A" = "care_level_a",
-    
-    # ------------------------------------------------------------------------
-    # ADMINISTRATIVE - SIM
-    # Certificate numbers, coder, system version, dates
-    # ------------------------------------------------------------------------
-    "NUMERODO" = "death_certificate_number",
-    "NATURAL" = "birthplace_municipality",
+    "ORIGEM" = "record_origin",
     "CODESTAB" = "health_facility_code",
     "ATESTANTE" = "certifier",
+    "DTCADASTRO" = "registration_date",
+    "DTRECEBIM" = "receipt_date",
+    "DTRECORIGA" = "original_receipt_date",
+    "DTDIGITA" = "digitization_date",
+    "NUMEROLOTE" = "batch_number",
     "STCODIFICA" = "coding_status",
     "CODIFICADO" = "coded",
     "VERSAOSIST" = "system_version",
-    "DTCADASTRO" = "registration_date",
-    "DTRECEBIM" = "receipt_date"
+    "VERSAOSCB" = "underlying_cause_selector_version",
+    "STDOEPIDEM" = "epidemiological_death_certificate_status",
+    "STIONOVA" = "new_death_certificate_status",
+    
+    # ------------------------------------------------------------------------
+    # CALCULATED FIELDS AND METADATA
+    # ------------------------------------------------------------------------
+    "DIFDATA" = "date_difference",
+    "NUDIASOBCO" = "days_death_to_conclusion",
+    
+    # ------------------------------------------------------------------------
+    # COMMON DEMOGRAPHICS (All Systems) - Existing
+    # ------------------------------------------------------------------------
+    "CS_SEXO" = "sex",
+    "CS_RACA" = "race",
+    "ESTCIVMAE" = "mother_marital_status",
+    "DT_NASC" = "birth_date",
+    "NASC" = "birth_date",
+    "DT_NOTIFIC" = "notification_date",
+    "DT_SIN_PRI" = "first_symptom_date",
+    "DT_INTER" = "admission_date",
+    "DT_SAIDA" = "discharge_date",
+    "NU_IDADE_N" = "age",
+    "IDADEPAI" = "father_age",
+    "ID_MN_RESI" = "residence_municipality",
+    "MUNIC_RES" = "residence_municipality",
+    "CODMUNNASC" = "birth_municipality_code",
+    "CODUFMUN" = "municipality_code",
+    "CS_ESCOL_N" = "education",
+    "CODOCUPMAE" = "mother_occupation_code",
+    "ID_OCUPA_N" = "occupation",
+    # ------------------------------------------------------------------------
+    # ADDITIONAL SIM FIELDS
+    # ------------------------------------------------------------------------
+    "ESTABDESCR" = "facility_description",
+    "COMUNSVOIM" = "svo_iml_municipality",
+    "DTATESTADO" = "certificate_date",
+    "FONTEINV" = "investigation_source",
+    "ESCFALAGR1" = "aggregated_deceased_education",
+    "STDONOVA" = "new_death_certificate_status",
+    "NUDIASOBIN" = "days_death_to_investigation",
+    "NUDIASINF" = "days_information",
+    "FONTESINF" = "information_sources",
+    "CONTADOR" = "counter"
   )
   
   
@@ -302,40 +204,40 @@ get_translation_dict_en <- function() {
   
   values <- list(
     
-    # TIPOBITO
+    # TIPOBITO - Death type
     "TIPOBITO" = c(
       "1" = "Fetal",
       "2" = "Non-fetal"
     ),
-
-    # SEXO
+    
+    # SEXO - Sex of deceased
     "SEXO" = c(
-      "1" = "Male",
-      "2" = "Female",
-      "0" = "Ignored",
-      "3" = "Female"
+      "M" = "Male",
+      "F" = "Female",
+      "I" = "Ignored"
     ),
-
-    # RACACOR
+    
+    # RACACOR - Race/color
     "RACACOR" = c(
       "1" = "White",
       "2" = "Black",
       "3" = "Yellow",
       "4" = "Brown",
-      "5" = "Indigenous"
+      "5" = "Indigenous",
+      "9" = "Ignored"
     ),
-
-    # ESTCIV
+    
+    # ESTCIV - Marital status
     "ESTCIV" = c(
       "1" = "Single",
       "2" = "Married",
       "3" = "Widowed",
-      "4" = "Legally separated",
-      "5" = "Common-law marriage",
+      "4" = "Legally separated/divorced",
+      "5" = "Stable union",
       "9" = "Ignored"
     ),
-
-    # ESC
+    
+    # ESC - Education (old format)
     "ESC" = c(
       "1" = "None",
       "2" = "1 to 3 years",
@@ -344,44 +246,85 @@ get_translation_dict_en <- function() {
       "5" = "12 years or more",
       "9" = "Ignored"
     ),
-
-    # LOCOCOR
+    
+    # ESC2010 - Education 2010
+    "ESC2010" = c(
+      "0" = "No education",
+      "1" = "Elementary I (1st to 4th grade)",
+      "2" = "Elementary II (5th to 8th grade)",
+      "3" = "High school (formerly 2nd grade)",
+      "4" = "Incomplete higher education",
+      "5" = "Complete higher education",
+      "9" = "Ignored"
+    ),
+    
+    # ESCFALAGRI - Aggregated deceased education
+    "ESCFALAGRI" = c(
+      "00" = "No education",
+      "01" = "Incomplete Elementary I",
+      "02" = "Complete Elementary I",
+      "03" = "Incomplete Elementary II",
+      "04" = "Complete Elementary II",
+      "05" = "Incomplete High School",
+      "06" = "Complete High School",
+      "07" = "Incomplete Higher Education",
+      "08" = "Complete Higher Education",
+      "09" = "Ignored",
+      "10" = "Incomplete or unspecified Elementary I",
+      "11" = "Incomplete or unspecified Elementary II",
+      "12" = "Incomplete or unspecified High School"
+    ),
+    
+    # LOCOCOR - Death occurrence location
     "LOCOCOR" = c(
       "1" = "Hospital",
       "2" = "Other health facility",
       "3" = "Home",
       "4" = "Public place",
       "5" = "Other",
+      "6" = "Indigenous village",
       "9" = "Ignored"
     ),
-
-    # LOCNASC
-    "LOCNASC" = c(
-      "1" = "Hospital",
-      "2" = "Other health facility",
-      "3" = "Home",
-      "4" = "Other"
-    ),
-
-    # ESTCIVMAE
-    "ESTCIVMAE" = c(
-      "1" = "Single",
-      "2" = "Married",
-      "3" = "Widowed",
-      "4" = "Legally separated",
-      "5" = "Common-law marriage"
-    ),
-
-    # ESCMAE
+    
+    # ESCMAE - Mother's education (old format)
     "ESCMAE" = c(
       "1" = "None",
       "2" = "1 to 3 years",
       "3" = "4 to 7 years",
       "4" = "8 to 11 years",
-      "5" = "12 years or more"
+      "5" = "12 years or more",
+      "9" = "Ignored"
     ),
-
-    # GESTACAO
+    
+    # ESCMAE2010 - Mother's education 2010
+    "ESCMAE2010" = c(
+      "0" = "No education",
+      "1" = "Elementary I (1st to 4th grade)",
+      "2" = "Elementary II (5th to 8th grade)",
+      "3" = "High school (formerly 2nd grade)",
+      "4" = "Incomplete higher education",
+      "5" = "Complete higher education",
+      "9" = "Ignored"
+    ),
+    
+    # ESCMAEAGR1 - Aggregated mother education
+    "ESCMAEAGR1" = c(
+      "00" = "No education",
+      "01" = "Incomplete Elementary I",
+      "02" = "Complete Elementary I",
+      "03" = "Incomplete Elementary II",
+      "04" = "Complete Elementary II",
+      "05" = "Incomplete High School",
+      "06" = "Complete High School",
+      "07" = "Incomplete Higher Education",
+      "08" = "Complete Higher Education",
+      "09" = "Ignored",
+      "10" = "Incomplete or unspecified Elementary I",
+      "11" = "Incomplete or unspecified Elementary II",
+      "12" = "Incomplete or unspecified High School"
+    ),
+    
+    # GESTACAO - Gestational age (old format)
     "GESTACAO" = c(
       "1" = "Less than 22 weeks",
       "2" = "22 to 27 weeks",
@@ -390,29 +333,237 @@ get_translation_dict_en <- function() {
       "5" = "37 to 41 weeks",
       "6" = "42 weeks or more"
     ),
-
-    # GRAVIDEZ
+    
+    # SEMAGESTAC - Gestational weeks
+    # Numerical values from 01 to 52, 99 = ignored
+    
+    # GRAVIDEZ - Pregnancy type
     "GRAVIDEZ" = c(
       "1" = "Single",
       "2" = "Twin",
-      "3" = "Triple or more"
+      "3" = "Triple or more",
+      "9" = "Ignored"
     ),
-
-    # PARTO
+    
+    # PARTO - Delivery type
     "PARTO" = c(
       "1" = "Vaginal",
-      "2" = "Cesarean"
+      "2" = "Cesarean",
+      "9" = "Ignored"
     ),
-
-    # CONSULTAS
+    
+    # OBITOPARTO - Death timing in relation to delivery
+    "OBITOPARTO" = c(
+      "1" = "Before",
+      "2" = "During",
+      "3" = "After",
+      "9" = "Ignored"
+    ),
+    
+    # MORTEPARTO - Death timing in relation to partum
+    "MORTEPARTO" = c(
+      "1" = "Before",
+      "2" = "During",
+      "3" = "After",
+      "9" = "Ignored"
+    ),
+    
+    # TPMORTEOCO - When death occurred
+    "TPMORTEOCO" = c(
+      "1" = "During pregnancy",
+      "2" = "During delivery",
+      "3" = "During abortion",
+      "4" = "Up to 42 days after delivery",
+      "5" = "43 days to 1 year after pregnancy",
+      "8" = "Did not occur in these periods",
+      "9" = "Ignored"
+    ),
+    
+    # TPOBITOCOR - Corrected death occurrence timing
+    "TPOBITOCOR" = c(
+      "1" = "During pregnancy",
+      "2" = "During abortion",
+      "3" = "After abortion",
+      "4" = "During delivery or up to 1 hour after",
+      "5" = "During puerperium up to 42 days after delivery",
+      "6" = "Between 43 days and up to 1 year after delivery",
+      "7" = "Investigation did not identify death timing",
+      "8" = "More than one year after delivery",
+      "9" = "Death did not occur in previous circumstances"
+    ),
+    
+    # CIRCOBITO - Violent death type
+    "CIRCOBITO" = c(
+      "1" = "Accident",
+      "2" = "Suicide",
+      "3" = "Homicide",
+      "4" = "Other",
+      "9" = "Ignored"
+    ),
+    
+    # ACIDTRAB - Work accident
+    "ACIDTRAB" = c(
+      "1" = "Yes",
+      "2" = "No",
+      "9" = "Ignored"
+    ),
+    
+    # FONTE - Information source
+    "FONTE" = c(
+      "1" = "Police report",
+      "2" = "Hospital",
+      "3" = "Family",
+      "4" = "Other",
+      "9" = "Ignored"
+    ),
+    
+    # FONTENV - Investigation source
+    "FONTENV" = c(
+      "1" = "Maternal and/or Infant Death Committee",
+      "2" = "Home visit / Family interview",
+      "3" = "Health facility / Medical record",
+      "4" = "Related to other databases",
+      "5" = "SVO",
+      "6" = "IML",
+      "7" = "Other source",
+      "8" = "Multiple sources",
+      "9" = "Ignored"
+    ),
+    
+    # ASSISTMED - Received medical assistance
+    "ASSISTMED" = c(
+      "1" = "Yes",
+      "2" = "No",
+      "9" = "Ignored"
+    ),
+    
+    # NECROPSIA - Autopsy performed
+    "NECROPSIA" = c(
+      "1" = "Yes",
+      "2" = "No",
+      "9" = "Ignored"
+    ),
+    
+    # EXAME - Examination performed
+    "EXAME" = c(
+      "1" = "Yes",
+      "2" = "No",
+      "9" = "Ignored"
+    ),
+    
+    # CIRURGIA - Surgery performed
+    "CIRURGIA" = c(
+      "1" = "Yes",
+      "2" = "No",
+      "9" = "Ignored"
+    ),
+    
+    # OBITOGRAV - Death during pregnancy
+    "OBITOGRAV" = c(
+      "1" = "Yes",
+      "2" = "No",
+      "9" = "Ignored"
+    ),
+    
+    # OBITOPUERP - Death during puerperium
+    "OBITOPUERP" = c(
+      "1" = "Yes, up to 42 days after delivery",
+      "2" = "Yes, 43 days to 1 year",
+      "3" = "No",
+      "9" = "Ignored"
+    ),
+    
+    # ORIGEM - Record origin
+    "ORIGEM" = c(
+      "1" = "Oracle",
+      "2" = "State database via FTP",
+      "3" = "SEADE database",
+      "9" = "Ignored"
+    ),
+    
+    # STCODIFICA - Coding status
+    "STCODIFICA" = c(
+      "S" = "Coder",
+      "N" = "Non-coder"
+    ),
+    
+    # CODIFICADO - Form coded
+    "CODIFICADO" = c(
+      "S" = "Coded",
+      "N" = "Not coded"
+    ),
+    
+    # STDOEPIDEM - Epidemiological death certificate status
+    "STDOEPIDEM" = c(
+      "1" = "Yes",
+      "0" = "No"
+    ),
+    
+    # STIONOVA - New death certificate status
+    "STIONOVA" = c(
+      "1" = "Yes",
+      "0" = "No"
+    ),
+    
+    # TPRESGINFO - Information retrieval type
+    "TPRESGINFO" = c(
+      "01" = "Did not add or correct information",
+      "02" = "Yes, allowed retrieval of new information",
+      "03" = "Yes, allowed correction of originally informed causes"
+    ),
+    
+    # TPNIVELINV - Investigator level type
+    "TPNIVELINV" = c(
+      "E" = "State",
+      "R" = "Regional",
+      "M" = "Municipal"
+    ),
+    
+    # ALTCAUSA - Cause modified after investigation
+    "ALTCAUSA" = c(
+      "1" = "Yes",
+      "2" = "No"
+    ),
+    
+    # TPPOS - Death investigated
+    "TPPOS" = c(
+      "1" = "Yes",
+      "2" = "No"
+    ),
+    
+    # IDADE - Age unit (first digit of age code)
+    "UNIDADE_IDADE" = c(
+      "0" = "Ignored",
+      "1" = "Minute",
+      "2" = "Hour",
+      "3" = "Day",
+      "4" = "Month",
+      "5" = "Year"
+    ),
+    
+    # Existing value translations from original function
+    "LOCNASC" = c(
+      "1" = "Hospital",
+      "2" = "Other health facility",
+      "3" = "Home",
+      "4" = "Other"
+    ),
+    
+    "ESTCIVMAE" = c(
+      "1" = "Single",
+      "2" = "Married",
+      "3" = "Widowed",
+      "4" = "Legally separated",
+      "5" = "Common-law marriage"
+    ),
+    
     "CONSULTAS" = c(
       "1" = "None",
       "2" = "1 to 3",
       "3" = "4 to 6",
       "4" = "7 or more"
     ),
-
-    # RACA_COR
+    
     "RACA_COR" = c(
       "01" = "White",
       "02" = "Black",
@@ -420,21 +571,18 @@ get_translation_dict_en <- function() {
       "04" = "Brown",
       "05" = "Indigenous"
     ),
-
-    # MORTE
+    
     "MORTE" = c(
       "0" = "No",
       "1" = "Yes"
     ),
-
-    # CS_SEXO
+    
     "CS_SEXO" = c(
       "M" = "Male",
       "F" = "Female",
       "I" = "Ignored"
     ),
-
-    # CS_RACA
+    
     "CS_RACA" = c(
       "1" = "White",
       "2" = "Black",
@@ -443,8 +591,7 @@ get_translation_dict_en <- function() {
       "5" = "Indigenous",
       "9" = "Ignored"
     ),
-
-    # CS_GESTANT
+    
     "CS_GESTANT" = c(
       "1" = "1st trimester",
       "2" = "2nd trimester",
@@ -454,19 +601,62 @@ get_translation_dict_en <- function() {
       "6" = "Not pregnant",
       "9" = "Ignored"
     ),
-
-    # EVOLUCAO
+    
     "EVOLUCAO" = c(
       "1" = "Cure",
       "2" = "Death by disease",
       "3" = "Death by other causes",
       "9" = "Ignored"
+    ),
+    # ------------------------------------------------------------------------
+    # ADDITIONAL CATEGORICAL VALUES
+    # ------------------------------------------------------------------------
+    
+    # FONTEINV - Investigation source
+    "FONTEINV" = c(
+      "1" = "Maternal and/or Infant Death Committee",
+      "2" = "Home visit / Family interview",
+      "3" = "Health facility / Medical record",
+      "4" = "Related to other databases",
+      "5" = "SVO",
+      "6" = "IML",
+      "7" = "Other source",
+      "8" = "Multiple sources",
+      "9" = "Ignored"
+    ),
+    
+    # STDONOVA - New death certificate status
+    "STDONOVA" = c(
+      "1" = "Yes",
+      "0" = "No"
+    ),
+    
+    # FONTESINF - Information sources
+    "FONTESINF" = c(
+      "S" = "Yes",
+      "X" = "No"
+    ),
+    
+    # ESCFALAGR1 - Aggregated deceased education
+    "ESCFALAGR1" = c(
+      "00" = "No education",
+      "01" = "Incomplete Elementary I",
+      "02" = "Complete Elementary I",
+      "03" = "Incomplete Elementary II",
+      "04" = "Complete Elementary II",
+      "05" = "Incomplete High School",
+      "06" = "Complete High School",
+      "07" = "Incomplete Higher Education",
+      "08" = "Complete Higher Education",
+      "09" = "Ignored",
+      "10" = "Incomplete or unspecified Elementary I",
+      "11" = "Incomplete or unspecified Elementary II",
+      "12" = "Incomplete or unspecified High School"
     )
   )
   
   return(list(columns = columns, values = values))
 }
-
 
 #' Get Translation Dictionary for PT
 #'
@@ -476,429 +666,189 @@ get_translation_dict_en <- function() {
 #' @return List with columns and values translations
 #' @keywords internal
 #' @noRd
+
 get_translation_dict_pt <- function() {
   
   # ==========================================================================
   # COLUMN NAME TRANSLATIONS
-  # Organized by category for easy maintenance and team collaboration
+  # Organizado por categorias para fácil manutenção e colaboração da equipe
   # ==========================================================================
   
   columns <- c(
     
     # ------------------------------------------------------------------------
-    # COMMON DEMOGRAPHICS (All Systems)
-    # Used across SIM, SINASC, SINAN, SIH
+    # IDENTIFICACAO BASICA E TIPO DE OBITO
     # ------------------------------------------------------------------------
-    "SEXO" = "sexo",
-    "CS_SEXO" = "sexo",
-    "RACACOR" = "raca",
-    "CS_RACA" = "raca",
-    "ESTCIV" = "estado_civil",
-    "ESTCIVMAE" = "estado_civil_mae",
-    
-    # ------------------------------------------------------------------------
-    # DATES (All Systems)
-    # Birth, death, notification, and administrative dates
-    # ------------------------------------------------------------------------
+    "TIPOBITO" = "tipo_obito",
     "DTOBITO" = "data_obito",
     "HORAOBITO" = "hora_obito",
-    "DTNASC" = "data_nascimento",
-    "DT_NASC" = "data_nascimento",
-    "NASC" = "data_nascimento",
-    "DT_NOTIFIC" = "data_notificacao",
-    "DT_SIN_PRI" = "data_sintomas",
-    "DT_INTER" = "data_internacao",
-    "DT_SAIDA" = "data_saida",
-    
-    # ------------------------------------------------------------------------
-    # AGE VARIABLES (All Systems)
-    # Age codes and decomposed age units
-    # ------------------------------------------------------------------------
-    "IDADE" = "codigo_idade",
-    "NU_IDADE_N" = "idade",
-    "IDADEMAE" = "idade_mae",
-    "IDADEPAI" = "idade_pai",
-    
-    # ------------------------------------------------------------------------
-    # GEOGRAPHIC CODES (All Systems)
-    # Municipality and region codes for residence, birth, occurrence
-    # ------------------------------------------------------------------------
-    "CODMUNRES" = "codigo_municipio_residencia",
-    "ID_MN_RESI" = "municipio_residencia",
-    "MUNIC_RES" = "municipio_residencia",
-    "CODMUNNATU" = "codigo_municipio_nascimento",
-    "CODMUNNASC" = "codigo_municipio_nascimento",
-    "CODMUNOCOR" = "codigo_municipio_ocorrencia",
-    "CODUFMUN" = "codigo_municipio",
-    
-    # ------------------------------------------------------------------------
-    # EDUCATION & OCCUPATION (SIM, SINASC, SINAN)
-    # Schooling years and occupation codes
-    # ------------------------------------------------------------------------
-    "ESC" = "escolaridade",
-    "ESCMAE" = "escolaridade_mae",
-    "CS_ESCOL_N" = "escolaridade",
-    "OCUP" = "ocupacao",
-    "CODOCUPMAE" = "codigo_ocupacao_mae",
-    "ID_OCUPA_N" = "ocupacao",
-    
-    # ------------------------------------------------------------------------
-    # ICD/DIAGNOSIS - SIM (Mortality System)
-    # Underlying and contributing causes of death
-    # ------------------------------------------------------------------------
+    "NUMERODO" = "numero_declaracao_obito",
     "CAUSABAS" = "causa_basica",
     "CAUSABAS_O" = "causa_basica_original",
+    "CB_PRE" = "causa_basica_pre_selecao",
+    "CAUSAMAT" = "causa_materna",
+    
+    # ------------------------------------------------------------------------
+    # DADOS PESSOAIS DO FALECIDO
+    # ------------------------------------------------------------------------
+    "NATURAL" = "municipio_nascimento",
+    "CODMUNNATU" = "codigo_municipio_nascimento",
+    "DTNASC" = "data_nascimento",
+    "IDADE" = "codigo_idade",
+    "SEXO" = "sexo",
+    "RACACOR" = "raca",
+    "ESTCIV" = "estado_civil",
+    
+    # ------------------------------------------------------------------------
+    # ESCOLARIDADE E OCUPACAO DO FALECIDO
+    # ------------------------------------------------------------------------
+    "ESC" = "escolaridade",
+    "ESC2010" = "escolaridade_2010",
+    "SERIESCFAL" = "serie_escolar_falecido",
+    "ESCFALAGRI" = "escolaridade_falecido_agregada",
+    "OCUP" = "ocupacao",
+    
+    # ------------------------------------------------------------------------
+    # LOCAL DE RESIDENCIA E OCORRENCIA
+    # ------------------------------------------------------------------------
+    "CODMUNRES" = "codigo_municipio_residencia",
+    "LOCOCOR" = "local_ocorrencia_obito",
+    "CODMUNOCOR" = "codigo_municipio_ocorrencia",
+    
+    # ------------------------------------------------------------------------
+    # DADOS DA MAE (PARA OBITO FETAL OU MENOR DE 1 ANO)
+    # ------------------------------------------------------------------------
+    "IDADEMAE" = "idade_mae",
+    "ESCMAE" = "escolaridade_mae",
+    "ESCMAE2010" = "escolaridade_mae_2010",
+    "SERIESCMAE" = "serie_escolar_mae",
+    "ESCMAEAGR1" = "escolaridade_mae_agregada",
+    "OCUPMAE" = "ocupacao_mae",
+    "QTDFILVIVO" = "quantidade_filhos_vivos",
+    "QTDFILMORT" = "quantidade_filhos_mortos",
+    
+    # ------------------------------------------------------------------------
+    # DADOS DA GRAVIDEZ E NASCIMENTO
+    # ------------------------------------------------------------------------
+    "SEMAGESTAC" = "semanas_gestacao",
+    "GESTACAO" = "idade_gestacional",
+    "GRAVIDEZ" = "tipo_gravidez",
+    "PARTO" = "tipo_parto",
+    "OBITOPARTO" = "momento_obito_parto",
+    "MORTEPARTO" = "momento_morte_parto",
+    "PESO" = "peso_nascimento",
+    "NUMERODN" = "numero_declaracao_nascimento",
+    
+    # ------------------------------------------------------------------------
+    # CAUSAS DA MORTE (LINHAS DA DO)
+    # ------------------------------------------------------------------------
     "LINHAA" = "linha_causa_a",
     "LINHAB" = "linha_causa_b",
     "LINHAC" = "linha_causa_c",
     "LINHAD" = "linha_causa_d",
     "LINHAII" = "linha_causa_ii",
+    "ATESTADO" = "atestado_obito",
     
     # ------------------------------------------------------------------------
-    # ICD/DIAGNOSIS - SIH (Hospital Admissions)
-    # Primary and secondary diagnoses for hospitalizations
+    # MORTE MATERNA E RELACIONADA A GRAVIDEZ
     # ------------------------------------------------------------------------
-    "DIAG_PRINC" = "diagnostico_principal",
-    "DIAG_SECUN" = "diagnostico_secundario",
-    "DIAGSEC1" = "diagnostico_secundario_1",
-    "DIAGSEC2" = "diagnostico_secundario_2",
-    "DIAGSEC3" = "diagnostico_secundario_3",
-    "DIAGSEC4" = "diagnostico_secundario_4",
-    "DIAGSEC5" = "diagnostico_secundario_5",
-    "DIAGSEC6" = "diagnostico_secundario_6",
-    "DIAGSEC7" = "diagnostico_secundario_7",
-    "DIAGSEC8" = "diagnostico_secundario_8",
-    "DIAGSEC9" = "diagnostico_secundario_9",
-    "CID_MORTE" = "causa_morte",
-    "CID_NOTIF" = "doenca_notificavel",
+    "TPMORTEOCO" = "momento_morte_gestacao",
+    "TPOBITOCOR" = "tipo_obito_corrigido",
+    "OBITOGRAV" = "obito_gravidez",
+    "OBITOPUERP" = "obito_puerperio",
     
     # ------------------------------------------------------------------------
-    # ICD/DIAGNOSIS - SIA (Outpatient)
-    # ICD codes for ambulatory procedures
+    # CIRCUNSTANCIAS DA MORTE
     # ------------------------------------------------------------------------
-    "PA_CIDPRI" = "cid_principal",
-    "PA_CIDSEC" = "cid_secundario",
-    "PA_CIDCAS" = "cid_associado",
-    
-    # ------------------------------------------------------------------------
-    # DEATH CIRCUMSTANCES - SIM
-    # Type, location, and circumstances of death
-    # ------------------------------------------------------------------------
-    "TIPOBITO" = "tipo_obito",
-    "LOCOCOR" = "local_ocorrencia",
     "CIRCOBITO" = "circunstancia_obito",
     "ACIDTRAB" = "acidente_trabalho",
     "FONTE" = "fonte_informacao",
     
     # ------------------------------------------------------------------------
-    # MATERNAL DEATH - SIM
-    # Pregnancy-related death indicators
+    # ASSISTENCIA MEDICA E PROCEDIMENTOS
     # ------------------------------------------------------------------------
-    "OBITOGRAV" = "obito_gravidez",
-    "OBITOPUERP" = "obito_puerperio",
-    "OBITOPARTO" = "obito_parto",
     "ASSISTMED" = "assistencia_medica",
     "NECROPSIA" = "necropsia",
+    "EXAME" = "exame_realizado",
+    "CIRURGIA" = "cirurgia_realizada",
     
     # ------------------------------------------------------------------------
-    # BIRTH INFORMATION - SINASC
-    # Place, weight, APGAR, gestation, delivery type
+    # INFORMACOES SOBRE INVESTIGACAO
     # ------------------------------------------------------------------------
-    "NUMERODV" = "numero_declaracao_nascimento",
-    "LOCNASC" = "local_nascimento",
-    "PESO" = "peso_nascimento",
-    "APGAR1" = "apgar_1min",
-    "APGAR5" = "apgar_5min",
-    "GESTACAO" = "idade_gestacional",
-    "SEMAGESTAC" = "semanas_gestacao",
-    "GRAVIDEZ" = "tipo_gravidez",
-    "PARTO" = "tipo_parto",
-    "CONSULTAS" = "consultas_pre_natal",
-    "DTULTMENST" = "data_ultima_menstruacao",
-    "TPMETESTIM" = "metodo_estimacao_idade_gestacional",
-    "TPAPRESENT" = "apresentacao_fetal",
-    "STTRABPART" = "trabalho_parto_induzido",
-    "STCESPARTO" = "cesareo_antes_trabalho_parto",
+    "DTINVESTIG" = "data_investigacao",
+    "DTCONINV" = "data_conclusao_investigacao",
+    "DTCADINV" = "data_cadastro_investigacao",
+    "DTCONCASO" = "data_conclusao_caso",
+    "DTCADINF" = "data_cadastro_informacao",
+    "FONTENV" = "fonte_investigacao",
+    "FONTES" = "fontes_combinadas",
+    "TPRESGINFO" = "tipo_resgate_informacao",
+    "TPNIVELINV" = "tipo_nivel_investigador",
+    "ALTCAUSA" = "alteracao_causa",
+    "TPPOS" = "obito_investigado",
     
     # ------------------------------------------------------------------------
-    # MOTHER INFORMATION - SINASC
-    # Previous pregnancies, children, race
+    # DADOS ADMINISTRATIVOS E DE SISTEMA
     # ------------------------------------------------------------------------
-    "QTDFILMORT" = "filhos_mortos_anteriores",
-    "QTDGESTANT" = "gestacoes_anteriores",
-    "QTDPARTNOR" = "partos_normais_anteriores",
-    "QTDPARTCES" = "partos_cesareos_anteriores",
-    "RACACORMAE" = "raca_mae",
-    "RACACORPAI" = "raca_pai",
-    
-    # ------------------------------------------------------------------------
-    # CONGENITAL ANOMALY - SINASC
-    # Presence and code of congenital anomalies
-    # ------------------------------------------------------------------------
-    "IDANOMAL" = "anomalia_congenita",
-    "CODANOMAL" = "codigo_anomalia_congenita",
-    
-    # ------------------------------------------------------------------------
-    # SINAN SPECIFIC
-    # Notifiable diseases system variables
-    # ------------------------------------------------------------------------
-    "SEM_NOT" = "semana_notificacao",
-    "NU_ANO" = "ano",
-    "SG_UF_NOT" = "uf_notificacao",
-    "ID_AGRAVO" = "codigo_agravo",
-    "SEM_PRI" = "semana_sintomas",
-    "CS_GESTANT" = "gestante",
-    "ID_RG_RESI" = "regiao_residencia",
-    "ID_PAIS" = "pais",
-    "DT_INVEST" = "data_investigacao",
-    "ID_UNIDADE" = "unidade_saude",
-    "DT_DIGITA" = "data_digitacao",
-    "CLASSI_FIN" = "classificacao_final",
-    "EVOLUCAO" = "evolucao",
-    "DT_ENCERRA" = "data_encerramento",
-    "DT_OBITO" = "data_obito",
-    
-    # ------------------------------------------------------------------------
-    # SIH SPECIFIC (Hospital Admissions)
-    # AIH number, procedures, costs, length of stay
-    # ------------------------------------------------------------------------
-    "N_AIH" = "numero_aih",
-    "IDENT" = "identificacao",
-    "CEP" = "cep",
-    "QT_DIARIAS" = "dias_internacao",
-    "PROC_REA" = "procedimento_realizado",
-    "VAL_TOT" = "valor_total",
-    "VAL_UTI" = "valor_uti",
-    "US_TOT" = "diaria_total",
-    "DT_ATEND" = "data_atendimento",
-    "RACA_COR" = "raca",
-    "MORTE" = "obito",
-    "COBRANCA" = "motivo_cobranca",
-    "NATUREZA" = "natureza_estabelecimento",
-    "GESTAO" = "tipo_gestao",
-    "MUNIC_MOV" = "municipio_movimentacao",
-    "COD_IDADE" = "unidade_idade",
-    
-    # ------------------------------------------------------------------------
-    # SIA SPECIFIC (Outpatient)
-    # Authorization, procedures, costs
-    # ------------------------------------------------------------------------
-    "PA_AUTORIZ" = "numero_autorizacao",
-    "PA_PROC_ID" = "codigo_procedimento",
-    "PA_TPUPS" = "tipo_estabelecimento",
-    "PA_TIPPRE" = "tipo_prestador",
-    "PA_MN_IND" = "municipio_individual",
-    "PA_CNPJCPF" = "cnpj_cpf_prestador",
-    "PA_CNPJMNT" = "cnpj_mantenedor",
-    "PA_CNSMED" = "cns_medico",
-    "PA_CBOCOD" = "codigo_ocupacao",
-    "PA_QTDPRO" = "quantidade_procedimento",
-    "PA_QTDAPR" = "quantidade_aprovada",
-    "PA_VALAPR" = "valor_aprovado",
-    "PA_UFDIF" = "uf_diferente",
-    "PA_MNDIF" = "municipio_diferente",
-    "PA_DIF_VAL" = "diferenca_valor",
-    "IDADEMIN" = "idade_minima",
-    "IDADEMAX" = "idade_maxima",
-    "NU_VPA_TOT" = "vpa_total",
-    "NU_PA_TOT" = "pa_total",
-    "PA_CMP" = "competencia",
-    "PA_DTATEN" = "data_atendimento",
-    
-    # ------------------------------------------------------------------------
-    # CNES SPECIFIC (Health Establishments)
-    # Facility codes, type, management, administrative data
-    # ------------------------------------------------------------------------
-    "CNES" = "codigo_cnes",
-    "REGSAUDE" = "regiao_saude",
-    "MICR_REG" = "micro_regiao",
-    "DISTRSAN" = "distrito_sanitario",
-    "DISTRADM" = "distrito_administrativo",
-    "TPGESTAO" = "tipo_gestao",
-    "PF_PJ" = "tipo_pessoa_juridica",
-    "CPF_CNPJ" = "cpf_cnpj",
-    "NIV_HIER" = "nivel_hierarquico",
-    "TP_UNID" = "tipo_unidade",
-    "TURNO_AT" = "turno_atendimento",
-    "NIV_ATEN" = "nivel_atencao",
-    "RETENCAO" = "retencao",
-    "ATIVIDAD" = "atividade",
-    "CLIENTEL" = "clientela",
-    "TP_PREST" = "tipo_prestador",
-    "CO_BANCO" = "codigo_banco",
-    "CO_AGENC" = "codigo_agencia",
-    "C_CORREN" = "conta_corrente",
-    "CONTRATM" = "mes_contrato",
-    "CONTRATA" = "ano_contrato",
-    "DT_PUBLM" = "mes_publicacao",
-    "DT_PUBLA" = "ano_publicacao",
-    "DT_EXTRM" = "mes_extracao",
-    "DT_EXTRA" = "dt_extra",
-    "ESFERA_A" = "esfera_administrativa",
-    "ATIVIDA2" = "atividade_2",
-    "RETENC2" = "retencao_2",
-    "NATUREZ2" = "natureza_juridica_2",
-    "CLIENTE2" = "clientela_2",
-    "TP_PRES2" = "tipo_prestador_2",
-    "NIVATE_A" = "nivel_atencao_a",
-    
-    # ------------------------------------------------------------------------
-    # ADMINISTRATIVE - SIM
-    # Certificate numbers, coder, system version, dates
-    # ------------------------------------------------------------------------
-    "NUMERODO" = "numero_declaracao_obito",
-    "NATURAL" = "municipio_nascimento",
+    "ORIGEM" = "origem_registro",
     "CODESTAB" = "codigo_estabelecimento",
     "ATESTANTE" = "atestante",
+    "DTCADASTRO" = "data_cadastro",
+    "DTRECEBIM" = "data_recebimento",
+    "DTRECORIGA" = "data_recebimento_original",
+    "DTDIGITA" = "data_digitacao",
+    "NUMEROLOTE" = "numero_lote",
     "STCODIFICA" = "status_codificacao",
     "CODIFICADO" = "codificado",
     "VERSAOSIST" = "versao_sistema",
-    "DTCADASTRO" = "data_cadastro",
-    "DTRECEBIM" = "data_recebimento"
+    "VERSAOSCB" = "versao_seletor_causa_basica",
+    "STDOEPIDEM" = "status_do_epidemiologica",
+    "STIONOVA" = "status_do_nova",
+    
+    # ------------------------------------------------------------------------
+    # CAMPOS CALCULADOS E METADADOS
+    # ------------------------------------------------------------------------
+    "DIFDATA" = "diferenca_data",
+    "NUDIASOBCO" = "numero_dias_obito_conclusao",
+
+    # ------------------------------------------------------------------------
+    # CAMPOS ADICIONAIS DO SIM
+    # ------------------------------------------------------------------------
+    "ESTABDESCR" = "descricao_estabelecimento",
+    "COMUNSVOIM" = "municipio_svo_iml",
+    "DTATESTADO" = "data_atestado",
+    "FONTEINV" = "fonte_investigacao",
+    "ESCFALAGR1" = "escolaridade_falecido_agregada",
+    "STDONOVA" = "status_declaracao_nova",
+    "NUDIASOBIN" = "dias_obito_investigacao",
+    "NUDIASINF" = "dias_informacao",
+    "FONTESINF" = "fontes_informacao",
+    "CONTADOR" = "contador"
   )
   
   
   # ==========================================================================
-  # CATEGORICAL VALUE TRANSLATIONS
-  # Decode numeric codes to human-readable labels
+  # TRADUCOES DE VALORES CATEGORICOS
+  # Decodifica codigos numericos para rotulos legiveis
   # ==========================================================================
   
   values <- list(
     
-    # TIPOBITO
+    # TIPOBITO - Tipo de obito
     "TIPOBITO" = c(
       "1" = "Fetal",
       "2" = "Nao fetal"
     ),
-
-    # SEXO
+    
+    # SEXO - Sexo do falecido
     "SEXO" = c(
-      "1" = "Masculino",
-      "2" = "Feminino",
-      "0" = "Ignorado",
-      "3" = "Feminino"
-    ),
-
-    # RACACOR
-    "RACACOR" = c(
-      "1" = "Branca",
-      "2" = "Preta",
-      "3" = "Amarela",
-      "4" = "Parda",
-      "5" = "Indigena"
-    ),
-
-    # ESTCIV
-    "ESTCIV" = c(
-      "1" = "Solteiro",
-      "2" = "Casado",
-      "3" = "Viuvo",
-      "4" = "Separado judicialmente",
-      "5" = "Uniao consensual",
-      "9" = "Ignorado"
-    ),
-
-    # ESC
-    "ESC" = c(
-      "1" = "Nenhum",
-      "2" = "1 a 3 anos",
-      "3" = "4 a 7 anos",
-      "4" = "8 a 11 anos",
-      "5" = "12 anos ou mais",
-      "9" = "Ignorado"
-    ),
-
-    # LOCOCOR
-    "LOCOCOR" = c(
-      "1" = "Hospital",
-      "2" = "Outro estabelecimento de saude",
-      "3" = "Domicilio",
-      "4" = "Via publica",
-      "5" = "Outros",
-      "9" = "Ignorado"
-    ),
-
-    # LOCNASC
-    "LOCNASC" = c(
-      "1" = "Hospital",
-      "2" = "Outro estabelecimento de saude",
-      "3" = "Domicilio",
-      "4" = "Outros"
-    ),
-
-    # ESTCIVMAE
-    "ESTCIVMAE" = c(
-      "1" = "Solteira",
-      "2" = "Casada",
-      "3" = "Viuva",
-      "4" = "Separada judicialmente",
-      "5" = "Uniao consensual"
-    ),
-
-    # ESCMAE
-    "ESCMAE" = c(
-      "1" = "Nenhum",
-      "2" = "1 a 3 anos",
-      "3" = "4 a 7 anos",
-      "4" = "8 a 11 anos",
-      "5" = "12 anos ou mais"
-    ),
-
-    # GESTACAO
-    "GESTACAO" = c(
-      "1" = "Menos de 22 semanas",
-      "2" = "22 a 27 semanas",
-      "3" = "28 a 31 semanas",
-      "4" = "32 a 36 semanas",
-      "5" = "37 a 41 semanas",
-      "6" = "42 semanas ou mais"
-    ),
-
-    # GRAVIDEZ
-    "GRAVIDEZ" = c(
-      "1" = "Unica",
-      "2" = "Dupla",
-      "3" = "Tripla e mais"
-    ),
-
-    # PARTO
-    "PARTO" = c(
-      "1" = "Vaginal",
-      "2" = "Cesareo"
-    ),
-
-    # CONSULTAS
-    "CONSULTAS" = c(
-      "1" = "Nenhuma",
-      "2" = "1 a 3 vezes",
-      "3" = "4 a 6 vezes",
-      "4" = "7 ou mais vezes"
-    ),
-
-    # RACA_COR
-    "RACA_COR" = c(
-      "01" = "Branca",
-      "02" = "Preta",
-      "03" = "Amarela",
-      "04" = "Parda",
-      "05" = "Indigena"
-    ),
-
-    # MORTE
-    "MORTE" = c(
-      "0" = "Nao",
-      "1" = "Sim"
-    ),
-
-    # CS_SEXO
-    "CS_SEXO" = c(
       "M" = "Masculino",
       "F" = "Feminino",
       "I" = "Ignorado"
     ),
-
-    # CS_RACA
-    "CS_RACA" = c(
+    
+    # RACACOR - Raca/cor
+    "RACACOR" = c(
       "1" = "Branca",
       "2" = "Preta",
       "3" = "Amarela",
@@ -906,30 +856,365 @@ get_translation_dict_pt <- function() {
       "5" = "Indigena",
       "9" = "Ignorado"
     ),
-
-    # CS_GESTANT
-    "CS_GESTANT" = c(
-      "1" = "1o trimestre",
-      "2" = "2o trimestre",
-      "3" = "3o trimestre",
-      "4" = "Idade gestacional ignorada",
-      "5" = "Nao se aplica",
-      "6" = "Nao gestante",
+    
+    # ESTCIV - Estado civil
+    "ESTCIV" = c(
+      "1" = "Solteiro",
+      "2" = "Casado",
+      "3" = "Viuvo",
+      "4" = "Separado judicialmente/divorciado",
+      "5" = "Uniao estavel",
       "9" = "Ignorado"
     ),
-
-    # EVOLUCAO
-    "EVOLUCAO" = c(
-      "1" = "Cura",
-      "2" = "Obito pela doenca",
-      "3" = "Obito por outras causas",
+    
+    # ESC - Escolaridade (formato antigo)
+    "ESC" = c(
+      "1" = "Nenhuma",
+      "2" = "1 a 3 anos",
+      "3" = "4 a 7 anos",
+      "4" = "8 a 11 anos",
+      "5" = "12 anos e mais",
       "9" = "Ignorado"
+    ),
+    
+    # ESC2010 - Escolaridade 2010
+    "ESC2010" = c(
+      "0" = "Sem escolaridade",
+      "1" = "Fundamental I (1 a 4 serie)",
+      "2" = "Fundamental II (5 a 8 serie)",
+      "3" = "Medio (antigo 2 Grau)",
+      "4" = "Superior incompleto",
+      "5" = "Superior completo",
+      "9" = "Ignorado"
+    ),
+    
+    # ESCFALAGRI - Escolaridade do falecido agregada
+    "ESCFALAGRI" = c(
+      "00" = "Sem escolaridade",
+      "01" = "Fundamental I incompleto",
+      "02" = "Fundamental I completo",
+      "03" = "Fundamental II incompleto",
+      "04" = "Fundamental II completo",
+      "05" = "Ensino Medio incompleto",
+      "06" = "Ensino Medio completo",
+      "07" = "Superior incompleto",
+      "08" = "Superior completo",
+      "09" = "Ignorado",
+      "10" = "Fundamental I incompleto ou inespecifico",
+      "11" = "Fundamental II incompleto ou inespecifico",
+      "12" = "Ensino Medio incompleto ou inespecifico"
+    ),
+    
+    # LOCOCOR - Local de ocorrencia do obito
+    "LOCOCOR" = c(
+      "1" = "Hospital",
+      "2" = "Outro estabelecimento de saude",
+      "3" = "Domicilio",
+      "4" = "Via publica",
+      "5" = "Outros",
+      "6" = "Aldeia indigena",
+      "9" = "Ignorado"
+    ),
+    
+    # ESCMAE - Escolaridade da mae (formato antigo)
+    "ESCMAE" = c(
+      "1" = "Nenhuma",
+      "2" = "1 a 3 anos",
+      "3" = "4 a 7 anos",
+      "4" = "8 a 11 anos",
+      "5" = "12 anos e mais",
+      "9" = "Ignorado"
+    ),
+    
+    # ESCMAE2010 - Escolaridade da mae 2010
+    "ESCMAE2010" = c(
+      "0" = "Sem escolaridade",
+      "1" = "Fundamental I (1 a 4 serie)",
+      "2" = "Fundamental II (5 a 8 serie)",
+      "3" = "Medio (antigo 2 Grau)",
+      "4" = "Superior incompleto",
+      "5" = "Superior completo",
+      "9" = "Ignorado"
+    ),
+    
+    # ESCMAEAGR1 - Escolaridade da mae agregada
+    "ESCMAEAGR1" = c(
+      "00" = "Sem escolaridade",
+      "01" = "Fundamental I incompleto",
+      "02" = "Fundamental I completo",
+      "03" = "Fundamental II incompleto",
+      "04" = "Fundamental II completo",
+      "05" = "Ensino Medio incompleto",
+      "06" = "Ensino Medio completo",
+      "07" = "Superior incompleto",
+      "08" = "Superior completo",
+      "09" = "Ignorado",
+      "10" = "Fundamental I incompleto ou inespecifico",
+      "11" = "Fundamental II incompleto ou inespecifico",
+      "12" = "Ensino Medio incompleto ou inespecifico"
+    ),
+    
+    # GESTACAO - Idade gestacional (formato antigo)
+    "GESTACAO" = c(
+      "1" = "Menos de 22 semanas",
+      "2" = "22 a 27 semanas",
+      "3" = "28 a 31 semanas",
+      "4" = "32 a 36 semanas",
+      "5" = "37 a 41 semanas",
+      "6" = "42 e + semanas"
+    ),
+    
+    # SEMAGESTAC - Semanas de gestacao
+    # Valores numericos de 01 a 52, 99 = ignorado
+    
+    # GRAVIDEZ - Tipo de gravidez
+    "GRAVIDEZ" = c(
+      "1" = "Unica",
+      "2" = "Dupla",
+      "3" = "Tripla e mais",
+      "9" = "Ignorada"
+    ),
+    
+    # PARTO - Tipo de parto
+    "PARTO" = c(
+      "1" = "Vaginal",
+      "2" = "Cesareo",
+      "9" = "Ignorado"
+    ),
+    
+    # OBITOPARTO - Morte em relacao ao parto
+    "OBITOPARTO" = c(
+      "1" = "Antes",
+      "2" = "Durante",
+      "3" = "Depois",
+      "9" = "Ignorado"
+    ),
+    
+    # MORTEPARTO - Momento do obito em relacao ao parto
+    "MORTEPARTO" = c(
+      "1" = "Antes",
+      "2" = "Durante",
+      "3" = "Apos",
+      "9" = "Ignorado"
+    ),
+    
+    # TPMORTEOCO - A morte ocorreu
+    "TPMORTEOCO" = c(
+      "1" = "Na gravidez",
+      "2" = "No parto",
+      "3" = "No abortamento",
+      "4" = "Ate 42 dias apos o termino do parto",
+      "5" = "De 43 dias a 1 ano apos o termino da gestacao",
+      "8" = "Nao ocorreu nestes periodos",
+      "9" = "Ignorado"
+    ),
+    
+    # TPOBITOCOR - Momento da ocorrencia do obito corrigido
+    "TPOBITOCOR" = c(
+      "1" = "Durante a gestacao",
+      "2" = "Durante o abortamento",
+      "3" = "Apos o abortamento",
+      "4" = "No parto ou ate 1 hora apos o parto",
+      "5" = "No puerperio ate 42 dias apos o parto",
+      "6" = "Entre 43 dias e ate 1 ano apos o parto",
+      "7" = "A investigacao nao identificou o momento do obito",
+      "8" = "Mais de um ano apos o parto",
+      "9" = "O obito nao ocorreu nas circunstancias anteriores"
+    ),
+    
+    # CIRCOBITO - Tipo de morte violenta
+    "CIRCOBITO" = c(
+      "1" = "Acidente",
+      "2" = "Suicidio",
+      "3" = "Homicidio",
+      "4" = "Outros",
+      "9" = "Ignorado"
+    ),
+    
+    # ACIDTRAB - Acidente do trabalho
+    "ACIDTRAB" = c(
+      "1" = "Sim",
+      "2" = "Nao",
+      "9" = "Ignorado"
+    ),
+    
+    # FONTE - Fonte da informacao
+    "FONTE" = c(
+      "1" = "Ocorrencia policial",
+      "2" = "Hospital",
+      "3" = "Familia",
+      "4" = "Outra",
+      "9" = "Ignorado"
+    ),
+    
+    # FONTENV - Fonte de investigacao
+    "FONTENV" = c(
+      "1" = "Comite de Morte Materna e/ou Infantil",
+      "2" = "Visita domiciliar / Entrevista familia",
+      "3" = "Estabelecimento de Saude / Prontuario",
+      "4" = "Relacionado com outros bancos de dados",
+      "5" = "SVO",
+      "6" = "IML",
+      "7" = "Outra fonte",
+      "8" = "Multiplas fontes",
+      "9" = "Ignorado"
+    ),
+    
+    # ASSISTMED - Recebeu assistencia medica
+    "ASSISTMED" = c(
+      "1" = "Sim",
+      "2" = "Nao",
+      "9" = "Ignorado"
+    ),
+    
+    # NECROPSIA - Necropsia realizada
+    "NECROPSIA" = c(
+      "1" = "Sim",
+      "2" = "Nao",
+      "9" = "Ignorado"
+    ),
+    
+    # EXAME - Realizacao de exame
+    "EXAME" = c(
+      "1" = "Sim",
+      "2" = "Nao",
+      "9" = "Ignorado"
+    ),
+    
+    # CIRURGIA - Realizacao de cirurgia
+    "CIRURGIA" = c(
+      "1" = "Sim",
+      "2" = "Nao",
+      "9" = "Ignorado"
+    ),
+    
+    # OBITOGRAV - Obito na gravidez
+    "OBITOGRAV" = c(
+      "1" = "Sim",
+      "2" = "Nao",
+      "9" = "Ignorado"
+    ),
+    
+    # OBITOPUERP - Obito no puerperio
+    "OBITOPUERP" = c(
+      "1" = "Sim, ate 42 dias apos o parto",
+      "2" = "Sim, de 43 dias a 1 ano",
+      "3" = "Nao",
+      "9" = "Ignorado"
+    ),
+    
+    # ORIGEM - Origem do registro
+    "ORIGEM" = c(
+      "1" = "Oracle",
+      "2" = "Banco estadual disponibilizado via FTP",
+      "3" = "Banco SEADE",
+      "9" = "Ignorado"
+    ),
+    
+    # STCODIFICA - Status de codificacao
+    "STCODIFICA" = c(
+      "S" = "Codificadora",
+      "N" = "Nao codificadora"
+    ),
+    
+    # CODIFICADO - Formulario codificado
+    "CODIFICADO" = c(
+      "S" = "Codificado",
+      "N" = "Nao codificado"
+    ),
+    
+    # STDOEPIDEM - Status de DO Epidemiologica
+    "STDOEPIDEM" = c(
+      "1" = "Sim",
+      "0" = "Nao"
+    ),
+    
+    # STIONOVA - Status de DO Nova
+    "STIONOVA" = c(
+      "1" = "Sim",
+      "0" = "Nao"
+    ),
+    
+    # TPRESGINFO - Tipo de resgate de informacao
+    "TPRESGINFO" = c(
+      "01" = "Nao acrescentou nem corrigiu informacao",
+      "02" = "Sim, permitiu o resgate de novas informacoes",
+      "03" = "Sim, permitiu a correcao de alguma das causas informadas originalmente"
+    ),
+    
+    # TPNIVELINV - Tipo de nivel investigador
+    "TPNIVELINV" = c(
+      "E" = "Estadual",
+      "R" = "Regional",
+      "M" = "Municipal"
+    ),
+    
+    # ALTCAUSA - Alteracao da causa apos investigacao
+    "ALTCAUSA" = c(
+      "1" = "Sim",
+      "2" = "Nao"
+    ),
+    
+    # TPPOS - Obito investigado
+    "TPPOS" = c(
+      "1" = "Sim",
+      "2" = "Nao"
+    ),
+    
+    # IDADE - Unidade de idade (primeiro digito do codigo)
+    "UNIDADE_IDADE" = c(
+      "0" = "Ignorado",
+      "1" = "Minuto",
+      "2" = "Hora",
+      "3" = "Dia",
+      "4" = "Mes",
+      "5" = "Ano"
+    ),
+    # FONTEINV - Fonte da investigacao
+    "FONTEINV" = c(
+      "1" = "Comite de Morte Materna e/ou Infantil",
+      "2" = "Visita domiciliar / Entrevista familia",
+      "3" = "Estabelecimento de Saude / Prontuario",
+      "4" = "Relacionado com outros bancos de dados",
+      "5" = "SVO",
+      "6" = "IML",
+      "7" = "Outra fonte",
+      "8" = "Multiplas fontes",
+      "9" = "Ignorado"
+    ),
+    
+    # STDONOVA - Status de DO Nova
+    "STDONOVA" = c(
+      "1" = "Sim",
+      "0" = "Nao"
+    ),
+    
+    # FONTESINF - Fontes de informacao
+    "FONTESINF" = c(
+      "S" = "Sim",
+      "X" = "Nao"
+    ),
+    
+    "ESCFALAGR1" = c(
+      "00" = "Sem escolaridade",
+      "01" = "Fundamental I incompleto",
+      "02" = "Fundamental I completo",
+      "03" = "Fundamental II incompleto",
+      "04" = "Fundamental II completo",
+      "05" = "Ensino Medio incompleto",
+      "06" = "Ensino Medio completo",
+      "07" = "Superior incompleto",
+      "08" = "Superior completo",
+      "09" = "Ignorado",
+      "10" = "Fundamental I incompleto ou inespecifico",
+      "11" = "Fundamental II incompleto ou inespecifico",
+      "12" = "Ensino Medio incompleto ou inespecifico"
     )
-
   )
   
   return(list(columns = columns, values = values))
 }
+
 
 #' Get Translation Dictionary for ES
 #'
@@ -939,6 +1224,7 @@ get_translation_dict_pt <- function() {
 #' @return List with columns and values translations
 #' @keywords internal
 #' @noRd
+
 get_translation_dict_es <- function() {
   
   # ==========================================================================
@@ -949,365 +1235,305 @@ get_translation_dict_es <- function() {
   columns <- c(
     
     # ------------------------------------------------------------------------
-    # COMMON DEMOGRAPHICS (All Systems)
-    # Used across SIM, SINASC, SINAN, SIH
+    # IDENTIFICACION BASICA Y TIPO DE MUERTE
     # ------------------------------------------------------------------------
-    "SEXO" = "sexo",
-    "CS_SEXO" = "sexo",
-    "RACACOR" = "raza",
-    "CS_RACA" = "raza",
-    "ESTCIV" = "estado_civil",
-    "ESTCIVMAE" = "estado_civil_madre",
-    
-    # ------------------------------------------------------------------------
-    # DATES (All Systems)
-    # Birth, death, notification, and administrative dates
-    # ------------------------------------------------------------------------
+    "TIPOBITO" = "tipo_muerte",
     "DTOBITO" = "fecha_muerte",
     "HORAOBITO" = "hora_muerte",
-    "DTNASC" = "fecha_nacimiento",
-    "DT_NASC" = "fecha_nacimiento",
-    "NASC" = "fecha_nacimiento",
-    "DT_NOTIFIC" = "fecha_notificacion",
-    "DT_SIN_PRI" = "fecha_sintomas",
-    "DT_INTER" = "fecha_internacion",
-    "DT_SAIDA" = "fecha_alta",
-    
-    # ------------------------------------------------------------------------
-    # AGE VARIABLES (All Systems)
-    # Age codes and decomposed age units
-    # ------------------------------------------------------------------------
-    "IDADE" = "codigo_edad",
-    "NU_IDADE_N" = "edad",
-    "IDADEMAE" = "edad_madre",
-    "IDADEPAI" = "edad_padre",
-    
-    # ------------------------------------------------------------------------
-    # GEOGRAPHIC CODES (All Systems)
-    # Municipality and region codes for residence, birth, occurrence
-    # ------------------------------------------------------------------------
-    "CODMUNRES" = "codigo_municipio_residencia",
-    "ID_MN_RESI" = "municipio_residencia",
-    "MUNIC_RES" = "municipio_residencia",
-    "CODMUNNATU" = "codigo_municipio_nacimiento",
-    "CODMUNNASC" = "codigo_municipio_nacimiento",
-    "CODMUNOCOR" = "codigo_municipio_ocurrencia",
-    "CODUFMUN" = "codigo_municipio",
-    
-    # ------------------------------------------------------------------------
-    # EDUCATION & OCCUPATION (SIM, SINASC, SINAN)
-    # Schooling years and occupation codes
-    # ------------------------------------------------------------------------
-    "ESC" = "escolaridad",
-    "ESCMAE" = "escolaridad_madre",
-    "CS_ESCOL_N" = "escolaridad",
-    "OCUP" = "ocupacion",
-    "CODOCUPMAE" = "codigo_ocupacion_madre",
-    "ID_OCUPA_N" = "ocupacion",
-    
-    # ------------------------------------------------------------------------
-    # ICD/DIAGNOSIS - SIM (Mortality System)
-    # Underlying and contributing causes of death
-    # ------------------------------------------------------------------------
+    "NUMERODO" = "numero_certificado_muerte",
     "CAUSABAS" = "causa_basica",
     "CAUSABAS_O" = "causa_basica_original",
+    "CB_PRE" = "causa_basica_pre_seleccion",
+    "CAUSAMAT" = "causa_materna",
+    
+    # ------------------------------------------------------------------------
+    # DATOS PERSONALES DEL FALLECIDO
+    # ------------------------------------------------------------------------
+    "NATURAL" = "municipio_nacimiento",
+    "CODMUNNATU" = "codigo_municipio_nacimiento",
+    "DTNASC" = "fecha_nacimiento",
+    "IDADE" = "codigo_edad",
+    "SEXO" = "sexo",
+    "RACACOR" = "raza",
+    "ESTCIV" = "estado_civil",
+    
+    # ------------------------------------------------------------------------
+    # EDUCACION Y OCUPACION DEL FALLECIDO
+    # ------------------------------------------------------------------------
+    "ESC" = "escolaridad",
+    "ESC2010" = "escolaridad_2010",
+    "SERIESCFAL" = "grado_escolar_fallecido",
+    "ESCFALAGRI" = "escolaridad_fallecido_agregada",
+    "OCUP" = "ocupacion",
+    
+    # ------------------------------------------------------------------------
+    # LUGAR DE RESIDENCIA Y OCURRENCIA
+    # ------------------------------------------------------------------------
+    "CODMUNRES" = "codigo_municipio_residencia",
+    "LOCOCOR" = "lugar_ocurrencia_muerte",
+    "CODMUNOCOR" = "codigo_municipio_ocurrencia",
+    
+    # ------------------------------------------------------------------------
+    # DATOS DE LA MADRE (PARA MUERTE FETAL O MENOR DE 1 ANO)
+    # ------------------------------------------------------------------------
+    "IDADEMAE" = "edad_madre",
+    "ESCMAE" = "escolaridad_madre",
+    "ESCMAE2010" = "escolaridad_madre_2010",
+    "SERIESCMAE" = "grado_escolar_madre",
+    "ESCMAEAGR1" = "escolaridad_madre_agregada",
+    "OCUPMAE" = "ocupacion_madre",
+    "QTDFILVIVO" = "numero_hijos_vivos",
+    "QTDFILMORT" = "numero_hijos_muertos",
+    
+    # ------------------------------------------------------------------------
+    # DATOS DEL EMBARAZO Y NACIMIENTO
+    # ------------------------------------------------------------------------
+    "SEMAGESTAC" = "semanas_gestacion",
+    "GESTACAO" = "edad_gestacional",
+    "GRAVIDEZ" = "tipo_embarazo",
+    "PARTO" = "tipo_parto",
+    "OBITOPARTO" = "momento_muerte_parto",
+    "MORTEPARTO" = "momento_muerte_partum",
+    "PESO" = "peso_nacimiento",
+    "NUMERODN" = "numero_certificado_nacimiento",
+    
+    # ------------------------------------------------------------------------
+    # CAUSAS DE LA MUERTE (LINEAS DEL CERTIFICADO)
+    # ------------------------------------------------------------------------
     "LINHAA" = "linea_causa_a",
     "LINHAB" = "linea_causa_b",
     "LINHAC" = "linea_causa_c",
     "LINHAD" = "linea_causa_d",
     "LINHAII" = "linea_causa_ii",
+    "ATESTADO" = "certificado_muerte",
     
     # ------------------------------------------------------------------------
-    # ICD/DIAGNOSIS - SIH (Hospital Admissions)
-    # Primary and secondary diagnoses for hospitalizations
+    # MUERTE MATERNA Y RELACIONADA CON EL EMBARAZO
     # ------------------------------------------------------------------------
-    "DIAG_PRINC" = "diagnostico_principal",
-    "DIAG_SECUN" = "diagnostico_secundario",
-    "DIAGSEC1" = "diagnostico_secundario_1",
-    "DIAGSEC2" = "diagnostico_secundario_2",
-    "DIAGSEC3" = "diagnostico_secundario_3",
-    "DIAGSEC4" = "diagnostico_secundario_4",
-    "DIAGSEC5" = "diagnostico_secundario_5",
-    "DIAGSEC6" = "diagnostico_secundario_6",
-    "DIAGSEC7" = "diagnostico_secundario_7",
-    "DIAGSEC8" = "diagnostico_secundario_8",
-    "DIAGSEC9" = "diagnostico_secundario_9",
-    "CID_MORTE" = "causa_muerte",
-    "CID_NOTIF" = "enfermedad_notificable",
+    "TPMORTEOCO" = "momento_muerte_embarazo",
+    "TPOBITOCOR" = "tipo_muerte_corregido",
+    "OBITOGRAV" = "muerte_durante_embarazo",
+    "OBITOPUERP" = "muerte_durante_puerperio",
     
     # ------------------------------------------------------------------------
-    # ICD/DIAGNOSIS - SIA (Outpatient)
-    # ICD codes for ambulatory procedures
+    # CIRCUNSTANCIAS DE LA MUERTE
     # ------------------------------------------------------------------------
-    "PA_CIDPRI" = "cie_principal",
-    "PA_CIDSEC" = "cie_secundario",
-    "PA_CIDCAS" = "cie_asociado",
-    
-    # ------------------------------------------------------------------------
-    # DEATH CIRCUMSTANCES - SIM
-    # Type, location, and circumstances of death
-    # ------------------------------------------------------------------------
-    "TIPOBITO" = "tipo_muerte",
-    "LOCOCOR" = "lugar_ocurrencia",
     "CIRCOBITO" = "circunstancia_muerte",
     "ACIDTRAB" = "accidente_trabajo",
     "FONTE" = "fuente_informacion",
     
     # ------------------------------------------------------------------------
-    # MATERNAL DEATH - SIM
-    # Pregnancy-related death indicators
+    # ASISTENCIA MEDICA Y PROCEDIMIENTOS
     # ------------------------------------------------------------------------
-    "OBITOGRAV" = "muerte_embarazo",
-    "OBITOPUERP" = "muerte_puerperio",
-    "OBITOPARTO" = "muerte_parto",
     "ASSISTMED" = "asistencia_medica",
-    "NECROPSIA" = "necropsia",
+    "NECROPSIA" = "autopsia",
+    "EXAME" = "examen_realizado",
+    "CIRURGIA" = "cirugia_realizada",
     
     # ------------------------------------------------------------------------
-    # BIRTH INFORMATION - SINASC
-    # Place, weight, APGAR, gestation, delivery type
+    # INFORMACION SOBRE LA INVESTIGACION
     # ------------------------------------------------------------------------
-    "NUMERODV" = "numero_certificado_nacimiento",
-    "LOCNASC" = "lugar_nacimiento",
-    "PESO" = "peso_nacimiento",
-    "APGAR1" = "apgar_1min",
-    "APGAR5" = "apgar_5min",
-    "GESTACAO" = "edad_gestacional",
-    "SEMAGESTAC" = "semanas_gestacion",
-    "GRAVIDEZ" = "tipo_embarazo",
-    "PARTO" = "tipo_parto",
-    "CONSULTAS" = "consultas_prenatales",
-    "DTULTMENST" = "fecha_ultima_menstruacion",
-    "TPMETESTIM" = "metodo_estimacion_edad_gestacional",
-    "TPAPRESENT" = "presentacion_fetal",
-    "STTRABPART" = "trabajo_parto_inducido",
-    "STCESPARTO" = "cesarea_antes_trabajo_parto",
+    "DTINVESTIG" = "fecha_investigacion",
+    "DTCONINV" = "fecha_conclusion_investigacion",
+    "DTCADINV" = "fecha_registro_investigacion",
+    "DTCONCASO" = "fecha_conclusion_caso",
+    "DTCADINF" = "fecha_registro_informacion",
+    "FONTENV" = "fuente_investigacion",
+    "FONTES" = "fuentes_combinadas",
+    "TPRESGINFO" = "tipo_recuperacion_informacion",
+    "TPNIVELINV" = "tipo_nivel_investigador",
+    "ALTCAUSA" = "causa_modificada",
+    "TPPOS" = "muerte_investigada",
     
     # ------------------------------------------------------------------------
-    # MOTHER INFORMATION - SINASC
-    # Previous pregnancies, children, race
+    # DATOS ADMINISTRATIVOS Y DEL SISTEMA
     # ------------------------------------------------------------------------
-    "QTDFILMORT" = "hijos_muertos_anteriores",
-    "QTDGESTANT" = "embarazos_anteriores",
-    "QTDPARTNOR" = "partos_normales_anteriores",
-    "QTDPARTCES" = "partos_cesareos_anteriores",
-    "RACACORMAE" = "raza_madre",
-    "RACACORPAI" = "raza_padre",
-    
-    # ------------------------------------------------------------------------
-    # CONGENITAL ANOMALY - SINASC
-    # Presence and code of congenital anomalies
-    # ------------------------------------------------------------------------
-    "IDANOMAL" = "anomalia_congenita",
-    "CODANOMAL" = "codigo_anomalia_congenita",
-    
-    # ------------------------------------------------------------------------
-    # SINAN SPECIFIC
-    # Notifiable diseases system variables
-    # ------------------------------------------------------------------------
-    "SEM_NOT" = "semana_notificacion",
-    "NU_ANO" = "ano",
-    "SG_UF_NOT" = "estado_notificacion",
-    "ID_AGRAVO" = "codigo_enfermedad",
-    "SEM_PRI" = "semana_sintomas",
-    "CS_GESTANT" = "embarazada",
-    "ID_RG_RESI" = "region_residencia",
-    "ID_PAIS" = "pais",
-    "DT_INVEST" = "fecha_investigacion",
-    "ID_UNIDADE" = "unidad_salud",
-    "DT_DIGITA" = "fecha_digitacion",
-    "CLASSI_FIN" = "clasificacion_final",
-    "EVOLUCAO" = "evolucion",
-    "DT_ENCERRA" = "fecha_cierre",
-    "DT_OBITO" = "fecha_muerte",
-    
-    # ------------------------------------------------------------------------
-    # SIH SPECIFIC (Hospital Admissions)
-    # AIH number, procedures, costs, length of stay
-    # ------------------------------------------------------------------------
-    "N_AIH" = "numero_aih",
-    "IDENT" = "identificacion",
-    "CEP" = "codigo_postal",
-    "QT_DIARIAS" = "dias_internacion",
-    "PROC_REA" = "procedimiento_realizado",
-    "VAL_TOT" = "valor_total",
-    "VAL_UTI" = "valor_uci",
-    "US_TOT" = "diaria_total",
-    "DT_ATEND" = "fecha_atencion",
-    "RACA_COR" = "raza",
-    "MORTE" = "muerte",
-    "COBRANCA" = "motivo_cobro",
-    "NATUREZA" = "naturaleza_establecimiento",
-    "GESTAO" = "tipo_gestion",
-    "MUNIC_MOV" = "municipio_movimiento",
-    "COD_IDADE" = "unidad_edad",
-    
-    # ------------------------------------------------------------------------
-    # SIA SPECIFIC (Outpatient)
-    # Authorization, procedures, costs
-    # ------------------------------------------------------------------------
-    "PA_AUTORIZ" = "numero_autorizacion",
-    "PA_PROC_ID" = "codigo_procedimiento",
-    "PA_TPUPS" = "tipo_establecimiento",
-    "PA_TIPPRE" = "tipo_prestador",
-    "PA_MN_IND" = "municipio_individual",
-    "PA_CNPJCPF" = "cnpj_cpf_prestador",
-    "PA_CNPJMNT" = "cnpj_mantenedor",
-    "PA_CNSMED" = "cns_medico",
-    "PA_CBOCOD" = "codigo_ocupacion",
-    "PA_QTDPRO" = "cantidad_procedimiento",
-    "PA_QTDAPR" = "cantidad_aprobada",
-    "PA_VALAPR" = "valor_aprobado",
-    "PA_UFDIF" = "estado_diferente",
-    "PA_MNDIF" = "municipio_diferente",
-    "PA_DIF_VAL" = "diferencia_valor",
-    "IDADEMIN" = "edad_minima",
-    "IDADEMAX" = "edad_maxima",
-    "NU_VPA_TOT" = "vpa_total",
-    "NU_PA_TOT" = "pa_total",
-    "PA_CMP" = "competencia",
-    "PA_DTATEN" = "fecha_atencion",
-    
-    # ------------------------------------------------------------------------
-    # CNES SPECIFIC (Health Establishments)
-    # Facility codes, type, management, administrative data
-    # ------------------------------------------------------------------------
-    "CNES" = "codigo_cnes",
-    "REGSAUDE" = "region_salud",
-    "MICR_REG" = "micro_region",
-    "DISTRSAN" = "distrito_sanitario",
-    "DISTRADM" = "distrito_administrativo",
-    "TPGESTAO" = "tipo_gestion",
-    "PF_PJ" = "tipo_persona_juridica",
-    "CPF_CNPJ" = "cpf_cnpj",
-    "NIV_HIER" = "nivel_jerarquico",
-    "TP_UNID" = "tipo_unidad",
-    "TURNO_AT" = "turno_atencion",
-    "NIV_ATEN" = "nivel_atencion",
-    "RETENCAO" = "retencion",
-    "ATIVIDAD" = "actividad",
-    "CLIENTEL" = "clientela",
-    "TP_PREST" = "tipo_prestador",
-    "CO_BANCO" = "codigo_banco",
-    "CO_AGENC" = "codigo_agencia",
-    "C_CORREN" = "cuenta_corriente",
-    "CONTRATM" = "mes_contrato",
-    "CONTRATA" = "ano_contrato",
-    "DT_PUBLM" = "mes_publicacion",
-    "DT_PUBLA" = "ano_publicacion",
-    "DT_EXTRM" = "mes_extraccion",
-    "DT_EXTRA" = "dt_extra",
-    "ESFERA_A" = "esfera_administrativa",
-    "ATIVIDA2" = "actividad_2",
-    "RETENC2" = "retencion_2",
-    "NATUREZ2" = "naturaleza_juridica_2",
-    "CLIENTE2" = "clientela_2",
-    "TP_PRES2" = "tipo_prestador_2",
-    "NIVATE_A" = "nivel_atencion_a",
-    
-    # ------------------------------------------------------------------------
-    # ADMINISTRATIVE - SIM
-    # Certificate numbers, coder, system version, dates
-    # ------------------------------------------------------------------------
-    "NUMERODO" = "numero_certificado_muerte",
-    "NATURAL" = "municipio_nacimiento",
-    "CODESTAB" = "codigo_establecimiento",
+    "ORIGEM" = "origen_registro",
+    "CODESTAB" = "codigo_establecimiento_salud",
     "ATESTANTE" = "certificador",
+    "DTCADASTRO" = "fecha_registro",
+    "DTRECEBIM" = "fecha_recepcion",
+    "DTRECORIGA" = "fecha_recepcion_original",
+    "DTDIGITA" = "fecha_digitacion",
+    "NUMEROLOTE" = "numero_lote",
     "STCODIFICA" = "estado_codificacion",
     "CODIFICADO" = "codificado",
     "VERSAOSIST" = "version_sistema",
-    "DTCADASTRO" = "fecha_registro",
-    "DTRECEBIM" = "fecha_recepcion"
+    "VERSAOSCB" = "version_selector_causa_basica",
+    "STDOEPIDEM" = "estado_certificado_muerte_epidemiologica",
+    "STIONOVA" = "estado_certificado_muerte_nuevo",
+    
+    # ------------------------------------------------------------------------
+    # CAMPOS CALCULADOS Y METADATOS
+    # ------------------------------------------------------------------------
+    "DIFDATA" = "diferencia_fecha",
+    "NUDIASOBCO" = "dias_muerte_conclusion",
+    
+    # ------------------------------------------------------------------------
+    # DATOS DEMOGRAFICOS COMUNES (Todos los Sistemas) - Existente
+    # ------------------------------------------------------------------------
+    "CS_SEXO" = "sexo",
+    "CS_RACA" = "raza",
+    "ESTCIVMAE" = "estado_civil_madre",
+    "DT_NASC" = "fecha_nacimiento",
+    "NASC" = "fecha_nacimiento",
+    "DT_NOTIFIC" = "fecha_notificacion",
+    "DT_SIN_PRI" = "fecha_primer_sintoma",
+    "DT_INTER" = "fecha_internacion",
+    "DT_SAIDA" = "fecha_alta",
+    "NU_IDADE_N" = "edad",
+    "IDADEPAI" = "edad_padre",
+    "ID_MN_RESI" = "municipio_residencia",
+    "MUNIC_RES" = "municipio_residencia",
+    "CODMUNNASC" = "codigo_municipio_nacimiento",
+    "CODUFMUN" = "codigo_municipio",
+    "CS_ESCOL_N" = "escolaridad",
+    "CODOCUPMAE" = "codigo_ocupacion_madre",
+    "ID_OCUPA_N" = "ocupacion",
+    # ------------------------------------------------------------------------
+    # CAMPOS ADICIONALES DEL SIM
+    # ------------------------------------------------------------------------
+    "ESTABDESCR" = "descripcion_establecimiento",
+    "COMUNSVOIM" = "municipio_svo_iml",
+    "DTATESTADO" = "fecha_certificado",
+    "FONTEINV" = "fuente_investigacion",
+    "ESCFALAGR1" = "escolaridad_fallecido_agregada",
+    "STDONOVA" = "estado_certificado_muerte_nuevo",
+    "NUDIASOBIN" = "dias_muerte_investigacion",
+    "NUDIASINF" = "dias_informacion",
+    "FONTESINF" = "fuentes_informacion",
+    "CONTADOR" = "contador"
   )
   
   
   # ==========================================================================
-  # CATEGORICAL VALUE TRANSLATIONS
-  # Decode numeric codes to human-readable labels
+  # TRADUCCIONES DE VALORES CATEGORICOS
+  # Decodifica codigos numericos a etiquetas legibles
   # ==========================================================================
   
   values <- list(
     
-    # TIPOBITO
+    # TIPOBITO - Tipo de muerte
     "TIPOBITO" = c(
       "1" = "Fetal",
       "2" = "No fetal"
     ),
-
-    # SEXO
+    
+    # SEXO - Sexo del fallecido
     "SEXO" = c(
-      "1" = "Masculino",
-      "2" = "Femenino",
-      "0" = "Ignorado",
-      "3" = "Femenino"
+      "M" = "Masculino",
+      "F" = "Femenino",
+      "I" = "Ignorado"
     ),
-
-    # RACACOR
+    
+    # RACACOR - Raza/color
     "RACACOR" = c(
       "1" = "Blanca",
       "2" = "Negra",
       "3" = "Amarilla",
       "4" = "Parda",
-      "5" = "Indigena"
+      "5" = "Indigena",
+      "9" = "Ignorado"
     ),
-
-    # ESTCIV
+    
+    # ESTCIV - Estado civil
     "ESTCIV" = c(
       "1" = "Soltero",
       "2" = "Casado",
       "3" = "Viudo",
-      "4" = "Separado judicialmente",
-      "5" = "Union consensual",
+      "4" = "Separado judicialmente/divorciado",
+      "5" = "Union estable",
       "9" = "Ignorado"
     ),
-
-    # ESC
+    
+    # ESC - Escolaridad (formato antiguo)
     "ESC" = c(
-      "1" = "Ninguno",
+      "1" = "Ninguna",
       "2" = "1 a 3 anos",
       "3" = "4 a 7 anos",
       "4" = "8 a 11 anos",
       "5" = "12 anos o mas",
       "9" = "Ignorado"
     ),
-
-    # LOCOCOR
+    
+    # ESC2010 - Escolaridad 2010
+    "ESC2010" = c(
+      "0" = "Sin escolaridad",
+      "1" = "Primaria I (1 a 4 serie)",
+      "2" = "Primaria II (5 a 8 serie)",
+      "3" = "Secundaria (antiguo 2 Grado)",
+      "4" = "Superior incompleto",
+      "5" = "Superior completo",
+      "9" = "Ignorado"
+    ),
+    
+    # ESCFALAGRI - Escolaridad del fallecido agregada
+    "ESCFALAGRI" = c(
+      "00" = "Sin escolaridad",
+      "01" = "Primaria I incompleta",
+      "02" = "Primaria I completa",
+      "03" = "Primaria II incompleta",
+      "04" = "Primaria II completa",
+      "05" = "Secundaria incompleta",
+      "06" = "Secundaria completa",
+      "07" = "Superior incompleto",
+      "08" = "Superior completo",
+      "09" = "Ignorado",
+      "10" = "Primaria I incompleta o inespecifica",
+      "11" = "Primaria II incompleta o inespecifica",
+      "12" = "Secundaria incompleta o inespecifica"
+    ),
+    
+    # LOCOCOR - Lugar de ocurrencia de la muerte
     "LOCOCOR" = c(
       "1" = "Hospital",
       "2" = "Otro establecimiento de salud",
       "3" = "Domicilio",
       "4" = "Via publica",
       "5" = "Otros",
+      "6" = "Aldea indigena",
       "9" = "Ignorado"
     ),
-
-    # LOCNASC
-    "LOCNASC" = c(
-      "1" = "Hospital",
-      "2" = "Otro establecimiento de salud",
-      "3" = "Domicilio",
-      "4" = "Otros"
-    ),
-
-    # ESTCIVMAE
-    "ESTCIVMAE" = c(
-      "1" = "Soltera",
-      "2" = "Casada",
-      "3" = "Viuda",
-      "4" = "Separada judicialmente",
-      "5" = "Union consensual"
-    ),
-
-    # ESCMAE
+    
+    # ESCMAE - Escolaridad de la madre (formato antiguo)
     "ESCMAE" = c(
-      "1" = "Ninguno",
+      "1" = "Ninguna",
       "2" = "1 a 3 anos",
       "3" = "4 a 7 anos",
       "4" = "8 a 11 anos",
-      "5" = "12 anos o mas"
+      "5" = "12 anos o mas",
+      "9" = "Ignorado"
     ),
-
-    # GESTACAO
+    
+    # ESCMAE2010 - Escolaridad de la madre 2010
+    "ESCMAE2010" = c(
+      "0" = "Sin escolaridad",
+      "1" = "Primaria I (1 a 4 serie)",
+      "2" = "Primaria II (5 a 8 serie)",
+      "3" = "Secundaria (antiguo 2 Grado)",
+      "4" = "Superior incompleto",
+      "5" = "Superior completo",
+      "9" = "Ignorado"
+    ),
+    
+    # ESCMAEAGR1 - Escolaridad de la madre agregada
+    "ESCMAEAGR1" = c(
+      "00" = "Sin escolaridad",
+      "01" = "Primaria I incompleta",
+      "02" = "Primaria I completa",
+      "03" = "Primaria II incompleta",
+      "04" = "Primaria II completa",
+      "05" = "Secundaria incompleta",
+      "06" = "Secundaria completa",
+      "07" = "Superior incompleto",
+      "08" = "Superior completo",
+      "09" = "Ignorado",
+      "10" = "Primaria I incompleta o inespecifica",
+      "11" = "Primaria II incompleta o inespecifica",
+      "12" = "Secundaria incompleta o inespecifica"
+    ),
+    
+    # GESTACAO - Edad gestacional (formato antiguo)
     "GESTACAO" = c(
       "1" = "Menos de 22 semanas",
       "2" = "22 a 27 semanas",
@@ -1316,29 +1542,237 @@ get_translation_dict_es <- function() {
       "5" = "37 a 41 semanas",
       "6" = "42 semanas o mas"
     ),
-
-    # GRAVIDEZ
+    
+    # SEMAGESTAC - Semanas de gestacion
+    # Valores numericos de 01 a 52, 99 = ignorado
+    
+    # GRAVIDEZ - Tipo de embarazo
     "GRAVIDEZ" = c(
       "1" = "Unica",
       "2" = "Doble",
-      "3" = "Triple y mas"
+      "3" = "Triple o mas",
+      "9" = "Ignorada"
     ),
-
-    # PARTO
+    
+    # PARTO - Tipo de parto
     "PARTO" = c(
       "1" = "Vaginal",
-      "2" = "Cesarea"
+      "2" = "Cesarea",
+      "9" = "Ignorado"
     ),
-
-    # CONSULTAS
+    
+    # OBITOPARTO - Momento de la muerte en relacion al parto
+    "OBITOPARTO" = c(
+      "1" = "Antes",
+      "2" = "Durante",
+      "3" = "Despues",
+      "9" = "Ignorado"
+    ),
+    
+    # MORTEPARTO - Momento de la muerte en relacion al partum
+    "MORTEPARTO" = c(
+      "1" = "Antes",
+      "2" = "Durante",
+      "3" = "Despues",
+      "9" = "Ignorado"
+    ),
+    
+    # TPMORTEOCO - Cuando ocurrio la muerte
+    "TPMORTEOCO" = c(
+      "1" = "Durante el embarazo",
+      "2" = "Durante el parto",
+      "3" = "Durante el aborto",
+      "4" = "Hasta 42 dias despues del parto",
+      "5" = "43 dias a 1 ano despues del embarazo",
+      "8" = "No ocurrio en estos periodos",
+      "9" = "Ignorado"
+    ),
+    
+    # TPOBITOCOR - Momento de ocurrencia de la muerte corregido
+    "TPOBITOCOR" = c(
+      "1" = "Durante el embarazo",
+      "2" = "Durante el aborto",
+      "3" = "Despues del aborto",
+      "4" = "Durante el parto o hasta 1 hora despues",
+      "5" = "Durante el puerperio hasta 42 dias despues del parto",
+      "6" = "Entre 43 dias y hasta 1 ano despues del parto",
+      "7" = "La investigacion no identifico el momento de la muerte",
+      "8" = "Mas de un ano despues del parto",
+      "9" = "La muerte no ocurrio en las circunstancias anteriores"
+    ),
+    
+    # CIRCOBITO - Tipo de muerte violenta
+    "CIRCOBITO" = c(
+      "1" = "Accidente",
+      "2" = "Suicidio",
+      "3" = "Homicidio",
+      "4" = "Otros",
+      "9" = "Ignorado"
+    ),
+    
+    # ACIDTRAB - Accidente de trabajo
+    "ACIDTRAB" = c(
+      "1" = "Si",
+      "2" = "No",
+      "9" = "Ignorado"
+    ),
+    
+    # FONTE - Fuente de informacion
+    "FONTE" = c(
+      "1" = "Ocurrencia policial",
+      "2" = "Hospital",
+      "3" = "Familia",
+      "4" = "Otra",
+      "9" = "Ignorado"
+    ),
+    
+    # FONTENV - Fuente de investigacion
+    "FONTENV" = c(
+      "1" = "Comite de Muerte Materna y/o Infantil",
+      "2" = "Visita domiciliaria / Entrevista familiar",
+      "3" = "Establecimiento de Salud / Prontuario",
+      "4" = "Relacionado con otras bases de datos",
+      "5" = "SVO",
+      "6" = "IML",
+      "7" = "Otra fuente",
+      "8" = "Multiples fuentes",
+      "9" = "Ignorado"
+    ),
+    
+    # ASSISTMED - Recibio asistencia medica
+    "ASSISTMED" = c(
+      "1" = "Si",
+      "2" = "No",
+      "9" = "Ignorado"
+    ),
+    
+    # NECROPSIA - Autopsia realizada
+    "NECROPSIA" = c(
+      "1" = "Si",
+      "2" = "No",
+      "9" = "Ignorado"
+    ),
+    
+    # EXAME - Examen realizado
+    "EXAME" = c(
+      "1" = "Si",
+      "2" = "No",
+      "9" = "Ignorado"
+    ),
+    
+    # CIRURGIA - Cirugia realizada
+    "CIRURGIA" = c(
+      "1" = "Si",
+      "2" = "No",
+      "9" = "Ignorado"
+    ),
+    
+    # OBITOGRAV - Muerte durante el embarazo
+    "OBITOGRAV" = c(
+      "1" = "Si",
+      "2" = "No",
+      "9" = "Ignorado"
+    ),
+    
+    # OBITOPUERP - Muerte durante el puerperio
+    "OBITOPUERP" = c(
+      "1" = "Si, hasta 42 dias despues del parto",
+      "2" = "Si, 43 dias a 1 ano",
+      "3" = "No",
+      "9" = "Ignorado"
+    ),
+    
+    # ORIGEM - Origen del registro
+    "ORIGEM" = c(
+      "1" = "Oracle",
+      "2" = "Base de datos estatal via FTP",
+      "3" = "Base de datos SEADE",
+      "9" = "Ignorado"
+    ),
+    
+    # STCODIFICA - Estado de codificacion
+    "STCODIFICA" = c(
+      "S" = "Codificador",
+      "N" = "No codificador"
+    ),
+    
+    # CODIFICADO - Formulario codificado
+    "CODIFICADO" = c(
+      "S" = "Codificado",
+      "N" = "No codificado"
+    ),
+    
+    # STDOEPIDEM - Estado de certificado de muerte epidemiologica
+    "STDOEPIDEM" = c(
+      "1" = "Si",
+      "0" = "No"
+    ),
+    
+    # STIONOVA - Estado de certificado de muerte nuevo
+    "STIONOVA" = c(
+      "1" = "Si",
+      "0" = "No"
+    ),
+    
+    # TPRESGINFO - Tipo de recuperacion de informacion
+    "TPRESGINFO" = c(
+      "01" = "No anadio ni corrigio informacion",
+      "02" = "Si, permitio la recuperacion de nueva informacion",
+      "03" = "Si, permitio la correccion de alguna de las causas informadas originalmente"
+    ),
+    
+    # TPNIVELINV - Tipo de nivel investigador
+    "TPNIVELINV" = c(
+      "E" = "Estatal",
+      "R" = "Regional",
+      "M" = "Municipal"
+    ),
+    
+    # ALTCAUSA - Causa modificada despues de investigacion
+    "ALTCAUSA" = c(
+      "1" = "Si",
+      "2" = "No"
+    ),
+    
+    # TPPOS - Muerte investigada
+    "TPPOS" = c(
+      "1" = "Si",
+      "2" = "No"
+    ),
+    
+    # IDADE - Unidad de edad (primer digito del codigo)
+    "UNIDAD_EDAD" = c(
+      "0" = "Ignorado",
+      "1" = "Minuto",
+      "2" = "Hora",
+      "3" = "Dia",
+      "4" = "Mes",
+      "5" = "Ano"
+    ),
+    
+    # Traducciones de valores existentes de la funcion original
+    "LOCNASC" = c(
+      "1" = "Hospital",
+      "2" = "Otro establecimiento de salud",
+      "3" = "Domicilio",
+      "4" = "Otros"
+    ),
+    
+    "ESTCIVMAE" = c(
+      "1" = "Soltera",
+      "2" = "Casada",
+      "3" = "Viuda",
+      "4" = "Separada judicialmente",
+      "5" = "Union consensual"
+    ),
+    
     "CONSULTAS" = c(
       "1" = "Ninguna",
       "2" = "1 a 3 veces",
       "3" = "4 a 6 veces",
       "4" = "7 o mas veces"
     ),
-
-    # RACA_COR
+    
     "RACA_COR" = c(
       "01" = "Blanca",
       "02" = "Negra",
@@ -1346,21 +1780,18 @@ get_translation_dict_es <- function() {
       "04" = "Parda",
       "05" = "Indigena"
     ),
-
-    # MORTE
+    
     "MORTE" = c(
       "0" = "No",
       "1" = "Si"
     ),
-
-    # CS_SEXO
+    
     "CS_SEXO" = c(
       "M" = "Masculino",
       "F" = "Femenino",
       "I" = "Ignorado"
     ),
-
-    # CS_RACA
+    
     "CS_RACA" = c(
       "1" = "Blanca",
       "2" = "Negra",
@@ -1369,8 +1800,7 @@ get_translation_dict_es <- function() {
       "5" = "Indigena",
       "9" = "Ignorado"
     ),
-
-    # CS_GESTANT
+    
     "CS_GESTANT" = c(
       "1" = "1er trimestre",
       "2" = "2do trimestre",
@@ -1380,15 +1810,55 @@ get_translation_dict_es <- function() {
       "6" = "No embarazada",
       "9" = "Ignorado"
     ),
-
-    # EVOLUCAO
+    
     "EVOLUCAO" = c(
       "1" = "Cura",
       "2" = "Muerte por la enfermedad",
       "3" = "Muerte por otras causas",
       "9" = "Ignorado"
+    ),
+    
+    # FONTEINV - Fuente de investigacion
+    "FONTEINV" = c(
+      "1" = "Comite de Muerte Materna y/o Infantil",
+      "2" = "Visita domiciliaria / Entrevista familiar",
+      "3" = "Establecimiento de Salud / Prontuario",
+      "4" = "Relacionado con otras bases de datos",
+      "5" = "SVO",
+      "6" = "IML",
+      "7" = "Otra fuente",
+      "8" = "Multiples fuentes",
+      "9" = "Ignorado"
+    ),
+    
+    # STDONOVA - Estado de certificado de muerte nuevo
+    "STDONOVA" = c(
+      "1" = "Si",
+      "0" = "No"
+    ),
+    
+    # FONTESINF - Fuentes de informacion
+    "FONTESINF" = c(
+      "S" = "Si",
+      "X" = "No"
+    ),
+    
+    # ESCFALAGR1 - Escolaridad del fallecido agregada
+    "ESCFALAGR1" = c(
+      "00" = "Sin escolaridad",
+      "01" = "Primaria I incompleta",
+      "02" = "Primaria I completa",
+      "03" = "Primaria II incompleta",
+      "04" = "Primaria II completa",
+      "05" = "Secundaria incompleta",
+      "06" = "Secundaria completa",
+      "07" = "Superior incompleto",
+      "08" = "Superior completo",
+      "09" = "Ignorado",
+      "10" = "Primaria I incompleta o inespecifica",
+      "11" = "Primaria II incompleta o inespecifica",
+      "12" = "Secundaria incompleta o inespecifica"
     )
-
   )
   
   return(list(columns = columns, values = values))
@@ -2235,45 +2705,45 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
       es = "Trastornos mentales y del comportamiento"
     ),
     description = list(
-      pt = "Capítulo V da CID-10, abrangendo todos os transtornos mentais, incluindo depressão, ansiedade, esquizofrenia e transtornos por uso de substâncias.",
+      pt = "Capitulo V da CID-10, abrangendo todos os transtornos mentais, incluindo depressao, ansiedade, esquizofrenia e transtornos por uso de substancias.",
       en = "Chapter V of ICD-10, covering all mental disorders, including depression, anxiety, schizophrenia, and substance use disorders.",
-      es = "Capítulo V de la CIE-10, que abarca todos los trastornos mentales, incluyendo depresión, ansiedad, esquizofrenia y trastornos por uso de sustancias."
+      es = "Capitulo V de la CIE-10, que abarca todos los trastornos mentales, incluyendo depresion, ansiedad, esquizofrenia y trastornos por uso de sustancias."
     ),
     climate_sensitive = TRUE,
     climate_factors = c("temperature_extremes", "heat_waves", "natural_disasters", "seasonal_changes", "air_pollution"),
     data_sources = list(
       primary = c("SIH", "SIA", "SIM"),
       notes = list(
-        pt = "Dados de transtornos mentais podem ser encontrados no SIH (internações), SIA (atendimentos ambulatoriais) e SIM (mortalidade por suicídio, que é uma consequência, mas registrada em outro capítulo).",
+        pt = "Dados de transtornos mentais podem ser encontrados no SIH (internacoes), SIA (atendimentos ambulatoriais) e SIM (mortalidade por suicidio, que e uma consequencia, mas registrada em outro capitulo).",
         en = "Mental health data can be found in SIH (hospitalizations), SIA (outpatient care), and SIM (suicide mortality, which is a consequence but registered in another chapter).",
-        es = "Los datos de salud mental se pueden encontrar en SIH (hospitalizaciones), SIA (atención ambulatoria) y SIM (mortalidad por suicidio, que es una consecuencia pero registrada en otro capítulo)."
+        es = "Los datos de salud mental se pueden encontrar en SIH (hospitalizaciones), SIA (atencion ambulatoria) y SIM (mortalidad por suicidio, que es una consecuencia pero registrada en otro capitulo)."
       )
     ),
     research_notes = list(
-      pt = "Transtornos mentais são altamente sensíveis a fatores climáticos como ondas de calor (aumento de agitação, suicídios), desastres naturais (TEPT), variações sazonais (depressão sazonal) e poluição do ar (inflamação neural).",
+      pt = "Transtornos mentais sao altamente sensiveis a fatores climaticos como ondas de calor (aumento de agitacao, suicidios), desastres naturais (TEPT), variacoes sazonais (depressao sazonal) e poluicao do ar (inflamacao neural).",
       en = "Mental disorders are highly sensitive to climate factors such as heat waves (increased agitation, suicides), natural disasters (PTSD), seasonal variations (seasonal depression), and air pollution (neural inflammation).",
-      es = "Los trastornos mentales son altamente sensibles a factores climáticos como olas de calor (aumento de agitación, suicidios), desastres naturales (TEPT), variaciones estacionales (depresión estacional) y contaminación del aire (inflamación neural)."
+      es = "Los trastornos mentales son altamente sensibles a factores climaticos como olas de calor (aumento de agitacion, suicidios), desastres naturales (TEPT), variaciones estacionales (depresion estacional) y contaminacion del aire (inflamacion neural)."
     )
   ),
 
   climate_sensitive_mental_disorders = list(
     codes = c("F30-F33", "F41", "F43", "F50"),
     label = list(
-      pt = "Transtornos mentais sensíveis ao clima",
+      pt = "Transtornos mentais sensiveis ao clima",
       en = "Climate-sensitive mental disorders",
       es = "Trastornos mentales sensibles al clima"
     ),
     description = list(
-      pt = "Subconjunto de transtornos mentais com forte evidência de sensibilidade a fatores climáticos: transtornos do humor (depressão, bipolar), ansiedade, reação ao estresse e transtornos alimentares.",
+      pt = "Subconjunto de transtornos mentais com forte evidencia de sensibilidade a fatores climaticos: transtornos do humor (depressao, bipolar), ansiedade, reacao ao estresse e transtornos alimentares.",
       en = "Subset of mental disorders with strong evidence of sensitivity to climate factors: mood disorders (depression, bipolar), anxiety, stress-related disorders, and eating disorders.",
-      es = "Subconjunto de trastornos mentales con fuerte evidencia de sensibilidad a factores climáticos: trastornos del humor (depresión, bipolar), ansiedad, trastornos relacionados con el estrés y trastornos alimentarios."
+      es = "Subconjunto de trastornos mentales con fuerte evidencia de sensibilidad a factores climaticos: trastornos del humor (depresion, bipolar), ansiedad, trastornos relacionados con el estres y trastornos alimentarios."
     ),
     climate_sensitive = TRUE,
     climate_factors = c("heat_waves", "seasonal_light_changes", "natural_disasters", "air_pollution", "temperature_variability"),
     notes = list(
-      pt = "Inclui: Transtornos do humor (F30-F33), Transtornos de ansiedade (F41), Reação ao estresse grave (F43), Transtornos alimentares (F50).",
+      pt = "Inclui: Transtornos do humor (F30-F33), Transtornos de ansiedade (F41), Reacao ao estresse grave (F43), Transtornos alimentares (F50).",
       en = "Includes: Mood disorders (F30-F33), Anxiety disorders (F41), Reaction to severe stress (F43), Eating disorders (F50).",
-      es = "Incluye: Trastornos del humor (F30-F33), Trastornos de ansiedad (F41), Reacción al estrés grave (F43), Trastornos alimentarios (F50)."
+      es = "Incluye: Trastornos del humor (F30-F33), Trastornos de ansiedad (F41), Reaccion al estres grave (F43), Trastornos alimentarios (F50)."
     )
   ),
 
@@ -2740,21 +3210,21 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
   suicide_self_harm = list(
     codes = c("X60-X84", "Y87.0"),
     label = list(
-      pt = "Suicídio e autolesão",
+      pt = "Suicidio e autolesao",
       en = "Suicide and self-harm",
-      es = "Suicidio y autolesión"
+      es = "Suicidio y autolesion"
     ),
     description = list(
-      pt = "Lesões autoprovocadas intencionalmente e suicídio (CID-10 capítulo XX)",
+      pt = "Lesoes autoprovocadas intencionalmente e suicidio (CID-10 capitulo XX)",
       en = "Intentional self-harm and suicide (ICD-10 chapter XX)",
-      es = "Lesiones autoinfligidas intencionalmente y suicidio (CID-10 capítulo XX)"
+      es = "Lesiones autoinfligidas intencionalmente y suicidio (CID-10 capitulo XX)"
     ),
     climate_sensitive = TRUE,
     climate_factors = c("temperature_extremes", "seasonality", "sunlight_exposure", "heat_waves", "natural_disasters"),
     research_notes = list(
-      pt = "Taxas de suicídio mostram correlação com variações sazonais (maior incidência na primavera), ondas de calor (aumento de impulsividade) e eventos climáticos extremos (perdas econômicas e sociais).",
+      pt = "Taxas de suicidio mostram correlacao com variacoes sazonais (maior incidencia na primavera), ondas de calor (aumento de impulsividade) e eventos climaticos extremos (perdas economicas e sociais).",
       en = "Suicide rates show correlation with seasonal variations (higher incidence in spring), heat waves (increased impulsivity) and extreme weather events (economic and social losses).",
-      es = "Las tasas de suicidio muestran correlación con variaciones estacionales (mayor incidencia en primavera), olas de calor (aumento de impulsividad) y eventos climáticos extremos (pérdidas económicas y sociales)."
+      es = "Las tasas de suicidio muestran correlacion con variaciones estacionales (mayor incidencia en primavera), olas de calor (aumento de impulsividad) y eventos climaticos extremos (perdidas economicas y sociales)."
     )
   ),
 

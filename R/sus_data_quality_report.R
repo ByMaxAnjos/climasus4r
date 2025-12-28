@@ -69,11 +69,11 @@ sus_data_quality_report <- function(df,
   
   # Validate inputs
   if (!is.data.frame(df)) {
-    stop("df must be a data frame")
+    cli::cli_abort("df must be a data frame")
   }
   
   if (!output_format %in% c("console", "html", "markdown")) {
-    stop("output_format must be one of: 'console', 'html', 'markdown'")
+    cli::cli_abort("output_format must be one of: 'console', 'html', 'markdown'")
   }
   
   if (output_format != "console" && is.null(output_file)) {
@@ -84,7 +84,7 @@ sus_data_quality_report <- function(df,
   }
   
   if (!lang %in% c("en", "pt", "es")) {
-    stop("lang must be one of: 'en', 'pt', 'es'")
+    cli::cli_abort("lang must be one of: 'en', 'pt', 'es'")
   }
   
   # Initialize report content
@@ -205,7 +205,7 @@ sus_data_quality_report <- function(df,
     muni_freq <- muni_freq[order(-muni_freq$Count), ]
     muni_freq$Percentage <- round(100 * muni_freq$Count / sum(muni_freq$Count), 2)
     
-    report$geographic$top_municipalities <- head(muni_freq, top_n)
+    report$geographic$top_municipalities <- utils::head(muni_freq, top_n)
     report$geographic$n_unique_municipalities <- nrow(muni_freq)
   }
   

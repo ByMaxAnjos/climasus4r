@@ -1,8 +1,5 @@
 # climasus4r:: Kit de Ferramentas Integrado para Análise de Dados de Saúde, Clima e Ambiente
 
-<img align="right" src="https://github.com/ByMaxAnjos/climasus4r/blob/master/figures/climasus4r_logo.png?raw=true" alt="climasus4r Logo" width="140">
-
-
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![Codecov test coverage](https://codecov.io/gh/ByMaxAnjos/climasus4r/branch/main/graph/badge.svg)](https://app.codecov.io/gh/ByMaxAnjos/climasus4r)

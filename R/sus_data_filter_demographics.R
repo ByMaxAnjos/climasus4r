@@ -95,11 +95,11 @@ sus_data_filter_demographics <- function(df,
   
   # Validate inputs
   if (!is.data.frame(df)) {
-    stop("df must be a data frame")
+    cli::cli_abort("df must be a data frame")
   }
   
   if (!lang %in% c("en", "pt", "es")) {
-    stop("lang must be one of: 'en', 'pt', 'es'")
+    cli::cli_abort("lang must be one of: 'en', 'pt', 'es'")
   }
   
   # Store original row count
@@ -129,7 +129,7 @@ sus_data_filter_demographics <- function(df,
   # ========================================================================
   
   if (!is.null(race)) {
-    race_col <- find_column(df, c("race", "raca", "raza", "RACACOR", "RACA_COR"))
+    race_col <- find_column(df, c("race", "raca", "raza", "RACACOR"))
     
     if (is.null(race_col)) {
       cli::cli_alert_warning("Race column not found. Skipping race filter.")
