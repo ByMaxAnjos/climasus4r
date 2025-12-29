@@ -6,7 +6,7 @@
 \usage{
 sus_data_standardize(
   df,
-  lang = "en",
+  lang = "pt",
   translate_columns = TRUE,
   standardize_values = TRUE,
   keep_original = FALSE,
@@ -16,8 +16,8 @@ sus_data_standardize(
 \arguments{
 \item{df}{A \code{data.frame} or \code{tibble} to be standardized (typically output from \code{sus_data_import()}).}
 
-\item{lang}{Character. Output language for column names and values. Options: "en" (English, default),
-"pt" (Portuguese), "es" (Spanish).}
+\item{lang}{Character. Output language for column names and values. Options: "en" (English),
+"pt" (Portuguese, Default), "es" (Spanish).}
 
 \item{translate_columns}{Logical. If TRUE, translates column names. Default is TRUE.}
 
@@ -54,7 +54,7 @@ df_es <- sus_data_standardize(df_raw, lang = "es")
 # Keep original columns for comparison
 df_both <- sus_data_standardize(
   df_raw,
-  lang = "en",
+  lang = "pt",
   keep_original = TRUE
 )
 
@@ -69,7 +69,7 @@ df_cols_only <- sus_data_standardize(
 # Complete pipeline
 df_analysis_ready <- sus_data_import(uf = "SP", year = 2023, system = "SIM-DO") |>
   sus_data_clean_encoding() |>
-  sus_data_standardize(lang = "en")
+  sus_data_standardize(lang = "pt")
 }
 }
 \references{

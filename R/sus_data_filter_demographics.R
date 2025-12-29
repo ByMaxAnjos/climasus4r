@@ -22,7 +22,7 @@
 #'   codes (IBGE 6 or 7-digit codes) to include. If `NULL` (default), includes
 #'   all municipalities.
 #' @param lang Character string specifying the language for messages. Options:
-#'   `"en"` (English, default), `"pt"` (Portuguese), `"es"` (Spanish).
+#'   `"en"` (English), `"pt"` (Portuguese, default), `"es"` (Spanish).
 #' @param verbose Logical. If `TRUE` (default), prints filtering summary.
 #'
 #' @return A filtered data frame containing only rows that match all specified
@@ -90,7 +90,7 @@ sus_data_filter_demographics <- function(df,
                                           education = NULL,
                                           marital_status = NULL,
                                           municipality_code = NULL,
-                                          lang = "en",
+                                          lang = "pt",
                                           verbose = TRUE) {
   
   # Validate inputs
@@ -129,7 +129,7 @@ sus_data_filter_demographics <- function(df,
   # ========================================================================
   
   if (!is.null(race)) {
-    race_col <- find_column(df, c("race", "raca", "raza", "RACACOR"))
+    race_col <- find_column(df, c("race", "raca", "raza", "RACACOR", "RACA_COR"))
     
     if (is.null(race_col)) {
       cli::cli_alert_warning("Race column not found. Skipping race filter.")

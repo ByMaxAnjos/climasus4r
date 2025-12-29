@@ -67,8 +67,8 @@
 #'   
 #' @param lang Character. Language for user interface messages, warnings, and 
 #'   documentation. Options:
-#'   - `"en"`: English (default)
-#'   - `"pt"`: Portuguese (recommended for Brazilian users)
+#'   - `"en"`: English 
+#'   - `"pt"`: Portuguese (default, recommended for Brazilian users)
 #'   - `"es"`: Spanish
 #'   Affects all console output and documentation of matched codes.
 #'   
@@ -170,7 +170,7 @@ sus_data_filter_cid <- function(df,
                                 disease_group = NULL,
                                 icd_column = NULL,
                                 match_type = "starts_with",
-                                lang = "en",
+                                lang = "pt",
                                 verbose = TRUE) {
   
   # ============================================================================
@@ -344,7 +344,13 @@ sus_data_filter_cid <- function(df,
     
     # If still NULL, try common patterns
     if (is.null(icd_column) || is.na(icd_column)) {
-      icd_pattern_cols <- grep("CID|CAUSA|DIAG", names(df), value = TRUE, ignore.case = TRUE)
+      if (lang == "en") { 
+        icd_pattern_cols <- grep("underlying_cause|underlying_cause_original|primary_diagnosis|secondary_diagnosis|primary_icd|secondary_icd|maternal_cause", names(df), value = TRUE, ignore.case = TRUE)
+      } else if ( lang == "pt") { 
+        icd_pattern_cols <- grep("causa_basica|causa_basica_original|diagnostico_principal|diagnostico_secundario|cid_principal|cid_secundario|causa_materna", names(df), value = TRUE, ignore.case = TRUE)
+      } else {
+        icd_pattern_cols <- grep("causa_basica|causa_basica_original|diagnostico_principal|diagnostico_secundario|cie_principal|cie_secundario|causa_materna", names(df), value = TRUE, ignore.case = TRUE)
+       }
       if (length(icd_pattern_cols) > 0) {
         icd_column <- icd_pattern_cols[1]
       }

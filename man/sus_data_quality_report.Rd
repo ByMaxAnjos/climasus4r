@@ -11,7 +11,7 @@ sus_data_quality_report(
   check_dates = TRUE,
   check_icd = TRUE,
   top_n = 10,
-  lang = "en"
+  lang = "pt"
 )
 }
 \arguments{
@@ -34,7 +34,7 @@ checks (e.g., future dates, dates before birth).}
 Default is 10.}
 
 \item{lang}{Character string specifying the language for the report. Options:
-\code{"en"} (English, default), \code{"pt"} (Portuguese), \code{"es"} (Spanish).}
+\code{"en"} (English), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}
 }
 \value{
 Invisibly returns a list containing the quality metrics. If

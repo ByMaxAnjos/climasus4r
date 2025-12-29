@@ -12,7 +12,7 @@ sus_data_filter_demographics(
   education = NULL,
   marital_status = NULL,
   municipality_code = NULL,
-  lang = "en",
+  lang = "pt",
   verbose = TRUE
 )
 }
@@ -42,7 +42,7 @@ codes (IBGE 6 or 7-digit codes) to include. If \code{NULL} (default), includes
 all municipalities.}
 
 \item{lang}{Character string specifying the language for messages. Options:
-\code{"en"} (English, default), \code{"pt"} (Portuguese), \code{"es"} (Spanish).}
+\code{"en"} (English), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}
 
 \item{verbose}{Logical. If \code{TRUE} (default), prints filtering summary.}
 }

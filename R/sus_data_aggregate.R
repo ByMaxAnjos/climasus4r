@@ -21,7 +21,7 @@
 #' @param complete_dates Logical. If `TRUE` (default), fills in missing time periods
 #'   with zero counts to create a complete time series without gaps.
 #' @param lang Character string specifying the language for messages. Options:
-#'   `"en"` (English, default), `"pt"` (Portuguese), `"es"` (Spanish).
+#'   `"en"` (English, default), `"pt"` (Portuguese, default), `"es"` (Spanish).
 #' @param verbose Logical. If `TRUE` (default), prints progress messages.
 #'
 #' @return A tibble with aggregated counts containing:
@@ -100,20 +100,20 @@ sus_data_aggregate <- function(df,
                                date_col = NULL,
                                group_by = NULL,
                                complete_dates = TRUE,
-                               lang = "en",
+                               lang = "pt",
                                verbose = TRUE) {
   
   # Validate inputs
   if (!is.data.frame(df)) {
-    cli::cli_abort("df must be a data frame")
+    stop("df must be a data frame")
   }
   
   if (nrow(df) == 0) {
-    cli::cli_abort("df is empty (0 rows)")
+    stop("df is empty (0 rows)")
   }
   
   if (!lang %in% c("en", "pt", "es")) {
-    cli::cli_abort("lang must be one of: 'en', 'pt', 'es'")
+    stop("lang must be one of: 'en', 'pt', 'es'")
   }
   
   # Auto-detect date column if not specified

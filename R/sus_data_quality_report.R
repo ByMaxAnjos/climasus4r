@@ -18,7 +18,7 @@
 #' @param top_n Integer. Number of top categories to show in frequency tables.
 #'   Default is 10.
 #' @param lang Character string specifying the language for the report. Options:
-#'   `"en"` (English, default), `"pt"` (Portuguese), `"es"` (Spanish).
+#'   `"en"` (English), `"pt"` (Portuguese, default), `"es"` (Spanish).
 #'
 #' @return Invisibly returns a list containing the quality metrics. If
 #'   `output_format = "console"`, prints the report to the console. Otherwise,
@@ -65,7 +65,7 @@ sus_data_quality_report <- function(df,
                                      check_dates = TRUE,
                                      check_icd = TRUE,
                                      top_n = 10,
-                                     lang = "en") {
+                                     lang = "pt") {
   
   # Validate inputs
   if (!is.data.frame(df)) {

@@ -9,8 +9,8 @@
 #' research workflows.
 #'
 #' @param df A `data.frame` or `tibble` to be standardized (typically output from `sus_data_import()`).
-#' @param lang Character. Output language for column names and values. Options: "en" (English, default), 
-#'   "pt" (Portuguese), "es" (Spanish).
+#' @param lang Character. Output language for column names and values. Options: "en" (English), 
+#'   "pt" (Portuguese, Default), "es" (Spanish).
 #' @param translate_columns Logical. If TRUE, translates column names. Default is TRUE.
 #' @param standardize_values Logical. If TRUE, standardizes categorical values. Default is TRUE.
 #' @param keep_original Logical. If TRUE, keeps original columns alongside standardized ones. Default is FALSE.
@@ -37,7 +37,7 @@
 #' # Keep original columns for comparison
 #' df_both <- sus_data_standardize(
 #'   df_raw,
-#'   lang = "en",
+#'   lang = "pt",
 #'   keep_original = TRUE
 #' )
 #'
@@ -52,7 +52,7 @@
 #' # Complete pipeline
 #' df_analysis_ready <- sus_data_import(uf = "SP", year = 2023, system = "SIM-DO") |>
 #'   sus_data_clean_encoding() |>
-#'   sus_data_standardize(lang = "en")
+#'   sus_data_standardize(lang = "pt")
 #' }
 #' @references
 #' Brazilian Ministry of Health. DATASUS. \url{http://datasus.saude.gov.br}
@@ -60,7 +60,7 @@
 #' SALDANHA, Raphael de Freitas; BASTOS, Ronaldo Rocha; BARCELLOS, Christovam. Microdatasus: pacote para download e pre-processamento de microdados do Departamento de Informatica do SUS (DATASUS). Cad. Saude Publica, Rio de Janeiro , v. 35, n. 9, e00032419, 2019. Available from https://doi.org/10.1590/0102-311x00032419.
 
 sus_data_standardize <- function(df,
-                                   lang = "en",
+                                   lang = "pt",
                                    translate_columns = TRUE,
                                    standardize_values = TRUE,
                                    keep_original = FALSE,
@@ -68,11 +68,11 @@ sus_data_standardize <- function(df,
   
   # Validate inputs
   if (!is.data.frame(df)) {
-    stop("Input must be a data frame")
+    cli::cli_abort("Input must be a data frame")
   }
   
   if (!lang %in% c("en", "pt", "es")) {
-    stop("Language must be 'en', 'pt', or 'es'")
+    cli::cli_abort("Language must be 'en', 'pt', or 'es'")
   }
   
   if (nrow(df) == 0) {
@@ -92,14 +92,45 @@ sus_data_standardize <- function(df,
     cli::cli_alert_info(paste(messages$language, toupper(lang)))
   }
   
-  # Get translation dictionaries
-  if(lang == "en"){
-  translations <- get_translation_dict_en()
-  } else if (lang == "pt") {
-  translations <- get_translation_dict_pt()
-  } else {
-  translations <- get_translation_dict_es()
+  # Get translation dictionaries based on system
+  
+  if (system == "SIM") {
+    switch(lang,
+      "en" = translations <- get_translation_dict_en(),
+      "pt" = translations <- get_translation_dict_pt(),
+      # default case (any other language)
+      translations <- get_translation_dict_es()
+    )
   }
+  if (system == "SINAN") {
+    switch(lang,
+      "en" = translations <- get_translation_dict_en_sinan(),
+      "pt" = translations <- get_translation_dict_pt_sinan(),
+      # default case (any other language)
+      translations <- get_translation_dict_es_sinan()
+    )
+  }
+
+  if (system == "SIH") {
+    switch(lang,
+      "en" = translations <- get_translation_dict_en_sih(),
+      "pt" = translations <- get_translation_dict_pt_sih(),
+      # default case (any other language)
+      translations <- get_translation_dict_es_sih()
+    )
+  }
+
+  if (system == "SIA") {
+    switch(lang,
+      "en" = translations <- get_translation_dict_en_sia(),
+      "pt" = translations <- get_translation_dict_pt_sia(),
+      # default case (any other language)
+      translations <- get_translation_dict_es_sia()
+    )
+  }
+ 
+
+  
   
   # ============================================================================
   # STEP 1: Translate Column Names

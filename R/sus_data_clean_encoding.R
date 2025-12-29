@@ -7,8 +7,8 @@
 #' Supports multilingual output messages (English, Portuguese, Spanish).
 #'
 #' @param df A `data.frame` or `tibble` to be cleaned.
-#' @param lang Character. Language for UI messages. Options: "en" (English, default), 
-#'   "pt" (Portuguese), "es" (Spanish).
+#' @param lang Character. Language for UI messages. Options: "en" (English), 
+#'   "pt" (Portuguese, default), "es" (Spanish).
 #' @param verbose Logical. If TRUE, prints a report of columns checked and corrected. Default is TRUE.
 #'
 #' @return A `data.frame` with corrected text columns.
@@ -46,12 +46,12 @@
 #' df_clean <- sus_data_import(uf = "RJ", year = 2022, system = "SIM") %>%
 #'   sus_data_clean_encoding(lang = "pt")
 #' }
-sus_data_clean_encoding <- function(df, lang = "en", verbose = TRUE) {
+sus_data_clean_encoding <- function(df, lang = "pt", verbose = TRUE) {
   
   # Input validation
   if (!is.data.frame(df)) {
     cli::cli_alert_danger("Input 'df' must be a data.frame.")
-    stop("Invalid input type.")
+    cli::cli_abort("Invalid input type.")
   }
   
   # Validate language and get UI messages

@@ -10,7 +10,7 @@ sus_data_aggregate(
   date_col = NULL,
   group_by = NULL,
   complete_dates = TRUE,
-  lang = "en",
+  lang = "pt",
   verbose = TRUE
 )
 }
@@ -37,7 +37,7 @@ across all records.}
 with zero counts to create a complete time series without gaps.}
 
 \item{lang}{Character string specifying the language for messages. Options:
-\code{"en"} (English, default), \code{"pt"} (Portuguese), \code{"es"} (Spanish).}
+\code{"en"} (English, default), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}
 
 \item{verbose}{Logical. If \code{TRUE} (default), prints progress messages.}
 }

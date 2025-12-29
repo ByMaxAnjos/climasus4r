@@ -10,7 +10,7 @@ sus_data_filter_cid(
   disease_group = NULL,
   icd_column = NULL,
   match_type = "starts_with",
-  lang = "en",
+  lang = "pt",
   verbose = TRUE
 )
 }
@@ -91,8 +91,8 @@ column names in this priority order:
 \item{lang}{Character. Language for user interface messages, warnings, and
 documentation. Options:
 \itemize{
-\item \code{"en"}: English (default)
-\item \code{"pt"}: Portuguese (recommended for Brazilian users)
+\item \code{"en"}: English
+\item \code{"pt"}: Portuguese (default, recommended for Brazilian users)
 \item \code{"es"}: Spanish
 Affects all console output and documentation of matched codes.
 }}

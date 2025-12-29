@@ -7,14 +7,15 @@
 sus_create_variables(
   df,
   create_age_groups = TRUE,
-  age_col = NULL,
   age_breaks = c(0, 5, 15, 65, Inf),
   age_labels = NULL,
   create_calendar_vars = FALSE,
+  create_climate_vars = TRUE,
+  climate_region = NULL,
   date_col = NULL,
+  age_col = NULL,
   hemisphere = "south",
-  create_semester = FALSE,
-  lang = "en",
+  lang = "pt",
   verbose = TRUE
 )
 }
@@ -23,14 +24,6 @@ sus_create_variables(
 
 \item{create_age_groups}{Logical. If \code{TRUE}, creates age group categories.
 Default is \code{FALSE}.}
-
-\item{age_col}{Character string with the name of the age column (in years).
-If \code{NULL} (default), auto-detects and calculates age using hierarchical logic:
-\enumerate{
-\item Direct age column (if exists)
-\item Calculate from dates (event_date - birth_date)
-\item Decode DATASUS age codes (NU_IDADE_N, IDADE)
-}}
 
 \item{age_breaks}{Numeric vector specifying the breakpoints for age groups.
 Default is \code{c(0, 5, 15, 65, Inf)} for standard epidemiological categories.}
@@ -41,17 +34,27 @@ Default is \code{c(0, 5, 15, 65, Inf)} for standard epidemiological categories.}
 \item{create_calendar_vars}{Logical. If \code{TRUE}, creates calendar variables
 (day of week, month, season, etc.). Default is \code{FALSE}.}
 
+\item{create_climate_vars}{Logical. Se \code{TRUE}, cria variaveis climaticas e sazonais.}
+
+\item{climate_region}{Character. Regiao climatica para calculos sazonais.
+Opcoes: "norte", "nordeste", "centro-oeste", "sudeste", "sul".}
+
 \item{date_col}{Character string with the name of the date column. If \code{NULL}
 (default), auto-detects the date column.}
+
+\item{age_col}{Character string with the name of the age column (in years).
+If \code{NULL} (default), auto-detects and calculates age using hierarchical logic:
+\enumerate{
+\item Direct age column (if exists)
+\item Calculate from dates (event_date - birth_date)
+\item Decode DATASUS age codes (NU_IDADE_N, IDADE)
+}}
 
 \item{hemisphere}{Character string specifying the hemisphere for season
 calculation. Options: \code{"south"} (default, for Brazil), \code{"north"}.}
 
-\item{create_semester}{Logical. If \code{TRUE}, creates a semester variable
-(1 = Jan-Jun, 2 = Jul-Dec). Default is \code{FALSE}.}
-
 \item{lang}{Character string specifying the language for variable labels and
-messages. Options: \code{"en"} (English, default), \code{"pt"} (Portuguese), \code{"es"} (Spanish).}
+messages. Options: \code{"en"} (English), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}
 
 \item{verbose}{Logical. If \code{TRUE} (default), prints progress messages.}
 }
@@ -111,7 +114,7 @@ breaks and labels. Common epidemiological categories:
 \item \code{season}: Season (Summer, Autumn, Winter, Spring)
 \item \code{is_weekend}: Logical indicating if date is weekend
 \item \code{day_of_year}: Day of year (1-365/366)
-\item \code{semester}: Semester (1 or 2) if \code{create_semester = TRUE}
+\item \code{semester}: Semester (1 or 2)
 }
 
 \strong{Seasons} are calculated based on hemisphere:
@@ -145,7 +148,6 @@ df_sinan <- sus_data_import(uf = "RJ", year = 2023, system = "SINAN-DENGUE") |>
     create_age_groups = TRUE,
     age_breaks = c(0, 15, 60, Inf),
     create_calendar_vars = TRUE,
-    hemisphere = "south",
     lang = "pt"
   )
 # Calculates age from DTNASC and DT_NOTIFIC (gold standard)
@@ -171,13 +173,13 @@ df_elderly <- sus_create_variables(
   lang = "pt"
 )
 
-# ===== EXAMPLE 5: Calendar variables only (no age groups) =====
-df_calendar <- sus_create_variables(
+# ===== EXAMPLE 5: Calendar variables and climate variables =====
+df_calendar_climate <- sus_create_variables(
   df,
   create_calendar_vars = TRUE,
   create_semester = TRUE,
-  hemisphere = "south",
-  lang = "en"
+  create_climate_vars = TRUE,
+  climate_region = "Norte"
 )
 }
 

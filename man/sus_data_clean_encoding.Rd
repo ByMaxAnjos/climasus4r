@@ -4,13 +4,13 @@
 \alias{sus_data_clean_encoding}
 \title{Detect and correct character encoding issues}
 \usage{
-sus_data_clean_encoding(df, lang = "en", verbose = TRUE)
+sus_data_clean_encoding(df, lang = "pt", verbose = TRUE)
 }
 \arguments{
 \item{df}{A \code{data.frame} or \code{tibble} to be cleaned.}
 
-\item{lang}{Character. Language for UI messages. Options: "en" (English, default),
-"pt" (Portuguese), "es" (Spanish).}
+\item{lang}{Character. Language for UI messages. Options: "en" (English),
+"pt" (Portuguese, default), "es" (Spanish).}
 
 \item{verbose}{Logical. If TRUE, prints a report of columns checked and corrected. Default is TRUE.}
 }

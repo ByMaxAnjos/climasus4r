@@ -124,7 +124,7 @@ Importe dados do DATASUS com suporte a **processamento paralelo** para múltiplo
 
 ```r
 # Um único estado e ano
-df <- sus_data_import(uf = "RJ", ano = 2022, sistema = "SIM-DO")
+df <- sus_data_import(uf = "RJ", year = 2022, system = "SIM-DO")
 
 # Múltiplos estados e anos com processamento paralelo
 df <- sus_data_import(
