@@ -85,6 +85,7 @@ sus_data_standardize <- function(df,
   
   # Detect health system
   system <- detect_health_system(df)
+  df$system <- paste0(system)
   
   if (verbose) {
     cli::cli_h2(messages$standardize_title)

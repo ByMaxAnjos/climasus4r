@@ -345,7 +345,8 @@ sus_data_import <- function(uf,
   }
   # Function to get cache file path
   get_cache_path <- function(cache_key) {
-    file.path(cache_dir, paste0(cache_key, ".rds"))
+    #file.path(cache_dir, paste0(cache_key, ".rds"))
+    file.path(cache_dir, paste0(cache_key, ".parquet"))
   }
 
   # Function to check if cache is valid (not older than 30 days by default)
@@ -367,7 +368,8 @@ sus_data_import <- function(uf,
         cli::cli_alert_success("Loading from cache: {system_i} - {uf_i} - {year_i}")
       }
     }
-    return(readr::read_rds(cache_path))
+    #return(readr::read_rds(cache_path))
+    return(arrow::read_parquet(cache_path))
   }
   # Save data to cache
   save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NULL) {
@@ -378,7 +380,8 @@ sus_data_import <- function(uf,
         cli::cli_alert_info("Saving to cache: {system_i} - {uf_i} - {year_i}")
       }
     }
-    readr::write_rds(data, cache_path, compress = "gz")
+    #readr::write_rds(data, cache_path, compress = "gz")
+    arrow::write_parquet(data, cache_path)
     return(data)
   }
 
