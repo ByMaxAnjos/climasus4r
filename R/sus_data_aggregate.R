@@ -4,14 +4,21 @@
 #' time units and grouping variables. This function is essential for preparing
 #' data for time series analysis, DLNM models, and other temporal epidemiological methods.
 #'
-#' @param df A data frame containing health data (output from `sus_data_filter_cid()`
-#'   or `sus_data_standardize()`).
+#' @param df A data frame containing health data (output from `sus_data_standardize()`).
 #' @param time_unit Character string specifying the temporal aggregation unit.
 #'   **Standard units**: `"day"`, `"week"`, `"month"`, `"quarter"`, `"year"`
 #'   **Multi-day/week/month**: `"2 days"`, `"5 days"` (pentads), `"14 days"` (fortnightly),
 #'    `"3 months"` (trimester), `"6 months"` (semester).
 #'   **Special**: `"season"` (Brazilian seasons: DJF, MAM, JJA, SON).
 #'   Default is `"day"`.
+#' @param fun Character string or list of functions specifying the aggregation function(s).
+#'   Options: `"count"` (default), `"sum"`, `"mean"`, `"median"`, `"min"`, `"max"`,
+#'   `"sd"`, `"q25"` (25th percentile), `"q75"` (75th percentile), `"q95"` (95th percentile).
+#'   Can also be a named list for multiple aggregations, e.g.,
+#'   `list(mean_temp = "mean", max_temp = "max")`.
+#' @param value_col Character string with the name of the column to aggregate when
+#'   using functions other than `"count"`. Required for `"sum"`, `"mean"`, etc.
+#'   For example, `"temperature"`, `"precipitation"`, `"pm25"`.
 #' @param date_col Character string with the name of the date column to use for
 #'   aggregation. If `NULL` (default), the function will attempt to auto-detect
 #'   the date column based on common patterns.
@@ -24,14 +31,22 @@
 #'   `"en"` (English, default), `"pt"` (Portuguese, default), `"es"` (Spanish).
 #' @param verbose Logical. If `TRUE` (default), prints progress messages.
 #'
-#' @return A tibble with aggregated counts containing:
+#' @return A tibble with aggregated data containing:
 #'   \itemize{
 #'     \item `date`: The aggregated date (start of period)
 #'     \item Grouping columns (if `group_by` was specified)
-#'     \item `n`: Count of events in that period
+#'     \item Aggregated value column(s) with smart names based on system and function
 #'   }
 #'
 #' @details
+#' **New Features**:
+#' \itemize{
+#'   \item **Multiple aggregation functions**: Beyond counting, you can now calculate
+#'     mean, sum, median, percentiles, etc., useful for climate and environmental data.
+#'   \item **Smart column naming**: The aggregated column is automatically named
+#'     based on the health system (e.g., `n_deaths` for SIM-DO, `n_hospitalizations`
+#'     for SIH-RD, `n_births` for SINASC).
+#' }
 #' **Epidemiological Use Cases**:
 #' \itemize{
 #'   \item **Daily/Weekly**: Standard time series analysis, DLNM for short-term effects
@@ -97,6 +112,8 @@
 #' @export
 sus_data_aggregate <- function(df,
                                time_unit = "day",
+                               fun = "count",
+                               value_col = NULL,
                                date_col = NULL,
                                group_by = NULL,
                                complete_dates = TRUE,
@@ -116,6 +133,28 @@ sus_data_aggregate <- function(df,
     stop("lang must be one of: 'en', 'pt', 'es'")
   }
   
+  # Validate fun parameter
+  valid_funs <- c("count", "sum", "mean", "median", "min", "max", "sd", 
+                  "q25", "q75", "q95", "q99")
+  
+  if (is.character(fun)) {
+    if (!fun %in% valid_funs) {
+      cli::cli_abort(paste0("fun must be one of: ", paste(valid_funs, collapse = ", ")))
+    }
+    if (fun != "count" && is.null(value_col)) {
+      cli::cli_abort("value_col must be specified when fun is not 'count'")
+    }
+  } else if (is.list(fun)) {
+    if (!all(unlist(fun) %in% valid_funs)) {
+      cli::cli_abort(paste0("All functions in list must be one of: ", paste(valid_funs, collapse = ", ")))
+    }
+    if (is.null(value_col)) {
+      cli::cli_abort("value_col must be specified when using multiple aggregation functions")
+    }
+  } else {
+    cli::cli_abort("fun must be a character string or a named list")
+  }
+
   # Auto-detect date column if not specified
   if (is.null(date_col)) {
     date_col <- detect_date_column(df)
@@ -186,7 +225,9 @@ sus_data_aggregate <- function(df,
       ))
     })
   }
-  
+  #Detect system if not specified
+  system <- unique(df$system)
+
   # Prepare grouping variables
   if (is.null(group_by)) {
     group_vars <- "agg_date"
@@ -196,7 +237,7 @@ sus_data_aggregate <- function(df,
     if (length(missing_cols) > 0) {
       cli::cli_abort(paste0("Grouping columns not found: ", paste(missing_cols, collapse = ", ")))
     }
-    group_vars <- c("agg_date", group_by)
+    group_vars <- c("system", "agg_date", group_by)
   }
   
   # Aggregate counts
@@ -212,20 +253,75 @@ sus_data_aggregate <- function(df,
   # Store original row count
   n_original <- nrow(df)
   
-  # Perform aggregation
-  df_agg <- df %>%
-    dplyr::group_by(dplyr::across(dplyr::all_of(group_vars))) %>%
-    dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+  #Get geographical columns
+
+ # Get geographical columns (auto-detect municipality codes)
+  get_geo_col <- c(
+    "residence_municipality_code", "municipality_code", "residence_municipality",
+    "codigo_municipio_nascimento", "codigo_municipio_ocurrencia", "codigo_municipio",
+    "codigo_municipio_paciente", "uf_municipio_estabelecimento", "facility_uf_municipality",
+    "patient_municipality_code", "uf_municipio_establecimiento",
+    "cep_paciente", "codigo_postal_paciente", "codigo_postal", "patient_zip_code", "zip_code",
+    "codigo_municipio_residencia", "CODMUNRES"
+  )
+  geo_col <- names(df)[grepl(paste(get_geo_col, collapse = "|"), names(df), ignore.case = TRUE)]
+  
+  # Add geo columns to group_vars if not already included
+  if (length(geo_col) > 0) {
+    group_vars <- unique(c(group_vars, geo_col))
+  }
+  # Perform aggregation based on fun type
+  if (is.character(fun) && fun == "count") {
+    # Simple count aggregation
+    df_agg <- df %>%
+      dplyr::group_by(dplyr::across(dplyr::all_of(group_vars))) %>%
+      dplyr::summarise(agg_value = dplyr::n(), .groups = "drop")
+    
+    # Intelligent column naming for count
+    agg_col_name <- get_smart_column_name(system, "count", lang)
+    names(df_agg)[names(df_agg) == "agg_value"] <- agg_col_name
+    
+  } else if (is.character(fun)) {
+    # Single function aggregation (mean, sum, etc.)
+    df_agg <- df %>%
+      dplyr::group_by(dplyr::across(dplyr::all_of(group_vars))) %>%
+      dplyr::summarise(
+        agg_value = apply_aggregation_function(fun, .data[[value_col]]),
+        .groups = "drop"
+      )
+    
+    # Intelligent column naming
+    agg_col_name <- paste0(fun, "_", value_col)
+    names(df_agg)[names(df_agg) == "agg_value"] <- agg_col_name
+    
+  } else if (is.list(fun)) {
+    # Multiple function aggregation
+    agg_formulas <- lapply(names(fun), function(name) {
+      fun_type <- fun[[name]]
+      rlang::quo(apply_aggregation_function(!!fun_type, !!rlang::sym(value_col)))
+    })
+    names(agg_formulas) <- names(fun)
+    
+    df_agg <- df %>%
+      dplyr::group_by(dplyr::across(dplyr::all_of(group_vars))) %>%
+      dplyr::summarise(!!!agg_formulas, .groups = "drop")
+  }
+  
+  # Rename agg_date to date
+  df_agg <- df_agg %>%
     dplyr::rename(date = .data$agg_date)
   
   # Complete dates if requested
   if (complete_dates) {
-    df_agg <- complete_time_series(df_agg, time_unit, group_by, lang, verbose)
+    fill_value <- if (is.character(fun) && fun == "count") 0 else NA
+    df_agg <- complete_time_series(df_agg, time_unit, group_by, fill_value, lang, verbose)
   }
   
   # Sort by date and grouping variables
+  sort_vars <- c("date", group_by)
+  sort_vars <- sort_vars[sort_vars %in% names(df_agg)]
   df_agg <- df_agg %>%
-    dplyr::arrange(dplyr::across(dplyr::all_of(c("date", group_by))))
+    dplyr::arrange(dplyr::across(dplyr::all_of(sort_vars)))
   
   # Print summary
   if (verbose) {
@@ -268,6 +364,86 @@ sus_data_aggregate <- function(df,
 # ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
+
+#' Get Intelligent Column Name for Aggregated Data
+#' 
+#' Returns an appropriate column name based on the health system and aggregation type.
+#' 
+#' @param system Character string with system name
+#' @param fun_type Character string with function type
+#' @param lang Language code
+#' @return Character string with column name
+#' @keywords internal
+#' @noRd
+get_smart_column_name <- function(system, fun_type, lang) {
+    
+  # Generate intelligent name based on system
+  if (fun_type == "count") {
+    if (is.null(system)) {
+      return("n")  # Generic fallback
+    }
+    
+    # Language-specific naming
+    if (lang == "en") {
+      col_names <- list(
+        "SIM" = "n_deaths",
+        "SIH" = "n_hospitalizations",
+        "SINASC" = "n_births",
+        "SINAN" = "n_cases",
+        "SIA" = "n_procedures",
+        "CNES" = "n_establishments"
+      )
+    } else if (lang == "pt") {
+      col_names <- list(
+        "SIM" = "n_obitos",
+        "SIH" = "n_internacoes",
+        "SINASC" = "n_nascimentos",
+        "SINAN" = "n_casos",
+        "SIA" = "n_procedimentos",
+        "CNES" = "n_estabelecimentos"
+      )
+    } else if (lang == "es") {
+      col_names <- list(
+        "SIM" = "n_muertes",
+        "SIH" = "n_hospitalizaciones",
+        "SINASC" = "n_nacimientos",
+        "SINAN" = "n_casos",
+        "SIA" = "n_procedimientos",
+        "CNES" = "n_establecimientos"
+      )
+    }
+    
+    return(col_names[[system]])
+  }
+  
+  # For other functions, return generic name
+  return(paste0(fun_type, "_value"))
+}
+
+#' Apply Aggregation Function
+#' 
+#' Applies the specified aggregation function to a vector of values.
+#' 
+#' @param fun_type Character string with function type
+#' @param values Numeric vector to aggregate
+#' @return Aggregated value
+#' @keywords internal
+#' @noRd
+apply_aggregation_function <- function(fun_type, values) {
+  switch(fun_type,
+    "sum" = sum(values, na.rm = TRUE),
+    "mean" = mean(values, na.rm = TRUE),
+    "median" = median(values, na.rm = TRUE),
+    "min" = min(values, na.rm = TRUE),
+    "max" = max(values, na.rm = TRUE),
+    "sd" = sd(values, na.rm = TRUE),
+    "q25" = quantile(values, 0.25, na.rm = TRUE),
+    "q75" = quantile(values, 0.75, na.rm = TRUE),
+    "q95" = quantile(values, 0.95, na.rm = TRUE),
+    "q99" = quantile(values, 0.99, na.rm = TRUE),
+    stop(paste0("Unknown function type: ", fun_type))
+  )
+}
 
 #' Detect Date Column
 #' 
@@ -429,23 +605,24 @@ get_time_unit_label <- function(time_unit, lang) {
 
 #' Complete Time Series with Missing Periods
 #' 
-#' Fills in missing time periods with zero counts to create a complete time series.
+#' Fills in missing time periods with specified fill values to create a complete time series.
 #' Handles different time units including multi-period aggregations.
 #' 
 #' @param df_agg Aggregated data frame
 #' @param time_unit Time unit used for aggregation
 #' @param group_by Grouping variables
+#' @param fill_value Value to use for missing periods (0 for counts, NA for others)
 #' @param lang Language for messages
 #' @param verbose Whether to print messages
 #' @return Data frame with complete time series
 #' @keywords internal
-complete_time_series <- function(df_agg, time_unit, group_by, lang, verbose) {
+complete_time_series <- function(df_agg, time_unit, group_by, fill_value = 0, lang, verbose) {
   
   if (verbose) {
     msg <- switch(lang,
-      "en" = "Filling missing time periods with zero counts...",
-      "pt" = "Preenchendo periodos faltantes com contagens zero...",
-      "es" = "Rellenando periodos faltantes con conteos cero..."
+      "en" = "Filling missing time periods...",
+      "pt" = "Preenchendo periodos faltantes...",
+      "es" = "Rellenando periodos faltantes..."
     )
     cli::cli_alert_info(msg)
   }
@@ -494,17 +671,20 @@ complete_time_series <- function(df_agg, time_unit, group_by, lang, verbose) {
                                by = c("date", group_by))
   }
   
-  # Replace NA counts with 0
-  df_agg$n[is.na(df_agg$n)] <- 0
+  # Replace NA values with fill_value
+  value_cols <- setdiff(names(df_agg), c("date", group_by))
+  for (col in value_cols) {
+    df_agg[[col]][is.na(df_agg[[col]])] <- fill_value
+  }
   
   # Report how many periods were filled
   if (verbose) {
-    n_filled <- sum(df_agg$n == 0)
+    n_filled <- sum(df_agg[[value_cols[1]]] == fill_value)
     if (n_filled > 0) {
       msg <- switch(lang,
-        "en" = paste0("Filled ", n_filled, " missing periods with zero counts"),
-        "pt" = paste0("Preenchidos ", n_filled, " periodos faltantes com contagens zero"),
-        "es" = paste0("Rellenados ", n_filled, " periodos faltantes con conteos cero")
+        "en" = paste0("Filled ", n_filled, " missing periods"),
+        "pt" = paste0("Preenchidos ", n_filled, " periodos faltantes"),
+        "es" = paste0("Rellenados ", n_filled, " periodos faltantes")
       )
       cli::cli_alert_info(msg)
     }

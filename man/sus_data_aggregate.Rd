@@ -7,6 +7,8 @@
 sus_data_aggregate(
   df,
   time_unit = "day",
+  fun = "count",
+  value_col = NULL,
   date_col = NULL,
   group_by = NULL,
   complete_dates = TRUE,
@@ -15,8 +17,7 @@ sus_data_aggregate(
 )
 }
 \arguments{
-\item{df}{A data frame containing health data (output from \code{sus_data_filter_cid()}
-or \code{sus_data_standardize()}).}
+\item{df}{A data frame containing health data (output from \code{sus_data_standardize()}).}
 
 \item{time_unit}{Character string specifying the temporal aggregation unit.
 \strong{Standard units}: \code{"day"}, \code{"week"}, \code{"month"}, \code{"quarter"}, \code{"year"}
@@ -24,6 +25,16 @@ or \code{sus_data_standardize()}).}
 \code{"3 months"} (trimester), \code{"6 months"} (semester).
 \strong{Special}: \code{"season"} (Brazilian seasons: DJF, MAM, JJA, SON).
 Default is \code{"day"}.}
+
+\item{fun}{Character string or list of functions specifying the aggregation function(s).
+Options: \code{"count"} (default), \code{"sum"}, \code{"mean"}, \code{"median"}, \code{"min"}, \code{"max"},
+\code{"sd"}, \code{"q25"} (25th percentile), \code{"q75"} (75th percentile), \code{"q95"} (95th percentile).
+Can also be a named list for multiple aggregations, e.g.,
+\code{list(mean_temp = "mean", max_temp = "max")}.}
+
+\item{value_col}{Character string with the name of the column to aggregate when
+using functions other than \code{"count"}. Required for \code{"sum"}, \code{"mean"}, etc.
+For example, \code{"temperature"}, \code{"precipitation"}, \code{"pm25"}.}
 
 \item{date_col}{Character string with the name of the date column to use for
 aggregation. If \code{NULL} (default), the function will attempt to auto-detect
@@ -42,11 +53,11 @@ with zero counts to create a complete time series without gaps.}
 \item{verbose}{Logical. If \code{TRUE} (default), prints progress messages.}
 }
 \value{
-A tibble with aggregated counts containing:
+A tibble with aggregated data containing:
 \itemize{
 \item \code{date}: The aggregated date (start of period)
 \item Grouping columns (if \code{group_by} was specified)
-\item \code{n}: Count of events in that period
+\item Aggregated value column(s) with smart names based on system and function
 }
 }
 \description{
@@ -55,6 +66,14 @@ time units and grouping variables. This function is essential for preparing
 data for time series analysis, DLNM models, and other temporal epidemiological methods.
 }
 \details{
+\strong{New Features}:
+\itemize{
+\item \strong{Multiple aggregation functions}: Beyond counting, you can now calculate
+mean, sum, median, percentiles, etc., useful for climate and environmental data.
+\item \strong{Smart column naming}: The aggregated column is automatically named
+based on the health system (e.g., \code{n_deaths} for SIM-DO, \code{n_hospitalizations}
+for SIH-RD, \code{n_births} for SINASC).
+}
 \strong{Epidemiological Use Cases}:
 \itemize{
 \item \strong{Daily/Weekly}: Standard time series analysis, DLNM for short-term effects

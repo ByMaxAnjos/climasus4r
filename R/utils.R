@@ -3645,7 +3645,7 @@ get_translation_dict_pt_cnes <- function() {
     "MICR_REG" = "micro_regiao_saude",
     "DISTRSAN" = "distrito_sanitario",
     "DISTRADM" = "distrito_administrativo",
-    "COD_CEP" = "cep",
+    "COD_CEP" = "cep_paciente",
 
     # --- Identificacao Juridica e Administrativa ---
     "CPF_CNPJ" = "cpf_cnpj",

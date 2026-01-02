@@ -4,7 +4,14 @@
 \alias{complete_time_series}
 \title{Complete Time Series with Missing Periods}
 \usage{
-complete_time_series(df_agg, time_unit, group_by, lang, verbose)
+complete_time_series(
+  df_agg,
+  time_unit,
+  group_by,
+  fill_value = 0,
+  lang,
+  verbose
+)
 }
 \arguments{
 \item{df_agg}{Aggregated data frame}
@@ -12,6 +19,8 @@ complete_time_series(df_agg, time_unit, group_by, lang, verbose)
 \item{time_unit}{Time unit used for aggregation}
 
 \item{group_by}{Grouping variables}
+
+\item{fill_value}{Value to use for missing periods (0 for counts, NA for others)}
 
 \item{lang}{Language for messages}
 
@@ -21,7 +30,7 @@ complete_time_series(df_agg, time_unit, group_by, lang, verbose)
 Data frame with complete time series
 }
 \description{
-Fills in missing time periods with zero counts to create a complete time series.
+Fills in missing time periods with specified fill values to create a complete time series.
 Handles different time units including multi-period aggregations.
 }
 \keyword{internal}
