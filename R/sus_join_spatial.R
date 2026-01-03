@@ -630,18 +630,32 @@ get_spatial_messages <- function(lang) {
 #' @return List of translated UI messages
 #' @keywords internal
 #' @noRd
+# .convert_muni_6_to_7 <- function(muni_code_6, spatial_df) {
+#   muni_code_6 <- as.character(muni_code_6)
+
+#   spatial_df %>%
+#     dplyr::mutate(
+#       code_muni_6 = substr(.data$code_muni, 1, 6)
+#     ) %>%
+#     dplyr::select(.data$code_muni_6, .data$code_muni) %>%
+#     dplyr::distinct() %>%
+#     dplyr::right_join(
+#       data.frame(code_muni_6 = muni_code_6, stringsAsFactors = FALSE),
+#       by = "code_muni_6"
+#     ) %>%
+#     dplyr::pull(.data$code_muni)
+# }
+
 .convert_muni_6_to_7 <- function(muni_code_6, spatial_df) {
+
   muni_code_6 <- as.character(muni_code_6)
 
-  spatial_df %>%
-    dplyr::mutate(
-      code_muni_6 = substr(.data$code_muni, 1, 6)
+  lookup <- spatial_df %>%
+    dplyr::transmute(
+      code_muni_6 = substr(.data$code_muni, 1, 6),
+      code_muni_7 = .data$code_muni
     ) %>%
-    dplyr::select(.data$code_muni_6, .data$code_muni) %>%
-    dplyr::distinct() %>%
-    dplyr::right_join(
-      as.data.frame(code_muni_6 = muni_code_6),
-      by = "code_muni_6"
-    ) %>%
-    dplyr::pull(.data$code_muni)
+    dplyr::distinct()
+
+  lookup$code_muni_7[match(muni_code_6, lookup$code_muni_6)]
 }
