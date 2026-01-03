@@ -154,10 +154,14 @@ sus_data_aggregate <- function(df,
   } else {
     cli::cli_abort("fun must be a character string or a named list")
   }
+  #Detect system if not specified
+  system <- unique(df$system)
 
   # Auto-detect date column if not specified
   if (is.null(date_col)) {
     date_col <- detect_date_column(df)
+    
+    
     if (verbose) {
       msg <- switch(lang,
         "en" = paste0("Auto-detected date column: ", date_col),
@@ -225,8 +229,7 @@ sus_data_aggregate <- function(df,
       ))
     })
   }
-  #Detect system if not specified
-  system <- unique(df$system)
+  
 
   # Prepare grouping variables
   if (is.null(group_by)) {
@@ -237,7 +240,7 @@ sus_data_aggregate <- function(df,
     if (length(missing_cols) > 0) {
       cli::cli_abort(paste0("Grouping columns not found: ", paste(missing_cols, collapse = ", ")))
     }
-    group_vars <- c("system", "agg_date", group_by)
+    group_vars <- c("agg_date", "system", group_by)
   }
   
   # Aggregate counts
@@ -451,22 +454,42 @@ apply_aggregation_function <- function(fun_type, values) {
 #' and column types.
 #' 
 #' @param df A data frame
+#' @param system Character string indicating the SUS system.
+#'   One of: "SIM", "SIH", "SINAN", "CNES", "SINASC"
 #' @return Character string with the name of the detected date column
 #' @keywords internal
-detect_date_column <- function(df) {
+#' @noRd
+detect_date_column <- function(df, system) {
   # Common date column patterns (in order of priority)
-  date_patterns <- c(
-    # English
-    "death_date", "notification_date", "birth_date", "admission_date",
-    "discharge_date", "date", "event_date",
-    # Portuguese
-    "data_obito", "data_notificacao", "data_nascimento", "data_internacao",
-    "data_alta", "data_evento", "data",
-    # Spanish
-    "fecha_muerte", "fecha_notificacion", "fecha_nacimiento", "fecha",
-    # Original DATASUS
-    "DTOBITO", "DT_NOTIFIC", "DTNASC", "DT_INTER", "DT_SAIDA", "DT_EVENT"
+ system_date_map <- list(
+
+    SIM = c(
+      "data_obito", "death_date", "fecha_muerte",
+      "DTOBITO"
+    ),
+
+    SINASC = c(
+      "data_nascimento", "birth_date", "fecha_nacimiento",
+      "DTNASC"
+    ),
+
+    SIH = c(
+      "data_internacao", "admission_date", "fecha_ingreso",
+      "DT_INTER"
+    ),
+
+    SINAN = c(
+      "data_notificacao", "notification_date", "fecha_notificacion",
+      "DT_NOTIFIC"
+    ),
+
+    CNES = c(
+      "data_atualizacao", "update_date", "fecha_actualizacion",
+      "DT_COMPET"
+    )
   )
+
+  date_patterns <- system_date_map[[system]]
   
   # Find first matching column
   for (pattern in date_patterns) {

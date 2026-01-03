@@ -4204,6 +4204,433 @@ get_translation_dict_es_cnes <- function() {
 }
 
 
+#' Obtem o Dicionario de Traducao para o SINASC (Portugues)
+#'
+#' @description
+#' Retorna uma lista contendo dicionarios para traduzir os nomes das colunas
+#' e os valores das variaveis categoricas do Sistema de Informacoes sobre Nascidos Vivos (SINASC)
+#' para o portugues. O objetivo e padronizar e facilitar a analise dos dados.
+#'
+#' @return Uma lista com dois elementos:
+#'   - `columns`: um vetor nomeado para traduzir os nomes das colunas.
+#'   - `values`: uma lista de vetores nomeados para decodificar valores categoricos.
+#'
+#' @keywords internal
+#' @noRd
+get_translation_dict_pt_sinasc <- function() {
+
+  # ==========================================================================
+  # TRADUCAO DOS NOMES DAS COLUNAS (SINASC)
+  # Mapeia os nomes originais do SINASC para um formato padronizado em portugues.
+  # ==========================================================================
+
+  columns <- c(
+    # --- Identificacao da Declaracao de Nascido Vivo (DN) ---
+    "NUMERODN" = "numero_dn",
+    "CODINST" = "codigo_estabelecimento_gerador",
+    "UFINFORM" = "uf_informante",
+    "DTCADASTRO" = "data_cadastro",
+    "DTRECEBIM" = "data_recebimento",
+
+    # --- Local e Data do Nascimento ---
+    "LOCNASC" = "local_nascimento",
+    "CODESTAB" = "codigo_estabelecimento_nascimento",
+    "CODMUNNASC" = "codigo_municipio_nascimento",
+    "CODBAINASC" = "codigo_bairro_nascimento",
+    "DTNASC" = "data_nascimento",
+    "HORANASC" = "hora_nascimento",
+
+    # --- Dados da Mae ---
+    "IDADEMAE" = "idade_mae",
+    "ESTCIVMAE" = "estado_civil_mae",
+    "ESCMAE" = "escolaridade_mae",
+    "CODOCUPMAE" = "cbo_ocupacao_mae",
+    "QTDFILVIVO" = "qtd_filhos_vivos",
+    "QTDFILMORT" = "qtd_filhos_mortos",
+    "CODMUNRES" = "codigo_municipio_residencia",
+    "CODBAIRES" = "codigo_bairro_residencia",
+
+    # --- Gestacao e Parto ---
+    "GESTACAO" = "semanas_gestacao",
+    "GRAVIDEZ" = "tipo_gravidez",
+    "PARTO" = "tipo_parto",
+    "CONSULTAS" = "numero_consultas_pre_natal",
+
+    # --- Dados do Recem-Nascido ---
+    "SEXO" = "sexo",
+    "APGAR1" = "apgar_1_minuto",
+    "APGAR5" = "apgar_5_minutos",
+    "RACACOR" = "raca",
+    "PESO" = "peso_nascimento_gramas",
+    "IDANOMAL" = "anomalia_congenita",
+    "CODANOMAL" = "codigo_anomalia_congenita"
+  )
+
+  # ==========================================================================
+  # TRADUCAO DE VALORES CATEGORICOS (SINASC)
+  # Decodifica os codigos para rotulos legiveis em portugues.
+  # ==========================================================================
+
+  values <- list(
+    "LOCNASC" = c(
+      "1" = "Hospital",
+      "2" = "Outro estabelecimento de saude",
+      "3" = "Domicilio",
+      "4" = "Outros",
+      "9" = "Ignorado"
+    ),
+    "ESTCIVMAE" = c(
+      "1" = "Solteira",
+      "2" = "Casada",
+      "3" = "Viuva",
+      "4" = "Separado judicialmente/Divorciada",
+      "5" = "Uniao estavel", # Presente em algumas versoes do layout
+      "9" = "Ignorado"
+    ),
+    "ESCMAE" = c(
+      "1" = "Nenhuma",
+      "2" = "1 a 3 anos",
+      "3" = "4 a 7 anos",
+      "4" = "8 a 11 anos",
+      "5" = "12 anos e mais",
+      "9" = "Ignorado"
+    ),
+    "GESTACAO" = c(
+      "1" = "Menos de 22 semanas",
+      "2" = "22 a 27 semanas",
+      "3" = "28 a 31 semanas",
+      "4" = "32 a 36 semanas",
+      "5" = "37 a 41 semanas",
+      "6" = "42 semanas e mais",
+      "9" = "Ignorado"
+    ),
+    "GRAVIDEZ" = c(
+      "1" = "Unica",
+      "2" = "Dupla",
+      "3" = "Tripla e mais",
+      "9" = "Ignorada"
+    ),
+    "PARTO" = c(
+      "1" = "Vaginal",
+      "2" = "Cesareo",
+      "9" = "Ignorado"
+    ),
+    "CONSULTAS" = c(
+      "1" = "Nenhuma",
+      "2" = "1 a 3",
+      "3" = "4 a 6",
+      "4" = "7 e mais",
+      "9" = "Ignorado"
+    ),
+    "SEXO" = c(
+      "1" = "Masculino",
+      "2" = "Feminino",
+      "0" = "Ignorado" # Algumas versoes usam '0'
+    ),
+    "RACACOR" = c(
+      "1" = "Branca",
+      "2" = "Preta",
+      "3" = "Amarela",
+      "4" = "Parda",
+      "5" = "Indigena",
+      "9" = "Ignorado" # Embora o layout nao mostre, e uma boa pratica incluir
+    ),
+    "IDANOMAL" = c(
+      "1" = "Sim",
+      "2" = "Nao",
+      "9" = "Ignorado"
+    )
+  )
+
+  return(list(columns = columns, values = values))
+}
+
+
+#' Get the Translation Dictionary for SINASC (English)
+#'
+#' @description
+#' Returns a list containing dictionaries to translate the column names
+#' and categorical variable values of the Live Birth Information System (SINASC)
+#' into English. The goal is to standardize and facilitate data analysis.
+#'
+#' @return A list with two elements:
+#'   - `columns`: a named vector to translate column names.
+#'   - `values`: a list of named vectors to decode categorical values.
+#'
+#' @keywords internal
+#' @noRd
+get_translation_dict_en_sinasc <- function() {
+
+  # ==========================================================================
+  # COLUMN NAME TRANSLATIONS (SINASC)
+  # Maps original SINASC names to a standardized English snake_case format.
+  # ==========================================================================
+
+  columns <- c(
+    # --- Live Birth Certificate (DN) Identification ---
+    "NUMERODN" = "live_birth_certificate_number",
+    "CODINST" = "generating_facility_code",
+    "UFINFORM" = "informant_uf",
+    "DTCADASTRO" = "registration_date",
+    "DTRECEBIM" = "reception_date",
+
+    # --- Location and Date of Birth ---
+    "LOCNASC" = "place_of_birth",
+    "CODESTAB" = "birth_facility_code",
+    "CODMUNNASC" = "birth_municipality_code",
+    "CODBAINASC" = "birth_neighborhood_code",
+    "DTNASC" = "birth_date",
+    "HORANASC" = "birth_time",
+
+    # --- Mother's Data ---
+    "IDADEMAE" = "mother_age",
+    "ESTCIVMAE" = "mother_marital_status",
+    "ESCMAE" = "mother_education_level",
+    "CODOCUPMAE" = "mother_occupation_cbo",
+    "QTDFILVIVO" = "qty_living_children",
+    "QTDFILMORT" = "qty_dead_children",
+    "CODMUNRES" = "residence_municipality_code",
+    "CODBAIRES" = "residence_neighborhood_code",
+
+    # --- Pregnancy and Delivery ---
+    "GESTACAO" = "gestational_weeks",
+    "GRAVIDEZ" = "pregnancy_type",
+    "PARTO" = "delivery_type",
+    "CONSULTAS" = "prenatal_visits_count",
+
+    # --- Newborn's Data ---
+    "SEXO" = "sex",
+    "APGAR1" = "apgar_1_minute",
+    "APGAR5" = "apgar_5_minutes",
+    "RACACOR" = "race",
+    "PESO" = "birth_weight_grams",
+    "IDANOMAL" = "congenital_anomaly",
+    "CODANOMAL" = "congenital_anomaly_code"
+  )
+
+  # ==========================================================================
+  # CATEGORICAL VALUE TRANSLATIONS (SINASC)
+  # Decodes codes into human-readable English labels.
+  # ==========================================================================
+
+  values <- list(
+    "LOCNASC" = c(
+      "1" = "Hospital",
+      "2" = "Other health facility",
+      "3" = "Home",
+      "4" = "Others",
+      "9" = "Ignored"
+    ),
+    "ESTCIVMAE" = c(
+      "1" = "Single",
+      "2" = "Married",
+      "3" = "Widowed",
+      "4" = "Separated/Divorced",
+      "5" = "Consensual Union",
+      "9" = "Ignored"
+    ),
+    "ESCMAE" = c(
+      "1" = "None",
+      "2" = "1 to 3 years",
+      "3" = "4 to 7 years",
+      "4" = "8 to 11 years",
+      "5" = "12 years and more",
+      "9" = "Ignored"
+    ),
+    "GESTACAO" = c(
+      "1" = "Less than 22 weeks",
+      "2" = "22 to 27 weeks",
+      "3" = "28 to 31 weeks",
+      "4" = "32 to 36 weeks",
+      "5" = "37 to 41 weeks",
+      "6" = "42 weeks and more",
+      "9" = "Ignored"
+    ),
+    "GRAVIDEZ" = c(
+      "1" = "Single",
+      "2" = "Double",
+      "3" = "Triple and more",
+      "9" = "Ignored"
+    ),
+    "PARTO" = c(
+      "1" = "Vaginal",
+      "2" = "Cesarean",
+      "9" = "Ignored"
+    ),
+    "CONSULTAS" = c(
+      "1" = "None",
+      "2" = "1 to 3",
+      "3" = "4 to 6",
+      "4" = "7 and more",
+      "9" = "Ignored"
+    ),
+    "SEXO" = c(
+      "1" = "Male",
+      "2" = "Female",
+      "0" = "Ignored"
+    ),
+    "RACACOR" = c(
+      "1" = "White",
+      "2" = "Black",
+      "3" = "Asian", # 'Amarela'
+      "4" = "Brown", # 'Parda'
+      "5" = "Indigenous",
+      "9" = "Ignored"
+    ),
+    "IDANOMAL" = c(
+      "1" = "Yes",
+      "2" = "No",
+      "9" = "Ignored"
+    )
+  )
+
+  return(list(columns = columns, values = values))
+}
+
+
+#' Obtiene el Diccionario de Traduccion para SINASC (Espanol)
+#'
+#' @description
+#' Devuelve una lista que contiene diccionarios para traducir los nombres de las columnas
+#' y los valores de las variables categoricas del Sistema de Informacion sobre Nacidos Vivos (SINASC)
+#' al espanol. El objetivo es estandarizar y facilitar el analisis de datos.
+#'
+#' @return Una lista con dos elementos:
+#'   - `columns`: un vector nombrado para traducir los nombres de las columnas.
+#'   - `values`: una lista de vectores nombrados para decodificar valores categoricos.
+#'
+#' @keywords internal
+#' @noRd
+get_translation_dict_es_sinasc <- function() {
+
+  # ==========================================================================
+  # TRADUCCION DE NOMBRES DE COLUMNAS (SINASC)
+  # Mapea los nombres originales de SINASC a un formato estandarizado en espanol.
+  # ==========================================================================
+
+  columns <- c(
+    # --- Identificacion de la Declaracion de Nacido Vivo (DN) ---
+    "NUMERODN" = "numero_dn",
+    "CODINST" = "codigo_establecimiento_generador",
+    "UFINFORM" = "uf_informante",
+    "DTCADASTRO" = "fecha_registro",
+    "DTRECEBIM" = "fecha_recepcion",
+
+    # --- Lugar y Fecha de Nacimiento ---
+    "LOCNASC" = "lugar_nacimiento",
+    "CODESTAB" = "codigo_establecimiento_nacimiento",
+    "CODMUNNASC" = "codigo_municipio_nacimiento",
+    "CODBAINASC" = "codigo_barrio_nacimiento",
+    "DTNASC" = "fecha_nacimiento",
+    "HORANASC" = "hora_nacimiento",
+
+    # --- Datos de la Madre ---
+    "IDADEMAE" = "edad_madre",
+    "ESTCIVMAE" = "estado_civil_madre",
+    "ESCMAE" = "escolaridad_madre",
+    "CODOCUPMAE" = "cbo_ocupacion_madre",
+    "QTDFILVIVO" = "cant_hijos_vivos",
+    "QTDFILMORT" = "cant_hijos_fallecidos",
+    "CODMUNRES" = "codigo_municipio_residencia",
+    "CODBAIRES" = "codigo_barrio_residencia",
+
+    # --- Gestacion y Parto ---
+    "GESTACAO" = "semanas_gestacion",
+    "GRAVIDEZ" = "tipo_embarazo",
+    "PARTO" = "tipo_parto",
+    "CONSULTAS" = "numero_consultas_prenatales",
+
+    # --- Datos del Recien Nacido ---
+    "SEXO" = "sexo",
+    "APGAR1" = "apgar_1_minuto",
+    "APGAR5" = "apgar_5_minutos",
+    "RACACOR" = "raza",
+    "PESO" = "peso_al_nacer_gramos",
+    "IDANOMAL" = "anomalia_congenita",
+    "CODANOMAL" = "codigo_anomalia_congenita"
+  )
+
+  # ==========================================================================
+  # TRADUCCION DE VALORES CATEGORICOS (SINASC)
+  # Decodifica los codigos a etiquetas legibles en espanol.
+  # ==========================================================================
+
+  values <- list(
+    "LOCNASC" = c(
+      "1" = "Hospital",
+      "2" = "Otro establecimiento de salud",
+      "3" = "Domicilio",
+      "4" = "Otros",
+      "9" = "Ignorado"
+    ),
+    "ESTCIVMAE" = c(
+      "1" = "Soltera",
+      "2" = "Casada",
+      "3" = "Viuda",
+      "4" = "Separada/Divorciada",
+      "5" = "Union consensual",
+      "9" = "Ignorado"
+    ),
+    "ESCMAE" = c(
+      "1" = "Ninguna",
+      "2" = "1 a 3 anos",
+      "3" = "4 a 7 anos",
+      "4" = "8 a 11 anos",
+      "5" = "12 anos y mas",
+      "9" = "Ignorado"
+    ),
+    "GESTACAO" = c(
+      "1" = "Menos de 22 semanas",
+      "2" = "22 a 27 semanas",
+      "3" = "28 a 31 semanas",
+      "4" = "32 a 36 semanas",
+      "5" = "37 a 41 semanas",
+      "6" = "42 semanas y mas",
+      "9" = "Ignorado"
+    ),
+    "GRAVIDEZ" = c(
+      "1" = "Unico",
+      "2" = "Doble",
+      "3" = "Triple y mas",
+      "9" = "Ignorado"
+    ),
+    "PARTO" = c(
+      "1" = "Vaginal",
+      "2" = "Cesarea",
+      "9" = "Ignorado"
+    ),
+    "CONSULTAS" = c(
+      "1" = "Ninguna",
+      "2" = "1 a 3",
+      "3" = "4 a 6",
+      "4" = "7 y mas",
+      "9" = "Ignorado"
+    ),
+    "SEXO" = c(
+      "1" = "Masculino",
+      "2" = "Femenino",
+      "0" = "Ignorado"
+    ),
+    "RACACOR" = c(
+      "1" = "Blanca",
+      "2" = "Negra",
+      "3" = "Asiatica", # 'Amarela'
+      "4" = "Parda",
+      "5" = "Indigena",
+      "9" = "Ignorado"
+    ),
+    "IDANOMAL" = c(
+      "1" = "Si",
+      "2" = "No",
+      "9" = "Ignorado"
+    )
+  )
+
+  return(list(columns = columns, values = values))
+}
+
+
+
 #' Get UI messages in specified language
 #'
 #' Returns user interface messages in the specified language.

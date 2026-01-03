@@ -137,6 +137,14 @@ sus_data_standardize <- function(df,
       translations <- get_translation_dict_es_cnes()
     )
   }
+  if (system == "SINASC") {
+    switch(lang,
+      "en" = translations <- get_translation_dict_en_sinasc(),
+      "pt" = translations <- get_translation_dict_pt_sinasc(),
+      # default case (any other language)
+      translations <- get_translation_dict_es_sinasc()
+    )
+  }
 
   # ============================================================================
   # STEP 1: Translate Column Names

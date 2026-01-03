@@ -35,6 +35,10 @@ Imports:
     stringr,
     future,
     arrow,
+    sfarrow,
+    geobr,
+    geocodebr,
+    sf,
     data.table
 Remotes: 
     rfsaldanha/microdatasus,

@@ -13,20 +13,21 @@ sus_data_export(
   compress = TRUE,
   compression_level = 6,
   overwrite = FALSE,
-  lang = "en",
+  lang = "pt",
   verbose = TRUE
 )
 }
 \arguments{
-\item{df}{A data frame containing the processed health data to export.}
+\item{df}{A data frame or sf object containing the processed health data to export.}
 
 \item{file_path}{Character string specifying the output file path. The file
 extension determines the format if \code{format} is not explicitly specified.}
 
 \item{format}{Character string specifying the output format. Options:
-\code{"rds"} (default, R binary format), \code{"arrow"} (Apache Arrow/Parquet), and
-\code{"csv"} (comma-separated values).
-If \code{NULL}, infers from \code{file_path} extension.}
+\code{"rds"} (default, R binary format), \code{"arrow"} (Apache Arrow/Parquet),
+\code{"geoparquet"} (GeoArrow/GeoParquet for spatial data), \code{"shapefile"} (ESRI Shapefile), \code{"GeoPackage"},
+and \code{"csv"} (comma-separated values).
+If \code{NULL}, infers from \code{file_path} extension and data type (auto-detects sf objects).}
 
 \item{include_metadata}{Logical. If \code{TRUE} (default), saves a companion
 metadata file (\code{.txt} or \code{.json}) with processing information.}
@@ -67,8 +68,7 @@ was saved, also returns the metadata file path as an attribute.
 \description{
 Exports processed health data to a file with optional metadata documentation
 to ensure reproducibility. Supports multiple file formats optimized for
-different use cases (RDS for R, Arrow/Parquet for interoperability, CSV for
-universal access).
+different use cases, including GeoArrow/GeoParquet for spatial data.
 }
 \details{
 \strong{File Formats}:
@@ -78,20 +78,54 @@ R object attributes. Best for R-only workflows.
 \item \strong{Arrow/Parquet} (\code{.parquet}, \code{.arrow}): Columnar format. Excellent
 compression, fast reading, language-agnostic. Best for large datasets
 and interoperability with Python, Spark, etc.
+\item \strong{GeoParquet} (\code{.geoparquet}, \code{.parquet} for sf objects): Optimized
+columnar format for spatial data. Combines benefits of Parquet with
+efficient geometry storage. 50-90\% smaller than shapefiles, 10-100x faster.
+\item \strong{Shapefile} (\code{.shp} or \code{.gpkg}): Traditional GIS format. Widely supported but
+inefficient for large datasets. Multiple files generated (.shp, .shx, .dbf, etc.).
 \item \strong{CSV} (\code{.csv}): Universal text format. Human-readable, compatible
 with all software. Best for sharing with non-R users. Larger file size.
+Note: Geometries are exported as WKT (Well-Known Text) for spatial data.
 }
 
-\strong{Metadata}: The metadata file contains information about data provenance,
-processing steps, and analysis parameters. This ensures reproducibility and
-helps future users understand the data.
+\strong{Automatic Format Detection}:
+If \code{format = NULL}, the function automatically detects the best format:
+\itemize{
+\item If input is an \code{sf} object and extension is \code{.parquet} → \code{"geoparquet"}
+\item If input is an \code{sf} object and extension is \code{.shp} → \code{"shapefile"}
+\item Otherwise, infers from file extension
+}
+
+\strong{Spatial Data Export}:
+When exporting \code{sf} objects (spatial data from \code{sus_join_spatial()}):
+\itemize{
+\item \strong{Recommended}: Use GeoParquet format for optimal performance
+\item GeoParquet preserves CRS, geometry types, and all attributes
+\item Compatible with QGIS, Python (geopandas), and other GIS software
+\item Significantly faster and smaller than shapefiles
+}
 }
 \examples{
 \dontrun{
 library(climasus4r)
 
-# Basic export to RDS
+# Export regular data frame to RDS
 sus_data_export(df_final, "output/data.rds")
+
+# Export spatial data to GeoParquet (RECOMMENDED)
+sf_result <- sus_join_spatial(df, level = "munic")
+sus_data_export(
+  sf_result,
+  file_path = "output/spatial_data.geoparquet",
+  format = "geoparquet"  # Auto-detected if extension is .parquet
+)
+
+# Export spatial data to Shapefile (traditional)
+sus_data_export(
+  sf_result,
+  file_path = "output/spatial_data.shp",
+  format = "shapefile"
+)
 
 # Export to Arrow with custom metadata
 sus_data_export(
@@ -103,25 +137,8 @@ sus_data_export(
     states = "SP",
     years = 2023,
     disease_groups = "respiratory",
-    filters_applied = "age >= 65, sex = Female",
-    author = "Max Anjos",
-    notes = "Elderly women respiratory deaths for DLNM analysis"
+    author = "Max Anjos"
   )
-)
-
-# Export to CSV without metadata
-sus_data_export(
-  df_final,
-  file_path = "output/data.csv",
-  include_metadata = FALSE
-)
-
-# Export with maximum compression
-sus_data_export(
-  df_large,
-  file_path = "output/large_dataset.rds",
-  compress = TRUE,
-  compression_level = 9
 )
 }
 
