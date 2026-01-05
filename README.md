@@ -13,7 +13,7 @@ O **climasus4r** é um pacote integrado de ferramentas em R desenvolvido para ot
 
 Baeado no sóilido ecossistema do pacote [`microdatasus`](https://github.com/rfsaldanha/microdatasus), o climasus4r expande suas funcionalidades ao incoporar rotinas especializadas para estudos em clima e saúde, reduzindo significativamente o esforço necessario para aquisição, limpeza, integração e preparação dos dados, incluindo:
 
-- **Aquisição de dados em paralelo** de múltiplos estados e anos
+- **Aquisição de dados em paralelo**, permitindo o download simultâneo de múltiplos estados e anos
 - **Suporte multi-sistema** para todos os 6 principais sistemas de saúde brasileiros (SIM, SINASC, SINAN, SIH, SIA, CNES)
 - **Correção de codificação aprimorada** para texto em português do Brasil
 - **Nomes de colunas e valores padronizados** com traduções multilíngues (EN/PT/ES)
