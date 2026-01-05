@@ -306,8 +306,7 @@ sus_data_filter_cid <- function(df,
     
     # Detect health system
     detected_system <- detect_health_system(df)
-    df$sytem <- paste0(detected_system)
-    
+  
     if(lang == "en"){ 
     # Priority order by system (all 6 major SUS systems)
     icd_column_priority <- list(

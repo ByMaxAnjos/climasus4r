@@ -159,9 +159,8 @@ sus_data_aggregate <- function(df,
 
   # Auto-detect date column if not specified
   if (is.null(date_col)) {
-    date_col <- detect_date_column(df)
-    
-    
+    date_col <- detect_date_column(df, system)
+  
     if (verbose) {
       msg <- switch(lang,
         "en" = paste0("Auto-detected date column: ", date_col),
