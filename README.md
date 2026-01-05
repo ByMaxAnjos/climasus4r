@@ -24,8 +24,7 @@ Baeado no sóilido ecossistema do pacote [`microdatasus`](https://github.com/rfs
 - **Filtragem demográfica avançada** com grupos etários personalizáveis
 - **Exportação com metadados** para reprodutibilidade
 - **Classificação de doenças sensíveis ao clima** para pesquisa epidemiológica
-- **Interface totalmente multilíngue** para colaboração internacional
-
+- **Interface totalmente multilíngue** favorecendo colaboração científica internacional
 ## Instalação
 
 Atualmente em desenvolvimento. Instale a versão mais recente do GitHub:
