@@ -11,7 +11,7 @@
 
 O **climasus4r** é um pacote integrado de ferramentas em R desenvolvido para otimizar a análise de dados de saúde, clima e ambiente no Brasil. O pacote foi concebido no âmbito do projeto INCT Conexão – Amazônia e tem como objetivo automatizar e padronizar etapas críticas do fluxo de trabalho em pesquisas epidemiológicas e ambientais, promovendo reprodutibilidade, eficiência e escalabilidade.
 
-O pacote se baseia no excelente trabalho fornecido pelo [`microdatasus`](https://github.com/rfsaldanha/microdatasus), adicionando funções especializadas para pesquisa em clima e saúde, incluindo:
+Baeado no sóilido ecossistema do pacote [`microdatasus`](https://github.com/rfsaldanha/microdatasus), o climasus4r expande suas funcionalidades ao incoporar rotinas especializadas para estudos em clima e saúde, reduzindo significativamente o esforço necessario para aquisição, limpeza, integração e preparação dos dados, incluindo:
 
 - **Aquisição de dados em paralelo** de múltiplos estados e anos
 - **Suporte multi-sistema** para todos os 6 principais sistemas de saúde brasileiros (SIM, SINASC, SINAN, SIH, SIA, CNES)
