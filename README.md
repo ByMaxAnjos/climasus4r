@@ -27,7 +27,7 @@ Baeado no sóilido ecossistema do pacote [`microdatasus`](https://github.com/rfs
 - **Interface totalmente multilíngue** favorecendo colaboração científica internacional
 ## Instalação
 
-Atualmente em desenvolvimento. Instale a versão mais recente do GitHub:
+O climasus4r encontra-se atualmente em desenvolvimento ativo. A versão mais recente pode ser instalada diretamente a partir do GitHub, garantindo acesso às funcionalidades mais atualizadas. Antes da instalação, é necessário ter o pacote remotes, que permite a instalação de pacotes hospedados no GitHub:
 
 ```r
 # Instale o remotes se ainda não o tiver
