@@ -55,7 +55,7 @@ GO, MA, MT, MS, MG, PA, PB, PR, PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO.}
 
 \strong{Health, Agriculture & Geopolitics:}
 \itemize{
-\item \code{"matopia"}: c("MA", "TO", "PI", "BA")
+\item \code{"matopiba"}: c("MA", "TO", "PI", "BA")
 \item \code{"arco_desmatamento"}: c("RO", "AC", "AM", "PA", "MT", "MA")
 \item \code{"dengue_hyperendemic"}: c("GO", "MS", "MT", "PR", "RJ", "SP")
 \item \code{"sudene"}: c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE", "MG", "ES")

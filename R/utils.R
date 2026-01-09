@@ -15,6 +15,7 @@ NULL
 #'
 #' @return A list of translated UI messages.
 #' @keywords internal
+#' @noRd
 get_ui_messages <- function(lang = "en") {
   
   messages <- list(
@@ -155,6 +156,7 @@ get_ui_messages <- function(lang = "en") {
 #' system <- detect_health_system(standardized_data)  # Still returns "SIM"
 #' }
 #' @keywords internal
+#' @noRd
 detect_health_system <- function(df) {
   cols <- names(df)
   
@@ -316,6 +318,7 @@ detect_health_system <- function(df) {
 #' @return Character string with system description
 #'
 #' @keywords internal
+#' @noRd
 get_system_description <- function(system, lang = "en") {
   
   descriptions <- list(
@@ -508,13 +511,13 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
 }
 
 
-# Internal ICD-10 Disease Groups Dictionary
-# 
-# This internal object contains comprehensive disease group classifications
-# organized by epidemiological relevance and climate sensitivity.
-# 
-# @keywords internal
-# @noRd
+#' Internal ICD-10 Disease Groups Dictionary
+#' 
+#' This internal object contains comprehensive disease group classifications
+#' organized by epidemiological relevance and climate sensitivity.
+#' 
+#' @keywords internal
+#' @noRd
 
 .icd_disease_groups <- list(
 

@@ -520,6 +520,7 @@ detect_date_column <- function(df, system) {
 #' @param dates A vector of Date objects
 #' @return A vector of Date objects representing the start of each season
 #' @keywords internal
+#' @noRd
 #' 
 #' @examples
 #' \dontrun{
@@ -556,6 +557,7 @@ get_brazilian_season_start <- function(dates) {
 #' @param lang Language code ("en", "pt", "es")
 #' @return Character string with the appropriate label
 #' @keywords internal
+#' @noRd
 get_time_unit_label <- function(time_unit, lang) {
   # Normalize time_unit to lowercase for matching
   tu_lower <- tolower(time_unit)
@@ -638,6 +640,7 @@ get_time_unit_label <- function(time_unit, lang) {
 #' @param verbose Whether to print messages
 #' @return Data frame with complete time series
 #' @keywords internal
+#' @noRd
 complete_time_series <- function(df_agg, time_unit, group_by, fill_value = 0, lang, verbose) {
   
   if (verbose) {

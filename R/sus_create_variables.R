@@ -518,6 +518,7 @@ sus_create_variables <- function(df,
 #' @param df Data frame
 #' @return Name of age column or NULL if not found
 #' @keywords internal
+#' @noRd
 try_detect_age_column <- function(df) {
   # Patterns for age in years (after standardization or processing)
   age_patterns <- c(
@@ -551,6 +552,7 @@ try_detect_age_column <- function(df) {
 #' @param verbose Whether to print messages
 #' @return Vector of ages in years or NULL if dates not found
 #' @keywords internal
+#' @noRd
 try_calculate_age_from_dates <- function(df, lang, verbose) {
   
   # Find birth date column
@@ -649,6 +651,7 @@ try_calculate_age_from_dates <- function(df, lang, verbose) {
 #' @param verbose Whether to print messages
 #' @return Vector of ages in years or NULL if code column not found
 #' @keywords internal
+#' @noRd
 try_decode_datasus_age <- function(df, lang, verbose) {
   
   # Find age code column
@@ -693,6 +696,7 @@ try_decode_datasus_age <- function(df, lang, verbose) {
 #' @param age_codes Numeric vector of DATASUS age codes
 #' @return Numeric vector of ages in years
 #' @keywords internal
+#' @noRd
 decode_datasus_age_vectorized <- function(age_codes) {
   
   # Initialize result vector
@@ -731,6 +735,7 @@ decode_datasus_age_vectorized <- function(age_codes) {
 #' @param df Data frame
 #' @return Name of date column
 #' @keywords internal
+#' @noRd
 detect_date_column <- function(df) {
   # Common date column patterns (in order of priority)
   date_patterns <- c(
@@ -772,6 +777,7 @@ detect_date_column <- function(df) {
 #' @param lang Language for labels
 #' @return Character vector of labels
 #' @keywords internal
+#' @noRd
 generate_age_labels <- function(breaks, lang) {
   n <- length(breaks) - 1
   labels <- character(n)
@@ -799,6 +805,7 @@ generate_age_labels <- function(breaks, lang) {
 #' @param lang Language code
 #' @return Character vector of month names
 #' @keywords internal
+#' @noRd
 get_month_names <- function(month_num, lang) {
   month_names <- switch(lang,
     "en" = c("January", "February", "March", "April", "May", "June",
@@ -821,6 +828,7 @@ get_month_names <- function(month_num, lang) {
 #' @param lang Language code
 #' @return Character vector of day names
 #' @keywords internal
+#' @noRd
 get_day_names <- function(day_num, lang) {
   day_names <- switch(lang,
     "en" = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", 

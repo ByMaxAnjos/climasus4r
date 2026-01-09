@@ -319,6 +319,7 @@ sus_data_standardize <- function(df,
 #' @return List of translated UI messages
 #'
 #' @keywords internal
+#' @noRd
 get_ui_messages_standardize <- function(lang = "en") {
   
   messages <- list(
