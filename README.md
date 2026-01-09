@@ -1,4 +1,4 @@
-# climasus4r:: Kit de Ferramentas Integrado para Análise de Dados de Saúde, Clima e Ambiente
+# climasus4r:: Análises Espaço-temporal Integradas de Saúde, Clima e Ambiente no Brasil
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
@@ -135,13 +135,68 @@ df <- sus_data_import(
 )
 ```
 
-**Sistemas Suportados:**
-- **SIM** (Mortalidade): `"SIM-DO"`, `"SIM-DOEXT"`, `"SIM-DOFET"`, `"SIM-DOMAT"`
-- **SINASC** (Nascidos Vivos): `"SINASC"`
-- **SINAN** (Agravos de Notificação): `"SINAN-DENGUE"`, `"SINAN-CHIKUNGUNYA"`, `"SINAN-ZIKA"`, `"SINAN-MALARIA"`, etc.
-- **SIH** (Internações Hospitalares): `"SIH-RD"`, `"SIH-SP"`
-- **SIA** (Ambulatorial): `"SIA-PA"`, `"SIA-PS"`
-- **CNES** (Estabelecimentos de Saúde): `"CNES-ST"`, `"CNES-PF"`
+Aqui está o conteúdo organizado em formato Markdown, pronto para ser copiado e colado diretamente no seu arquivo README.md.
+
+Markdown
+
+### **Sistemas Suportados**
+
+O pacote permite, por meio do pacote microdatsus, o acesso simplificado aos principais sistemas de informação do DATASUS, cobrindo epidemiologia, mortalidade, internações e rede assistencial:
+
+#### **1. SIM (Sistema de Informação sobre Mortalidade)**
+* `"SIM-DO"`: Declarações de Óbito (Dataset completo)
+* `"SIM-DOFET"`: Óbitos Fetais
+* `"SIM-DOEXT"`: Óbitos por Causas Externas
+* `"SIM-DOINF"`: Óbitos Infantis
+* `"SIM-DOMAT"`: Óbitos Maternos
+
+#### **2. SIH (Sistema de Informação Hospitalar)**
+* `"SIH-RD"`: AIH (Autorizações de Internação Hospitalar) - Geral
+* `"SIH-RJ"`: AIH - Específico para o Rio de Janeiro
+* `"SIH-SP"`: AIH - Específico para São Paulo
+* `"SIH-ER"`: Prontuários de Emergência
+
+#### **3. SINAN (Sistema de Informação de Agravos de Notificação)**
+* `"SINAN-DENGUE"`: Casos de Dengue
+* `"SINAN-CHIKUNGUNYA"`: Casos de Chikungunya
+* `"SINAN-ZIKA"`: Casos de Zika vírus
+* `"SINAN-MALARIA"`: Casos de Malária
+* `"SINAN-CHAGAS"`: Casos de Doença de Chagas
+* `"SINAN-LEISHMANIOSE-VISCERAL"`: Leishmaniose Visceral
+* `"SINAN-LEISHMANIOSE-TEGUMENTAR"`: Leishmaniose Tegumentar
+* `"SINAN-LEPTOSPIROSE"`: Casos de Leptospirose
+
+#### **4. SIA (Sistema de Informação Ambulatorial)**
+* `"SIA-AB"`: Atenção Básica
+* `"SIA-ABO"`: Procedimentos Odontológicos
+* `"SIA-ACF"`: Assistência Farmacêutica
+* `"SIA-AD"`: Alta Complexidade/Diferenciada
+* `"SIA-AN"`: Atenção Domiciliar
+* `"SIA-AM"`: Ambulatório de Especialidades
+* `"SIA-AQ"`: Ações Estratégicas
+* `"SIA-AR"`: Regulação
+* `"SIA-ATD"`: Urgência/Emergência
+* `"SIA-PA"`: Procedimentos Ambulatoriais em Hospital
+* `"SIA-PS"`: Atenção Psicossocial
+* `"SIA-SAD"`: Atenção Especializada
+
+#### **5. CNES (Cadastro Nacional de Estabelecimentos de Saúde)**
+* `"CNES-LT"`: Leitos
+* `"CNES-ST"`: Profissionais de Saúde
+* `"CNES-DC"`: Equipamentos (Detalhado)
+* `"CNES-EQ"`: Equipamentos (Resumo)
+* `"CNES-SR"`: Serviços Especializados
+* `"CNES-HB"`: Leitos Hospitalares
+* `"CNES-PF"`: Pessoal Físico (Profissionais)
+* `"CNES-EP"`: Participantes do Ensino
+* `"CNES-RC"`: Classificação Hospitalar
+* `"CNES-IN"`: Indicadores Hospitalares
+* `"CNES-EE"`: Entidades de Ensino
+* `"CNES-EF"`: Instalações de Ensino
+* `"CNES-GM"`: Gestão e Apoio
+
+#### **6. SINASC (Sistema de Informação sobre Nascidos Vivos)**
+* `"SINASC"`: Declarações de Nascidos Vivos
 
 **Recursos:**
 - ✅ Cache automático para evitar downloads redundantes
