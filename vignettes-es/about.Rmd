@@ -1,0 +1,27 @@
+---
+title: "Sobre ClimaSus4R"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Sobre ClimaSus4R}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## El Proyecto
+
+**climasus4r** es un conjunto de herramientas integradas en R, diseñado para optimizar el análisis de datos de salud, clima y medio ambiente en Brasil. El paquete fue desarrollado en el marco del proyecto INCT Conexão – Amazônia y tiene como objetivo automatizar y estandarizar pasos críticos en el flujo de trabajo de investigación epidemiológica y ambiental, promoviendo la reproducibilidad, eficiencia y escalabilidad.
+
+## El Equipo
+
+La información sobre el equipo de desarrollo e investigación estará aquí.
+
+## Socios
+
+Información sobre los socios e instituciones colaboradoras.
