@@ -1,47 +1,166 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+/* 1. Imports & Setup */
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;600&family=Inter:wght@300;400;600;700&display=swap');
+
+:root {
+    /* Paleta Climate & Sustainability */
+    --emerald-dark: #022c22;
+    --emerald-mid: #064e3b;
+    --ocean-blue: #0f766e;
+    --teal-light: #14b8a6;
+    
+    /* Glassmorphism Variables */
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    --text-primary: #ffffff;
+    --text-secondary: #cbd5e1;
+}
+
+/* 2. Global Reset & Typography */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
 body {
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Inter', sans-serif;
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    /* Animated Mesh Gradient Background */
+    background: linear-gradient(-45deg, var(--emerald-dark), var(--ocean-blue), var(--emerald-mid), #000000);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
 }
 
+/* 3. Background Animation Keyframes */
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* 4. Layout Container */
 #language-selector {
-    padding: 4rem 0;
-    background-color: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 2rem;
+    position: relative;
+    z-index: 1;
 }
 
+/* Títulos com fonte 'Tech' (Fira Code) */
+h1, h2, .tech-font {
+    font-family: 'Fira Code', monospace;
+    font-weight: 700;
+    letter-spacing: -0.05em;
+    margin-bottom: 1rem;
+}
+
+p {
+    font-weight: 300;
+    color: var(--text-secondary);
+    margin-bottom: 3rem;
+    letter-spacing: 0.02em;
+}
+
+/* 5. Container dos Cards */
+.cards-container {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 1200px;
+}
+
+/* 6. The Glassmorphism Card */
 .language-card {
-    border: 1px solid #dee2e6;
-    border-radius: 0.5rem;
-    transition: all 0.3s ease-in-out;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-}
-
-.language-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-}
-
-.card-link {
+    position: relative;
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px); /* O desfoque do vidro */
+    -webkit-backdrop-filter: blur(12px); /* Safari support */
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 2.5rem;
+    width: 280px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Physics-like bounce */
+    box-shadow: var(--glass-shadow);
     text-decoration: none;
-    color: inherit;
+    overflow: hidden;
 }
 
-.fa-flag-brasil { color: #009c3b; }
-.fa-flag-usa { color: #b22234; }
-.fa-flag-es { color: #c60b1e; }
-.fa-robot { color: #007bff; }
-
-/* AOS CSS */
-[data-aos] {
-  opacity: 0;
-  transition-property: transform, opacity;
+/* Subtle inner glow for depth */
+.language-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transition: 0.5s;
 }
 
-[data-aos][data-aos] {
-  transform: translate3d(0, 20px, 0);
+/* Hover Effects */
+.language-card:hover {
+    transform: translateY(-10px) scale(1.02);
+    background: rgba(255, 255, 255, 0.1); /* Ligeiramente mais claro */
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
 }
 
-[data-aos].aos-animate {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
+.language-card:hover::before {
+    left: 100%; /* Shine effect on hover */
+}
+
+/* 7. Card Content Styling */
+.card-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+    transition: transform 0.3s ease;
+}
+
+.language-card:hover .card-icon {
+    transform: scale(1.1) rotate(5deg);
+}
+
+.card-title {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.card-desc {
+    font-family: 'Fira Code', monospace;
+    font-size: 0.8rem;
+    color: var(--teal-light);
+}
+
+/* 8. Utility / AOS Replacements */
+/* Caso não esteja usando JS para animação, use classes de entrada CSS simples */
+.fade-in-up {
+    opacity: 0;
+    animation: fadeInUp 0.8s ease-out forwards;
+}
+
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 40px, 0);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
 }
