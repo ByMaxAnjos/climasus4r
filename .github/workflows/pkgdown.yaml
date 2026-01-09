@@ -40,21 +40,13 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.R_LIBS_USER }}
-          key: ${{ runner.os }}-r-${{ hashFiles('DESCRIPTION') }}
+          key: ${{ runner.os }}-r-pkgdown-${{ hashFiles('DESCRIPTION') }}
           restore-keys: |
-            ${{ runner.os }}-r-
+            ${{ runner.os }}-r-pkgdown-
       
-      - name: Install minimal R dependencies for pkgdown
+      - name: Install pkgdown and dependencies
         run: |
-          # Install only what's needed for pkgdown site generation
-          install.packages(c("pkgdown", "knitr", "rmarkdown", "remotes"), dependencies = TRUE)
-        shell: Rscript {0}
-      
-      - name: Install climasus4r without dependencies
-        run: |
-          # Install the package itself without its heavy dependencies
-          # This allows pkgdown to load the package for documentation
-          remotes::install_local(".", dependencies = FALSE, upgrade = "never")
+          install.packages(c("pkgdown", "knitr", "rmarkdown", "desc"), dependencies = TRUE)
         shell: Rscript {0}
       
       - name: Create deployment directory
@@ -72,8 +64,15 @@ jobs:
           # Copy pkgdown config
           cp _pkgdown-pt.yml _pkgdown.yml
           
-          # Build site
-          Rscript -e 'pkgdown::build_site(lazy = TRUE, preview = FALSE)'
+          # Build site WITHOUT running examples
+          Rscript -e '
+            pkg <- pkgdown::as_pkgdown(".")
+            pkgdown::init_site(pkg)
+            pkgdown::build_home(pkg)
+            pkgdown::build_reference(pkg, examples = FALSE, run_dont_run = FALSE)
+            pkgdown::build_articles(pkg)
+            pkgdown::build_news(pkg)
+          '
           
           # Move to deployment folder
           mkdir -p deploy/pt
@@ -94,8 +93,15 @@ jobs:
           # Copy pkgdown config
           cp _pkgdown-en.yml _pkgdown.yml
           
-          # Build site
-          Rscript -e 'pkgdown::build_site(lazy = TRUE, preview = FALSE)'
+          # Build site WITHOUT running examples
+          Rscript -e '
+            pkg <- pkgdown::as_pkgdown(".")
+            pkgdown::init_site(pkg)
+            pkgdown::build_home(pkg)
+            pkgdown::build_reference(pkg, examples = FALSE, run_dont_run = FALSE)
+            pkgdown::build_articles(pkg)
+            pkgdown::build_news(pkg)
+          '
           
           # Move to deployment folder
           mkdir -p deploy/en
@@ -116,8 +122,15 @@ jobs:
           # Copy pkgdown config
           cp _pkgdown-es.yml _pkgdown.yml
           
-          # Build site
-          Rscript -e 'pkgdown::build_site(lazy = TRUE, preview = FALSE)'
+          # Build site WITHOUT running examples
+          Rscript -e '
+            pkg <- pkgdown::as_pkgdown(".")
+            pkgdown::init_site(pkg)
+            pkgdown::build_home(pkg)
+            pkgdown::build_reference(pkg, examples = FALSE, run_dont_run = FALSE)
+            pkgdown::build_articles(pkg)
+            pkgdown::build_news(pkg)
+          '
           
           # Move to deployment folder
           mkdir -p deploy/es
