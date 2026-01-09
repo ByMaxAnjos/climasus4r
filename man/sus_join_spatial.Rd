@@ -88,7 +88,7 @@ column based on common SUS patterns:
 }
 
 \strong{Caching Strategy}:
-Spatial data is cached as Parquet files in \verb{~/.climasus4r_cache/} to:
+Spatial data is cached as Parquet files in \verb{~/.climasus4r_cache/spatial} to:
 \itemize{
 \item Avoid repeated downloads
 \item Improve performance (10-100x faster)

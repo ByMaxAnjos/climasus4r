@@ -5,7 +5,8 @@
 \title{Import and preprocess data from DATASUS with intelligent caching}
 \usage{
 sus_data_import(
-  uf,
+  uf = NULL,
+  region = NULL,
   year,
   month = NULL,
   system,
@@ -18,9 +19,48 @@ sus_data_import(
 )
 }
 \arguments{
-\item{uf}{A string or vector of strings with state abbreviations
-(e.g., "RJ", c("SP", "MG")). Valid UF codes: AC, AL, AP, AM, BA, CE, DF, ES,
+\item{uf}{A string or vector of strings with state abbreviations (\strong{igonered if 'region' is provided})
+(e.g., "AM", c("SP", "RJ")). Valid UF codes: AC, AL, AP, AM, BA, CE, DF, ES,
 GO, MA, MT, MS, MG, PA, PB, PR, PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO.}
+
+\item{region}{A string indicating a predefined group of states (supports multilingual names PT, EN, ES). Available regions:
+
+\strong{IBGE Macro-regions:}
+\itemize{
+\item \code{"norte"}: c("AC", "AP", "AM", "PA", "RO", "RR", "TO")
+\item \code{"nordeste"}: c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE")
+\item \code{"centro_oeste"}: c("DF", "GO", "MT", "MS")
+\item \code{"sudeste"}: c("ES", "MG", "RJ", "SP")
+\item \code{"sul"}: c("PR", "RS", "SC")
+}
+
+\strong{Biomes (Ecological Borders):}
+\itemize{
+\item \code{"amazonia_legal"}: c("AC", "AP", "AM", "PA", "RO", "RR", "MT", "MA", "TO")
+\item \code{"mata_atlantica"}: c("AL", "BA", "CE", "ES", "GO", "MA", "MG", "MS", "PB", "PE", "PI", "PR", "RJ", "RN", "RS", "SC", "SE", "SP")
+\item \code{"caatinga"}: c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE", "MG")
+\item \code{"cerrado"}: c("BA", "DF", "GO", "MA", "MG", "MS", "MT", "PA", "PI", "PR", "RO", "SP", "TO")
+\item \code{"pantanal"}: c("MT", "MS")
+\item \code{"pampa"}: c("RS")
+}
+
+\strong{Hydrography & Climate:}
+\itemize{
+\item \code{"bacia_amazonia"}: c("AC", "AM", "AP", "MT", "PA", "RO", "RR")
+\item \code{"bacia_sao_francisco"}: c("AL", "BA", "DF", "GO", "MG", "PE", "SE")
+\item \code{"bacia_parana"}: c("GO", "MG", "MS", "PR", "SP")
+\item \code{"bacia_tocantins"}: c("GO", "MA", "PA", "TO")
+\item \code{"semi_arido"}: c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE", "MG")
+}
+
+\strong{Health, Agriculture & Geopolitics:}
+\itemize{
+\item \code{"matopia"}: c("MA", "TO", "PI", "BA")
+\item \code{"arco_desmatamento"}: c("RO", "AC", "AM", "PA", "MT", "MA")
+\item \code{"dengue_hyperendemic"}: c("GO", "MS", "MT", "PR", "RJ", "SP")
+\item \code{"sudene"}: c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE", "MG", "ES")
+\item \code{"fronteira_brasil"}: c("AC", "AM", "AP", "MT", "MS", "PA", "PR", "RO", "RR", "RS", "SC")
+}}
 
 \item{year}{An integer or vector of integers with the desired years (4 digits).}
 

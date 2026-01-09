@@ -60,7 +60,7 @@
 #' }
 #'
 #' **Caching Strategy**:
-#' Spatial data is cached as Parquet files in `~/.climasus4r_cache/` to:
+#' Spatial data is cached as Parquet files in `~/.climasus4r_cache/spatial` to:
 #' \itemize{
 #'   \item Avoid repeated downloads
 #'   \item Improve performance (10-100x faster)
@@ -634,21 +634,21 @@ get_spatial_messages <- function(lang) {
 #' @return List of translated UI messages
 #' @keywords internal
 #' @noRd
-.convert_muni_6_to_7 <- function(muni_code_6, spatial_df) {
-  muni_code_6 <- as.character(muni_code_6)
+# .convert_muni_6_to_7 <- function(muni_code_6, spatial_df) {
+#   muni_code_6 <- as.character(muni_code_6)
 
-  spatial_df %>%
-    dplyr::mutate(
-      code_muni_6 = substr(.data$code_muni, 1, 6)
-    ) %>%
-    dplyr::select(.data$code_muni_6, .data$code_muni) %>%
-    dplyr::distinct() %>%
-    dplyr::right_join(
-      data.frame(code_muni_6 = muni_code_6, stringsAsFactors = FALSE),
-      by = "code_muni_6"
-    ) %>%
-    dplyr::pull(.data$code_muni)
-}
+#   spatial_df %>%
+#     dplyr::mutate(
+#       code_muni_6 = substr(.data$code_muni, 1, 6)
+#     ) %>%
+#     dplyr::select(.data$code_muni_6, .data$code_muni) %>%
+#     dplyr::distinct() %>%
+#     dplyr::right_join(
+#       data.frame(code_muni_6 = muni_code_6, stringsAsFactors = FALSE),
+#       by = "code_muni_6"
+#     ) %>%
+#     dplyr::pull(.data$code_muni)
+# }
 
 .convert_muni_6_to_7 <- function(muni_code_6, spatial_df) {
 

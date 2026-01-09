@@ -60,7 +60,7 @@
 #' # Filter by multiple criteria (elderly women)
 #' df_elderly_women <- sus_data_filter_demographics(
 #'   df,
-#'   sex = "Feminino",
+#'   sex = c("Feminino"),
 #'   age_range = c(65, Inf),
 #'   lang = "pt"
 #' )
@@ -120,6 +120,7 @@ sus_data_filter_demographics <- function(df,
     } else {
       # Normalize sex values (case-insensitive matching)
       df <- df[tolower(df[[sex_col]]) %in% tolower(sex), ]
+      sex <- tools::toTitleCase(sex)
       filters_applied <- c(filters_applied, paste0("sex: ", paste(sex, collapse = ", ")))
     }
   }
@@ -135,6 +136,7 @@ sus_data_filter_demographics <- function(df,
       cli::cli_alert_warning("Race column not found. Skipping race filter.")
     } else {
       df <- df[tolower(df[[race_col]]) %in% tolower(race), ]
+      race <- tools::toTitleCase(race)
       filters_applied <- c(filters_applied, paste0("race: ", paste(race, collapse = ", ")))
     }
   }
@@ -175,6 +177,7 @@ sus_data_filter_demographics <- function(df,
       cli::cli_alert_warning("Education column not found. Skipping education filter.")
     } else {
       df <- df[tolower(df[[edu_col]]) %in% tolower(education), ]
+      education <- tools::toTitleCase(education)
       filters_applied <- c(filters_applied, 
                           paste0("education: ", paste(education, collapse = ", ")))
     }
@@ -192,6 +195,7 @@ sus_data_filter_demographics <- function(df,
       warning("Marital status column not found. Skipping marital status filter.")
     } else {
       df <- df[tolower(df[[marital_col]]) %in% tolower(marital_status), ]
+      marital_status <- tools::toTitleCase(marital_status)
       filters_applied <- c(filters_applied, 
                           paste0("marital_status: ", paste(marital_status, collapse = ", ")))
     }

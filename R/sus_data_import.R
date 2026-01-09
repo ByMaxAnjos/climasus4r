@@ -5,9 +5,40 @@
 #' information systems (SIM, SINAN, SIH, SIA, CNES, SINASC).
 #' It includes parallel processing, caching, and user-friendly CLI feedback.
 #'
-#' @param uf A string or vector of strings with state abbreviations 
-#'   (e.g., "RJ", c("SP", "MG")). Valid UF codes: AC, AL, AP, AM, BA, CE, DF, ES, 
+#' @param uf A string or vector of strings with state abbreviations (**igonered if 'region' is provided**) 
+#'   (e.g., "AM", c("SP", "RJ")). Valid UF codes: AC, AL, AP, AM, BA, CE, DF, ES, 
 #'   GO, MA, MT, MS, MG, PA, PB, PR, PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO.
+#' @param region A string indicating a predefined group of states (supports multilingual names PT, EN, ES). Available regions:
+#'   
+#'   **IBGE Macro-regions:**
+#'   * `"norte"`: c("AC", "AP", "AM", "PA", "RO", "RR", "TO")
+#'   * `"nordeste"`: c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE")
+#'   * `"centro_oeste"`: c("DF", "GO", "MT", "MS")
+#'   * `"sudeste"`: c("ES", "MG", "RJ", "SP")
+#'   * `"sul"`: c("PR", "RS", "SC")
+#'   
+#'   **Biomes (Ecological Borders):**
+#'   * `"amazonia_legal"`: c("AC", "AP", "AM", "PA", "RO", "RR", "MT", "MA", "TO")
+#'   * `"mata_atlantica"`: c("AL", "BA", "CE", "ES", "GO", "MA", "MG", "MS", "PB", "PE", "PI", "PR", "RJ", "RN", "RS", "SC", "SE", "SP")
+#'   * `"caatinga"`: c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE", "MG")
+#'   * `"cerrado"`: c("BA", "DF", "GO", "MA", "MG", "MS", "MT", "PA", "PI", "PR", "RO", "SP", "TO")
+#'   * `"pantanal"`: c("MT", "MS")
+#'   * `"pampa"`: c("RS")
+#' 
+#'   **Hydrography & Climate:**
+#'   * `"bacia_amazonia"`: c("AC", "AM", "AP", "MT", "PA", "RO", "RR")
+#'   * `"bacia_sao_francisco"`: c("AL", "BA", "DF", "GO", "MG", "PE", "SE")
+#'   * `"bacia_parana"`: c("GO", "MG", "MS", "PR", "SP")
+#'   * `"bacia_tocantins"`: c("GO", "MA", "PA", "TO")
+#'   * `"semi_arido"`: c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE", "MG")
+#'   
+#'   **Health, Agriculture & Geopolitics:**
+#'   * `"matopiba"`: c("MA", "TO", "PI", "BA")
+#'   * `"arco_desmatamento"`: c("RO", "AC", "AM", "PA", "MT", "MA")
+#'   * `"dengue_hyperendemic"`: c("GO", "MS", "MT", "PR", "RJ", "SP")
+#'   * `"sudene"`: c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE", "MG", "ES")
+#'   * `"fronteira_brasil"`: c("AC", "AM", "AP", "MT", "MS", "PA", "PR", "RO", "RR", "RS", "SC")
+#' 
 #' @param year An integer or vector of integers with the desired years (4 digits).
 #' @param month An integer or vector of integers with the desired months (1-12). 
 #'   This argument is only used with monthly-based health information systems: 
@@ -169,7 +200,8 @@
 #' 
 #' SALDANHA, Raphael de Freitas; BASTOS, Ronaldo Rocha; BARCELLOS, Christovam. Microdatasus: pacote para download e pre-processamento de microdados do Departamento de Informatica do SUS (DATASUS). Cad. Saude Publica, Rio de Janeiro , v. 35, n. 9, e00032419, 2019. Available from https://doi.org/10.1590/0102-311x00032419.
 
-sus_data_import <- function(uf, 
+sus_data_import <- function(uf = NULL, 
+                            region = NULL,
                             year,
                             month = NULL,
                             system, 
@@ -179,10 +211,25 @@ sus_data_import <- function(uf,
                             parallel = FALSE,
                             workers = 4,
                             verbose = TRUE) {
+  # --- 1. Region Handling (Precedence over UF) ---
+  if (!is.null(region)) {
+    reg_clean <- tolower(region)
+    target_key <- if (reg_clean %in% names(.region_aliases)) .region_aliases[[reg_clean]] else reg_clean
+    
+    if (target_key %in% names(.br_regions)) {
+      if (!is.null(uf) && verbose) {
+        cli::cli_alert_warning("Both {.arg uf} and {.arg region} provided. Using region mapping for: {.val {region}}.")
+      }
+      uf <- .br_regions[[target_key]]
+      if (verbose) cli::cli_alert_info("Region {.val {region}} expanded to: {paste(uf, collapse = ', ')}")
+    } else {
+      cli::cli_abort("Region {.val {region}} not recognized. Check documentation for valid regions.")
+    }
+  }
   
   # Input validation
-  if (missing(uf) || missing(year) || missing(system)) {
-    cli::cli_alert_danger("Arguments 'uf', 'year', and 'system' are required.")
+  if (is.null(uf) || missing(year) || missing(system)) {
+    cli::cli_alert_danger("Arguments {.arg uf} (or {.arg region}), {.arg year}, and {.arg system} are required.")
     stop("Missing required arguments.")
   }
   
@@ -273,23 +320,45 @@ sus_data_import <- function(uf,
     stop("Invalid system provided.")
   }
   
-  #Check month
-  # Check month parameter
+   # Valid month
+  system_prefix_month <- sub("-.*", "", system)
+  systems_requiring_month <- c("SIH", "CNES", "SIA")
+  
+  if (system_prefix_month %in% systems_requiring_month && is.null(month)) {
+    cli::cli_alert_danger("System {system} requires the 'month' argument.")
+    cli::cli_alert_info("Please provide months as a vector (e.g., month = 1:12 or month = 1).")
+    stop("Missing required argument: month. Please use month for 'SIH', 'CNES' and 'SIA' systems.")
+  }
+  
   if (!is.null(month)) {
     if (!is.numeric(month) || any(month < 1) || any(month > 12)) {
-      cli::cli_alert_danger("Invalid month. Must be between 1 and 12.")
+      cli::cli_alert_danger("Invalid month. Must be a numeric vector between 1 and 12.")
       stop("Invalid month provided.")
     }
     
-    # Check if month is appropriate for the system
-    systems_with_month <- c("SIH", "CNES", "SIA")
-    system_prefix <- sub("-.*", "", system)
-    
-    if (!system_prefix %in% systems_with_month) {
-      cli::cli_alert_warning("Parameter 'month' is typically only used with SIH, CNES, and SIA systems.")
-      cli::cli_alert_info("System {system} might not support month filtering.")
+    # 3. Aviso se o usuário fornecer mês para sistemas que geralmente são anuais (SIM, SINASC, SINAN)
+    if (!system_prefix_month %in% systems_requiring_month) {
+      cli::cli_alert_warning("Parameter 'month' is provided but typically not used for {system_prefix} systems.")
+      cli::cli_alert_info("These systems usually aggregate data by year. The 'month' filter might be ignored by the server.")
     }
   }
+  #Check month
+  # # Check month parameter
+  # if (!is.null(month)) {
+  #   if (!is.numeric(month) || any(month < 1) || any(month > 12)) {
+  #     cli::cli_alert_danger("Invalid month. Must be between 1 and 12.")
+  #     stop("Invalid month provided.")
+  #   }
+    
+  #   # Check if month is appropriate for the system
+  #   systems_with_month <- c("SIH", "CNES", "SIA")
+  #   system_prefix <- sub("-.*", "", system)
+    
+  #   if (!system_prefix %in% systems_with_month) {
+  #     cli::cli_alert_warning("Parameter 'month' is typically only used with SIH, CNES, and SIA systems.")
+  #     cli::cli_alert_info("System {system} might not support month filtering.")
+  #   }
+  # }
   # Setup cache directory
   if (use_cache) {
     cache_dir <- path.expand(cache_dir)
@@ -488,9 +557,11 @@ sus_data_import <- function(uf,
       return(NULL)
     })
   }
-  
+  n_months <- if (is.null(month)) 1 else length(month)
+  total_tasks <- length(uf) * length(year) * n_months
+
   # Execute downloads (parallel or sequential)
-  if (parallel && length(uf) * length(year) > 1) {
+  if (parallel && total_tasks > 1) {
     
     # Setup parallel processing
     if (!requireNamespace("future", quietly = TRUE)) {
@@ -502,27 +573,50 @@ sus_data_import <- function(uf,
     }
   }
   
-  if (parallel && length(uf) * length(year) > 1) {
+   if (parallel && total_tasks > 1) {
     
-    # Parallel execution with progress
-    progressr::with_progress({
-      p <- progressr::progressor(steps = nrow(params))
-      
-      list_of_dfs <- future.apply::future_mapply(
-        FUN = download_one,
-        params$year,
-        params$uf,
-        params$system,
-        MoreArgs = list(
-          p = p,
-          use_cache = use_cache,
-          force_redownload = force_redownload,
-          cache_dir = cache_dir
-        ),
-        SIMPLIFY = FALSE,
-        future.seed = TRUE
-      )
-    })
+    if (!is.null(month)) {
+      # Parallel execution with progress
+      progressr::with_progress({
+        p <- progressr::progressor(steps = nrow(params))
+        
+        list_of_dfs <- future.apply::future_mapply(
+          FUN = download_one,
+          params$year,
+          params$uf,
+          params$system,
+          params$month,
+          MoreArgs = list(
+            p = p,
+            use_cache = use_cache,
+            force_redownload = force_redownload,
+            cache_dir = cache_dir
+          ),
+          SIMPLIFY = FALSE,
+          future.seed = TRUE
+        )
+      })
+    } else {
+      # Parallel execution with progress
+      progressr::with_progress({
+        p <- progressr::progressor(steps = nrow(params))
+        
+        list_of_dfs <- future.apply::future_mapply(
+          FUN = download_one,
+          params$year,
+          params$uf,
+          params$system,
+          MoreArgs = list(
+            p = p,
+            use_cache = use_cache,
+            force_redownload = force_redownload,
+            cache_dir = cache_dir
+          ),
+          SIMPLIFY = FALSE,
+          future.seed = TRUE
+        )
+      })
+    }
     
   } else {
     
@@ -599,5 +693,53 @@ sus_data_import <- function(uf,
 
 
 
+#Helper functions
+#' @title Regional Definitions for Brazilian States
+#' @description Internal dataset with state to region mappings including Biomes, 
+#' Hydrography, and Epidemiological clusters.
+#' @noRd
+.br_regions <- list(
+  # --- IBGE Macro-regions ---
+  norte = c("AC", "AP", "AM", "PA", "RO", "RR", "TO"),
+  nordeste = c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE"),
+  centro_oeste = c("DF", "GO", "MT", "MS"),
+  sudeste = c("ES", "MG", "RJ", "SP"),
+  sul = c("PR", "RS", "SC"),
+  
+  # --- Biomes (Ecological Borders) ---
+  amazonia_legal = c("AC", "AP", "AM", "PA", "RO", "RR", "MT", "MA", "TO"),
+  mata_atlantica = c("AL", "BA", "CE", "ES", "GO", "MA", "MG", "MS", "PB", 
+                     "PE", "PI", "PR", "RJ", "RN", "RS", "SC", "SE", "SP"),
+  caatinga = c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE", "MG"),
+  cerrado = c("BA", "DF", "GO", "MA", "MG", "MS", "MT", "PA", "PI", "PR", "RO", "SP", "TO"),
+  pantanal = c("MT", "MS"),
+  pampa = c("RS"),
+  
+  # --- Hydrography & Climate ---
+  bacia_amazonica = c("AC", "AM", "AP", "MT", "PA", "RO", "RR"),
+  bacia_sao_francisco = c("AL", "BA", "DF", "GO", "MG", "PE", "SE"),
+  bacia_parana = c("GO", "MG", "MS", "PR", "SP"),
+  bacia_tocantins = c("GO", "MA", "PA", "TO"),
+  semi_arido = c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE", "MG"),
+  
+  # --- Health, Agriculture & Geopolitics ---
+  matopiba = c("MA", "TO", "PI", "BA"),
+  arco_desmatamento = c("RO", "AC", "AM", "PA", "MT", "MA"),
+  dengue_hyperendemic = c("GO", "MS", "MT", "PR", "RJ", "SP"),
+  sudene = c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE", "MG", "ES"),
+  fronteira_brasil = c("AC", "AM", "AP", "MT", "MS", "PA", "PR", "RO", "RR", "RS", "SC")
+)
 
-
+#' @description Multilingual aliases for the region argument (EN, ES, PT).
+#' @noRd
+.region_aliases <- list(
+  # English
+  north = "norte", northeast = "nordeste", central_west = "centro_oeste", 
+  southeast = "sudeste", south = "sul", amazon = "amazonia_legal", 
+  legal_amazon = "amazonia_legal", atlantic_forest = "mata_atlantica",
+  semi_arid = "semi_arido", border = "fronteira_brasil",
+  # Spanish
+  noreste = "nordeste", sudeste = "sudeste", sur = "sul", 
+  amazonia = "amazonia_legal", bosque_atlantico = "mata_atlantica",
+  semiarido = "semi_arido", frontera = "fronteira_brasil"
+)

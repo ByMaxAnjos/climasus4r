@@ -87,7 +87,7 @@ df_elderly <- sus_data_filter_demographics(df, age_range = c(65, Inf))
 # Filter by multiple criteria (elderly women)
 df_elderly_women <- sus_data_filter_demographics(
   df,
-  sex = "Feminino",
+  sex = c("Feminino"),
   age_range = c(65, Inf),
   lang = "pt"
 )
