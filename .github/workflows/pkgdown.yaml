@@ -47,7 +47,14 @@ jobs:
       - name: Install minimal R dependencies for pkgdown
         run: |
           # Install only what's needed for pkgdown site generation
-          install.packages(c("pkgdown", "knitr", "rmarkdown"), dependencies = TRUE)
+          install.packages(c("pkgdown", "knitr", "rmarkdown", "remotes"), dependencies = TRUE)
+        shell: Rscript {0}
+      
+      - name: Install climasus4r without dependencies
+        run: |
+          # Install the package itself without its heavy dependencies
+          # This allows pkgdown to load the package for documentation
+          remotes::install_local(".", dependencies = FALSE, upgrade = "never")
         shell: Rscript {0}
       
       - name: Create deployment directory
@@ -65,8 +72,8 @@ jobs:
           # Copy pkgdown config
           cp _pkgdown-pt.yml _pkgdown.yml
           
-          # Build site (without installing package dependencies)
-          Rscript -e 'pkgdown::build_site(install = FALSE, lazy = TRUE)'
+          # Build site
+          Rscript -e 'pkgdown::build_site(lazy = TRUE, preview = FALSE)'
           
           # Move to deployment folder
           mkdir -p deploy/pt
@@ -87,8 +94,8 @@ jobs:
           # Copy pkgdown config
           cp _pkgdown-en.yml _pkgdown.yml
           
-          # Build site (without installing package dependencies)
-          Rscript -e 'pkgdown::build_site(install = FALSE, lazy = TRUE)'
+          # Build site
+          Rscript -e 'pkgdown::build_site(lazy = TRUE, preview = FALSE)'
           
           # Move to deployment folder
           mkdir -p deploy/en
@@ -109,8 +116,8 @@ jobs:
           # Copy pkgdown config
           cp _pkgdown-es.yml _pkgdown.yml
           
-          # Build site (without installing package dependencies)
-          Rscript -e 'pkgdown::build_site(install = FALSE, lazy = TRUE)'
+          # Build site
+          Rscript -e 'pkgdown::build_site(lazy = TRUE, preview = FALSE)'
           
           # Move to deployment folder
           mkdir -p deploy/es
