@@ -1,0 +1,31 @@
+url: https://bymaxanjos.github.io/climasus4r/pt
+
+template:
+  bootstrap: 5
+  bootswatch: cosmo
+  assets: pkgdown/assets/custom.css
+
+navbar:
+  type: default
+  left:
+    - text: "Início"
+      href: index.html
+    - text: "Sobre"
+      href: articles/about.html
+    - text: "Tutoriais"
+      href: articles/tutorials.html
+    - text: "Estudos de Caso"
+      href: articles/case-studies.html
+    - text: "Comunidade"
+      menu:
+        - text: "Reportar um Problema"
+          href: https://github.com/ByMaxAnjos/climasus4r/issues/new/choose
+        - text: "Fórum de Discussão"
+          href: https://github.com/ByMaxAnjos/climasus4r/discussions
+    - text: "Referências"
+      href: reference/index.html
+    - text: "Notícias"
+      href: news/index.html
+  right:
+    - icon: fa-github
+      href: https://github.com/ByMaxAnjos/climasus4r

@@ -1,0 +1,26 @@
+---
+title: "Tutoriais"
+---
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">Início Rápido</h5>
+          <p class="card-text">Aprenda o básico do climasus4r em 5 minutos.</p>
+          <a href="quickstart.html" class="btn btn-primary">Começar</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">Análise de Séries Temporais</h5>
+          <p class="card-text">Um guia completo para analisar dados de saúde e clima.</p>
+          <a href="time-series.html" class="btn btn-primary">Ver Tutorial</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

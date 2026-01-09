@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+
+body {
+    font-family: 'Montserrat', sans-serif;
+}
+
+#language-selector {
+    padding: 4rem 0;
+    background-color: #f8f9fa;
+}
+
+.language-card {
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease-in-out;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+
+.language-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}
+
+.card-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.fa-flag-brasil { color: #009c3b; }
+.fa-flag-usa { color: #b22234; }
+.fa-flag-es { color: #c60b1e; }
+.fa-robot { color: #007bff; }
+
+/* AOS CSS */
+[data-aos] {
+  opacity: 0;
+  transition-property: transform, opacity;
+}
+
+[data-aos][data-aos] {
+  transform: translate3d(0, 20px, 0);
+}
+
+[data-aos].aos-animate {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
