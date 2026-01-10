@@ -1,0 +1,164 @@
+/*
+ * Modern Dark Theme for pkgdown - climasus4r
+ * Inspired by the landing page design
+ */
+
+/* --- Fonts --- */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap");
+
+/* --- Variables --- */
+:root {
+    --bs-body-bg: #050a0a; /* Dark background */
+    --bs-body-color: #e2e8f0; /* Light text */
+    --bs-primary: #4ade80; /* Emerald green */
+    --bs-primary-rgb: 74, 222, 128;
+    --bs-link-color: #4ade80;
+    --bs-link-hover-color: #6ee7b7;
+    --code-bg: #1e293b; /* Dark blue-gray for code */
+    --border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* --- General Body & Typography --- */
+body {
+    font-family: "Inter", sans-serif;
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    color: #fff;
+}
+
+/* --- Navbar --- */
+.navbar {
+    background: rgba(15, 23, 42, 0.8) !important; /* Dark blue-gray with transparency */
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.25rem;
+    background: linear-gradient(135deg, #4ade80 0%, #3b82f6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.nav-link {
+    color: #cbd5e1 !important;
+    transition: color 0.2s ease-in-out;
+}
+
+.nav-link:hover, .nav-link.active {
+    color: #fff !important;
+}
+
+/* --- Main Content & Sidebar --- */
+.contents {
+    background-color: transparent;
+    border-left: 1px solid var(--border-color);
+}
+
+.sidebar nav[data-bs-spy="scroll"] .nav-link {
+    color: #94a3b8;
+    border-left: 1px solid transparent;
+}
+
+.sidebar nav[data-bs-spy="scroll"] .nav-link.active, 
+.sidebar nav[data-bs-spy="scroll"] .nav-link:hover {
+    color: #fff;
+    border-left-color: var(--bs-primary);
+    background-color: rgba(74, 222, 128, 0.05);
+}
+
+/* --- Code Blocks --- */
+pre, code, kbd, samp {
+    font-family: "Fira Code", monospace;
+}
+
+pre {
+    background-color: var(--code-bg) !important;
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem; /* Rounded corners */
+    padding: 1.25rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* Syntax Highlighting - Example for R */
+.sourceCode .kw { color: #c792ea; } /* Keywords */
+.sourceCode .dt { color: #82aaff; } /* Data types */
+.sourceCode .dv { color: #f78c6c; } /* Decimal values */
+.sourceCode .bn { color: #f78c6c; } /* Base-n values */
+.sourceCode .fl { color: #f78c6c; } /* Float values */
+.sourceCode .ch { color: #c3e88d; } /* Char values */
+.sourceCode .st { color: #c3e88d; } /* String values */
+.sourceCode .co { color: #546e7a; } /* Comments */
+.sourceCode .al { color: #ff5370; } /* Alerts */
+.sourceCode .fu { color: #82aaff; } /* Functions */
+.sourceCode .er { color: #ff5370; } /* Errors */
+.sourceCode .wa { color: #ffcb6b; } /* Warnings */
+.sourceCode .cn { color: #f78c6c; } /* Constants */
+.sourceCode .sc { color: #89ddff; } /* Special chars */
+.sourceCode .vs { color: #c3e88d; } /* Verbatim strings */
+.sourceCode .ss { color: #c3e88d; } /* Special strings */
+.sourceCode .im { color: #c792ea; } /* Imports */
+.sourceCode .va { color: #89ddff; } /* Variables */
+.sourceCode .cf { color: #c792ea; } /* Control flow */
+.source-line { color: #3a4c58; } /* Line numbers */
+
+/* --- Tables --- */
+.table {
+    --bs-table-bg: transparent;
+    --bs-table-border-color: var(--border-color);
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.04);
+    color: var(--bs-body-color);
+}
+
+/* --- Links & Buttons --- */
+a {
+    color: var(--bs-link-color);
+    text-decoration: none;
+    transition: color 0.2s ease-in-out;
+}
+
+a:hover {
+    color: var(--bs-link-hover-color);
+    text-decoration: underline;
+}
+
+.btn-primary {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: #000;
+    font-weight: 600;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-primary:hover {
+    background-color: #6ee7b7;
+    border-color: #6ee7b7;
+    transform: translateY(-2px);
+}
+
+/* --- Other Elements --- */
+.section h1, .section h2, .section h3, .section h4 {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+blockquote {
+    border-left: 4px solid var(--bs-primary);
+    background-color: rgba(74, 222, 128, 0.05);
+    padding: 1rem 1.5rem;
+    color: #cbd5e1;
+}
+
+/* Glass effect for specific elements if needed */
+.glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+}

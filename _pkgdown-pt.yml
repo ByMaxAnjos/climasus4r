@@ -1,12 +1,16 @@
 url: https://bymaxanjos.github.io/climasus4r/pt
-
 template:
   bootstrap: 5
-  bootswatch: cosmo
-  assets: pkgdown/assets/custom.css
+  bootswatch: darkly
+  theme: arrow-dark
+  bslib:
+    preset: bootstrap
+  includes:
+    in_header: |
+      <link rel="stylesheet" href="pkgdown/assets/custom-modern.css">
 
 navbar:
-  type: default
+  title: "climasus4r"
   left:
     - text: "Início"
       href: index.html
@@ -18,14 +22,56 @@ navbar:
       href: articles/case-studies.html
     - text: "Comunidade"
       menu:
-        - text: "Reportar um Problema"
-          href: https://github.com/ByMaxAnjos/climasus4r/issues/new/choose
-        - text: "Fórum de Discussão"
+        - text: "GitHub Issues"
+          href: https://github.com/ByMaxAnjos/climasus4r/issues
+        - text: "Discussions"
           href: https://github.com/ByMaxAnjos/climasus4r/discussions
     - text: "Referências"
       href: reference/index.html
     - text: "Notícias"
       href: news/index.html
+  
+  # --- SEÇÃO DIREITA ATUALIZADA ---
   right:
+    - icon: fa-robot
+      text: "AI Assistant"
+      href: https://climasus4r.manus.space/
+      target: "_blank"  # Importante: Abre em nova aba para não fechar a doc
     - icon: fa-github
       href: https://github.com/ByMaxAnjos/climasus4r
+    - text: "English"
+      href: ../en/index.html
+    - text: "Español"
+      href: ../es/index.html
+  # --------------------------------
+
+home:
+  title: "climasus4r - Kit de Ferramentas Integrado"
+  description: "Pacote R para análise de dados de saúde, clima e ambiente no Brasil"
+
+reference:
+  - title: "Importação de Dados"
+    desc: "Funções para importar dados do SUS"
+    contents:
+      - starts_with("sus_data_import")
+  - title: "Limpeza de Dados"
+    desc: "Funções para limpar e padronizar dados"
+    contents:
+      - starts_with("sus_data_clean")
+      - starts_with("sus_data_standardize")
+  - title: "Filtros e Seleção"
+    desc: "Funções para filtrar dados por critérios específicos"
+    contents:
+      - starts_with("sus_data_filter")
+  - title: "Criação de Variáveis"
+    desc: "Funções para criar novas variáveis derivadas"
+    contents:
+      - starts_with("sus_create")
+
+articles:
+  - title: "Introdução"
+    contents:
+      - about
+  - title: "Tutoriais"
+    contents:
+      - tutorials

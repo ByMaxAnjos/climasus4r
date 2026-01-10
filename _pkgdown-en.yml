@@ -1,12 +1,17 @@
 url: https://bymaxanjos.github.io/climasus4r/en
-
+lang: en
 template:
   bootstrap: 5
-  bootswatch: cosmo
-  assets: pkgdown/assets/custom.css
+  bootswatch: darkly
+  theme: arrow-dark
+  bslib:
+    preset: bootstrap
+  includes:
+    in_header: |
+      <link rel="stylesheet" href="pkgdown/assets/custom-modern.css">
 
 navbar:
-  type: default
+  title: "climasus4r"
   left:
     - text: "Home"
       href: index.html
@@ -18,14 +23,61 @@ navbar:
       href: articles/case-studies.html
     - text: "Community"
       menu:
-        - text: "Report an Issue"
-          href: https://github.com/ByMaxAnjos/climasus4r/issues/new/choose
-        - text: "Discussion Forum"
+        - text: "GitHub Issues"
+          href: https://github.com/ByMaxAnjos/climasus4r/issues
+        - text: "Discussions"
           href: https://github.com/ByMaxAnjos/climasus4r/discussions
     - text: "Reference"
       href: reference/index.html
     - text: "News"
       href: news/index.html
+  
   right:
+    # --- AI Assistant Integration ---
+    - icon: fa-robot
+      text: "AI Assistant"
+      href: https://climasus4r.manus.space/
+      target: "_blank"
+    # -------------------------------
     - icon: fa-github
       href: https://github.com/ByMaxAnjos/climasus4r
+    
+    # Language Switchers
+    - text: "Português"
+      href: ../pt/index.html
+    - text: "Español"
+      href: ../es/index.html
+
+home:
+  title: "climasus4r - Integrated Analytics Toolkit"
+  description: "R package for integrated analysis of health, climate, and environmental data in Brazil."
+
+reference:
+  - title: "Data Import"
+    desc: "Functions to retrieve data from SUS systems"
+    contents:
+      - starts_with("sus_data_import")
+  
+  - title: "Data Cleaning"
+    desc: "Functions to clean and standardize raw data"
+    contents:
+      - starts_with("sus_data_clean")
+      - starts_with("sus_data_standardize")
+  
+  - title: "Filters & Selection"
+    desc: "Helper functions to filter by region or period"
+    contents:
+      - starts_with("sus_data_filter")
+  
+  - title: "Feature Engineering"
+    desc: "Functions to derive new variables and indicators"
+    contents:
+      - starts_with("sus_create")
+
+articles:
+  - title: "Introduction"
+    contents:
+      - about
+  - title: "Tutorials"
+    contents:
+      - tutorials

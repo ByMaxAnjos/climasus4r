@@ -1,31 +1,83 @@
 url: https://bymaxanjos.github.io/climasus4r/es
-
+lang: es
 template:
   bootstrap: 5
-  bootswatch: cosmo
-  assets: pkgdown/assets/custom.css
+  bootswatch: darkly
+  theme: arrow-dark
+  bslib:
+    preset: bootstrap
+  includes:
+    in_header: |
+      <link rel="stylesheet" href="pkgdown/assets/custom-modern.css">
 
 navbar:
-  type: default
+  title: "climasus4r"
   left:
     - text: "Inicio"
       href: index.html
-    - text: "Sobre"
+    - text: "Acerca de"
       href: articles/about.html
     - text: "Tutoriales"
       href: articles/tutorials.html
-    - text: "Estudios de Caso"
+    - text: "Casos de Estudio"
       href: articles/case-studies.html
     - text: "Comunidad"
       menu:
-        - text: "Reportar un Problema"
-          href: https://github.com/ByMaxAnjos/climasus4r/issues/new/choose
-        - text: "Foro de Discusión"
+        - text: "GitHub Issues"
+          href: https://github.com/ByMaxAnjos/climasus4r/issues
+        - text: "Discusiones"
           href: https://github.com/ByMaxAnjos/climasus4r/discussions
     - text: "Referencia"
       href: reference/index.html
     - text: "Noticias"
       href: news/index.html
+  
   right:
+    # --- AI Assistant Integration ---
+    - icon: fa-robot
+      text: "Asistente IA"
+      href: https://climasus4r.manus.space/
+      target: "_blank"
+    # -------------------------------
     - icon: fa-github
       href: https://github.com/ByMaxAnjos/climasus4r
+    
+    # Language Switchers
+    - text: "Português"
+      href: ../pt/index.html
+    - text: "English"
+      href: ../en/index.html
+
+home:
+  title: "climasus4r - Kit de Herramientas Integrado"
+  description: "Paquete de R para el análisis integrado de datos de salud, clima y medio ambiente en Brasil."
+
+reference:
+  - title: "Importación de Datos"
+    desc: "Funciones para obtener datos de los sistemas del SUS"
+    contents:
+      - starts_with("sus_data_import")
+  
+  - title: "Limpieza de Datos"
+    desc: "Funciones para limpiar y estandarizar datos brutos"
+    contents:
+      - starts_with("sus_data_clean")
+      - starts_with("sus_data_standardize")
+  
+  - title: "Filtros y Selección"
+    desc: "Funciones auxiliares para filtrar por región o período"
+    contents:
+      - starts_with("sus_data_filter")
+  
+  - title: "Creación de Variables"
+    desc: "Funciones para derivar nuevas variables e indicadores"
+    contents:
+      - starts_with("sus_create")
+
+articles:
+  - title: "Introducción"
+    contents:
+      - about
+  - title: "Tutoriales"
+    contents:
+      - tutorials
