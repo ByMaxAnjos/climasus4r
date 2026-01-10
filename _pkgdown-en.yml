@@ -2,10 +2,9 @@ url: https://bymaxanjos.github.io/climasus4r/en
 lang: en
 template:
   bootstrap: 5
-  bootswatch: darkly
-  theme: arrow-dark
   bslib:
-    preset: bootstrap
+    theme: darkly       # Define o tema Darkly aqui dentro
+    primary: "#00bc8c"  # (Opcional) Ajuste fino da cor primária do Darkly
   includes:
     in_header: |
       <link rel="stylesheet" href="pkgdown/assets/custom-modern.css">
@@ -53,26 +52,44 @@ home:
   description: "R package for integrated analysis of health, climate, and environmental data in Brazil."
 
 reference:
-  - title: "Data Import"
-    desc: "Functions to retrieve data from SUS systems"
+  - title: "Import & Export"
+    desc: "Core functions to retrieve, read, and save DATASUS data"
     contents:
-      - starts_with("sus_data_import")
-  
-  - title: "Data Cleaning"
-    desc: "Functions to clean and standardize raw data"
+      - sus_data_import
+      - sus_data_read
+      - sus_data_export
+
+  - title: "Cleaning & Standardization"
+    desc: "Encoding fixes, column standardization, and feature engineering"
     contents:
-      - starts_with("sus_data_clean")
-      - starts_with("sus_data_standardize")
-  
-  - title: "Filters & Selection"
-    desc: "Helper functions to filter by region or period"
+      - sus_data_clean_encoding
+      - sus_data_standardize
+      - sus_create_variables
+
+  - title: "Filtering & Selection"
+    desc: "Filter by ICD-10 codes, disease groups, and demographics"
     contents:
-      - starts_with("sus_data_filter")
-  
-  - title: "Feature Engineering"
-    desc: "Functions to derive new variables and indicators"
+      - sus_data_filter_cid
+      - sus_data_filter_demographics
+
+  - title: "Analysis & Spatial Data"
+    desc: "Time series aggregation and spatial joins with Brazilian geography"
     contents:
-      - starts_with("sus_create")
+      - sus_data_aggregate
+      - sus_join_spatial
+
+  - title: "Quality & Metadata"
+    desc: "Data quality reports and disease dictionaries"
+    contents:
+      - sus_data_quality_report
+      - list_disease_groups
+      - get_disease_group_details
+
+  - title: "Cache Management"
+    desc: "Manage local storage of downloaded files"
+    contents:
+      - clear_climasus_cache
+      - get_climasus_cache_info
 
 articles:
   - title: "Introduction"

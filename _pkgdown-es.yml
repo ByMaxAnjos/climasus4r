@@ -2,10 +2,9 @@ url: https://bymaxanjos.github.io/climasus4r/es
 lang: es
 template:
   bootstrap: 5
-  bootswatch: darkly
-  theme: arrow-dark
   bslib:
-    preset: bootstrap
+    theme: darkly       # Define o tema Darkly aqui dentro
+    primary: "#00bc8c"  # (Opcional) Ajuste fino da cor primária do Darkly
   includes:
     in_header: |
       <link rel="stylesheet" href="pkgdown/assets/custom-modern.css">
@@ -53,26 +52,44 @@ home:
   description: "Paquete de R para el análisis integrado de datos de salud, clima y medio ambiente en Brasil."
 
 reference:
-  - title: "Importación de Datos"
-    desc: "Funciones para obtener datos de los sistemas del SUS"
+  - title: "Importación y Exportación"
+    desc: "Funciones principales para obtener, leer y guardar datos del DATASUS"
     contents:
-      - starts_with("sus_data_import")
-  
-  - title: "Limpieza de Datos"
-    desc: "Funciones para limpiar y estandarizar datos brutos"
+      - sus_data_import
+      - sus_data_read
+      - sus_data_export
+
+  - title: "Limpieza y Estandarización"
+    desc: "Corrección de codificación, estandarización y creación de variables"
     contents:
-      - starts_with("sus_data_clean")
-      - starts_with("sus_data_standardize")
-  
+      - sus_data_clean_encoding
+      - sus_data_standardize
+      - sus_create_variables
+
   - title: "Filtros y Selección"
-    desc: "Funciones auxiliares para filtrar por región o período"
+    desc: "Filtrado por códigos CIE-10, grupos de enfermedades y demografía"
     contents:
-      - starts_with("sus_data_filter")
-  
-  - title: "Creación de Variables"
-    desc: "Funciones para derivar nuevas variables e indicadores"
+      - sus_data_filter_cid
+      - sus_data_filter_demographics
+
+  - title: "Análisis y Datos Espaciales"
+    desc: "Agregación de series temporales y unión con datos geográficos"
     contents:
-      - starts_with("sus_create")
+      - sus_data_aggregate
+      - sus_join_spatial
+
+  - title: "Calidad y Metadatos"
+    desc: "Informes de calidad de datos y diccionarios de enfermedades"
+    contents:
+      - sus_data_quality_report
+      - list_disease_groups
+      - get_disease_group_details
+
+  - title: "Gestión de Caché"
+    desc: "Control del almacenamiento local de archivos descargados"
+    contents:
+      - clear_climasus_cache
+      - get_climasus_cache_info
 
 articles:
   - title: "Introducción"

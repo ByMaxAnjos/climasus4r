@@ -1,10 +1,9 @@
 url: https://bymaxanjos.github.io/climasus4r/pt
 template:
   bootstrap: 5
-  bootswatch: darkly
-  theme: arrow-dark
   bslib:
-    preset: bootstrap
+    theme: darkly       # Define o tema Darkly aqui dentro
+    primary: "#00bc8c"  # (Opcional) Ajuste fino da cor primária do Darkly
   includes:
     in_header: |
       <link rel="stylesheet" href="pkgdown/assets/custom-modern.css">
@@ -50,23 +49,44 @@ home:
   description: "Pacote R para análise de dados de saúde, clima e ambiente no Brasil"
 
 reference:
-  - title: "Importação de Dados"
-    desc: "Funções para importar dados do SUS"
+  - title: "Importação e Exportação"
+    desc: "Funções principais para obter, ler e salvar dados do DATASUS"
     contents:
-      - starts_with("sus_data_import")
-  - title: "Limpeza de Dados"
-    desc: "Funções para limpar e padronizar dados"
+      - sus_data_import
+      - sus_data_read
+      - sus_data_export
+
+  - title: "Limpeza e Padronização"
+    desc: "Tratamento de encoding, nomes de colunas e criação de variáveis"
     contents:
-      - starts_with("sus_data_clean")
-      - starts_with("sus_data_standardize")
+      - sus_data_clean_encoding
+      - sus_data_standardize
+      - sus_create_variables
+
   - title: "Filtros e Seleção"
-    desc: "Funções para filtrar dados por critérios específicos"
+    desc: "Filtragem por CID, grupos de doenças e demografia"
     contents:
-      - starts_with("sus_data_filter")
-  - title: "Criação de Variáveis"
-    desc: "Funções para criar novas variáveis derivadas"
+      - sus_data_filter_cid
+      - sus_data_filter_demographics
+
+  - title: "Análise e Dados Espaciais"
+    desc: "Agregação de séries temporais e junção com malhas geográficas"
     contents:
-      - starts_with("sus_create")
+      - sus_data_aggregate
+      - sus_join_spatial
+
+  - title: "Qualidade e Metadados"
+    desc: "Relatórios de qualidade de dados e dicionários de doenças"
+    contents:
+      - sus_data_quality_report
+      - list_disease_groups
+      - get_disease_group_details
+
+  - title: "Gerenciamento de Cache"
+    desc: "Controle do armazenamento local de arquivos baixados"
+    contents:
+      - clear_climasus_cache
+      - get_climasus_cache_info
 
 articles:
   - title: "Introdução"
