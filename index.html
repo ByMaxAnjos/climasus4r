@@ -562,7 +562,7 @@
             </p>
             
             <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <a href="#" class="btn-primary" data-translate="hero.cta">
+                <a href="https://bymaxanjos.github.io/climasus4r/pt/index.html" id="cta-button" class="btn-primary" data-translate="hero.cta">
                     Começar Agora
                     <span id="arrow-icon"></span>
                 </a>
@@ -898,6 +898,13 @@
   }
 };
         
+        // CTA links for each language
+        const ctaLinks = {
+            'pt': 'https://bymaxanjos.github.io/climasus4r/pt/index.html',
+            'en': 'https://bymaxanjos.github.io/climasus4r/en/index.html',
+            'es': 'https://bymaxanjos.github.io/climasus4r/es/index.html'
+        };
+        
         // Current language
         let currentLang = 'pt';
         
@@ -922,6 +929,15 @@
         // Function to get initials from name
         function getInitials(name) {
             return name.split(' ').map(n => n[0]).join('').toUpperCase();
+        }
+        
+        // Function to update CTA button link
+        function updateCTALink() {
+            const ctaButton = document.getElementById('cta-button');
+            if (ctaButton && ctaLinks[currentLang]) {
+                ctaButton.href = ctaLinks[currentLang];
+                console.log('CTA link updated to:', ctaLinks[currentLang]);
+            }
         }
         
         // Function to render features
@@ -991,6 +1007,9 @@
                 }
             });
             
+            // Update CTA button link
+            updateCTALink();
+            
             // Render dynamic content
             renderFeatures();
             renderTeam();
@@ -1000,6 +1019,7 @@
         document.querySelectorAll('.lang-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 currentLang = btn.dataset.lang;
+                console.log('Language changed to:', currentLang);
                 updateLanguage();
             });
         });
@@ -1037,6 +1057,10 @@
                 return currentLang;
             }
         };
+        
+        // Log for debugging
+        console.log('climasus4r initialized. Current language:', currentLang);
+        console.log('CTA links:', ctaLinks);
     </script>
 </body>
 </html>
