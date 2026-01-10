@@ -1,15 +1,17 @@
-url: https://bymaxanjos.github.io/climasus4r/en
-lang: en
+url: https://bymaxanjos.github.io/climasus4r/es
+lang: es
 
 template:
   bootstrap: 5
-  theme: flatly
   bslib:
-    preset: bootstrap
     bg: "#f8fafc"
     fg: "#1e293b"
     primary: "#10b981"
     secondary: "#3b82f6"
+    base_font:
+      google: "Inter"
+    code_font:
+      google: "Fira Code"
   includes:
     in_header: |
       <link rel="stylesheet" href="pkgdown/assets/custom-modern.css">
@@ -17,86 +19,85 @@ template:
 navbar:
   title: "climasus4r"
   left:
-    - text: "Home"
+    - text: "Inicio"
       href: index.html
-    - text: "About"
+    - text: "Acerca de"
       href: articles/about.html
-    - text: "Tutorials"
+    - text: "Tutoriales"
       href: articles/tutorials.html
-    - text: "Case Studies"
+    - text: "Casos de Estudio"
       href: articles/case-studies.html
-    - text: "Community"
+    - text: "Comunidad"
       menu:
         - text: "GitHub Issues"
           href: https://github.com/ByMaxAnjos/climasus4r/issues
-        - text: "Discussions"
+        - text: "Discusiones"
           href: https://github.com/ByMaxAnjos/climasus4r/discussions
-    - text: "Reference"
+    - text: "Referencia"
       href: reference/index.html
-    - text: "News"
+    - text: "Noticias"
       href: news/index.html
   
   right:
     - icon: fa-robot
-      text: "AI Assistant"
+      text: "Asistente IA"
       href: https://climasus4r.manus.space/
       target: "_blank"
     - icon: fa-github
       href: https://github.com/ByMaxAnjos/climasus4r
     - text: "Português"
       href: ../pt/index.html
-    - text: "Español"
-      href: ../es/index.html
+    - text: "English"
+      href: ../en/index.html
 
 home:
-  title: "climasus4r - Integrated Analytics Toolkit"
-  description: "R package for integrated analysis of health, climate, and environmental data in Brazil."
+  title: "climasus4r - Kit de Herramientas Integrado"
+  description: "Paquete de R para el análisis integrado de datos de salud, clima y medio ambiente en Brasil."
 
 reference:
-  - title: "Import & Export"
-    desc: "Core functions to retrieve, read, and save DATASUS data"
+  - title: "Importación y Exportación"
+    desc: "Funciones principales para obtener, leer y guardar datos del DATASUS"
     contents:
       - sus_data_import
       - sus_data_read
       - sus_data_export
 
-  - title: "Cleaning & Standardization"
-    desc: "Encoding fixes, column standardization, and feature engineering"
+  - title: "Limpieza y Estandarización"
+    desc: "Corrección de codificación, estandarización y creación de variables"
     contents:
       - sus_data_clean_encoding
       - sus_data_standardize
       - sus_create_variables
 
-  - title: "Filtering & Selection"
-    desc: "Filter by ICD-10 codes, disease groups, and demographics"
+  - title: "Filtros y Selección"
+    desc: "Filtrado por códigos CIE-10, grupos de enfermedades y demografía"
     contents:
       - sus_data_filter_cid
       - sus_data_filter_demographics
 
-  - title: "Analysis & Spatial Data"
-    desc: "Time series aggregation and spatial joins with Brazilian geography"
+  - title: "Análisis y Datos Espaciales"
+    desc: "Agregación de series temporales y unión con datos geográficos"
     contents:
       - sus_data_aggregate
       - sus_join_spatial
 
-  - title: "Quality & Metadata"
-    desc: "Data quality reports and disease dictionaries"
+  - title: "Calidad y Metadatos"
+    desc: "Informes de calidad de datos y diccionarios de enfermedades"
     contents:
       - sus_data_quality_report
       - list_disease_groups
       - get_disease_group_details
 
-  - title: "Cache Management"
-    desc: "Manage local storage of downloaded files"
+  - title: "Gestión de Caché"
+    desc: "Control del almacenamiento local de archivos descargados"
     contents:
       - clear_climasus_cache
       - get_climasus_cache_info
 
 articles:
-  - title: "Introduction"
+  - title: "Introducción"
     contents:
       - about
-  - title: "Tutorials"
+  - title: "Tutoriales"
     contents:
       - tutorials
-      

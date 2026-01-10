@@ -2,13 +2,15 @@ url: https://bymaxanjos.github.io/climasus4r/pt
 
 template:
   bootstrap: 5
-  theme: flatly
   bslib:
-    preset: bootstrap
     bg: "#f8fafc"
     fg: "#1e293b"
     primary: "#10b981"
     secondary: "#3b82f6"
+    base_font:
+      google: "Inter"
+    code_font:
+      google: "Fira Code"
   includes:
     in_header: |
       <link rel="stylesheet" href="pkgdown/assets/custom-modern.css">
