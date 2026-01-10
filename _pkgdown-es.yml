@@ -1,8 +1,15 @@
-url: https://bymaxanjos.github.io/climasus4r/es
-lang: es
+url: https://bymaxanjos.github.io/climasus4r/en
+lang: en
+
 template:
   bootstrap: 5
-  bootswatch: darkly
+  theme: flatly
+  bslib:
+    preset: bootstrap
+    bg: "#f8fafc"
+    fg: "#1e293b"
+    primary: "#10b981"
+    secondary: "#3b82f6"
   includes:
     in_header: |
       <link rel="stylesheet" href="pkgdown/assets/custom-modern.css">
@@ -10,86 +17,86 @@ template:
 navbar:
   title: "climasus4r"
   left:
-    - text: "Inicio"
+    - text: "Home"
       href: index.html
-    - text: "Acerca de"
+    - text: "About"
       href: articles/about.html
-    - text: "Tutoriales"
+    - text: "Tutorials"
       href: articles/tutorials.html
-    - text: "Casos de Estudio"
+    - text: "Case Studies"
       href: articles/case-studies.html
-    - text: "Comunidad"
+    - text: "Community"
       menu:
         - text: "GitHub Issues"
           href: https://github.com/ByMaxAnjos/climasus4r/issues
-        - text: "Discusiones"
+        - text: "Discussions"
           href: https://github.com/ByMaxAnjos/climasus4r/discussions
-    - text: "Referencia"
+    - text: "Reference"
       href: reference/index.html
-    - text: "Noticias"
+    - text: "News"
       href: news/index.html
   
   right:
     - icon: fa-robot
-      text: "Asistente IA"
+      text: "AI Assistant"
       href: https://climasus4r.manus.space/
       target: "_blank"
     - icon: fa-github
       href: https://github.com/ByMaxAnjos/climasus4r
     - text: "Português"
       href: ../pt/index.html
-    - text: "English"
-      href: ../en/index.html
+    - text: "Español"
+      href: ../es/index.html
 
 home:
-  title: "climasus4r - Kit de Herramientas Integrado"
-  description: "Paquete de R para el análisis integrado de datos de salud, clima y medio ambiente en Brasil."
+  title: "climasus4r - Integrated Analytics Toolkit"
+  description: "R package for integrated analysis of health, climate, and environmental data in Brazil."
 
 reference:
-  - title: "Importación y Exportación"
-    desc: "Funciones principales para obtener, leer y guardar datos del DATASUS"
+  - title: "Import & Export"
+    desc: "Core functions to retrieve, read, and save DATASUS data"
     contents:
       - sus_data_import
       - sus_data_read
       - sus_data_export
 
-  - title: "Limpieza y Estandarización"
-    desc: "Corrección de codificación, estandarización y creación de variables"
+  - title: "Cleaning & Standardization"
+    desc: "Encoding fixes, column standardization, and feature engineering"
     contents:
       - sus_data_clean_encoding
       - sus_data_standardize
       - sus_create_variables
 
-  - title: "Filtros y Selección"
-    desc: "Filtrado por códigos CIE-10, grupos de enfermedades y demografía"
+  - title: "Filtering & Selection"
+    desc: "Filter by ICD-10 codes, disease groups, and demographics"
     contents:
       - sus_data_filter_cid
       - sus_data_filter_demographics
 
-  - title: "Análisis y Datos Espaciales"
-    desc: "Agregación de series temporales y unión con datos geográficos"
+  - title: "Analysis & Spatial Data"
+    desc: "Time series aggregation and spatial joins with Brazilian geography"
     contents:
       - sus_data_aggregate
       - sus_join_spatial
 
-  - title: "Calidad y Metadatos"
-    desc: "Informes de calidad de datos y diccionarios de enfermedades"
+  - title: "Quality & Metadata"
+    desc: "Data quality reports and disease dictionaries"
     contents:
       - sus_data_quality_report
       - list_disease_groups
       - get_disease_group_details
 
-  - title: "Gestión de Caché"
-    desc: "Control del almacenamiento local de archivos descargados"
+  - title: "Cache Management"
+    desc: "Manage local storage of downloaded files"
     contents:
       - clear_climasus_cache
       - get_climasus_cache_info
 
 articles:
-  - title: "Introducción"
+  - title: "Introduction"
     contents:
       - about
-  - title: "Tutoriales"
+  - title: "Tutorials"
     contents:
       - tutorials
       

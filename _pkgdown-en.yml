@@ -1,8 +1,15 @@
 url: https://bymaxanjos.github.io/climasus4r/en
 lang: en
+
 template:
   bootstrap: 5
-  bootswatch: darkly
+  theme: flatly
+  bslib:
+    preset: bootstrap
+    bg: "#f8fafc"
+    fg: "#1e293b"
+    primary: "#10b981"
+    secondary: "#3b82f6"
   includes:
     in_header: |
       <link rel="stylesheet" href="pkgdown/assets/custom-modern.css">
