@@ -343,22 +343,11 @@ sus_data_import <- function(uf = NULL,
     }
   }
   #Check month
-  # # Check month parameter
-  # if (!is.null(month)) {
-  #   if (!is.numeric(month) || any(month < 1) || any(month > 12)) {
-  #     cli::cli_alert_danger("Invalid month. Must be between 1 and 12.")
-  #     stop("Invalid month provided.")
-  #   }
-    
-  #   # Check if month is appropriate for the system
-  #   systems_with_month <- c("SIH", "CNES", "SIA")
-  #   system_prefix <- sub("-.*", "", system)
-    
-  #   if (!system_prefix %in% systems_with_month) {
-  #     cli::cli_alert_warning("Parameter 'month' is typically only used with SIH, CNES, and SIA systems.")
-  #     cli::cli_alert_info("System {system} might not support month filtering.")
-  #   }
-  # }
+  if (parallel && workers > parallel::detectCores()) {
+    cli::cli_alert_warning(
+      "{workers} workers requested but only {parallel::detectCores()} cores available"
+    )
+  }
   # Setup cache directory
   if (use_cache) {
     cache_dir <- path.expand(cache_dir)

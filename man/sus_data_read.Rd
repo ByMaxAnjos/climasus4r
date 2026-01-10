@@ -2,97 +2,91 @@
 % Please edit documentation in R/sus_data_read.R
 \name{sus_data_read}
 \alias{sus_data_read}
-\title{Read Processed Health Data with Automatic Format Detection}
+\title{Read Processed Health Data with Batch and Parallel Support}
 \usage{
 sus_data_read(
-  file_path,
+  path,
   format = NULL,
-  read_metadata = TRUE,
-  validate = TRUE,
+  parallel = FALSE,
+  workers = 4,
+  read_metadata = FALSE,
   lang = "pt",
   verbose = TRUE
 )
 }
 \arguments{
-\item{file_path}{Character string specifying the input file path.}
+\item{path}{Character vector of file paths, or a single directory path.
+If a directory is provided, all matching files will be read.}
 
-\item{format}{Character string specifying the input format. Options:
-\code{"rds"}, \code{"arrow"}, \code{"geoparquet"}, \code{"shapefile"}, \code{"gpkg"}, \code{"geojson"}, \code{"csv"}.
+\item{format}{Character string specifying the input format. Options: \code{"dbf"},
+\code{"rds"}, \code{"parquet"}, \code{"geoparquet"}, \code{"shapefile"}, \code{"gpkg"}, \code{"geojson"}, \code{"csv"}.
 If \code{NULL} (default), automatically detects format from file extension.}
 
-\item{read_metadata}{Logical. If \code{TRUE} (default), attempts to load companion
-metadata file (if it exists) and attaches it as an attribute to the returned object.}
+\item{parallel}{Logical. If \code{TRUE}, uses parallel processing for multiple files.
+Requires \code{future} and \code{future.apply} packages. Default: \code{FALSE}.}
 
-\item{validate}{Logical. If \code{TRUE} (default), validates data integrity after loading.
-For spatial data, checks geometry validity and CRS.}
+\item{workers}{Integer. Number of parallel workers when \code{parallel = TRUE}. Default: 4.}
+
+\item{read_metadata}{Logical. If \code{TRUE} (default), loads companion metadata files
+and attaches them as attributes.}
 
 \item{lang}{Character string specifying the language for messages. Options:
 \code{"en"} (English), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}
 
-\item{verbose}{Logical. If \code{TRUE} (default), prints loading progress and summary.}
+\item{verbose}{Logical. If \code{TRUE} (default), prints progress and summary.}
 }
 \value{
 A data frame or sf object (for spatial data) containing the loaded data.
-If metadata was found and \code{read_metadata = TRUE}, metadata is attached as
-an attribute accessible via \code{attr(df, "metadata")}.
+For batch reads, all files are combined with \code{dplyr::bind_rows()}.
+Metadata is attached as attributes:
+\itemize{
+\item Single file: \code{attr(df, "metadata")}
+\item Batch: \code{attr(df, "batch_metadata")} (list of metadata from each file)
+\item Batch: \code{attr(df, "n_files_combined")} (number of files)
+}
 }
 \description{
-Intelligently reads health data files exported by \code{sus_data_export()} or
-created externally. Automatically detects file format, reads spatial data,
-loads metadata, and validates data integrity.
+Intelligently reads one or multiple health data files exported by \code{sus_data_export()}.
+Supports automatic format detection, batch processing, parallel execution, spatial data,
+metadata loading, and data validation.
 }
 \details{
-\strong{Automatic Format Detection}:
-The function automatically detects the file format based on the extension:
-\itemize{
-\item \code{.rds} → RDS format
-\item \code{.parquet}, \code{.arrow} → Arrow/Parquet or GeoParquet (auto-detected)
-\item \code{.geoparquet} → GeoParquet
-\item \code{.shp} → Shapefile
-\item \code{.gpkg} → GeoPackage
-\item \code{.geojson} → GeoJSON
-\item \code{.csv} → CSV
-}
+\strong{Batch Processing}:
+Pass a vector of file paths or a directory path to read multiple files at once.
+All files are automatically combined into a single object.
 
-\strong{GeoParquet Detection}:
-For \code{.parquet} files, the function automatically determines if it's a GeoParquet
-(spatial) or regular Parquet file by checking for spatial metadata.
+\strong{Parallel Processing}:
+When \code{parallel = TRUE}, files are read simultaneously using \code{future.apply}.
+This significantly speeds up batch reads of large files.
 
-\strong{Metadata Loading}:
-If a companion metadata file exists (e.g., \code{data_metadata.txt} for \code{data.parquet}),
-it is automatically loaded and attached to the returned object.
+\strong{Format Detection}:
+Automatically detects format from file extension. For \code{.parquet} files,
+automatically determines if it's GeoParquet (spatial) or regular Parquet.
 
-\strong{Data Validation}:
-When \code{validate = TRUE}, the function checks:
-\itemize{
-\item Non-zero rows and columns
-\item For spatial data: valid geometries, defined CRS, valid bounding box
-}
+\strong{Memory Efficiency}:
+For very large datasets (>50 GB), consider using chunked processing or
+reading files individually instead of batch mode.
 }
 \examples{
 \dontrun{
 library(climasus4r)
 
-# Read with automatic format detection
+# Single file
 df <- sus_data_read("output/data.parquet")
 
-# Read spatial data (GeoParquet)
-sf_data <- sus_data_read("output/spatial_data.geoparquet")
+# Multiple files (vector)
+df <- sus_data_read(c("output/2020.parquet", "output/2021.parquet"))
 
-# Read shapefile
-sf_data <- sus_data_read("output/spatial_data.shp")
+# Directory (all Parquet files)
+df <- sus_data_read("output/", format = "parquet")
 
-# Read without metadata
-df <- sus_data_read("output/data.rds", read_metadata = FALSE)
+# Parallel batch read
+df <- sus_data_read("output/", format = "dbf", 
+                    parallel = TRUE, workers = 6)
 
-# Access metadata
-df <- sus_data_read("output/data.parquet")
-metadata <- attr(df, "metadata")
-print(metadata$source_system)
-print(metadata$years)
-
-# Silent reading
-df <- sus_data_read("output/data.csv", verbose = FALSE)
+# Access batch metadata
+batch_meta <- attr(df, "batch_metadata")
+n_files <- attr(df, "n_files_combined")
 }
 
 }
