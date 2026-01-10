@@ -2,9 +2,7 @@ url: https://bymaxanjos.github.io/climasus4r/es
 lang: es
 template:
   bootstrap: 5
-  bslib:
-    theme: darkly       # Define o tema Darkly aqui dentro
-    primary: "#00bc8c"  # (Opcional) Ajuste fino da cor primária do Darkly
+  bootswatch: darkly
   includes:
     in_header: |
       <link rel="stylesheet" href="pkgdown/assets/custom-modern.css">
@@ -32,16 +30,12 @@ navbar:
       href: news/index.html
   
   right:
-    # --- AI Assistant Integration ---
     - icon: fa-robot
       text: "Asistente IA"
       href: https://climasus4r.manus.space/
       target: "_blank"
-    # -------------------------------
     - icon: fa-github
       href: https://github.com/ByMaxAnjos/climasus4r
-    
-    # Language Switchers
     - text: "Português"
       href: ../pt/index.html
     - text: "English"
@@ -98,3 +92,4 @@ articles:
   - title: "Tutoriales"
     contents:
       - tutorials
+      
