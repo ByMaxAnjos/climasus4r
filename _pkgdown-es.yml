@@ -52,7 +52,7 @@ navbar:
       href: ../en/index.html
 
 logo:
-  src: man/figures/logo.png
+  src: inst/figures/logo.png
   alt: "climasus4r logo"
 
 home:
