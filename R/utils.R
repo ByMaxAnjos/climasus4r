@@ -4,9 +4,6 @@
 #' @name utils
 NULL
 
-
-
-
 #' Get UI messages in specified language
 #'
 #' Returns user interface messages in the specified language.

@@ -14,6 +14,7 @@ template:
   includes:
     in_header: |
       <link rel="stylesheet" href="pkgdown/assets/custom-modern.css">
+      <link rel="icon" type="image/png" href="pkgdown/assets/favicon.png">
 
 navbar:
   title: "climasus4r"
@@ -47,6 +48,10 @@ navbar:
       href: ../en/index.html
     - text: "Español"
       href: ../es/index.html
+
+logo:
+  src: man/figures/logo.png
+  alt: "climasus4r logo"
 
 home:
   title: "climasus4r - Kit de Ferramentas Integrado"
@@ -85,6 +90,7 @@ reference:
       - sus_data_quality_report
       - list_disease_groups
       - get_disease_group_details
+      - sus_census_explore
 
   - title: "Gerenciamento de Cache"
     desc: "Controle do armazenamento local de arquivos baixados"

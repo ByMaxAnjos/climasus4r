@@ -14,3 +14,5 @@
 ^vignettes-pt/.*
 ^vignettes-es/.*
 ^vignettes-en/.*
+
+^\.man\figures\.png$
