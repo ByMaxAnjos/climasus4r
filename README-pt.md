@@ -1,6 +1,6 @@
 # climasus4r:: Kit de Ferramentas Integrado para Análise de Dados de Saúde, Clima e Ambiente
 
-# <img src="man/figures/logo.png" align="right" height="139" />
+# <img src="inst/figures/logo.png" align="right" height="139" />
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
