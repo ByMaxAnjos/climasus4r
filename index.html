@@ -649,8 +649,8 @@
                     <div class="stat-label">Anos de Dados</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-number">10+</div>
-                    <div class="stat-label">Indicadores</div>
+                    <div class="stat-number">15+</div>
+                    <div class="stat-label">Funcionalidades</div>
                 </div>
             </div>
         </div>
@@ -731,7 +731,6 @@
         const translations = {
   "pt": {
     "nav": {
-      "docs": "Docs",
       "features": "Recursos",
       "team": "Equipe",
       "funding": "Fomento"
@@ -739,37 +738,43 @@
     "hero": {
       "badge": "Versão 0.0.0.9000 Disponível",
       "title": "Ciência Climática Integrada ao SUS",
-      "subtitle": "Uma ferramenta poderosa em R para análise espaço-temporal de dados climáticos e ambiental voltada à saúde pública brasileira.",
+      "subtitle": "Um pacote em R para análise espaço-temporal de dados climáticos e ambiental voltada à saúde pública brasileira.",
       "cta": "Começar Agora",
       "secondaryCta": "Ver no GitHub"
     },
     "description": {
       "title": "Sobre o climasus4r",
-      "text": "O climasus4r foi desenvolvido para preencher a lacuna entre dados meteorológicos complexos e a gestão de saúde pública. Facilita o download, processamento e visualização de indicadores climáticos críticos para pesquisadores e gestores do SUS."
+      "text": "climasus4r é uma plataforma científica em R para integrar, padronizar e analisar dados de saúde, clima e ambiente no Brasil. Desenvolvido no âmbito do INCT Conexão–Amazônia, o pacote automatiza todo o fluxo de trabalho epidemiológico — desde a aquisição dos dados do DATASUS até a geração de séries temporais prontas para modelagem climática, vigilância em saúde e avaliação de riscos ambientais. Com suporte aos seis principais sistemas do SUS (SIM, SINAN, SIH, SIA, CNES e SINASC), processamento paralelo, padronização multilíngue (PT-EN-ES) e mais de 50 grupos de doenças sensíveis ao clima, o climasus4r transforma grandes volumes de microdados em informação científica reprodutível, escalável e pronta para decisões em saúde pública."
     },
     "features": [
       {
-        "title": "AI Assistant",
-        "desc": "Converse com um especialista em IA treinado no climasus4r.",
-        "icon": "Terminal",
-        "link": "https://climasus4r.manus.space/"
-      },
-      {
-        "title": "Dados do SUS",
-        "desc": "Integração nativa com bases de dados de saúde brasileiras.",
-        "icon": "Heart",
+        "title": "Fase 1 — Infraestrutura de Dados",
+        "desc": "Aquisição paralela, limpeza, padronização multilíngue, filtragem por CID-10, criação de variáveis epidemiológicas, agregação temporal flexível, relatórios de qualidade e exportação com metadados prontos para análise científica.",
+        "icon": "Database",
         "link": "pt/index.html"
       },
       {
-        "title": "Modelagem Climática",
-        "desc": "Processamento de séries temporais de temperatura e umidade.",
+        "title": "Fase 2 — Integração Socioeconômica",
+        "desc": "Vinculação espacial de limites geográficos, integração de dados do IBGE (população, PIB, IDH), correspondência de setores censitários e operações espaciais ponderadas pela população para análise de desigualdades em saúde.",
+        "icon": "Users",
+        "link": "pt/index.html"
+      },
+      {
+        "title": "Fase 3 — Integração Ambiental",
+        "desc": "Importação de dados meteorológicos (INMET, FIORES, INCT-CONEXÃO), qualidade do ar (INPE, CETESB), dados de satélite (MODIS, Sentinel) e algoritmos de correspondência de exposição climática.",
         "icon": "CloudRain",
         "link": "pt/index.html"
       },
       {
-        "title": "Análise Espacial",
-        "desc": "Mapas de calor e vulnerabilidade por município.",
-        "icon": "Database",
+        "title": "Fase 4 — Análise Espacial Avançada",
+        "desc": "Modelos espaciais bayesianos, detecção de clusters (SaTScan, Kulldorff), indicadores locais de autocorrelação (LISA), regressões espaciais e modelos de risco relativo para internações e mortalidade associados ao clima.",
+        "icon": "Map",
+        "link": "pt/index.html"
+      },
+      {
+        "title": "Fase 5 — Análise Temporal e Preditiva",
+        "desc": "Modelos de defasagem distribuída não linear (DLNM), fração atribuível, decomposição de séries temporais, aprendizado de máquina e bioprognose climática baseada em previsões meteorológicas e cenários climáticos de curto, médio e longo prazo.",
+        "icon": "TrendingUp",
         "link": "pt/index.html"
       }
     ],
@@ -779,7 +784,7 @@
       "members": [
         {
           "name": "Dr. Max Anjos",
-          "role": "Pesquisador Principal e Mentor",
+          "role": "Mentor e Desenvolvedor R",
           "org": "Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO)",
           "email": "max.anjos@campus.ul.pt",
           "photo": "https://avatars.githubusercontent.com/ByMaxAnjos",
@@ -788,7 +793,7 @@
         },
         {
           "name": "Thauã Menezes",
-          "role": "Desenvolvedor R",
+          "role": "Contribuidor R",
           "org": "UNESP",
           "email": "thaua.menezes@unesp.br",
           "photo": "https://avatars.githubusercontent.com/thauamenezez",
@@ -799,10 +804,10 @@
     },
     "funding": {
       "title": "Apoio e Financiamento",
-      "text": "O projeto climasus4r é financiado pelo Ministério da Saúde e pela Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO), vinculado ao Instituto Nacional de Ciência e Tecnologia de Pesquisa e Conhecimento de Excelência da Amazônia Ocidental - INCT-CONEXAO (@inct_conexao), processo nº 408474/2024-6. O fomento abrange o: Núcleo Permanente de Climatologia (NPC) e Núcleo Avançado de Climatologia (NAC)."
+      "text": "O projeto climasus4r é financiado pelo Ministério da Saúde e pela Fundação Oswaldo Cruz Rondônia (Fiocruz-RO / CCSRO), no âmbito do Instituto Nacional de Ciência e Tecnologia de Pesquisa e Conhecimento de Excelência da Amazônia Ocidental – INCT-CONEXÃO (@inct_conexao), processo nº 408474/2024-6. O fomento contempla o Núcleo Permanente de Climatologia (NPC) e o Núcleo Avançado de Climatologia (NAC)."
     },
     "footer": {
-      "text": "© 2024 climasus4r. Licença MIT."
+      "text": "© 2026 climasus4r team. Licença MIT."
     }
   },
   "en": {
@@ -815,37 +820,43 @@
     "hero": {
       "badge": "Version 0.0.0.9000 Out Now",
       "title": "Climate Science for Public Health",
-      "subtitle": "A powerful R package for climate data analysis and sustainability focused on the Brazilian healthcare system.",
+      "subtitle": "An R package for climate data analysis and environmental focused on the Brazilian healthcare system.",
       "cta": "Get Started",
       "secondaryCta": "View on GitHub"
     },
     "description": {
       "title": "About climasus4r",
-      "text": "climasus4r was designed to bridge the gap between complex meteorological data and public health management. It streamlines the downloading, processing, and visualization of critical climate indicators for researchers."
+      "text": "climasus4r is a scientific R platform for integrating, standardizing, and analyzing health, climate, and environmental data in Brazil. Developed within the INCT Conexão–Amazonia program, it automates the entire epidemiological data pipeline — from raw DATASUS downloads to time-series datasets ready for climate modeling, health surveillance, and environmental risk assessment. With support for all six major Brazilian health information systems (SIM, SINAN, SIH, SIA, CNES, SINASC), parallel processing, multilingual standardization (EN-PT-ES), and over 50 climate-sensitive disease groups, climasus4r converts massive health microdata into reproducible, scalable, and policy-ready scientific evidence."
     },
     "features": [
       {
-        "title": "AI Assistant",
-        "desc": "Chat with an AI specialist trained on the climasus4r package.",
-        "icon": "Terminal",
-        "link": "https://climasus4r.manus.space/"
-      },
-      {
-        "title": "Health Data",
-        "desc": "Native integration with Brazilian health databases.",
-        "icon": "Heart",
+        "title": "Phase 1 — Data Infrastructure",
+        "desc": "Parallel data acquisition, encoding correction, multilingual standardization, ICD-10 filtering, epidemiological variable creation, flexible temporal aggregation, quality reports and metadata-ready exports for scientific analysis.",
+        "icon": "Database",
         "link": "en/index.html"
       },
       {
-        "title": "Climate Modeling",
-        "desc": "Processing temperature and humidity time series.",
+        "title": "Phase 2 — Socioeconomic Integration",
+        "desc": "Spatial linkage of geographic boundaries, integration of IBGE socioeconomic data (population, GDP, HDI), census tract matching and population-weighted spatial operations to analyze health inequalities.",
+        "icon": "Users",
+        "link": "en/index.html"
+      },
+      {
+        "title": "Phase 3 — Environmental Integration",
+        "desc": "Import of meteorological data (INMET, FIORES, INCT-CONEXÃO), air quality data (INPE, CETESB), satellite data (MODIS, Sentinel) and exposure-matching algorithms for climate-health analysis.",
         "icon": "CloudRain",
         "link": "en/index.html"
       },
       {
-        "title": "Spatial Analysis",
-        "desc": "Heatmaps and vulnerability indices by city.",
-        "icon": "Database",
+        "title": "Phase 4 — Advanced Spatial Analysis",
+        "desc": "Bayesian spatial smoothing, cluster detection (SaTScan, Kulldorff), local indicators of spatial association (LISA), spatial regression models and relative risk models for climate-related hospitalizations and mortality.",
+        "icon": "Map",
+        "link": "en/index.html"
+      },
+      {
+        "title": "Phase 5 — Temporal and Predictive Modeling",
+        "desc": "Non-linear distributed lag models (DLNM), attributable fraction, time-series decomposition, machine learning forecasting and climate-based bioprognosis using short-, medium- and long-term climate scenarios.",
+        "icon": "TrendingUp",
         "link": "en/index.html"
       }
     ],
@@ -855,7 +866,7 @@
       "members": [
         {
           "name": "Dr. Max Anjos",
-          "role": "Lead Researcher and Mentor",
+          "role": "Mentor and R Developer",
           "org": "Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO)",
           "email": "max.anjos@campus.ul.pt",
           "photo": "https://avatars.githubusercontent.com/ByMaxAnjos",
@@ -864,7 +875,7 @@
         },
         {
           "name": "Thauã Menezes",
-          "role": "R Developer",
+          "role": "R Contributor",
           "org": "UNESP",
           "email": "thaua.menezes@unesp.br",
           "photo": "https://avatars.githubusercontent.com/thauamenezez",
@@ -875,10 +886,10 @@
     },
     "funding": {
       "title": "Support and Funding",
-      "text": "This project is sustained by the joint effort of institutions that believe in open science."
+      "text": "The climasus4r project is funded by the Brazilian Ministry of Health and by the Oswaldo Cruz Foundation in Rondônia (Fiocruz-RO / CCSRO), within the framework of the National Institute of Science and Technology for Research and Knowledge of Excellence of the Western Amazon – INCT-CONEXÃO (@inct_conexao), grant number 408474/2024-6. The funding supports the Permanent Climatology Center (NPC) and the Advanced Climatology Center (NAC)."
     },
     "footer": {
-      "text": "© 2024 climasus4r. MIT License."
+      "text": "© 2026 climasus4r team. MIT License."
     }
   },
   "es": {
@@ -889,40 +900,46 @@
       "funding": "Financiamiento"
     },
     "hero": {
-      "badge": "Versión 1.0.0 Disponible",
+      "badge": "Versión 0.0.0.9000 Disponible",
       "title": "Ciencia Climática para la Salud",
-      "subtitle": "Un paquete de R potente para el análisis de datos climáticos y sostenibilidad enfocado en el sistema de salud brasileño.",
+      "subtitle": "Un paquete de R para el análisis de datos climáticos y ambientale enfocado en el sistema de salud brasileño.",
       "cta": "Empezar",
       "secondaryCta": "Ver en GitHub"
     },
     "description": {
       "title": "Sobre climasus4r",
-      "text": "climasus4r fue diseñado para cerrar la brecha entre datos meteorológicos complexes y la gestión de la salud pública. Facilita la descarga y procesamiento de indicadores climáticos."
+      "text": "climasus4r es una plataforma científica en R para integrar, estandarizar y analizar datos de salud, clima y medio ambiente en Brasil. Desarrollado en el marco del INCT Conexión–Amazonía, automatiza todo el flujo de trabajo epidemiológico — desde la descarga de datos del DATASUS hasta la producción de series temporales listas para modelos climáticos, vigilancia sanitaria y evaluación de riesgos ambientales. Con soporte para los seis principales sistemas de información en salud (SIM, SINAN, SIH, SIA, CNES, SINASC), procesamiento en paralelo, estandarización multilingüe (ES-PT-EN) y más de 50 grupos de enfermedades sensibles al clima, climasus4r transforma grandes volúmenes de microdatos en evidencia científica reproducible, escalable y útil para la toma de decisiones en salud pública."
     },
     "features": [
       {
-        "title": "AI Assistant",
-        "desc": "Hable con un especialista en IA entrenado en el paquete climasus4r.",
-        "icon": "Terminal",
-        "link": "https://climasus4r.manus.space/"
-      },
-      {
-        "title": "Datos de Salud",
-        "desc": "Integración nativa con bases de datos de salud brasileñas.",
-        "icon": "Heart",
-        "link": "es/index.html"
-      },
-      {
-        "title": "Modelado Climático",
-        "desc": "Procesamiento de series temporales de clima.",
-        "icon": "CloudRain",
-        "link": "es/index.html"
-      },
-      {
-        "title": "Análisis Espacial",
-        "desc": "Mapas de calor y vulnerabilidad por municipio.",
+        "title": "Phase 1 — Data Infrastructure",
+        "desc": "Parallel data acquisition, encoding correction, multilingual standardization, ICD-10 filtering, epidemiological variable creation, flexible temporal aggregation, quality reports and metadata-ready exports for scientific analysis.",
         "icon": "Database",
-        "link": "es/index.html"
+        "link": "en/index.html"
+      },
+      {
+        "title": "Phase 2 — Socioeconomic Integration",
+        "desc": "Spatial linkage of geographic boundaries, integration of IBGE socioeconomic data (population, GDP, HDI), census tract matching and population-weighted spatial operations to analyze health inequalities.",
+        "icon": "Users",
+        "link": "en/index.html"
+      },
+      {
+        "title": "Phase 3 — Environmental Integration",
+        "desc": "Import of meteorological data (INMET, FIORES, INCT-CONEXÃO), air quality data (INPE, CETESB), satellite data (MODIS, Sentinel) and exposure-matching algorithms for climate-health analysis.",
+        "icon": "CloudRain",
+        "link": "en/index.html"
+      },
+      {
+        "title": "Phase 4 — Advanced Spatial Analysis",
+        "desc": "Bayesian spatial smoothing, cluster detection (SaTScan, Kulldorff), local indicators of spatial association (LISA), spatial regression models and relative risk models for climate-related hospitalizations and mortality.",
+        "icon": "Map",
+        "link": "en/index.html"
+      },
+      {
+        "title": "Phase 5 — Temporal and Predictive Modeling",
+        "desc": "Non-linear distributed lag models (DLNM), attributable fraction, time-series decomposition, machine learning forecasting and climate-based bioprognosis using short-, medium- and long-term climate scenarios.",
+        "icon": "TrendingUp",
+        "link": "en/index.html"
       }
     ],
     "people": {
@@ -931,7 +948,7 @@
       "members": [
         {
           "name": "Dr. Max Anjos",
-          "role": "Investigador Principal",
+          "role": "Mentor y Desarrollador R",
           "org": "Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO)",
           "email": "max.anjos@campus.ul.pt",
           "photo": "https://avatars.githubusercontent.com/ByMaxAnjos",
@@ -940,7 +957,7 @@
         },
         {
           "name": "Thauã Menezes",
-          "role": "Desenvolvedor R",
+          "role": "Contribuidor R",
           "org": "UNESP",
           "email": "thaua.menezes@unesp.br",
           "photo": "https://avatars.githubusercontent.com/thauamenezez",
@@ -951,10 +968,10 @@
     },
     "funding": {
       "title": "Apoyo y Financiación",
-      "text": "Este proyecto es sostenido por el esfuerzo conjunto de instituciones que creen en la ciencia abierta."
+      "text": "El proyecto climasus4r es financiado por el Ministerio de Salud de Brasil y por la Fundación Oswaldo Cruz en Rondônia (Fiocruz-RO / CCSRO), en el marco del Instituto Nacional de Ciencia y Tecnología de Investigación y Conocimiento de Excelencia de la Amazonía Occidental – INCT-CONEXIÓN (@inct_conexao), proceso nº 408474/2024-6. El financiamiento cubre el Núcleo Permanente de Climatología (NPC) y el Núcleo Avanzado de Climatología (NAC)."
     },
     "footer": {
-      "text": "© 2024 climasus4r. Licença MIT."
+      "text": "© 2026 climasus4r team. Licença MIT."
     }
   }
 };
