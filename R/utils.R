@@ -391,8 +391,8 @@ clear_climasus_cache <- function(cache_dir = "~/.climasus4r_cache",
     if (verbose) cli::cli_alert_info("Cache directory does not exist: {cache_dir}")
     return(invisible(NULL))
   }
-  
-  cache_files <- list.files(cache_dir, pattern = "\\.rds$", full.names = TRUE)
+ 
+  cache_files <- list.files(cache_dir, pattern =  "\\.(parquet|rds|dbf|shp|gpkg|geojson|csv|txt)$", full.names = TRUE, ignore.case = TRUE)
   
   if (length(cache_files) == 0) {
     if (verbose) cli::cli_alert_info("No cache files found in {cache_dir}")
@@ -467,7 +467,7 @@ get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     ))
   }
   
-  cache_files <- list.files(cache_dir, pattern = "\\.rds$", full.names = TRUE)
+  cache_files <- list.files(cache_dir, pattern =  "\\.(parquet|rds|dbf|shp|gpkg|geojson|csv|txt)$", full.names = TRUE, ignore.case = TRUE)
   
   if (length(cache_files) == 0) {
     cache_stats <- list(

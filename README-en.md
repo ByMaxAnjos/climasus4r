@@ -1,6 +1,6 @@
-# climasus4r: Integrated Analysis Toolkit for Health, Climate, and Environmental Data
+# climasus4r:: Integrated Spatiotemporal Analyses of Health, Climate, and Environment in Brazil
 
-# <img src="inst/figures/logo.png" align="right" height="139" />
+<img align="right" src="https://github.com/ByMaxAnjos/climasus4r/blob/master/inst/figures/logo.png?raw=true" alt=“climasus4r Logo" width="140">
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
