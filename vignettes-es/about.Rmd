@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 
 ## El Equipo
 
-La información sobre el equipo de desarrollo e investigación estará aquí.
+El desarrollo de **climasus4r** está a cargo de un equipo multidisciplinario compuesto por investigadores y estudiantes de las áreas de salud, climatología, geografía, estadística y ciencia de datos, vinculados a instituciones de enseñanza e investigación en Brasil. El equipo trabaja de forma colaborativa en el desarrollo, la validación metodológica y la aplicación del paquete en estudios científicos, con énfasis en la reproducibilidad, la transparencia metodológica y el rigor científico.
 
 ## Socios
 
