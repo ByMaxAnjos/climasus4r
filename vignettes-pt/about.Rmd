@@ -20,7 +20,7 @@ O **climasus4r**O climasus4r é um pacote em R desenvolvido para integrar, padro
 
 ## A Equipe
 
-Informações sobre a equipe de desenvolvimento e pesquisa estarão aqui.
+O desenvolvimento do climasus4r é realizado por uma equipe multidisciplinar composta por pesquisadores e estudantes das áreas de saúde, climatologia, geografia, estatística e ciência de dados, vinculados a instituições de ensino e pesquisa no Brasil. A equipe atua de forma colaborativa no desenvolvimento, validação metodológica e aplicação do pacote em estudos científicos, com ênfase em reprodutibilidade, transparência metodológica e rigor científico.
 
 ## Parceiros
 
