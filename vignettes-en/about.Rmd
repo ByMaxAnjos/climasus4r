@@ -16,12 +16,15 @@ knitr::opts_chunk$set(
 
 ## The Project
 
-**climasus4r** is an integrated R toolkit designed to streamline the analysis of health, climate, and environmental data in Brazil. The package was developed within the scope of the INCT Conexão – Amazônia project and aims to automate and standardize critical steps in the workflow of epidemiological and environmental research, promoting reproducibility, efficiency, and scalability.
+**climasus4r** is an R package developed to integrate, standardize, and automate spatiotemporal analyses involving public health, climate, and environmental data in Brazil. The package was designed as part of the INCT Conexão – Amazônia project, with the aim of supporting epidemiological and environmental research that requires the integration of large databases from official health systems, climate information, and environmental variables. climasus4r seeks to significantly reduce the technical effort associated with the stages of data acquisition, cleaning, harmonization, and integration, offering a structured, reproducible, and scalable workflow. In this way, the package allows researchers to focus their efforts on scientific analysis and interpretation of results, rather than on the operational processes of data preparation.
 
 ## The Team
 
-Information about the development and research team will be here.
+The development of **climasus4r** is carried out by a multidisciplinary team composed of researchers and students from the fields of health, climatology, geography, statistics, and data science, linked to educational and research institutions in Brazil. The team works collaboratively on the development, methodological validation, and application of the package in scientific studies, with an emphasis on reproducibility, methodological transparency, and scientific rigor.
+
+
 
 ## Partners
 
-Information about partners and collaborating institutions.
+The development of **climasus4r** is carried out by a multidisciplinary team composed of researchers and students from the fields of health, climatology, geography, statistics, and data science, linked to educational and research institutions in Brazil. The team works collaboratively on the development, methodological validation, and application of the package in scientific studies, with an emphasis on reproducibility, methodological transparency, and scientific rigor.
+
