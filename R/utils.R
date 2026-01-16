@@ -4,6 +4,218 @@
 #' @name utils
 NULL
 
+#' Enable spatial features in climasus4r
+#'
+#' @param lang Language for messages: "pt", "en", or "es".
+#' @noRd
+enable_spatial <- function(lang = "pt") {
+
+  lang <- match.arg(lang, c("pt", "en", "es"))
+
+  msg <- list(
+
+    pt = list(
+      title = "Ativando suporte espacial do climasus4r",
+      missing = "Os seguintes pacotes espaciais nao estao instalados:",
+      linux_sys = "Passo 1 -> Instalar bibliotecas do sistema (Linux)",
+      mac_sys = "Passo 1 -> Instalar bibliotecas do sistema (macOS)",
+      binaries = "Passo 2 -> Usar binarios do Posit (recomendado)",
+      rpkgs = "Passo 3 -> Instalar pacotes R",
+      done = "Todos os pacotes espaciais ja estao instalados.",
+      restart = "Apos a instalacao, reinicie o R e execute novamente sua funcao."
+    ),
+
+    en = list(
+      title = "Enabling spatial support for climasus4r",
+      missing = "The following spatial packages are missing:",
+      linux_sys = "Step 1 -> Install system libraries (Linux)",
+      mac_sys = "Step 1 -> Install system libraries (macOS)",
+      binaries = "Step 2 -> Use Posit binaries (recommended)",
+      rpkgs = "Step 3 -> Install R packages",
+      done = "All spatial packages are already installed.",
+      restart = "After installation, restart R and rerun your spatial function."
+    ),
+
+    es = list(
+      title = "Habilitando soporte espacial de climasus4r",
+      missing = "Los siguientes paquetes espaciales no estan instalados:",
+      linux_sys = "Paso 1 -> Instalar bibliotecas del sistema (Linux)",
+      mac_sys = "Paso 1 -> Instalar bibliotecas del sistema (macOS)",
+      binaries = "Paso 2 -> Usar binarios de Posit (recomendado)",
+      rpkgs = "Paso 3 -> Instalar paquetes de R",
+      done = "Todos los paquetes espaciales ya estan instalados.",
+      restart = "Despues de la instalacion, reinicie R y ejecute nuevamente su funcion."
+    )
+  )
+
+  spatial_pkgs <- c("sf", "geobr", "geocodebr", "sfarrow")
+
+  missing <- spatial_pkgs[
+    !vapply(spatial_pkgs, requireNamespace, logical(1), quietly = TRUE)
+  ]
+
+  if (length(missing) == 0) {
+    cli::cli_alert_success(msg[[lang]]$done)
+    return(invisible(TRUE))
+  }
+
+  cli::cli_h1(msg[[lang]]$title)
+  cli::cli_alert_info(msg[[lang]]$missing)
+  cli::cli_bullets(missing)
+
+  sys <- Sys.info()[["sysname"]]
+
+  if (sys == "Linux") {
+
+    cli::cli_h2(msg[[lang]]$linux_sys)
+    cli::cli_code(
+      "sudo apt install -y libgdal-dev libgeos-dev libproj-dev libsqlite3-dev"
+    )
+
+    cli::cli_h2(msg[[lang]]$binaries)
+    cli::cli_code(
+      "options(repos = c(RSPM = 'https://packagemanager.posit.co/cran/latest', CRAN = 'https://cloud.r-project.org'))"
+    )
+
+  } else if (sys == "Darwin") {
+
+    cli::cli_h2(msg[[lang]]$mac_sys)
+    cli::cli_code("brew install gdal geos proj")
+
+  }
+
+  cli::cli_h2(msg[[lang]]$rpkgs)
+  cli::cli_code(
+    sprintf(
+      "install.packages(c(%s))",
+      paste(sprintf("'%s'", missing), collapse = ", ")
+    )
+  )
+
+  cli::cli_alert_warning(msg[[lang]]$restart)
+
+  invisible(FALSE)
+}
+
+#' @param lang Language for messages: "pt", "en", or "es".
+#' @noRd
+check_spatial <- function(lang = "pt") {
+
+  required <- c("sf", "geobr", "geocodebr", "sfarrow")
+
+  missing <- required[
+    !vapply(required, requireNamespace, logical(1), quietly = TRUE)
+  ]
+
+  if (length(missing) > 0) {
+
+    msg <- switch(
+      lang,
+      pt = "Recursos espaciais nao estao habilitados.",
+      en = "Spatial features are not enabled.",
+      es = "Las funciones espaciales no estan habilitadas."
+    )
+
+    cli::cli_abort(c(
+      msg,
+      "i" = paste0(
+        "Execute ",
+        cli::col_blue("enable_spatial('", lang, "')"),
+        " para ativar."
+      )
+    ))
+  }
+
+  invisible(TRUE)
+}
+
+#' @param lang Language for messages: "pt", "en", or "es".
+#' @noRd
+enable_arrow <- function(lang = "pt") {
+
+  if (!lang %in% c("pt", "en", "es")) {
+    cli::cli_abort("lang must be one of: 'pt', 'en', 'es'")
+  }
+
+  msg <- switch(
+    lang,
+    pt = list(
+      title = "Ativando motor Arrow do climasus4r",
+      install = "Instalando pacote arrow (infraestrutura de dados de alto desempenho)...",
+      ok = "Arrow instalado com sucesso.",
+      fail = "Falha ao instalar o pacote arrow.",
+      how = "Tente instalar manualmente com: install.packages('arrow')"
+    ),
+    en = list(
+      title = "Enabling climasus4r Arrow engine",
+      install = "Installing arrow package (high-performance data engine)...",
+      ok = "Arrow successfully installed.",
+      fail = "Failed to install arrow.",
+      how = "Try installing manually with: install.packages('arrow')"
+    ),
+    es = list(
+      title = "Activando el motor Arrow de climasus4r",
+      install = "Instalando el paquete arrow (motor de datos de alto rendimiento)...",
+      ok = "Arrow instalado correctamente.",
+      fail = "Error al instalar el paquete arrow.",
+      how = "Intente instalarlo manualmente con: install.packages('arrow')"
+    )
+  )
+
+  cli::cli_h1(msg$title)
+
+  if (requireNamespace("arrow", quietly = TRUE)) {
+    cli::cli_alert_success(msg$ok)
+    return(invisible(TRUE))
+  }
+
+  cli::cli_alert_info(msg$install)
+
+  tryCatch(
+    {
+      utils::install.packages("arrow", repos = "https://cloud.r-project.org")
+    },
+    error = function(e) {
+      cli::cli_abort(c(msg$fail, "i" = msg$how))
+    }
+  )
+
+  if (!requireNamespace("arrow", quietly = TRUE)) {
+    cli::cli_abort(c(msg$fail, "i" = msg$how))
+  }
+
+  cli::cli_alert_success(msg$ok)
+
+  invisible(TRUE)
+}
+
+#' @param lang Language for messages: "pt", "en", or "es".
+#' @noRd
+check_arrow <- function(lang = "pt") {
+
+  if (!requireNamespace("arrow", quietly = TRUE)) {
+
+    msg <- switch(
+      lang,
+      pt = "O motor de dados Arrow nao esta habilitado.",
+      en = "The Arrow data engine is not enabled.",
+      es = "El motor de datos Arrow no esta habilitado."
+    )
+
+    cli::cli_abort(c(
+      msg,
+      "i" = paste0(
+        "Execute ",
+        cli::col_blue("enable_arrow('", lang, "')"),
+        " para ativar."
+      )
+    ))
+  }
+
+  invisible(TRUE)
+}
+
+
 #' Get UI messages in specified language
 #'
 #' Returns user interface messages in the specified language.

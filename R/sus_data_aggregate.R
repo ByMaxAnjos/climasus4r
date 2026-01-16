@@ -13,7 +13,7 @@
 #'   Default is `"day"`.
 #' @param fun Character string or list of functions specifying the aggregation function(s).
 #'   Options: `"count"` (default), `"sum"`, `"mean"`, `"median"`, `"min"`, `"max"`,
-#'   `"sd"`, `"q25"` (25th percentile), `"q75"` (75th percentile), `"q95"` (95th percentile).
+#'   `"sd"`, `"q25"` (25th percentile), `"q75"`, `"q95"`, and `"q99"`.
 #'   Can also be a named list for multiple aggregations, e.g.,
 #'   `list(mean_temp = "mean", max_temp = "max")`.
 #' @param value_col Character string with the name of the column to aggregate when

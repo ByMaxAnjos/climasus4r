@@ -114,9 +114,7 @@
 #' }
 #'
 #' @export
-#' @importFrom sf st_write st_crs
-#' @importFrom arrow write_parquet
-#' @importFrom sfarrow st_write_parquet
+#' @importFrom glue glue
 sus_data_export <- function(df,
                              file_path,
                              format = NULL,

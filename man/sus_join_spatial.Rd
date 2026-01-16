@@ -12,7 +12,7 @@ sus_join_spatial(
   simplified = TRUE,
   lang = "pt",
   use_cache = TRUE,
-  cache_dir = "~/.climasus4r_cache",
+  cache_dir = "~/.climasus4r_cache/spatial",
   verbose = TRUE
 )
 }
@@ -42,7 +42,7 @@ Options: \code{"pt"} (Portuguese, default), \code{"en"} (English), \code{"es"} (
 re-downloads and improve performance.}
 
 \item{cache_dir}{Character string specifying the directory to store cached files.
-Default is \code{"~/.climasus4r_cache"}.}
+Default is \code{"~/.climasus4r_cache/spatial"}.}
 
 \item{verbose}{Logical. If \code{TRUE} (default), prints detailed progress information
 including cache status, download progress, and join statistics.}

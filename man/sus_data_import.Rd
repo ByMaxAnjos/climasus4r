@@ -11,7 +11,7 @@ sus_data_import(
   month = NULL,
   system,
   use_cache = TRUE,
-  cache_dir = "~/.climasus4r_cache",
+  cache_dir = "~/.climasus4r_cache/data",
   force_redownload = FALSE,
   parallel = FALSE,
   workers = 4,
@@ -142,7 +142,7 @@ is ignored.}
 re-downloads. Cache is based on UF, year, month, and system parameters.}
 
 \item{cache_dir}{Character. Directory to store cached files.
-Default is "~/.climasus4r_cache".}
+Default is "~/.climasus4r_cache/data".}
 
 \item{force_redownload}{Logical. If TRUE, ignores cache and re-downloads
 everything. Useful when you suspect cached data is corrupted or outdated.}

@@ -40,16 +40,18 @@ Imports:
     progressr,
     stringr,
     future,
-    arrow,
-    sfarrow,
-    geobr,
-    geocodebr,
-    sf,
-    data.table
+    data.table,
+    glue
 Remotes: 
     rfsaldanha/microdatasus,
     ByMaxAnjos/climasus4r
 Suggests:
+    sf,
+    censobr,
+    geobr,
+    geocodebr,
+    arrow,
+    sfarrow,
     knitr,
     rmarkdown,
     ggplot2

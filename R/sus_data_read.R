@@ -67,12 +67,7 @@
 #' }
 #'
 #' @export
-#' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_alert_warning cli_alert_danger cli_abort
-#' @importFrom sf st_read st_is_valid st_crs st_geometry_type
-#' @importFrom arrow read_parquet ParquetFileReader
-#' @importFrom dplyr bind_rows
-#' @importFrom future plan multisession sequential
-#' @importFrom future.apply future_lapply
+#' @importFrom glue glue
 sus_data_read <- function(path,
                           format = NULL,
                           parallel = FALSE,

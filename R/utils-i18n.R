@@ -7045,104 +7045,172 @@ get_census_dictionary_es_population <- function() {
 #' @keywords internal
 #' @noRd
 get_translate_dictionary_pt_households <- function() {
-
-  # ==========================================================================
-  # TRADUCAO DOS NOMES DAS COLUNAS (DOMICILIOS - CENSO 2010)
-  # Mapeia os codigos originais (Vxxxx) para nomes descritivos em portugues.
-  # Fonte: 2010_dictionary_microdata_households.html
-  # ==========================================================================
-
-  columns <- c(
-    # --- Identificacao e Localizacao ---
-    "V0001" = "unidade_federacao",
-    "V0002" = "codigo_municipio",
-    "V0011" = "area_ponderacao",
-    "V0300" = "controle",
-    "V0010" = "peso_amostral",
-
-    # --- Regionalizacao ---
-    "V1001" = "regiao_geografica",
-    "V1002" = "codigo_mesorregiao",
-    "V1003" = "codigo_microrregiao",
-    "V1004" = "codigo_regiao_metropolitana",
-    "V1006" = "situacao_domicilio", # Urbana/Rural
-
-    # --- Caracteristicas do Domicilio ---
-    "V4001" = "especie_unidade_visitada",
-    "V4002" = "tipo_especie_domicilio",
-    "V0201" = "condicao_ocupacao_domicilio",
-
-    # --- Valores Financeiros ---
-    "V2011" = "valor_aluguel",
-    "V2012" = "aluguel_salarios_minimos"
-  )
-
-  # ==========================================================================
-  # TRADUCAO DE VALORES CATEGORICOS
-  # Decodifica os codigos numericos para rotulos legiveis.
-  # ==========================================================================
-
-  values <- list(
-    "V0001" = c(
-      "11" = "Rondonia", "12" = "Acre", "13" = "Amazonas", "14" = "Roraima",
-      "15" = "Para", "16" = "Amapa", "17" = "Tocantins",
-      "21" = "Maranhao", "22" = "Piaui", "23" = "Ceara", "24" = "Rio Grande do Norte",
-      "25" = "Paraiba", "26" = "Pernambuco", "27" = "Alagoas", "28" = "Sergipe",
-      "29" = "Bahia",
-      "31" = "Minas Gerais", "32" = "Espirito Santo", "33" = "Rio de Janeiro",
-      "35" = "Sao Paulo",
-      "41" = "Parana", "42" = "Santa Catarina", "43" = "Rio Grande do Sul",
-      "50" = "Mato Grosso do Sul", "51" = "Mato Grosso", "52" = "Goias",
-      "53" = "Distrito Federal"
+  list(
+    # --- 1. Renomeacao das Colunas (Vxxxx -> nome_legivel) ---
+    columns = c(
+      "V0001" = "uf",
+      "V0002" = "codigo_municipio",
+      "V0011" = "area_ponderacao",
+      "V0300" = "controle",
+      "V0010" = "peso_amostral",
+      "V1001" = "regiao_geografica",
+      "V1002" = "codigo_mesorregiao",
+      "V1003" = "codigo_microrregiao",
+      "V1004" = "codigo_regiao_metropolitana",
+      "V1005" = "situacao_setor_detalhada",
+      "V1006" = "situacao_domicilio",
+      "V4001" = "especie_unidade_visitada",
+      "V4002" = "tipo_especie_domicilio",
+      "V0201" = "condicao_ocupacao",
+      "V2011" = "valor_aluguel_reais",
+      "V2012" = "aluguel_salarios_minimos",
+      "V0202" = "material_paredes_externas",
+      "V0203" = "numero_comodos",
+      "V6203" = "densidade_morador_comodo",
+      "V0204" = "numero_dormitorios",
+      "V6204" = "densidade_morador_dormitorio",
+      "V0205" = "numero_banheiros_exclusivos",
+      "V0206" = "tem_sanitario_ou_buraco",
+      "V0207" = "tipo_esgotamento_sanitario",
+      "V0208" = "forma_abastecimento_agua",
+      "V0209" = "tem_agua_canalizada",
+      "V0210" = "destino_lixo",
+      "V0211" = "tem_energia_eletrica",
+      "V0212" = "tem_medidor_energia",
+      "V0213" = "tem_radio",
+      "V0214" = "tem_televisao",
+      "V0215" = "tem_maquina_lavar",
+      "V0216" = "tem_geladeira",
+      "V0217" = "tem_celular",
+      "V0218" = "tem_telefone_fixo",
+      "V0219" = "tem_microcomputador",
+      "V0220" = "tem_internet",
+      "V0221" = "tem_motocicleta",
+      "V0222" = "tem_automovel",
+      "V0301" = "tem_morador_no_exterior",
+      "V0401" = "total_moradores",
+      "V0402" = "responsabilidade_domicilio",
+      "V0701" = "ocorreu_falecimento_ano_anterior",
+      "V6529" = "rendimento_mensal_domiciliar",
+      "V6530" = "rendimento_domiciliar_salarios_minimos",
+      "V6531" = "rendimento_per_capita",
+      "V6532" = "rendimento_per_capita_salarios_minimos",
+      "V6600" = "tipo_familia",
+      "V6210" = "adequacao_moradia"
     ),
-
-    "V1001" = c(
-      "1" = "Norte",
-      "2" = "Nordeste",
-      "3" = "Sudeste",
-      "4" = "Sul",
-      "5" = "Centro-Oeste"
-    ),
-
-    "V1006" = c(
-      "1" = "Urbana",
-      "2" = "Rural"
-    ),
-
-    "V4001" = c(
-      "01" = "Domicilio particular permanente ocupado",
-      "02" = "Domicilio particular permanente ocupado sem entrevista realizada",
-      "05" = "Domicilio particular improvisado ocupado",
-      "06" = "Domicilio coletivo com morador"
-    ),
-
-    "V4002" = c(
-      "11" = "Casa",
-      "12" = "Casa de vila ou em condominio",
-      "13" = "Apartamento",
-      "14" = "Habitacao em casa de comodos ou cortico",
-      "15" = "Oca ou maloca",
-      "51" = "Tenda ou barraca",
-      "52" = "Dentro de estabelecimento",
-      "53" = "Outro (vagao, trailer, gruta, etc)",
-      "61" = "Asilo, orfanato e similares com morador",
-      "62" = "Hotel, pensao e similares com morador",
-      "63" = "Alojamento de trabalhadores com morador",
-      "64" = "Penitenciaria, presidio ou casa de detencao com morador",
-      "65" = "Outro com morador"
-    ),
-
-    "V0201" = c(
-      "1" = "Proprio de algum morador - ja pago",
-      "2" = "Proprio de algum morador - ainda pagando",
-      "3" = "Alugado",
-      "4" = "Cedido por empregador",
-      "5" = "Cedido de outra forma",
-      "6" = "Outra condicao"
+    
+    # --- 2. Traducao dos Valores Categoricos (Codigo -> Rotulo) ---
+    categories = list(
+      "V0001" = c(
+        "11" = "Rondonia", "12" = "Acre", "13" = "Amazonas", "14" = "Roraima", 
+        "15" = "Para", "16" = "Amapa", "17" = "Tocantins", "21" = "Maranhao", 
+        "22" = "Piaui", "23" = "Ceara", "24" = "Rio Grande do Norte", "25" = "Paraiba", 
+        "26" = "Pernambuco", "27" = "Alagoas", "28" = "Sergipe", "29" = "Bahia", 
+        "31" = "Minas Gerais", "32" = "Espirito Santo", "33" = "Rio de Janeiro", 
+        "35" = "Sao Paulo", "41" = "Parana", "42" = "Santa Catarina", 
+        "43" = "Rio Grande do Sul", "50" = "Mato Grosso do Sul", 
+        "51" = "Mato Grosso", "52" = "Goias", "53" = "Distrito Federal"
+      ),
+      
+      "V1001" = c(
+        "1" = "Norte", "2" = "Nordeste", "3" = "Sudeste", 
+        "4" = "Sul", "5" = "Centro-Oeste"
+      ),
+      
+      "V1006" = c("1" = "Urbana", "2" = "Rural"),
+      
+      "V1005" = c(
+        "1" = "Area urbanizada", "2" = "Area nao urbanizada", 
+        "3" = "Area urbanizada isolada", "4" = "Area rural de extensao urbana",
+        "5" = "Aglomerado rural povoado", "6" = "Aglomerado rural nucleo",
+        "7" = "Aglomerado rural outros", "8" = "Area rural exclusive aglomerado"
+      ),
+      
+      "V4001" = c(
+        "01" = "Particular permanente ocupado",
+        "02" = "Particular permanente ocupado (sem entrevista)",
+        "05" = "Particular improvisado ocupado",
+        "06" = "Coletivo com morador"
+      ),
+      
+      "V4002" = c(
+        "11" = "Casa", "12" = "Casa de vila/condominio", "13" = "Apartamento",
+        "14" = "Habitacao em casa de comodos/cortico", "15" = "Oca ou maloca",
+        "51" = "Tenda ou barraca", "52" = "Dentro de estabelecimento",
+        "53" = "Outro (vagao/trailer/gruta)", "61" = "Asilo/orfanato",
+        "62" = "Hotel/pensao", "63" = "Alojamento trabalhadores",
+        "64" = "Penitenciaria/presidio", "65" = "Outro coletivo"
+      ),
+      
+      "V0201" = c(
+        "1" = "Proprio (ja pago)", "2" = "Proprio (ainda pagando)",
+        "3" = "Alugado", "4" = "Cedido por empregador",
+        "5" = "Cedido de outra forma", "6" = "Outra condicao"
+      ),
+      
+      "V0202" = c(
+        "1" = "Alvenaria c/ revestimento", "2" = "Alvenaria s/ revestimento",
+        "3" = "Madeira aparelhada", "4" = "Taipa revestida",
+        "5" = "Taipa nao revestida", "6" = "Madeira aproveitada",
+        "7" = "Palha", "8" = "Outro material", "9" = "Sem parede"
+      ),
+      
+      "V0205" = c(
+        "0" = "Zero", "1" = "Um", "2" = "Dois", "3" = "Tres", 
+        "4" = "Quatro", "5" = "Cinco", "6" = "Seis", 
+        "7" = "Sete", "8" = "Oito", "9" = "Nove ou mais"
+      ),
+      
+      "V0207" = c(
+        "1" = "Rede geral de esgoto/pluvial", "2" = "Fossa septica",
+        "3" = "Fossa rudimentar", "4" = "Vala",
+        "5" = "Rio, lago ou mar", "6" = "Outro"
+      ),
+      
+      "V0208" = c(
+        "01" = "Rede geral", "02" = "Poco/nascente na propriedade",
+        "03" = "Poco/nascente fora propriedade", "04" = "Carro-pipa",
+        "05" = "Agua chuva (cisterna)", "06" = "Agua chuva (outra forma)",
+        "07" = "Rio/acude/lago", "08" = "Outra",
+        "09" = "Poco/nascente na aldeia", "10" = "Poco/nascente fora aldeia"
+      ),
+      
+      "V0209" = c(
+        "1" = "Sim (pelo menos um comodo)", 
+        "2" = "Sim (so no terreno)", 
+        "3" = "Nao"
+      ),
+      
+      "V0210" = c(
+        "1" = "Coletado", "2" = "Cacamba servico limpeza",
+        "3" = "Queimado na propriedade", "4" = "Enterrado na propriedade",
+        "5" = "Jogado terreno baldio", "6" = "Jogado rio/lago/mar",
+        "7" = "Outro destino"
+      ),
+      
+      "V0211" = c("1" = "Sim (cia distribuidora)", "2" = "Sim (outras fontes)", "3" = "Nao"),
+      "V0212" = c("1" = "Sim (exclusivo)", "2" = "Sim (comum)", "3" = "Nao tem"),
+      
+      # Variaveis Binarias (Sim/Nao)
+      "V0206" = c("1" = "Sim", "2" = "Nao"),
+      "V0213" = c("1" = "Sim", "2" = "Nao"),
+      "V0214" = c("1" = "Sim", "2" = "Nao"),
+      "V0215" = c("1" = "Sim", "2" = "Nao"),
+      "V0216" = c("1" = "Sim", "2" = "Nao"),
+      "V0217" = c("1" = "Sim", "2" = "Nao"),
+      "V0218" = c("1" = "Sim", "2" = "Nao"),
+      "V0219" = c("1" = "Sim", "2" = "Nao"),
+      "V0220" = c("1" = "Sim", "2" = "Nao"),
+      "V0221" = c("1" = "Sim", "2" = "Nao"),
+      "V0222" = c("1" = "Sim", "2" = "Nao"),
+      "V0301" = c("1" = "Sim", "2" = "Nao"),
+      "V0701" = c("1" = "Sim", "2" = "Nao"),
+      
+      "V0402" = c("1" = "Apenas um morador", "2" = "Mais de um morador", "9" = "Ignorado"),
+      "V6600" = c("1" = "Unipessoal", "2" = "Nuclear", "3" = "Estendida", "4" = "Composta"),
+      "V6210" = c("1" = "Adequada", "2" = "Semiadequada", "3" = "Inadequada")
     )
   )
-
-  return(list(columns = columns, values = values))
 }
 
 #' Get Translation Dictionary for Households (Census 2010)
@@ -7179,16 +7247,54 @@ get_translate_dictionary_en_households <- function() {
     "V1002" = "mesoregion_code",
     "V1003" = "microregion_code",
     "V1004" = "metropolitan_area_code",
-    "V1006" = "household_situation", # Urban/Rural
+    "V1005" = "census_tract_situation_detailed", # Detailed Urban/Rural
+    "V1006" = "household_situation",             # Simple Urban/Rural
 
     # --- Household Characteristics ---
     "V4001" = "visited_unit_type",
     "V4002" = "household_type",
     "V0201" = "occupancy_condition",
+    "V0202" = "predominant_wall_material",
+    "V0203" = "number_of_rooms",
+    "V6203" = "resident_room_density",
+    "V0204" = "number_of_bedrooms",
+    "V6204" = "resident_bedroom_density",
+    "V0205" = "number_of_bathrooms",
+    "V0206" = "has_sanitary_facility",
+    "V0207" = "sewage_disposal_type",
+    "V0208" = "water_supply_source",
+    "V0209" = "piped_water_existence",
+    "V0210" = "garbage_disposal",
+    "V0211" = "electricity_existence",
+    "V0212" = "electricity_meter_existence",
+
+    # --- Assets and Durables (Yes/No) ---
+    "V0213" = "has_radio",
+    "V0214" = "has_television",
+    "V0215" = "has_washing_machine",
+    "V0216" = "has_refrigerator",
+    "V0217" = "has_cellphone",
+    "V0218" = "has_landline_phone",
+    "V0219" = "has_computer",
+    "V0220" = "has_internet_access",
+    "V0221" = "has_motorcycle",
+    "V0222" = "has_automobile",
+
+    # --- Family and Residents ---
+    "V0301" = "resident_abroad_last_year",
+    "V0401" = "total_residents",
+    "V0402" = "household_responsibility",
+    "V0701" = "death_in_household_last_year",
+    "V6600" = "household_unit_type", # Family structure
+    "V6210" = "housing_adequacy",
 
     # --- Financial Values ---
     "V2011" = "rent_value",
-    "V2012" = "rent_minimum_wages"
+    "V2012" = "rent_minimum_wages",
+    "V6529" = "monthly_household_income",
+    "V6530" = "household_income_min_wages",
+    "V6531" = "per_capita_income",
+    "V6532" = "per_capita_income_min_wages"
   )
 
   # ==========================================================================
@@ -7211,16 +7317,20 @@ get_translate_dictionary_en_households <- function() {
     ),
 
     "V1001" = c(
-      "1" = "North",
-      "2" = "Northeast",
-      "3" = "Southeast",
-      "4" = "South",
-      "5" = "Center-West"
+      "1" = "North", "2" = "Northeast", "3" = "Southeast", "4" = "South", "5" = "Center-West"
     ),
 
-    "V1006" = c(
-      "1" = "Urban",
-      "2" = "Rural"
+    "V1006" = c("1" = "Urban", "2" = "Rural"),
+
+    "V1005" = c(
+      "1" = "Urbanized area",
+      "2" = "Non-urbanized area",
+      "3" = "Isolated urbanized area",
+      "4" = "Rural area with urban extension",
+      "5" = "Rural settlement - Village",
+      "6" = "Rural settlement - Nucleus",
+      "7" = "Rural settlement - Other",
+      "8" = "Rural area exclusive of settlements"
     ),
 
     "V4001" = c(
@@ -7234,7 +7344,7 @@ get_translate_dictionary_en_households <- function() {
       "11" = "House",
       "12" = "House in a gated community or village",
       "13" = "Apartment",
-      "14" = "Tenement or rooming house", # Habitacao em casa de comodos ou cortico
+      "14" = "Tenement or rooming house",
       "15" = "Indigenous hut (Oca/Maloca)",
       "51" = "Tent",
       "52" = "Inside establishment",
@@ -7253,6 +7363,109 @@ get_translate_dictionary_en_households <- function() {
       "4" = "Provided by employer",
       "5" = "Provided in another way",
       "6" = "Other condition"
+    ),
+
+    "V0202" = c(
+      "1" = "Masonry with coating",
+      "2" = "Masonry without coating",
+      "3" = "Appropriate wood (planed)",
+      "4" = "Coated rammed earth/wattle and daub",
+      "5" = "Uncoated rammed earth/wattle and daub",
+      "6" = "Reused wood/Scrap material",
+      "7" = "Straw",
+      "8" = "Other material",
+      "9" = "No walls"
+    ),
+
+    "V0205" = c(
+      "0" = "Zero", "1" = "One", "2" = "Two", "3" = "Three",
+      "4" = "Four", "5" = "Five", "6" = "Six",
+      "7" = "Seven", "8" = "Eight", "9" = "Nine or more"
+    ),
+
+    "V0206" = c("1" = "Yes", "2" = "No"), # Has sanitary facility
+
+    "V0207" = c(
+      "1" = "General sewage or rainwater network",
+      "2" = "Septic tank",
+      "3" = "Rudimentary cesspit",
+      "4" = "Ditch",
+      "5" = "River, lake, or sea",
+      "6" = "Other"
+    ),
+
+    "V0208" = c(
+      "01" = "General distribution network",
+      "02" = "Well or spring on property",
+      "03" = "Well or spring outside property",
+      "04" = "Water truck",
+      "05" = "Rainwater (cistern)",
+      "06" = "Rainwater (other storage)",
+      "07" = "River, reservoir, lake, or creek",
+      "08" = "Other",
+      "09" = "Well or spring in village (Indigenous)",
+      "10" = "Well or spring outside village (Indigenous)"
+    ),
+
+    "V0209" = c(
+      "1" = "Yes, in at least one room",
+      "2" = "Yes, only on property/plot",
+      "3" = "No"
+    ),
+
+    "V0210" = c(
+      "1" = "Collected directly by cleaning service",
+      "2" = "Placed in cleaning service skip/dumpster",
+      "3" = "Burned on property",
+      "4" = "Buried on property",
+      "5" = "Dumped on open lot or public area",
+      "6" = "Dumped in river, lake, or sea",
+      "7" = "Other destination"
+    ),
+
+    "V0211" = c(
+      "1" = "Yes, from distribution company",
+      "2" = "Yes, from other sources",
+      "3" = "No electricity"
+    ),
+
+    "V0212" = c(
+      "1" = "Yes, exclusive use",
+      "2" = "Yes, common use",
+      "3" = "No meter"
+    ),
+
+    # --- Boolean Variables (Assets & Flags) ---
+    "V0213" = c("1" = "Yes", "2" = "No"),
+    "V0214" = c("1" = "Yes", "2" = "No"),
+    "V0215" = c("1" = "Yes", "2" = "No"),
+    "V0216" = c("1" = "Yes", "2" = "No"),
+    "V0217" = c("1" = "Yes", "2" = "No"),
+    "V0218" = c("1" = "Yes", "2" = "No"),
+    "V0219" = c("1" = "Yes", "2" = "No"),
+    "V0220" = c("1" = "Yes", "2" = "No"),
+    "V0221" = c("1" = "Yes", "2" = "No"),
+    "V0222" = c("1" = "Yes", "2" = "No"),
+    "V0301" = c("1" = "Yes", "2" = "No"),
+    "V0701" = c("1" = "Yes", "2" = "No"),
+
+    "V0402" = c(
+      "1" = "Single resident",
+      "2" = "More than one resident",
+      "9" = "Ignored"
+    ),
+
+    "V6600" = c(
+      "1" = "One-person",
+      "2" = "Nuclear",
+      "3" = "Extended",
+      "4" = "Composite"
+    ),
+
+    "V6210" = c(
+      "1" = "Adequate",
+      "2" = "Semi-adequate",
+      "3" = "Inadequate"
     )
   )
 
@@ -7276,16 +7489,16 @@ get_translate_dictionary_en_households <- function() {
 get_translate_dictionary_es_households <- function() {
 
   # ==========================================================================
-  # TRADUCCION DE NOMBRES DE COLUMNAS (HOGARES - CENSO 2010)
-  # Mapea los codigos originales (Vxxxx) a nombres descriptivos en espanol.
+  # TRADUCCIoN DE COLUMNAS (DOMICILIOS - CENSO 2010)
+  # Mapea codigos originales (Vxxxx) a nombres descriptivos en espanol.
   # ==========================================================================
 
   columns <- c(
-    # --- Identificacion y Localizacion ---
-    "V0001" = "unidad_federacion",
+    # --- Identificacion y Ubicacion ---
+    "V0001" = "unidad_federativa",
     "V0002" = "codigo_municipio",
     "V0011" = "area_ponderacion",
-    "V0300" = "control",
+    "V0300" = "numero_control",
     "V0010" = "peso_muestral",
 
     # --- Regionalizacion ---
@@ -7293,24 +7506,63 @@ get_translate_dictionary_es_households <- function() {
     "V1002" = "codigo_mesorregion",
     "V1003" = "codigo_microrregion",
     "V1004" = "codigo_region_metropolitana",
+    "V1005" = "situacion_sector_detallada",
     "V1006" = "situacion_domicilio", # Urbana/Rural
 
-    # --- Caracteristicas del Hogar ---
-    "V4001" = "tipo_unidad_visitada",
-    "V4002" = "tipo_especie_domicilio",
-    "V0201" = "condicion_ocupacion_domicilio",
+    # --- Caracteristicas del Domicilio ---
+    "V4001" = "especie_unidad_visitada",
+    "V4002" = "tipo_domicilio",
+    "V0201" = "condicion_ocupacion",
+    "V0202" = "material_predominante_paredes",
+    "V0203" = "numero_ambientes",        # "Comodos" -> Ambientes/Habitaciones
+    "V6203" = "densidad_habitante_ambiente",
+    "V0204" = "numero_dormitorios",
+    "V6204" = "densidad_habitante_dormitorio",
+    "V0205" = "numero_banios",           # Banos
+    "V0206" = "tiene_instalacion_sanitaria",
+    "V0207" = "tipo_desague_sanitario",
+    "V0208" = "forma_abastecimiento_agua",
+    "V0209" = "existencia_agua_canalizada",
+    "V0210" = "destino_basura",
+    "V0211" = "existencia_energia_electrica",
+    "V0212" = "existencia_medidor_energia",
+
+    # --- Bienes y Servicios (Si/No) ---
+    "V0213" = "tiene_radio",
+    "V0214" = "tiene_television",
+    "V0215" = "tiene_lavarropas",
+    "V0216" = "tiene_heladera",         # Ou refrigerador
+    "V0217" = "tiene_celular",
+    "V0218" = "tiene_telefono_fijo",
+    "V0219" = "tiene_computadora",
+    "V0220" = "tiene_internet",
+    "V0221" = "tiene_motocicleta",
+    "V0222" = "tiene_automovil",
+
+    # --- Familia y Residentes ---
+    "V0301" = "residente_exterior_anio_anterior",
+    "V0401" = "total_residentes",
+    "V0402" = "responsabilidad_domicilio",
+    "V0701" = "fallecimiento_hogar_anio_anterior",
+    "V6600" = "tipo_unidad_domestica",
+    "V6210" = "adecuacion_vivienda",
 
     # --- Valores Financieros ---
     "V2011" = "valor_alquiler",
-    "V2012" = "alquiler_salarios_minimos"
+    "V2012" = "alquiler_salarios_minimos",
+    "V6529" = "ingreso_mensual_hogar",
+    "V6530" = "ingreso_hogar_salarios_minimos",
+    "V6531" = "ingreso_per_capita",
+    "V6532" = "ingreso_per_capita_salarios_minimos"
   )
 
   # ==========================================================================
   # TRADUCCION DE VALORES CATEGORICOS
-  # Decodifica los codigos numericos a etiquetas legibles en espanol.
+  # Decodifica codigos numericos a etiquetas legibles en espanol.
   # ==========================================================================
 
   values <- list(
+    # Mantenemos los nombres propios de los estados en portugues/original
     "V0001" = c(
       "11" = "Rondonia", "12" = "Acre", "13" = "Amazonas", "14" = "Roraima",
       "15" = "Para", "16" = "Amapa", "17" = "Tocantins",
@@ -7320,53 +7572,161 @@ get_translate_dictionary_es_households <- function() {
       "31" = "Minas Gerais", "32" = "Espirito Santo", "33" = "Rio de Janeiro",
       "35" = "Sao Paulo",
       "41" = "Parana", "42" = "Santa Catarina", "43" = "Rio Grande do Sul",
-      "50" = "Mato Grosso do Sur", "51" = "Mato Grosso", "52" = "Goias",
+      "50" = "Mato Grosso do Sul", "51" = "Mato Grosso", "52" = "Goias",
       "53" = "Distrito Federal"
     ),
 
     "V1001" = c(
-      "1" = "Norte",
-      "2" = "Nordeste",
-      "3" = "Sudeste",
-      "4" = "Sur",
-      "5" = "Centro-Oeste"
+      "1" = "Norte", "2" = "Noreste", "3" = "Sudeste", 
+      "4" = "Sur", "5" = "Centro-Oeste"
     ),
 
-    "V1006" = c(
-      "1" = "Urbana",
-      "2" = "Rural"
+    "V1006" = c("1" = "Urbana", "2" = "Rural"),
+
+    "V1005" = c(
+      "1" = "Area urbanizada",
+      "2" = "Area no urbanizada",
+      "3" = "Area urbanizada aislada",
+      "4" = "Area rural de extension urbana",
+      "5" = "Aglomerado rural - Poblado",
+      "6" = "Aglomerado rural - Nucleo",
+      "7" = "Aglomerado rural - Otros",
+      "8" = "Area rural exclusiva (sin aglomerado)"
     ),
 
     "V4001" = c(
       "01" = "Domicilio particular permanente ocupado",
-      "02" = "Domicilio particular permanente ocupado sin entrevista realizada",
+      "02" = "Domicilio particular permanente ocupado (sin entrevista)",
       "05" = "Domicilio particular improvisado ocupado",
-      "06" = "Domicilio colectivo con residente"
+      "06" = "Domicilio colectivo con residentes"
     ),
 
     "V4002" = c(
       "11" = "Casa",
-      "12" = "Casa en villa o en condominio",
+      "12" = "Casa en condominio o villa",
       "13" = "Apartamento",
-      "14" = "Habitacion en casa de inquilinato o cortijo",
-      "15" = "Choza o maloca (indigena)",
-      "51" = "Tienda o carpa",
+      "14" = "Habitacion en casa de vecindad/inquilinato (cortico)", 
+      "15" = "Choza indigena (Oca/Maloca)",
+      "51" = "Tienda de campana o carpa",
       "52" = "Dentro de establecimiento",
-      "53" = "Otro (vagon, remolque, cueva, etc)",
-      "61" = "Asilo, orfanato y similares con residente",
-      "62" = "Hotel, pension y similares con residente",
-      "63" = "Alojamiento de trabajadores con residente",
-      "64" = "Penitenciaria, prision o centro de detencion con residente",
-      "65" = "Otro con residente"
+      "53" = "Otro (vagon, remolque, cueva, etc.)",
+      "61" = "Asilo, orfanato y similares",
+      "62" = "Hotel, pension y similares",
+      "63" = "Alojamiento de trabajadores",
+      "64" = "Penitenciaria, presidio o centro de detencion",
+      "65" = "Otro domicilio colectivo"
     ),
 
     "V0201" = c(
-      "1" = "Propio de algun residente - ya pagado",
-      "2" = "Propio de algun residente - aun pagando",
+      "1" = "Propio (ya pagado)",
+      "2" = "Propio (aun pagando)",
       "3" = "Alquilado",
       "4" = "Cedido por empleador",
       "5" = "Cedido de otra forma",
       "6" = "Otra condicion"
+    ),
+
+    "V0202" = c(
+      "1" = "Mamposteria/Albanileria con revestimiento",
+      "2" = "Mamposteria/Albanileria sin revestimiento",
+      "3" = "Madera apropiada para construccion",
+      "4" = "Adobe/Tapial revestido",
+      "5" = "Adobe/Tapial no revestido",
+      "6" = "Madera aprovechada/desecho",
+      "7" = "Paja",
+      "8" = "Otro material",
+      "9" = "Sin paredes"
+    ),
+
+    "V0205" = c(
+      "0" = "Cero", "1" = "Uno", "2" = "Dos", "3" = "Tres",
+      "4" = "Cuatro", "5" = "Cinco", "6" = "Seis",
+      "7" = "Siete", "8" = "Ocho", "9" = "Nueve o mas"
+    ),
+
+    "V0206" = c("1" = "Si", "2" = "No"), # Tiene bano/hoyo
+
+    "V0207" = c(
+      "1" = "Red general de desague o pluvial",
+      "2" = "Fosa septica",
+      "3" = "Fosa rudimentaria/Pozo negro",
+      "4" = "Zanja",
+      "5" = "Rio, lago o mar",
+      "6" = "Otro"
+    ),
+
+    "V0208" = c(
+      "01" = "Red general de distribucion",
+      "02" = "Pozo o manantial en la propiedad",
+      "03" = "Pozo o manantial fuera de la propiedad",
+      "04" = "Camion cisterna",
+      "05" = "Agua de lluvia (cisterna)",
+      "06" = "Agua de lluvia (otra forma)",
+      "07" = "Rio, embalse, lago o arroyo",
+      "08" = "Otra",
+      "09" = "Pozo o manantial en la aldea (Indigena)",
+      "10" = "Pozo o manantial fuera de la aldea (Indigena)"
+    ),
+
+    "V0209" = c(
+      "1" = "Si, en al menos un ambiente",
+      "2" = "Si, solo en la propiedad/terreno",
+      "3" = "No"
+    ),
+
+    "V0210" = c(
+      "1" = "Recolectada directamente por servicio de limpieza",
+      "2" = "Colocada en contenedor de servicio de limpieza",
+      "3" = "Quemada en la propiedad",
+      "4" = "Enterrada en la propiedad",
+      "5" = "Arrojada en terreno baldio o via publica",
+      "6" = "Arrojada a rio, lago o mar",
+      "7" = "Otro destino"
+    ),
+
+    "V0211" = c(
+      "1" = "Si, de compania distribuidora",
+      "2" = "Si, de otras fuentes",
+      "3" = "No existe energia electrica"
+    ),
+
+    "V0212" = c(
+      "1" = "Si, de uso exclusivo",
+      "2" = "Si, de uso comun",
+      "3" = "No tiene medidor"
+    ),
+
+    # --- Variables Booleanas (Activos & Flags) ---
+    "V0213" = c("1" = "Si", "2" = "No"),
+    "V0214" = c("1" = "Si", "2" = "No"),
+    "V0215" = c("1" = "Si", "2" = "No"),
+    "V0216" = c("1" = "Si", "2" = "No"),
+    "V0217" = c("1" = "Si", "2" = "No"),
+    "V0218" = c("1" = "Si", "2" = "No"),
+    "V0219" = c("1" = "Si", "2" = "No"),
+    "V0220" = c("1" = "Si", "2" = "No"),
+    "V0221" = c("1" = "Si", "2" = "No"),
+    "V0222" = c("1" = "Si", "2" = "No"),
+    "V0301" = c("1" = "Si", "2" = "No"),
+    "V0701" = c("1" = "Si", "2" = "No"),
+
+    "V0402" = c(
+      "1" = "Un solo residente",
+      "2" = "Mas de un residente",
+      "9" = "Ignorado"
+    ),
+
+    "V6600" = c(
+      "1" = "Unipersonal",
+      "2" = "Nuclear",
+      "3" = "Extendida",
+      "4" = "Compuesta"
+    ),
+
+    "V6210" = c(
+      "1" = "Adecuada",
+      "2" = "Semi-adecuada",
+      "3" = "Inadecuada"
     )
   )
 

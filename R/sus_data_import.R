@@ -104,7 +104,7 @@
 #' @param use_cache Logical. If TRUE (default), will use cached data to avoid 
 #'   re-downloads. Cache is based on UF, year, month, and system parameters.
 #' @param cache_dir Character. Directory to store cached files. 
-#'   Default is "~/.climasus4r_cache".
+#'   Default is "~/.climasus4r_cache/data".
 #' @param force_redownload Logical. If TRUE, ignores cache and re-downloads 
 #'   everything. Useful when you suspect cached data is corrupted or outdated.
 #' @param parallel Logical. If TRUE (default), will use parallel processing 
@@ -148,13 +148,7 @@
 #' * Official DATASUS documentation: \url{http://datasus.saude.gov.br}
 #' * Microdatasus package: \url{https://github.com/rfsaldanha/microdatasus}
 #'
-#' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_alert_warning cli_alert_danger
-#' @importFrom future.apply future_mapply
-#' @importFrom future plan multisession sequential
-#' @importFrom progressr with_progress progressor
-#' @importFrom digest digest
-#' @importFrom fs dir_exists dir_create file_exists
-#'
+#' @importFrom glue glue
 #' @export
 #'
 #' @examples
@@ -206,7 +200,7 @@ sus_data_import <- function(uf = NULL,
                             month = NULL,
                             system, 
                             use_cache = TRUE,
-                            cache_dir = "~/.climasus4r_cache",
+                            cache_dir = "~/.climasus4r_cache/data",
                             force_redownload = FALSE,
                             parallel = FALSE,
                             workers = 4,
@@ -350,6 +344,9 @@ sus_data_import <- function(uf = NULL,
   }
   # Setup cache directory
   if (use_cache) {
+    #Check if arrow pak installed
+    check_arrow(lang="pt")
+    
     cache_dir <- path.expand(cache_dir)
     if (!fs::dir_exists(cache_dir)) {
       if (verbose) cli::cli_alert_info("Creating cache directory: {cache_dir}")

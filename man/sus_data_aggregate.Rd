@@ -28,7 +28,7 @@ Default is \code{"day"}.}
 
 \item{fun}{Character string or list of functions specifying the aggregation function(s).
 Options: \code{"count"} (default), \code{"sum"}, \code{"mean"}, \code{"median"}, \code{"min"}, \code{"max"},
-\code{"sd"}, \code{"q25"} (25th percentile), \code{"q75"} (75th percentile), \code{"q95"} (95th percentile).
+\code{"sd"}, \code{"q25"} (25th percentile), \code{"q75"}, \code{"q95"}, and \code{"q99"}.
 Can also be a named list for multiple aggregations, e.g.,
 \code{list(mean_temp = "mean", max_temp = "max")}.}
 
