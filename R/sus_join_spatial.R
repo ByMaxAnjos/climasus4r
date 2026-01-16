@@ -507,12 +507,20 @@ get_spatial_data_with_cache <- function(
 ) {
   msg <- get_spatial_messages(lang)
 
+  if ((requireNamespace("sfarrow", quietly = TRUE))) { 
   # Define cache file name
   cache_file <- file.path(
     cache_dir,
     # paste0(level, "_", year, "_", ifelse(simplified, "simp", "full"), ".gpkg")
     paste0(level, "_", year, "_", ifelse(simplified, "simp", "full"), ".parquet")
   )
+  } else { 
+  # Define cache file name
+  cache_file <- file.path(
+    cache_dir,
+    paste0(level, "_", year, "_", ifelse(simplified, "simp", "full"), ".gpkg")
+  )
+  }
 
   # Try to load from cache
   if (use_cache && file.exists(cache_file)) {
@@ -522,10 +530,12 @@ get_spatial_data_with_cache <- function(
 
     tryCatch(
       {
-        #spatial_df <- arrow::read_parquet(cache_file)
-        # spatial_df <- sf::st_read(cache_file)
-        # spatial_df <- sf::st_as_sf(spatial_df)
-        spatial_df <- sfarrow::st_read_parquet(cache_file)
+        if ((requireNamespace("sfarrow", quietly = TRUE))) { 
+          spatial_df <- sfarrow::st_read_parquet(cache_file)
+        } else { 
+          spatial_df <- sf::st_read(cache_file)
+          spatial_df <- sf::st_as_sf(spatial_df)
+        }
         return(spatial_df)
       },
       error = function(e) {
@@ -572,9 +582,12 @@ get_spatial_data_with_cache <- function(
     }
 
     tryCatch(
-      {
-        sfarrow::st_write_parquet(obj = spatial_df, dsn = cache_file)
-        #sf::st_write(spatial_df, cache_file, driver = "GPKG", quiet = TRUE, delete_dsn = TRUE, append = TRUE)
+      { 
+        if ((requireNamespace("sfarrow", quietly = TRUE))) { 
+          sfarrow::st_write_parquet(obj = spatial_df, dsn = cache_file)
+        } else {
+          sf::st_write(spatial_df, cache_file, driver = "GPKG", quiet = TRUE, delete_dsn = TRUE, append = TRUE)
+         }
         if (verbose) {
           cli::cli_alert_success(msg$cache_saved)
         }

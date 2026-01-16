@@ -572,17 +572,35 @@ get_census_messages <- function(lang) {
 #' @noRd
 get_spatial_muni_with_cache <- function(spatial_cache_dir) {
   # Ensure the directory exists
-  if (!dir.exists(spatial_cache_dir)) dir.create(spatial_cache_dir, recursive = TRUE)
+  if (!dir.exists(spatial_cache_dir)) {
+    dir.create(spatial_cache_dir, recursive = TRUE)
+  }
 
-  cache_file <- file.path(spatial_cache_dir, "sf_municipality_2010.parquet")
+  if ((requireNamespace("sfarrow", quietly = TRUE))) {
+    cache_file <- file.path(spatial_cache_dir, "sf_municipality_2010.parquet")
+  } else {
+    cache_file <- file.path(spatial_cache_dir, "sf_municipality_2010.gpkg")
+  }
+  
 
   if (file.exists(cache_file)) {
-    return(sfarrow::st_read_parquet(cache_file))
+    
+    if ((requireNamespace("sfarrow", quietly = TRUE))) { 
+      return(sfarrow::st_read_parquet(cache_file))
+    } else {
+      return(sf::st_read(cache_file))
+    }
+    
   } else {
+    
     spatial_df <- geobr::read_municipality(code_muni = "all", simplified = TRUE, showProgress = FALSE)
     
-    # Corrected: Write to the full file path
-    sfarrow::st_write_parquet(obj = spatial_df, dsn = cache_file)
+    if ((requireNamespace("sfarrow", quietly = TRUE))) { 
+      # Corrected: Write to the full file path
+      sfarrow::st_write_parquet(obj = spatial_df, dsn = cache_file)
+    } else { 
+      sf::st_write(obj = spatial_df, dsn = cache_file, append = TRUE)
+    }
     
     return(spatial_df)
   }

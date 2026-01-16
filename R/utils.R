@@ -4,99 +4,124 @@
 #' @name utils
 NULL
 
-#' Enable spatial features in climasus4r
-#'
+#' @title Enable Spatial Features in climasus4r
+#' @description Checks for required spatial packages and attempts a robust installation if missing.
+#' This function guides the user through system dependencies and automatically installs R packages.
 #' @param lang Language for messages: "pt", "en", or "es".
+#' @param verbose Logical. Should detailed messages be printed?
 #' @noRd
-enable_spatial <- function(lang = "pt") {
+enable_spatial <- function(lang = "pt", verbose = TRUE) {
 
+  # --- 1. Multilingual Messages ---
   lang <- match.arg(lang, c("pt", "en", "es"))
 
-  msg <- list(
-
+  msg <- switch(
+    lang,
     pt = list(
       title = "Ativando suporte espacial do climasus4r",
       missing = "Os seguintes pacotes espaciais nao estao instalados:",
-      linux_sys = "Passo 1 -> Instalar bibliotecas do sistema (Linux)",
-      mac_sys = "Passo 1 -> Instalar bibliotecas do sistema (macOS)",
-      binaries = "Passo 2 -> Usar binarios do Posit (recomendado)",
-      rpkgs = "Passo 3 -> Instalar pacotes R",
-      done = "Todos os pacotes espaciais ja estao instalados.",
+      sys_deps = "Passo 1: Instalar dependencias de sistema (GDAL, GEOS, PROJ)",
+      linux_apt = "Para Debian/Ubuntu, execute no terminal:",
+      mac_brew = "Para macOS, use Homebrew no terminal:",
+      r_pkgs = "Passo 2: Instalando pacotes R faltantes...",
+      ok = "Todos os pacotes espaciais estao instalados e prontos para uso.",
+      fail = "Falha ao instalar pacotes R. Verifique se as dependencias de sistema foram instaladas corretamente.",
       restart = "Apos a instalacao, reinicie o R e execute novamente sua funcao."
     ),
-
     en = list(
       title = "Enabling spatial support for climasus4r",
       missing = "The following spatial packages are missing:",
-      linux_sys = "Step 1 -> Install system libraries (Linux)",
-      mac_sys = "Step 1 -> Install system libraries (macOS)",
-      binaries = "Step 2 -> Use Posit binaries (recommended)",
-      rpkgs = "Step 3 -> Install R packages",
-      done = "All spatial packages are already installed.",
+      sys_deps = "Step 1: Install system dependencies (GDAL, GEOS, PROJ)",
+      linux_apt = "For Debian/Ubuntu, run in the terminal:",
+      mac_brew = "For macOS, use Homebrew in the terminal:",
+      r_pkgs = "Step 2: Installing missing R packages...",
+      ok = "All spatial packages are installed and ready for use.",
+      fail = "Failed to install R packages. Check if system dependencies were installed correctly.",
       restart = "After installation, restart R and rerun your spatial function."
     ),
-
     es = list(
       title = "Habilitando soporte espacial de climasus4r",
       missing = "Los siguientes paquetes espaciales no estan instalados:",
-      linux_sys = "Paso 1 -> Instalar bibliotecas del sistema (Linux)",
-      mac_sys = "Paso 1 -> Instalar bibliotecas del sistema (macOS)",
-      binaries = "Paso 2 -> Usar binarios de Posit (recomendado)",
-      rpkgs = "Paso 3 -> Instalar paquetes de R",
-      done = "Todos los paquetes espaciales ya estan instalados.",
+      sys_deps = "Paso 1: Instalar dependencias del sistema (GDAL, GEOS, PROJ)",
+      linux_apt = "Para Debian/Ubuntu, ejecute en la terminal:",
+      mac_brew = "Para macOS, use Homebrew en la terminal:",
+      r_pkgs = "Paso 2: Instalando paquetes R faltantes...",
+      ok = "Todos los paquetes espaciales estan instalados y listos para usar.",
+      fail = "Fallo al instalar paquetes R. Verifique si las dependencias del sistema se instalaron correctamente.",
       restart = "Despues de la instalacion, reinicie R y ejecute nuevamente su funcion."
     )
   )
 
   spatial_pkgs <- c("sf", "geobr", "geocodebr", "sfarrow")
 
+  # --- 2. Initial Check ---
   missing <- spatial_pkgs[
     !vapply(spatial_pkgs, requireNamespace, logical(1), quietly = TRUE)
   ]
 
   if (length(missing) == 0) {
-    cli::cli_alert_success(msg[[lang]]$done)
+    if (verbose) cli::cli_alert_success(msg$ok)
     return(invisible(TRUE))
   }
 
-  cli::cli_h1(msg[[lang]]$title)
-  cli::cli_alert_info(msg[[lang]]$missing)
-  cli::cli_bullets(missing)
+  # --- 3. Guide User for System Dependencies ---
+  if (verbose) {
+    cli::cli_h1(msg$title)
+    cli::cli_alert_info(msg$missing)
+    cli::cli_bullets(missing)
+    cli::cli_h2(msg$sys_deps)
+  }
 
   sys <- Sys.info()[["sysname"]]
 
   if (sys == "Linux") {
-
-    cli::cli_h2(msg[[lang]]$linux_sys)
+    if (verbose) cli::cli_alert_info(msg$linux_apt)
     cli::cli_code(
-      "sudo apt install -y libgdal-dev libgeos-dev libproj-dev libsqlite3-dev"
+      "sudo apt update && sudo apt install -y libudunits2-dev libgdal-dev libgeos-dev libproj-dev libsqlite3-dev"
     )
-
-    cli::cli_h2(msg[[lang]]$binaries)
-    cli::cli_code(
-      "options(repos = c(RSPM = 'https://packagemanager.posit.co/cran/latest', CRAN = 'https://cloud.r-project.org'))"
-    )
-
   } else if (sys == "Darwin") {
-
-    cli::cli_h2(msg[[lang]]$mac_sys)
+    if (verbose) cli::cli_alert_info(msg$mac_brew)
     cli::cli_code("brew install gdal geos proj")
-
+  } else {
+    if (verbose) cli::cli_alert_info("Para seu sistema operacional, verifique a documentacao do pacote 'sf' para dependencias de sistema.")
   }
 
-  cli::cli_h2(msg[[lang]]$rpkgs)
-  cli::cli_code(
-    sprintf(
-      "install.packages(c(%s))",
-      paste(sprintf("'%s'", missing), collapse = ", ")
-    )
-  )
+  # --- 4. Attempt R Package Installation ---
+  if (verbose) cli::cli_h2(msg$r_pkgs)
 
-  cli::cli_alert_warning(msg[[lang]]$restart)
+  # Set Posit Package Manager (PPM) as primary repo for robust binary installation
+  old_repos <- getOption("repos")
+  options(repos = c(PPM = "https://packagemanager.posit.co/cran/latest", CRAN = "https://cloud.r-project.org"))
 
-  invisible(FALSE)
+  tryCatch({
+    utils::install.packages(missing, dependencies = TRUE)
+  }, error = function(e) {
+    if (verbose) cli::cli_alert_danger(c(msg$fail, "i" = e$message))
+  })
+
+  # Restore original repos
+  options(repos = old_repos)
+
+  # --- 5. Final Check ---
+  missing_after_install <- spatial_pkgs[
+    !vapply(spatial_pkgs, requireNamespace, logical(1), quietly = TRUE)
+  ]
+
+  if (length(missing_after_install) == 0) {
+    if (verbose) cli::cli_alert_success(msg$ok)
+    return(invisible(TRUE))
+  } else {
+    if (verbose) {
+      cli::cli_alert_warning(msg$restart)
+      cli::cli_alert_info(msg$missing)
+      cli::cli_bullets(missing_after_install)
+    }
+    return(invisible(FALSE))
+  }
 }
 
+#' @title Check Spatial Engine Status
+#' @description Checks if required spatial packages are installed and attempts to enable them if missing.
 #' @param lang Language for messages: "pt", "en", or "es".
 #' @noRd
 check_spatial <- function(lang = "pt") {
@@ -111,23 +136,31 @@ check_spatial <- function(lang = "pt") {
 
     msg <- switch(
       lang,
-      pt = "Recursos espaciais nao estao habilitados.",
-      en = "Spatial features are not enabled.",
-      es = "Las funciones espaciales no estan habilitadas."
+      pt = "Recursos espaciais nao estao habilitados. Tentando ativar automaticamente...",
+      en = "Spatial features are not enabled. Trying to enable automatically...",
+      es = "Las funciones espaciales no estan habilitadas. Intentando activarlas automaticamente..."
     )
 
     cli::cli_alert_info(msg)
 
-    tryCatch(
-      enable_spatial(lang = lang),
-      error = function(e) {
-        cli::cli_abort(e$message)
-      }
-    )
+    # Call enable_spatial to guide user and attempt installation
+    success <- enable_spatial(lang = lang, verbose = FALSE)
+
+    if (!success) {
+      cli::cli_alert_warning(
+        switch(
+          lang,
+          pt = "Falha ao habilitar recursos espaciais. Siga as instrucoes acima para instalar as dependencias de sistema.",
+          en = "Failed to enable spatial features. Follow the instructions above to install system dependencies.",
+          es = "Fallo al habilitar las funciones espaciales. Siga las instrucciones anteriores para instalar las dependencias del sistema."
+        )
+      )
+    }
   }
 
   invisible(TRUE)
 }
+
 
 #' @title Enable Arrow Engine for climasus4r
 #' @description Checks for the 'arrow' package and attempts a robust installation if missing.
@@ -136,11 +169,13 @@ check_spatial <- function(lang = "pt") {
 #' @param lang Language for messages: "pt", "en", or "es".
 #' @param verbose Logical. Should detailed messages be printed?
 #' @noRd
-enable_arrow <- function(lang = "pt", verbose = TRUE) {
-
+enable_arrow <- function(
+  lang = "pt",
+  verbose = TRUE
+) {
   # --- 1. Multilingual Messages ---
   if (!lang %in% c("pt", "en", "es")) {
-    stop("lang must be one of: 'pt', 'en', or 'es'")
+    cli::cli_alert_warning("lang must be one of: 'pt', 'en', or 'es'")
   }
 
   msg <- switch(
@@ -197,59 +232,93 @@ enable_arrow <- function(lang = "pt", verbose = TRUE) {
   }
 
   # --- 3. Installation Strategy (Try/Catch Block) ---
-  
+
   # Helper function to check if installation was successful
   check_success <- function() requireNamespace("arrow", quietly = TRUE)
-  
+
   # Attempt 1: Standard CRAN install (works on Windows/Mac, sometimes Linux)
-  if (verbose) cli::cli_alert_info(msg$install_cran)
-  try({
-    utils::install.packages("arrow")
-  }, silent = TRUE)
+  if (verbose) {
+    cli::cli_alert_info(msg$install_cran)
+  }
+  try(
+    {
+      utils::install.packages("arrow")
+    },
+    silent = TRUE
+  )
   if (check_success()) {
-    if (verbose) cli::cli_alert_success(msg$ok)
+    if (verbose) {
+      cli::cli_alert_success(msg$ok)
+    }
     return(invisible(TRUE))
   }
 
   # Attempt 2: NOT_CRAN (Apache Binaries) - Best for many Linux distros
-  if (verbose) cli::cli_alert_info(msg$install_not_cran)
-  try({
-    Sys.setenv("NOT_CRAN" = "true")
-    utils::install.packages("arrow")
-    Sys.unsetenv("NOT_CRAN")
-  }, silent = TRUE)
+  if (verbose) {
+    cli::cli_alert_info(msg$install_not_cran)
+  }
+  try(
+    {
+      Sys.setenv("NOT_CRAN" = "true")
+      utils::install.packages("arrow")
+      Sys.unsetenv("NOT_CRAN")
+    },
+    silent = TRUE
+  )
   if (check_success()) {
-    if (verbose) cli::cli_alert_success(msg$ok)
+    if (verbose) {
+      cli::cli_alert_success(msg$ok)
+    }
     return(invisible(TRUE))
   }
-  
+
   # Attempt 3: RStudio Package Manager (RSPM) - Good fallback for Linux
   # This requires detecting the OS, which is complex. We'll use a simplified approach
   # by trying the R-Universe repository which often has pre-compiled binaries.
-  if (verbose) cli::cli_alert_info(msg$install_rspm)
-  try({
-    utils::install.packages("arrow", repos = c("https://apache.r-universe.dev", "https://cloud.r-project.org"))
-  }, silent = TRUE)
+  if (verbose) {
+    cli::cli_alert_info(msg$install_rspm)
+  }
+  try(
+    {
+      utils::install.packages(
+        "arrow",
+        repos = c(
+          "https://apache.r-universe.dev",
+          "https://cloud.r-project.org"
+        )
+      )
+    },
+    silent = TRUE
+  )
   if (check_success()) {
-    if (verbose) cli::cli_alert_success(msg$ok)
+    if (verbose) {
+      cli::cli_alert_success(msg$ok)
+    }
     return(invisible(TRUE))
   }
 
   # Attempt 4: Forced Source Build (Slowest, but most robust if system dependencies are met)
-  if (verbose) cli::cli_alert_info(msg$install_manual)
-  try({
-    Sys.setenv("LIBARROW_BINARY" = "false", "LIBARROW_MINIMAL" = "false")
-    utils::install.packages("arrow")
-    Sys.unsetenv("LIBARROW_BINARY")
-    Sys.unsetenv("LIBARROW_MINIMAL")
-  }, silent = TRUE)
+  if (verbose) {
+    cli::cli_alert_info(msg$install_manual)
+  }
+  try(
+    {
+      Sys.setenv("LIBARROW_BINARY" = "false", "LIBARROW_MINIMAL" = "false")
+      utils::install.packages("arrow")
+      Sys.unsetenv("LIBARROW_BINARY")
+      Sys.unsetenv("LIBARROW_MINIMAL")
+    },
+    silent = TRUE
+  )
   if (check_success()) {
-    if (verbose) cli::cli_alert_success(msg$ok)
+    if (verbose) {
+      cli::cli_alert_success(msg$ok)
+    }
     return(invisible(TRUE))
   }
 
   # --- 4. Final Failure ---
-  cli::cli_abort(c(msg$fail, "i" = msg$how))
+  cli::cli_alert_warning(c(msg$fail, "i" = msg$how))
 }
 
 #' @title Check Arrow Engine Status
@@ -273,7 +342,7 @@ check_arrow <- function(lang = "pt") {
       enable_arrow(lang = lang, verbose = FALSE), # Do not print verbose messages during check
       error = function(e) {
         # Re-throw the error from enable_arrow
-        cli::cli_abort(e$message)
+        cli::cli_alert_warning(e$message)
       }
     )
   }
