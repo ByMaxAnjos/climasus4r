@@ -55,7 +55,7 @@ df_analise <- sus_data_import(
 
 ## Infraestrutura de Dados 
 
-A Fase 1 do **climasus4r** fornece um pipeline end-to-end completo para preparação de dados de saúde, desde a aquisição bruta até dados prontos para análise. Com 9 funções principais, você pode transformar dados do DATASUS em séries temporais agregadas, padronizadas e prontas para modelagem em minutos.
+A fase de infraestrutura do **climasus4r** fornece um pipeline end-to-end completo para preparação de dados de saúde, desde a aquisição bruta até dados prontos para análise. Com 9 funções principais, você pode transformar dados do DATASUS em séries temporais agregadas, padronizadas e prontas para modelagem em minutos.
 
 ```r
 DADOS BRUTOS (DATASUS)
