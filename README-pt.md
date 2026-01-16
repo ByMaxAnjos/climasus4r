@@ -93,10 +93,10 @@ O **climasus4r** permite o acesso simplificado e padronizado aos principais sist
 "SIM-DOMAT": Óbitos Maternos
 
 2. SIH (Sistema de Informação Hospitalar)
-"SIH-RD": AIH (Autorizações de Internação Hospitalar) - Geral
-"SIH-RJ": AIH - Específico para o Rio de Janeiro
-"SIH-SP": AIH - Específico para São Paulo
-"SIH-ER": Prontuários de Emergência
+. "SIH-RD": AIH (Autorizações de Internação Hospitalar) - Geral
+. "SIH-RJ": AIH - Específico para o Rio de Janeiro
+. "SIH-SP": AIH - Específico para São Paulo
+. "SIH-ER": Prontuários de Emergência
 
 4. SINAN (Sistema de Informação de Agravos de Notificação)
 "SINAN-DENGUE": Casos de Dengue
