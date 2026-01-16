@@ -81,10 +81,11 @@ reference:
       - sus_data_filter_demographics
 
   - title: "Analysis & Spatial Data"
-    desc: "Time series aggregation and spatial joins with Brazilian geography"
+    desc: "Time series aggregation and spatial joins with Brazilian geography and demographic"
     contents:
       - sus_data_aggregate
       - sus_join_spatial
+      - sus_socio_add_census
 
   - title: "Quality & Metadata"
     desc: "Data quality reports and disease dictionaries"

@@ -81,10 +81,11 @@ reference:
       - sus_data_filter_demographics
 
   - title: "Análisis y Datos Espaciales"
-    desc: "Agregación de series temporales y unión con datos geográficos"
+    desc: "Agregación de series temporales y unión con datos geográficos y demograficas"
     contents:
       - sus_data_aggregate
       - sus_join_spatial
+      - sus_socio_add_census
 
   - title: "Calidad y Metadatos"
     desc: "Informes de calidad de datos y diccionarios de enfermedades"
