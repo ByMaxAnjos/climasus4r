@@ -1,8 +1,12 @@
-# climasus4r <a href="https://github.com/ByMaxAnjos/climasus4r/blob/master/"><img src="inst/figures/logo.png" align="right" height="150" /></a>
+<p align="right">
+  <img src="https://github.com/ByMaxAnjos/climasus4r/blob/master/inst/figures/logo.png?raw=true"
+       alt="climasus4r logo"
+       width="150"/>
+</p>
 
-## Análisis Espacio-temporales Integrados de Salud, Clima y Ambiente en Brasil
+# climasus4r
 
-<br>
+> **Análisis Espacio-temporales Integrados de Salud, Clima y Ambiente en Brasil**
 
 
 <!-- badges: start -->

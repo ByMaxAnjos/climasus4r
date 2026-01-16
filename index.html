@@ -554,6 +554,43 @@
         .team-links a:hover {
             transform: scale(1.15);
         }
+        /* About / Long-form scientific text */
+        .about-container {
+            max-width: 1100px;     /* mais largo que container padrão */
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .about-text {
+            text-align: left;      /* NÃO centralizar */
+            font-size: 1.125rem;
+            line-height: 1.9;
+            color: #334155;
+            white-space: normal;  /* garante quebra natural */
+        }
+        /* Estilo para o link do Lattes */
+        a[aria-label="Currículo Lattes"] {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        /* Para SVGs com currentColor - isso permite mudar a cor via CSS */
+        a[aria-label="Currículo Lattes"] svg {
+            color: #0066CC; /* Azul oficial do Lattes */
+            transition: color 0.2s ease;
+        }
+
+        a[aria-label="Currículo Lattes"]:hover svg {
+            color: #004d99; /* Azul mais escuro no hover */
+        }
+
+        /* Se você quiser um efeito de fundo no hover */
+        a[aria-label="Currículo Lattes"]:hover {
+            background-color: rgba(0, 102, 204, 0.1);
+        }
 
     </style>
 </head>
@@ -633,12 +670,11 @@
     </section>
     <!-- About Section -->
     <section id="about">
-        <div class="container">
-            <h2 class="section-title" data-translate="description.title">Sobre o climasus4r</h2>
-            <p class="section-subtitle" data-translate="description.text">
-                O climasus4r foi desenvolvido para preencher a lacuna entre dados meteorológicos complexos e a gestão de saúde pública.
-            </p>
-            
+        <div class="about-container">
+            <h2 class="section-title" data-translate="description.title"></h2>
+
+            <div class="about-text" data-translate="description.text"></div>
+
             <div class="stats">
                 <div class="stat-item">
                     <div class="stat-number">5,570+</div>
@@ -696,6 +732,7 @@
                     <div class="funding-logo">FIOCRUZ</div>
                     <div class="funding-logo">Ministério da Saúde</div>
                     <div class="funding-logo">INCT-CONEXÃO</div>
+                    <div class="funding-logo">UNIR</div>
                 </div>
             </div>
         </div>
@@ -738,13 +775,13 @@
     "hero": {
       "badge": "Versão 1.0.0 Disponível",
       "title": "Ciência Climática Integrada ao SUS",
-      "subtitle": "Um pacote em R para análise espaço-temporal de dados climáticos e ambiental voltada à saúde pública brasileira.",
+      "subtitle": "Um pacote em R para obtenção de dados, diagnóstico, previsão e análise espaço-temporal de dados climáticos, ambientais e de saúde, com foco na saúde pública brasileira.",
       "cta": "Começar Agora",
       "secondaryCta": "Ver no GitHub"
     },
     "description": {
       "title": "Sobre o climasus4r",
-      "text": "climasus4r é uma plataforma científica em R para integrar, padronizar e analisar dados de saúde, clima e ambiente no Brasil. Desenvolvido no âmbito do INCT Conexão–Amazônia, o pacote automatiza todo o fluxo de trabalho epidemiológico — desde a aquisição dos dados do DATASUS até a geração de séries temporais prontas para modelagem climática, vigilância em saúde e avaliação de riscos ambientais. Com suporte aos seis principais sistemas do SUS (SIM, SINAN, SIH, SIA, CNES e SINASC), processamento paralelo, padronização multilíngue (PT-EN-ES) e mais de 50 grupos de doenças sensíveis ao clima, o climasus4r transforma grandes volumes de microdados em informação científica reprodutível, escalável e pronta para decisões em saúde pública."
+      "text": "climasus4r é uma plataforma científica em R para obtenção, integração, padronização e análise de dados de saúde, clima e ambiente no Brasil, com foco na previsão bioclimática (bioprognose). Desenvolvido no âmbito do INCT Conexão e do Centro de Clima e Saúde de Rondônia (CCSRO–Fiocruz), o pacote automatiza todo o fluxo de trabalho epidemiológico — desde a aquisição de dados do DATASUS até a geração de séries temporais prontas para modelagem climática, vigilância em saúde e avaliação de riscos ambientais, previsão de impactos, eventos extremos e projeções climáticas de médio e longo prazo. Com suporte aos seis principais sistemas do SUS (SIM, SINAN, SIH, SIA, CNES e SINASC), processamento paralelo, padronização multilíngue (PT, EN, ES) e mais de 50 grupos de doenças sensíveis ao clima, o climasus4r transforma grandes volumes de microdados em informação científica reprodutível, escalável e orientada à tomada de decisão em saúde pública."
     },
     "features": [
       {
@@ -799,12 +836,27 @@
           "photo": "https://avatars.githubusercontent.com/thauamenezez",
           "github": "thauamenezez",
           "linkedin": "thauamenezez"
+        },
+        {
+          "name": "João Paulo Assis Gobo",
+          "role": "Contribuidor Científico",
+          "org": "Universidade Federal de Rondônia (UNIR) / Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO)",
+          "email": "joao.gobo@unir.br",
+          "photo": "http://servicosweb.cnpq.br/wspessoa/servletrecuperafoto?tipo=1&id=K4218505T9"
+        },
+        {
+          "name": "Andreimar Martins Soares",
+          "role": "Contribuidor Científico",
+          "org": "Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO)",
+          "email": "andreimar.soares@fiocruz.br",
+          "photo": "http://servicosweb.cnpq.br/wspessoa/servletrecuperafoto?tipo=1&id=K4792564Y7",
+          "linkedin": "andreimar-soares"
         }
       ]
     },
     "funding": {
       "title": "Apoio e Financiamento",
-      "text": "O projeto climasus4r é financiado pelo Ministério da Saúde e pela Fundação Oswaldo Cruz Rondônia (Fiocruz-RO / CCSRO), no âmbito do Instituto Nacional de Ciência e Tecnologia de Pesquisa e Conhecimento de Excelência da Amazônia Ocidental – INCT-CONEXÃO (@inct_conexao), processo nº 408474/2024-6. O fomento contempla o Núcleo Permanente de Climatologia (NPC) e o Núcleo Avançado de Climatologia (NAC)."
+      "text": "O projeto climasus4r é financiado pelo Ministério da Saúde e pela Fundação Oswaldo Cruz Rondônia (Fiocruz-RO), por meio do Centro de Clima e Saúde de Rondônia (CCSRO), no âmbito do Instituto Nacional de Ciência e Tecnologia de Pesquisa e Conhecimento de Excelência da Amazônia Ocidental – INCT-CONEXAO, processo CNPq nº 408474/2024-6. O fomento contempla o Núcleo Permanente de Climatologia (NPC) na Universidade Federal de Rondônia (UNIR) e o Núcleo Avançado de Climatologia (NAC) no CCSRO-FIOCRUZ."
     },
     "footer": {
       "text": "© 2026 climasus4r team. Licença MIT."
@@ -820,13 +872,13 @@
     "hero": {
       "badge": "Version 1.0.0 Out Now",
       "title": "Climate Science for Public Health",
-      "subtitle": "An R package for climate data analysis and environmental focused on the Brazilian healthcare system.",
+      "subtitle": "An R package for data acquisition, diagnostics, forecasting, and spatio-temporal analysis of climate, environmental, and health data, with a focus on Brazilian public health.",
       "cta": "Get Started",
       "secondaryCta": "View on GitHub"
     },
     "description": {
       "title": "About climasus4r",
-      "text": "climasus4r is a scientific R platform for integrating, standardizing, and analyzing health, climate, and environmental data in Brazil. Developed within the INCT Conexão–Amazonia program, it automates the entire epidemiological data pipeline — from raw DATASUS downloads to time-series datasets ready for climate modeling, health surveillance, and environmental risk assessment. With support for all six major Brazilian health information systems (SIM, SINAN, SIH, SIA, CNES, SINASC), parallel processing, multilingual standardization (EN-PT-ES), and over 50 climate-sensitive disease groups, climasus4r converts massive health microdata into reproducible, scalable, and policy-ready scientific evidence."
+      "text": "climasus4r is a scientific R-based platform designed to acquire, integrate, standardize, and analyze health, climate, and environmental data in Brazil, with a focus on bioclimatic forecasting (bioprognosis). Developed within the framework of the INCT Conexão and the Rondônia Climate and Health Center (CCSRO–Fiocruz), the package automates the entire epidemiological workflow — from data acquisition from DATASUS to the generation of time series ready for climate modeling, health surveillance, environmental risk assessment, impact forecasting, extreme event analysis, and medium- to long-term climate projections. Supporting the six main Brazilian Unified Health System (SUS) databases (SIM, SINAN, SIH, SIA, CNES, and SINASC), parallel processing, multilingual standardization (PT, EN, ES), and more than 50 climate-sensitive disease groups, climasus4r transforms large volumes of health microdata into reproducible, scalable scientific information suitable for evidence-based public health decision-making."
     },
     "features": [
       {
@@ -881,12 +933,27 @@
           "photo": "https://avatars.githubusercontent.com/thauamenezez",
           "github": "thauamenezez",
           "linkedin": "thauamenezez"
+        },
+        {
+          "name": "João Paulo Assis Gobo",
+          "role": "Scientific Contributor",
+          "org": "Universidade Federal de Rondônia (UNIR) / Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO)",
+          "email": "joao.gobo@unir.br",
+          "photo": "http://servicosweb.cnpq.br/wspessoa/servletrecuperafoto?tipo=1&id=K4218505T9"
+        },
+        {
+          "name": "Andreimar Martins Soares",
+          "role": "Scientific Contributor",
+          "org": "Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO)",
+          "email": "andreimar.soares@fiocruz.br",
+          "photo": "http://servicosweb.cnpq.br/wspessoa/servletrecuperafoto?tipo=1&id=K4792564Y7",
+          "linkedin": "andreimar-soares"
         }
       ]
     },
     "funding": {
       "title": "Support and Funding",
-      "text": "The climasus4r project is funded by the Brazilian Ministry of Health and by the Oswaldo Cruz Foundation in Rondônia (Fiocruz-RO / CCSRO), within the framework of the National Institute of Science and Technology for Research and Knowledge of Excellence of the Western Amazon – INCT-CONEXÃO (@inct_conexao), grant number 408474/2024-6. The funding supports the Permanent Climatology Center (NPC) and the Advanced Climatology Center (NAC)."
+      "text": "The climasus4r project is funded by the Brazilian Ministry of Health and the Oswaldo Cruz Foundation of Rondônia (Fiocruz-RO), through the Rondônia Climate and Health Center (CCSRO), within the framework of the National Institute of Science and Technology for Research and Knowledge of Excellence of the Western Amazon – INCT-CONEXAO, CNPq grant no. 408474/2024-6. The funding supports the Permanent Climatology Center (NPC) at the Federal University of Rondônia (UNIR) and the Advanced Climatology Center (NAC) at CCSRO-FIOCRUZ."
     },
     "footer": {
       "text": "© 2026 climasus4r team. MIT License."
@@ -902,13 +969,13 @@
     "hero": {
       "badge": "Versión 1.0.0 Disponible",
       "title": "Ciencia Climática para la Salud",
-      "subtitle": "Un paquete de R para el análisis de datos climáticos y ambientale enfocado en el sistema de salud brasileño.",
+      "subtitle": "Un paquete en R para la obtención de datos, diagnóstico, predicción y análisis espacio-temporal de datos climáticos, ambientales y de salud, con enfoque en la salud pública brasileña.",
       "cta": "Empezar",
       "secondaryCta": "Ver en GitHub"
     },
     "description": {
       "title": "Sobre climasus4r",
-      "text": "climasus4r es una plataforma científica en R para integrar, estandarizar y analizar datos de salud, clima y medio ambiente en Brasil. Desarrollado en el marco del INCT Conexión–Amazonía, automatiza todo el flujo de trabajo epidemiológico — desde la descarga de datos del DATASUS hasta la producción de series temporales listas para modelos climáticos, vigilancia sanitaria y evaluación de riesgos ambientales. Con soporte para los seis principales sistemas de información en salud (SIM, SINAN, SIH, SIA, CNES, SINASC), procesamiento en paralelo, estandarización multilingüe (ES-PT-EN) y más de 50 grupos de enfermedades sensibles al clima, climasus4r transforma grandes volúmenes de microdatos en evidencia científica reproducible, escalable y útil para la toma de decisiones en salud pública."
+      "text": "climasus4r es una plataforma científica en R para la obtención, integración, estandarización y análisis de datos de salud, clima y ambiente en Brasil, con énfasis en la predicción bioclimática (bioprognosis). Desarrollado en el marco del INCT Conexão y del Centro de Clima y Salud de Rondônia (CCSRO–Fiocruz), el paquete automatiza todo el flujo de trabajo epidemiológico — desde la adquisición de datos del DATASUS hasta la generación de series temporales listas para la modelización climática, la vigilancia en salud, la evaluación de riesgos ambientales, la predicción de impactos, el análisis de eventos extremos y las proyecciones climáticas de mediano y largo plazo. Con soporte para los seis principales sistemas del Sistema Único de Salud (SUS) de Brasil (SIM, SINAN, SIH, SIA, CNES y SINASC), procesamiento paralelo, estandarización multilingüe (PT–EN–ES) y más de 50 grupos de enfermedades sensibles al clima, climasus4r transforma grandes volúmenes de microdatos en información científica reproducible, escalable y orientada a la toma de decisiones en salud pública."
     },
     "features": [
       {
@@ -963,12 +1030,27 @@
           "photo": "https://avatars.githubusercontent.com/thauamenezez",
           "github": "thauamenezez",
           "linkedin": "thauamenezez"
+        },
+        {
+          "name": "João Paulo Assis Gobo",
+          "role": "Contribuidor Científico",
+          "org": "Universidade Federal de Rondônia (UNIR) / Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO)",
+          "email": "joao.gobo@unir.br",
+          "photo": "http://servicosweb.cnpq.br/wspessoa/servletrecuperafoto?tipo=1&id=K4218505T9"
+        },
+        {
+          "name": "Andreimar Martins Soares",
+          "role": "Contribuidor Científico",
+          "org": "Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO)",
+          "email": "andreimar.soares@fiocruz.br",
+          "photo": "http://servicosweb.cnpq.br/wspessoa/servletrecuperafoto?tipo=1&id=K4792564Y7",
+          "linkedin": "andreimar-soares"
         }
       ]
     },
     "funding": {
       "title": "Apoyo y Financiación",
-      "text": "El proyecto climasus4r es financiado por el Ministerio de Salud de Brasil y por la Fundación Oswaldo Cruz en Rondônia (Fiocruz-RO / CCSRO), en el marco del Instituto Nacional de Ciencia y Tecnología de Investigación y Conocimiento de Excelencia de la Amazonía Occidental – INCT-CONEXIÓN (@inct_conexao), proceso nº 408474/2024-6. El financiamiento cubre el Núcleo Permanente de Climatología (NPC) y el Núcleo Avanzado de Climatología (NAC)."
+      "text": "El proyecto climasus4r está financiado por el Ministerio de Salud de Brasil y por la Fundación Oswaldo Cruz de Rondônia (Fiocruz-RO), a través del Centro de Clima y Salud de Rondônia (CCSRO), en el marco del Instituto Nacional de Ciencia y Tecnología de Investigación y Conocimiento de Excelencia de la Amazonía Occidental – INCT-CONEXAO, proceso CNPq n.º 408474/2024-6. El financiamiento contempla el Núcleo Permanente de Climatología (NPC) en la Universidad Federal de Rondônia (UNIR) y el Núcleo Avanzado de Climatología (NAC) en el CCSRO-FIOCRUZ."
     },
     "footer": {
       "text": "© 2026 climasus4r team. Licença MIT."
@@ -1081,6 +1163,14 @@
                                     0 .3.2.66.79.55
                                     4.56-1.53 7.84-5.86 7.84-10.96
                                     C23.5 5.74 18.27.5 12 .5z"/>
+                                </svg>
+                            </a>` : ''}
+                         ${member.lattes ? `
+                            <a href="http://lattes.cnpq.br/${member.lattes}" target="_blank" title="Currículo Lattes" aria-label="Currículo Lattes">
+                                <svg width="22" height="22" viewBox="0 0 24 24">
+                                    <rect width="24" height="24" rx="4" fill="#0066CC"/>
+                                    <path d="M7 12L10 15L17 8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <text x="6" y="17" font-family="Arial" font-size="10" font-weight="bold" fill="white">L</text>
                                 </svg>
                             </a>` : ''}
 

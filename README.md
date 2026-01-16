@@ -1,6 +1,12 @@
-# climasus4r <a href="https://github.com/ByMaxAnjos/climasus4r/blob/master/"><img src="inst/figures/logo.png" align="right" height="150" /></a>
+<p align="right">
+  <img src="https://github.com/ByMaxAnjos/climasus4r/blob/master/inst/figures/logo.png?raw=true"
+       alt="climasus4r logo"
+       width="150"/>
+</p>
 
-## Análises Espaço-temporal Integradas de Saúde, Clima e Ambiente no Brasil
+# climasus4r
+
+> **Análises Espaço-temporal Integradas de Saúde, Clima e Ambiente no Brasil**
 
 <br>
 
@@ -746,18 +752,18 @@ detalhes <- get_disease_group_details("dengue", lang = "pt")
 * ✅ Agregação temporal flexível
 * ✅ Exportação com metadados
 
-### 🔄 Fase 2: Integração Socioeconômica (Em Andamento)
-* Vinculação de limites geográficos
-* Integração de dados socioeconômicos do IBGE (população, PIB, IDH)
+### 🔄 Fase 2: Integração Socioeconômica e territorial (Em Andamento)
+* ✅ Vinculação de limites geográficos
+* ✅ Integração de dados socioeconômicos do IBGE (população, PIB, renda, etc)
 * Operações espaciais ponderadas pela população
-* Correspondência de setores censitários
+* Cálculo de indicadores sociais e de saúde.
 
-### 📅 Fase 3: Integração Ambiental (Planejada)
-* Importação de dados meteorológicos do INMET e FIORES (INCT @inct_conexão)
-* Integração de dados de qualidade do ar (CETESB, INPE)
-* Integração de dados da rede de estações meteorológicas e de qualidade do ar do INCT-CONEXÃO
-* Processamento de dados de satélite (MODIS, Sentinel)
-* Algoritmos de correspondência de exposição
+### 📅 Fase 3: Integração Climática e Ambiental (Planejada)
+* Importação de dados meteorológicos do INMET e NOAA
+* Integração com dados do CCSRO e FIORES (INCT-CONEXAO)
+* Integração de dados de qualidade do ar 
+* Processamento de dados de satélite 
+* * Cálculo de indicadores climáticos e de saúde.
 
 ### 📅 Fase 4: Análise Espacial (Planejada)
 * Suavização espacial bayesiana
@@ -779,7 +785,7 @@ detalhes <- get_disease_group_details("dengue", lang = "pt")
 
 ## Financiamento
 
-O projeto climasus4r é financiado pelo Ministério da Saúde e pela Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO), vinculado ao **Instituto Nacional de Ciência e Tecnologia de Pesquisa e Conhecimento de Excelência da Amazônia Ocidental - INCT-CONEXAO (@inct_conexao)**, processo nº 408474/2024-6. O fomento abrange o:
+O projeto climasus4r é financiado pelo Ministério da Saúde, pela Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO) e pelo **Instituto Nacional de Ciência e Tecnologia de Pesquisa e Conhecimento de Excelência da Amazônia Ocidental - INCT-CONEXAO**. O fomento abrange:
 
 * **Núcleo Permanente de Climatologia (NPC)** INCT-CONEXÃO
 * **Núcleo Avançado de Climatologia (NAC)** INCT-CONEXÃO
