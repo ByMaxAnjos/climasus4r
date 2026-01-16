@@ -15,6 +15,7 @@ sus_data_import(
   force_redownload = FALSE,
   parallel = FALSE,
   workers = 4,
+  lang = "pt",
   verbose = TRUE
 )
 }
@@ -152,6 +153,9 @@ for multiple UF/year combinations. Significantly speeds up bulk downloads.}
 
 \item{workers}{Integer. Number of parallel workers to use. Default is 4.
 Set to 1 to disable parallel processing.}
+
+\item{lang}{Character string specifying the language for variable labels and
+messages. Options: \code{"en"} (English), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}
 
 \item{verbose}{Logical. If TRUE (default), prints detailed progress
 information including cache status, download progress, and time estimates.}

@@ -1,6 +1,9 @@
 # climasus4r:: Integrated Spatiotemporal Analyses of Health, Climate, and Environment in Brazil
 
-<img align="right" src="https://github.com/ByMaxAnjos/climasus4r/blob/master/inst/figures/logo.png?raw=true" alt="climasus4r Logo" width="140" style = "float: right; margin-left: 10px;">
+<img src="https://github.com/ByMaxAnjos/climasus4r/blob/master/inst/figures/logo.png?raw=true" 
+     alt="climasus4r Logo" 
+     width="140" 
+     style="float: right; margin-left: 10px;">
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)

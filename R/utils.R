@@ -116,14 +116,14 @@ check_spatial <- function(lang = "pt") {
       es = "Las funciones espaciales no estan habilitadas."
     )
 
-    cli::cli_abort(c(
-      msg,
-      "i" = paste0(
-        "Execute ",
-        cli::col_blue("enable_spatial('", lang, "')"),
-        " para ativar."
-      )
-    ))
+    cli::cli_alert_info(msg)
+
+    tryCatch(
+      enable_spatial(lang = lang),
+      error = function(e) {
+        cli::cli_abort(e$message)
+      }
+    )
   }
 
   invisible(TRUE)
@@ -181,7 +181,7 @@ enable_arrow <- function(lang = "pt") {
   )
 
   if (!requireNamespace("arrow", quietly = TRUE)) {
-    cli::cli_abort(c(msg$fail, "i" = msg$how))
+    cli::cli_alert_warning(c(msg$fail, "i" = msg$how))
   }
 
   cli::cli_alert_success(msg$ok)
@@ -197,19 +197,19 @@ check_arrow <- function(lang = "pt") {
 
     msg <- switch(
       lang,
-      pt = "O motor de dados Arrow nao esta habilitado.",
-      en = "The Arrow data engine is not enabled.",
-      es = "El motor de datos Arrow no esta habilitado."
+      pt = "Motor Arrow nao detectado. Tentando ativar automaticamente...",
+      en = "Arrow engine not detected. Trying to enable automatically...",
+      es = "Motor Arrow no detectado. Intentando activarlo automaticamente..."
     )
 
-    cli::cli_abort(c(
-      msg,
-      "i" = paste0(
-        "Execute ",
-        cli::col_blue("enable_arrow('", lang, "')"),
-        " para ativar."
-      )
-    ))
+    cli::cli_alert_info(msg)
+
+    tryCatch(
+      enable_arrow(lang = lang),
+      error = function(e) {
+        cli::cli_abort(e$message)
+      }
+    )
   }
 
   invisible(TRUE)

@@ -111,6 +111,8 @@
 #'   for multiple UF/year combinations. Significantly speeds up bulk downloads.
 #' @param workers Integer. Number of parallel workers to use. Default is 4. 
 #'   Set to 1 to disable parallel processing.
+#' @param lang Character string specifying the language for variable labels and
+#'   messages. Options: `"en"` (English), `"pt"` (Portuguese, default), `"es"` (Spanish).
 #' @param verbose Logical. If TRUE (default), prints detailed progress 
 #'   information including cache status, download progress, and time estimates.
 #'
@@ -204,8 +206,16 @@ sus_data_import <- function(uf = NULL,
                             force_redownload = FALSE,
                             parallel = FALSE,
                             workers = 4,
+                            lang = "pt",
                             verbose = TRUE) {
   # --- 1. Region Handling (Precedence over UF) ---
+  # Validate language
+  if (!lang %in% c("en", "pt", "es")) {
+    cli::cli_abort("lang must be one of: 'en', 'pt', 'es'")
+  }
+  #Check if arrow pak installed
+  check_arrow(lang)
+
   if (!is.null(region)) {
     reg_clean <- tolower(region)
     target_key <- if (reg_clean %in% names(.region_aliases)) .region_aliases[[reg_clean]] else reg_clean
@@ -343,10 +353,7 @@ sus_data_import <- function(uf = NULL,
     )
   }
   # Setup cache directory
-  if (use_cache) {
-    #Check if arrow pak installed
-    check_arrow(lang="pt")
-    
+  if (use_cache) {   
     cache_dir <- path.expand(cache_dir)
     if (!fs::dir_exists(cache_dir)) {
       if (verbose) cli::cli_alert_info("Creating cache directory: {cache_dir}")
