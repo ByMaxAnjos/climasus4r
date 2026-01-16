@@ -16,13 +16,13 @@ knitr::opts_chunk$set(
 
 ## O Projeto
 
-O **climasus4r** é um pacote integrado de ferramentas em R desenvolvido para otimizar a análise de dados de saúde, clima e ambiente no Brasil. O pacote foi concebido no âmbito do projeto INCT Conexão – Amazônia e tem como objetivo automatizar e padronizar etapas críticas do fluxo de trabalho em pesquisas epidemiológicas e ambientais, promovendo reprodutibilidade, eficiência e escalabilidade.
+O **climasus4r** é um pacote em R desenvolvido para integrar, padronizar e automatizar análises espaço-temporais envolvendo dados de saúde pública, clima e ambiente no Brasil. O pacote foi concebido no âmbito do projeto INCT Conexão – Amazônia, com o objetivo de apoiar pesquisas epidemiológicas e ambientais que exigem a integração de grandes bases de dados provenientes de sistemas oficiais de saúde, informações climáticas e variáveis ambientais. O climasus4r busca reduzir significativamente o esforço técnico associado às etapas de aquisição, limpeza, harmonização e integração dos dados, oferecendo um fluxo de trabalho estruturado, reprodutível e escalável. Dessa forma, o pacote permite que pesquisadores concentrem seus esforços na análise científica e na interpretação dos resultados, em vez de nos processos operacionais de preparação dos dados.
 
 ## A Equipe
 
-Informações sobre a equipe de desenvolvimento e pesquisa estarão aqui.
+O desenvolvimento do **climasus4r** é realizado por uma equipe multidisciplinar composta por pesquisadores e estudantes das áreas de saúde, climatologia, geografia, estatística e ciência de dados, vinculados a instituições de ensino e pesquisa no Brasil. A equipe atua de forma colaborativa no desenvolvimento, validação metodológica e aplicação do pacote em estudos científicos, com ênfase em reprodutibilidade, transparência metodológica e rigor científico.
 
 ## Parceiros
 
-Informações sobre os parceiros e instituições colaboradoras.
+O **climasus4r** é desenvolvido no contexto de colaborações acadêmicas e institucionais, envolvendo grupos de pesquisa, programas de pós-graduação e iniciativas científicas voltadas à integração entre saúde, clima e ambiente. Essas parcerias contribuem para o aprimoramento contínuo do pacote e para a ampliação de sua aplicação em projetos de pesquisa, formação acadêmica e produção científica.
 
