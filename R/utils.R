@@ -129,66 +129,131 @@ check_spatial <- function(lang = "pt") {
   invisible(TRUE)
 }
 
+#' @title Enable Arrow Engine for climasus4r
+#' @description Checks for the 'arrow' package and attempts a robust installation if missing.
+#' This function implements multiple installation strategies to handle the complexity of
+#' the Arrow C++ library dependencies, especially on Linux systems.
 #' @param lang Language for messages: "pt", "en", or "es".
+#' @param verbose Logical. Should detailed messages be printed?
 #' @noRd
-enable_arrow <- function(lang = "pt") {
+enable_arrow <- function(lang = "pt", verbose = TRUE) {
 
+  # --- 1. Multilingual Messages ---
   if (!lang %in% c("pt", "en", "es")) {
-    cli::cli_abort("lang must be one of: 'pt', 'en', 'es'")
+    stop("lang must be one of: 'pt', 'en', or 'es'")
   }
 
   msg <- switch(
     lang,
     pt = list(
       title = "Ativando motor Arrow do climasus4r",
-      install = "Instalando pacote arrow (infraestrutura de dados de alto desempenho)...",
-      ok = "Arrow instalado com sucesso.",
-      fail = "Falha ao instalar o pacote arrow.",
-      how = "Tente instalar manualmente com: install.packages('arrow')"
+      install_start = "Tentando instalar o pacote 'arrow' (infraestrutura de dados de alto desempenho)...",
+      install_cran = "Tentativa 1: Instalacao padrao via CRAN...",
+      install_not_cran = "Tentativa 2: Instalacao via binarios Apache (NOT_CRAN)...",
+      install_rspm = "Tentativa 3: Instalacao via RStudio Package Manager (RSPM)...",
+      install_manual = "Tentativa 4: Instalacao manual forcada (pode levar tempo)...",
+      ok = "Arrow instalado e pronto para uso.",
+      fail = "Falha critica ao instalar o pacote 'arrow'.",
+      how = "Tente instalar manualmente com: install.packages('arrow'). Se o erro persistir, verifique as dependencias de sistema (libcurl, openssl)."
     ),
     en = list(
       title = "Enabling climasus4r Arrow engine",
-      install = "Installing arrow package (high-performance data engine)...",
-      ok = "Arrow successfully installed.",
-      fail = "Failed to install arrow.",
-      how = "Try installing manually with: install.packages('arrow')"
+      install_start = "Attempting to install 'arrow' package (high-performance data infrastructure)...",
+      install_cran = "Attempt 1: Standard installation via CRAN...",
+      install_not_cran = "Attempt 2: Installation via Apache binaries (NOT_CRAN)...",
+      install_rspm = "Attempt 3: Installation via RStudio Package Manager (RSPM)...",
+      install_manual = "Attempt 4: Forced manual installation (may take time)...",
+      ok = "Arrow successfully installed and ready for use.",
+      fail = "Critical failure to install 'arrow' package.",
+      how = "Try installing manually with: install.packages('arrow'). If the error persists, check system dependencies (libcurl, openssl)."
     ),
     es = list(
       title = "Activando el motor Arrow de climasus4r",
-      install = "Instalando el paquete arrow (motor de datos de alto rendimiento)...",
-      ok = "Arrow instalado correctamente.",
-      fail = "Error al instalar el paquete arrow.",
-      how = "Intente instalarlo manualmente con: install.packages('arrow')"
+      install_start = "Intentando instalar el paquete 'arrow' (infraestructura de datos de alto rendimiento)...",
+      install_cran = "Intento 1: Instalacion estandar a traves de CRAN...",
+      install_not_cran = "Intento 2: Instalacion a traves de binarios de Apache (NOT_CRAN)...",
+      install_rspm = "Intento 3: Instalacion a traves de RStudio Package Manager (RSPM)...",
+      install_manual = "Intento 4: Instalacion manual forzada (puede llevar tiempo)...",
+      ok = "Arrow instalado correctamente y listo para usar.",
+      fail = "Fallo critico al instalar el paquete 'arrow'.",
+      how = "Intente instalarlo manualmente con: install.packages('arrow'). Si el error persiste, verifique las dependencias del sistema (libcurl, openssl)."
     )
   )
 
-  cli::cli_h1(msg$title)
+  if (verbose) {
+    cli::cli_h1(msg$title)
+  }
 
+  # --- 2. Check if already installed ---
   if (requireNamespace("arrow", quietly = TRUE)) {
-    cli::cli_alert_success(msg$ok)
+    if (verbose) {
+      cli::cli_alert_success(msg$ok)
+    }
     return(invisible(TRUE))
   }
 
-  cli::cli_alert_info(msg$install)
-
-  tryCatch(
-    {
-      utils::install.packages("arrow", repos = c("https://apache.r-universe.dev", "https://cloud.r-project.org"))
-    },
-    error = function(e) {
-      cli::cli_abort(c(msg$fail, "i" = msg$how))
-    }
-  )
-
-  if (!requireNamespace("arrow", quietly = TRUE)) {
-    cli::cli_alert_warning(c(msg$fail, "i" = msg$how))
+  if (verbose) {
+    cli::cli_alert_info(msg$install_start)
   }
 
-  cli::cli_alert_success(msg$ok)
+  # --- 3. Installation Strategy (Try/Catch Block) ---
+  
+  # Helper function to check if installation was successful
+  check_success <- function() requireNamespace("arrow", quietly = TRUE)
+  
+  # Attempt 1: Standard CRAN install (works on Windows/Mac, sometimes Linux)
+  if (verbose) cli::cli_alert_info(msg$install_cran)
+  try({
+    utils::install.packages("arrow")
+  }, silent = TRUE)
+  if (check_success()) {
+    if (verbose) cli::cli_alert_success(msg$ok)
+    return(invisible(TRUE))
+  }
 
-  invisible(TRUE)
+  # Attempt 2: NOT_CRAN (Apache Binaries) - Best for many Linux distros
+  if (verbose) cli::cli_alert_info(msg$install_not_cran)
+  try({
+    Sys.setenv("NOT_CRAN" = "true")
+    utils::install.packages("arrow")
+    Sys.unsetenv("NOT_CRAN")
+  }, silent = TRUE)
+  if (check_success()) {
+    if (verbose) cli::cli_alert_success(msg$ok)
+    return(invisible(TRUE))
+  }
+  
+  # Attempt 3: RStudio Package Manager (RSPM) - Good fallback for Linux
+  # This requires detecting the OS, which is complex. We'll use a simplified approach
+  # by trying the R-Universe repository which often has pre-compiled binaries.
+  if (verbose) cli::cli_alert_info(msg$install_rspm)
+  try({
+    utils::install.packages("arrow", repos = c("https://apache.r-universe.dev", "https://cloud.r-project.org"))
+  }, silent = TRUE)
+  if (check_success()) {
+    if (verbose) cli::cli_alert_success(msg$ok)
+    return(invisible(TRUE))
+  }
+
+  # Attempt 4: Forced Source Build (Slowest, but most robust if system dependencies are met)
+  if (verbose) cli::cli_alert_info(msg$install_manual)
+  try({
+    Sys.setenv("LIBARROW_BINARY" = "false", "LIBARROW_MINIMAL" = "false")
+    utils::install.packages("arrow")
+    Sys.unsetenv("LIBARROW_BINARY")
+    Sys.unsetenv("LIBARROW_MINIMAL")
+  }, silent = TRUE)
+  if (check_success()) {
+    if (verbose) cli::cli_alert_success(msg$ok)
+    return(invisible(TRUE))
+  }
+
+  # --- 4. Final Failure ---
+  cli::cli_abort(c(msg$fail, "i" = msg$how))
 }
 
+#' @title Check Arrow Engine Status
+#' @description Checks if the 'arrow' package is installed and attempts to enable it if missing.
 #' @param lang Language for messages: "pt", "en", or "es".
 #' @noRd
 check_arrow <- function(lang = "pt") {
@@ -205,8 +270,9 @@ check_arrow <- function(lang = "pt") {
     cli::cli_alert_info(msg)
 
     tryCatch(
-      enable_arrow(lang = lang),
+      enable_arrow(lang = lang, verbose = FALSE), # Do not print verbose messages during check
       error = function(e) {
+        # Re-throw the error from enable_arrow
         cli::cli_abort(e$message)
       }
     )
