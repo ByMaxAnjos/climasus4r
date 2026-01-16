@@ -23,6 +23,8 @@ Basado en el sólido ecosistema del paquete [`microdatasus`](https://github.com/
 
 ## Instalación
 
+climasus4r se encuentra actualmente en desarrollo activo. La versión más reciente se puede instalar directamente desde GitHub, lo que garantiza el acceso a las funciones más actualizadas. Antes de la instalación, es necesario tener el paquete remotes, que permite la instalación de paquetes alojados en GitHub.
+
 ```r
 # Instale remotes si no lo tiene
 if (!require("remotes")) {
