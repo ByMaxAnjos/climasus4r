@@ -23,7 +23,7 @@ Basado en el sólido ecosistema del paquete [`microdatasus`](https://github.com/
 
 ## Instalación
 
-climasus4r se encuentra actualmente en desarrollo activo. La versión más reciente se puede instalar directamente desde GitHub, lo que garantiza el acceso a las funciones más actualizadas. Antes de la instalación, es necesario tener el paquete remotes, que permite la instalación de paquetes alojados en GitHub.
+**climasus4r** se encuentra actualmente en desarrollo activo. La versión más reciente se puede instalar directamente desde GitHub, lo que garantiza el acceso a las funciones más actualizadas. Antes de la instalación, es necesario tener el paquete remotes, que permite la instalación de paquetes alojados en GitHub.
 
 ```r
 # Instale remotes si no lo tiene
@@ -51,6 +51,33 @@ df_analisis <- sus_data_import(
   sus_data_standardize(lang = "es") |>
   sus_data_filter_cid(disease_group = "respiratory", lang = "es") |>
   sus_create_variables(create_age_groups = TRUE, lang = "es")
+```
+## Infraestructura de datos 
+
+La fase de infraestructura de **climasus4r** proporciona un canal completo de extremo a extremo para la preparación de datos sanitarios, desde la adquisición bruta hasta los datos listos para el análisis. Con 9 funciones principales, puede transformar los datos de DATASUS en series temporales agregadas, estandarizadas y listas para el modelado en cuestión de minutos.
+
+```r
+DATOS BRUTOS (DATASUS)
+    ↓
+[1] sus_data_import()           → Adquisición paralela
+    ↓
+[2] sus_data_clean_encoding()   → Corrección de codificación
+    ↓
+[3] sus_data_standardize()      → Estandarización multilingüe
+    ↓
+[4] sus_data_filter_cid()       → Filtrado por enfermedad
+    ↓
+[5] sus_create_variables()      → Creación de variables
+    ↓
+[6] sus_data_filter_demographics() → Filtrado demográfico
+    ↓
+[7] sus_data_quality_report()   → Verificación de calidad
+    ↓
+[8] sus_data_aggregate()        → Agregación temporal
+    ↓
+[9] sus_data_export()           → Exportación con metadatos
+    ↓
+DATOS LISTOS PARA EL ANÁLISIS
 ```
 
 Para más información, consulte los [Tutoriales](articles/tutorials.html) y la [Documentación Completa](reference/index.html).
