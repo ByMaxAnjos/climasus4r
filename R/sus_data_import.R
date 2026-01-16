@@ -214,7 +214,7 @@ sus_data_import <- function(uf = NULL,
     cli::cli_abort("lang must be one of: 'en', 'pt', 'es'")
   }
   #Check if arrow pak installed
-  check_arrow(lang)
+  check_arrow(lang=lang)
 
   if (!is.null(region)) {
     reg_clean <- tolower(region)

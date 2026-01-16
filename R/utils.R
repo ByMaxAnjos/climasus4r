@@ -173,7 +173,7 @@ enable_arrow <- function(lang = "pt") {
 
   tryCatch(
     {
-      utils::install.packages("arrow", repos = "https://cloud.r-project.org")
+      utils::install.packages("arrow", repos = c("https://apache.r-universe.dev", "https://cloud.r-project.org"))
     },
     error = function(e) {
       cli::cli_abort(c(msg$fail, "i" = msg$how))
