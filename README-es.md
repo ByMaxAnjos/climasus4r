@@ -1,9 +1,7 @@
-# climasus4r:: Análisis Espacio-temporales Integrados de Salud, Clima y Ambiente en Brasil
+# climasus4r <a href="https://github.com"><img src="inst/figures/logo.png" align="right" height="138" /></a>
 
-<img src="https://github.com/ByMaxAnjos/climasus4r/blob/master/inst/figures/logo.png?raw=true" 
-     alt="climasus4r Logo" 
-     width="140" 
-     style="float: right; margin-left: 10px;">
+### Análisis Espacio-temporales Integrados de Salud, Clima y Ambiente en Brasil
+
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
@@ -13,7 +11,7 @@
 
 ---
 
-**climasus4r** es un conjunto de herramientas integradas en R diseñado para optimizar el análisis de datos de salud, clima y medio ambiente en Brasil. Desarrollado en el marco del proyecto INCT Conexão – Amazônia, automatiza y estandariza pasos críticos en flujos de trabajo de investigación epidemiológica y ambiental, promoviendo reproducibilidad, eficiencia y escalabilidad.
+[**climasus4r**] (https://bymaxanjos.github.io/climasus4r/) es un conjunto de herramientas integradas en R diseñado para optimizar el análisis de datos de salud, clima y medio ambiente en Brasil. Desarrollado en el marco del proyecto INCT Conexão – Amazônia, automatiza y estandariza pasos críticos en flujos de trabajo de investigación epidemiológica y ambiental, promoviendo reproducibilidad, eficiencia y escalabilidad.
 
 Basado en el sólido ecosistema del paquete [`microdatasus`](https://github.com/rfsaldanha/microdatasus), climasus4r amplía la funcionalidad al incorporar rutinas especializadas para estudios de clima y salud, reduciendo significativamente el esfuerzo requerido para la adquisición, limpieza, integración y preparación de datos.
 

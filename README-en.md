@@ -13,7 +13,7 @@
 
 ---
 
-**climasus4r** is an integrated R toolkit designed to streamline the analysis of health, climate, and environmental data in Brazil. Developed within the INCT Conexão – Amazônia project, it automates and standardizes critical steps in epidemiological and environmental research workflows, promoting reproducibility, efficiency, and scalability.
+[**climasus4r**] (https://bymaxanjos.github.io/climasus4r/) is an integrated R toolkit designed to streamline the analysis of health, climate, and environmental data in Brazil. Developed within the INCT Conexão – Amazônia project, it automates and standardizes critical steps in epidemiological and environmental research workflows, promoting reproducibility, efficiency, and scalability.
 
 Built on the solid [`microdatasus`](https://github.com/rfsaldanha/microdatasus) ecosystem, climasus4r expands functionality by incorporating specialized routines for climate and health studies, significantly reducing the effort required for data acquisition, cleaning, integration, and preparation.
 
