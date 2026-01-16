@@ -53,4 +53,31 @@ df_analise <- sus_data_import(
   sus_create_variables(create_age_groups = TRUE, lang = "pt")
 ```
 
+## Infraestrutura de Dados 
+
+A Fase 1 do **climasus4r** fornece um pipeline end-to-end completo para preparação de dados de saúde, desde a aquisição bruta até dados prontos para análise. Com 9 funções principais, você pode transformar dados do DATASUS em séries temporais agregadas, padronizadas e prontas para modelagem em minutos.
+
+```r
+DADOS BRUTOS (DATASUS)
+    ↓
+[1] sus_data_import()           → Aquisição paralela
+    ↓
+[2] sus_data_clean_encoding()   → Correção de encoding
+    ↓
+[3] sus_data_standardize()      → Padronização multilíngue
+    ↓
+[4] sus_data_filter_cid()       → Filtragem por doença
+    ↓
+[5] sus_create_variables()      → Criação de variáveis
+    ↓
+[6] sus_data_filter_demographics() → Filtragem demográfica
+    ↓
+[7] sus_data_quality_report()   → Verificação de qualidade
+    ↓
+[8] sus_data_aggregate()        → Agregação temporal
+    ↓
+[9] sus_data_export()           → Exportação com metadados
+    ↓
+DADOS PRONTOS PARA ANÁLISE
+```
 Para mais informações, consulte os [Tutoriais](articles/tutorials.html) e a [Documentação Completa](reference/index.html).
