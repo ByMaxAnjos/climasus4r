@@ -1,14 +1,11 @@
-<p align="right">
+<p align="center">
   <img src="https://github.com/ByMaxAnjos/climasus4r/blob/master/inst/figures/logo.png?raw=true"
        alt="climasus4r logo"
-       width="150"/>
+       width="190"/>
 </p>
 
-# climasus4r
 
 > **Análises Espaço-temporal Integradas de Saúde, Clima e Ambiente no Brasil**
-
-<br>
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
@@ -16,8 +13,6 @@
 [![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen.svg)](https://github.com/ByMaxAnjos/climasus4r)
 <!-- badges: end -->
 
-
----
 
 O [**climasus4r**](https://bymaxanjos.github.io/climasus4r/) é um pacote integrado de ferramentas em R desenvolvido para otimizar a análise de dados de saúde, clima e ambiente no Brasil. O pacote foi concebido no âmbito do projeto INCT Conexão – Amazônia e tem como objetivo automatizar e padronizar etapas críticas do fluxo de trabalho em pesquisas epidemiológicas e ambientais, promovendo reprodutibilidade, eficiência e escalabilidade.
 
@@ -35,6 +30,30 @@ Baeado no sóilido ecossistema do pacote [`microdatasus`](https://github.com/rfs
 - **Exportação com metadados** para reprodutibilidade
 - **Classificação de doenças sensíveis ao clima** para pesquisa epidemiológica
 - **Interface totalmente multilíngue** favorecendo colaboração científica internacional
+
+
+## 📦 Visão Geral das Funções
+
+| Categoria | Função | Descrição |
+| :--- | :--- | :--- |
+| **📥 Importação e Exportação** | `sus_data_import()` | Importa e pré-processa dados do DATASUS com cache inteligente. |
+| | `sus_data_read()` | Leitura otimizada de dados processados com suporte paralelo. |
+| | `sus_data_export()` | Exporta dados processados preservando metadados. |
+| **🧹 Limpeza e Padronização** | `sus_data_clean_encoding()` | Detecta e corrige problemas de codificação de caracteres. |
+| | `sus_data_standardize()` | Padroniza nomes de colunas e valores dos dados do SUS. |
+| | `sus_create_variables()` | Cria variáveis derivadas para análise epidemiológica. |
+| **🔍 Filtros e Seleção** | `sus_data_filter_cid()` | Filtra por códigos CID-10 ou grupos de doenças (multilíngue). |
+| | `sus_data_filter_demographics()` | Filtra dados por variáveis demográficas (idade, sexo, raça). |
+| **🗺️ Espacial e Censo** | `sus_join_spatial()` | Vincula dados do SUS às malhas geográficas brasileiras. |
+| | `sus_socio_add_census()` | Enriquece dados de saúde com variáveis socioeconômicas do Censo. |
+| | `sus_data_aggregate()` | Agrega dados de saúde em séries temporais. |
+| **📊 Qualidade e Metadados** | `sus_data_quality_report()` | Gera relatórios detalhados sobre a qualidade dos dados. |
+| | `list_disease_groups()` | Lista os grupos de doenças disponíveis para filtro. |
+| | `sus_census_explore()` | Explorador interativo de variáveis do Censo. |
+| **⚡ Cache** | `clear_climasus_cache()` | Gerencia e limpa o armazenamento local de arquivos. |
+
+
+
 ## Instalação
 
 O climasus4r encontra-se atualmente em desenvolvimento ativo. A versão mais recente pode ser instalada diretamente a partir do GitHub, garantindo acesso às funcionalidades mais atualizadas. Antes da instalação, é necessário ter o pacote remotes, que permite a instalação de pacotes hospedados no GitHub.
@@ -46,18 +65,77 @@ if (!require("remotes")) {
 }
 
 # Instale o CLIMASUS4r
-remotes::install_github("ByMaxAnjos/climasus4r", dependencies = TRUE, upgrade = "never")
+remotes::install_github("ByMaxAnjos/climasus4r", upgrade = "never")
 
 # Atualize com frequência para obter as melhorias mais recentes
 remove.packages("climasus4r")
-remotes::install_github("ByMaxAnjos/climasus4r", dependencies = TRUE, upgrade = "never")
+remotes::install_github("ByMaxAnjos/climasus4r", upgrade = "never")
 ```
+
+### **Sistemas Suportados**
+
+O pacote permite, por meio do pacote microdatsus, o acesso simplificado aos principais sistemas de informação do DATASUS, cobrindo epidemiologia, mortalidade, internações e rede assistencial:
+
+#### **1. SIM (Sistema de Informação sobre Mortalidade)**
+* `"SIM-DO"`: Declarações de Óbito (Dataset completo)
+* `"SIM-DOFET"`: Óbitos Fetais
+* `"SIM-DOEXT"`: Óbitos por Causas Externas
+* `"SIM-DOINF"`: Óbitos Infantis
+* `"SIM-DOMAT"`: Óbitos Maternos
+
+#### **2. SIH (Sistema de Informação Hospitalar)**
+* `"SIH-RD"`: AIH (Autorizações de Internação Hospitalar) - Geral
+* `"SIH-RJ"`: AIH - Específico para o Rio de Janeiro
+* `"SIH-SP"`: AIH - Específico para São Paulo
+* `"SIH-ER"`: Prontuários de Emergência
+
+#### **3. SINAN (Sistema de Informação de Agravos de Notificação)**
+* `"SINAN-DENGUE"`: Casos de Dengue
+* `"SINAN-CHIKUNGUNYA"`: Casos de Chikungunya
+* `"SINAN-ZIKA"`: Casos de Zika vírus
+* `"SINAN-MALARIA"`: Casos de Malária
+* `"SINAN-CHAGAS"`: Casos de Doença de Chagas
+* `"SINAN-LEISHMANIOSE-VISCERAL"`: Leishmaniose Visceral
+* `"SINAN-LEISHMANIOSE-TEGUMENTAR"`: Leishmaniose Tegumentar
+* `"SINAN-LEPTOSPIROSE"`: Casos de Leptospirose
+
+#### **4. SIA (Sistema de Informação Ambulatorial)**
+* `"SIA-AB"`: Atenção Básica
+* `"SIA-ABO"`: Procedimentos Odontológicos
+* `"SIA-ACF"`: Assistência Farmacêutica
+* `"SIA-AD"`: Alta Complexidade/Diferenciada
+* `"SIA-AN"`: Atenção Domiciliar
+* `"SIA-AM"`: Ambulatório de Especialidades
+* `"SIA-AQ"`: Ações Estratégicas
+* `"SIA-AR"`: Regulação
+* `"SIA-ATD"`: Urgência/Emergência
+* `"SIA-PA"`: Procedimentos Ambulatoriais em Hospital
+* `"SIA-PS"`: Atenção Psicossocial
+* `"SIA-SAD"`: Atenção Especializada
+
+#### **5. CNES (Cadastro Nacional de Estabelecimentos de Saúde)**
+* `"CNES-LT"`: Leitos
+* `"CNES-ST"`: Profissionais de Saúde
+* `"CNES-DC"`: Equipamentos (Detalhado)
+* `"CNES-EQ"`: Equipamentos (Resumo)
+* `"CNES-SR"`: Serviços Especializados
+* `"CNES-HB"`: Leitos Hospitalares
+* `"CNES-PF"`: Pessoal Físico (Profissionais)
+* `"CNES-EP"`: Participantes do Ensino
+* `"CNES-RC"`: Classificação Hospitalar
+* `"CNES-IN"`: Indicadores Hospitalares
+* `"CNES-EE"`: Entidades de Ensino
+* `"CNES-EF"`: Instalações de Ensino
+* `"CNES-GM"`: Gestão e Apoio
+
+#### **6. SINASC (Sistema de Informação sobre Nascidos Vivos)**
+* `"SINASC"`: Declarações de Nascidos Vivos
+
 
 ## Início Rápido
 
 ```r
 library(climasus4r)
-library(dplyr) #To active the operador "%>%" ou "|>"
 
 # Pipeline completo da Fase 1: Dados prontos para análise em 8 passos
 df_analise <- sus_data_import(
@@ -145,68 +223,6 @@ df <- sus_data_import(
 )
 ```
 
-Aqui está o conteúdo organizado em formato Markdown, pronto para ser copiado e colado diretamente no seu arquivo README.md.
-
-Markdown
-
-### **Sistemas Suportados**
-
-O pacote permite, por meio do pacote microdatsus, o acesso simplificado aos principais sistemas de informação do DATASUS, cobrindo epidemiologia, mortalidade, internações e rede assistencial:
-
-#### **1. SIM (Sistema de Informação sobre Mortalidade)**
-* `"SIM-DO"`: Declarações de Óbito (Dataset completo)
-* `"SIM-DOFET"`: Óbitos Fetais
-* `"SIM-DOEXT"`: Óbitos por Causas Externas
-* `"SIM-DOINF"`: Óbitos Infantis
-* `"SIM-DOMAT"`: Óbitos Maternos
-
-#### **2. SIH (Sistema de Informação Hospitalar)**
-* `"SIH-RD"`: AIH (Autorizações de Internação Hospitalar) - Geral
-* `"SIH-RJ"`: AIH - Específico para o Rio de Janeiro
-* `"SIH-SP"`: AIH - Específico para São Paulo
-* `"SIH-ER"`: Prontuários de Emergência
-
-#### **3. SINAN (Sistema de Informação de Agravos de Notificação)**
-* `"SINAN-DENGUE"`: Casos de Dengue
-* `"SINAN-CHIKUNGUNYA"`: Casos de Chikungunya
-* `"SINAN-ZIKA"`: Casos de Zika vírus
-* `"SINAN-MALARIA"`: Casos de Malária
-* `"SINAN-CHAGAS"`: Casos de Doença de Chagas
-* `"SINAN-LEISHMANIOSE-VISCERAL"`: Leishmaniose Visceral
-* `"SINAN-LEISHMANIOSE-TEGUMENTAR"`: Leishmaniose Tegumentar
-* `"SINAN-LEPTOSPIROSE"`: Casos de Leptospirose
-
-#### **4. SIA (Sistema de Informação Ambulatorial)**
-* `"SIA-AB"`: Atenção Básica
-* `"SIA-ABO"`: Procedimentos Odontológicos
-* `"SIA-ACF"`: Assistência Farmacêutica
-* `"SIA-AD"`: Alta Complexidade/Diferenciada
-* `"SIA-AN"`: Atenção Domiciliar
-* `"SIA-AM"`: Ambulatório de Especialidades
-* `"SIA-AQ"`: Ações Estratégicas
-* `"SIA-AR"`: Regulação
-* `"SIA-ATD"`: Urgência/Emergência
-* `"SIA-PA"`: Procedimentos Ambulatoriais em Hospital
-* `"SIA-PS"`: Atenção Psicossocial
-* `"SIA-SAD"`: Atenção Especializada
-
-#### **5. CNES (Cadastro Nacional de Estabelecimentos de Saúde)**
-* `"CNES-LT"`: Leitos
-* `"CNES-ST"`: Profissionais de Saúde
-* `"CNES-DC"`: Equipamentos (Detalhado)
-* `"CNES-EQ"`: Equipamentos (Resumo)
-* `"CNES-SR"`: Serviços Especializados
-* `"CNES-HB"`: Leitos Hospitalares
-* `"CNES-PF"`: Pessoal Físico (Profissionais)
-* `"CNES-EP"`: Participantes do Ensino
-* `"CNES-RC"`: Classificação Hospitalar
-* `"CNES-IN"`: Indicadores Hospitalares
-* `"CNES-EE"`: Entidades de Ensino
-* `"CNES-EF"`: Instalações de Ensino
-* `"CNES-GM"`: Gestão e Apoio
-
-#### **6. SINASC (Sistema de Informação sobre Nascidos Vivos)**
-* `"SINASC"`: Declarações de Nascidos Vivos
 
 **Recursos:**
 - ✅ Cache automático para evitar downloads redundantes

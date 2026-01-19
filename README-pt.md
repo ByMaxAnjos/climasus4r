@@ -1,10 +1,8 @@
-<p align="right">
+<p align="center">
   <img src="https://github.com/ByMaxAnjos/climasus4r/blob/master/inst/figures/logo.png?raw=true"
        alt="climasus4r logo"
-       width="150"/>
+       width="190"/>
 </p>
-
-# climasus4r
 
 > **Análises Espaço-temporal Integradas de Saúde, Clima e Ambiente no Brasil**
 
@@ -36,54 +34,30 @@ if (!require("remotes")) {
 }
 
 # Instale o CLIMASUS4r
-remotes::install_github("ByMaxAnjos/climasus4r", dependencies = TRUE, upgrade = "never")
+remotes::install_github("ByMaxAnjos/climasus4r", upgrade = "never")
 ```
 
-## Início Rápido
 
-```r
-library(climasus4r)
-library(dplyr)
+## 📦 Visão Geral das Funções
 
-# Pipeline completo: Dados prontos para análise
-df_analise <- sus_data_import(
-  uf = "SP",
-  year = 2023,
-  system = "SIM-DO"
-) |>
-  sus_data_clean_encoding(lang = "pt") |>
-  sus_data_standardize(lang = "pt") |>
-  sus_data_filter_cid(disease_group = "respiratory", lang = "pt") |>
-  sus_create_variables(create_age_groups = TRUE, lang = "pt")
-```
+| Categoria | Função | Descrição |
+| :--- | :--- | :--- |
+| **📥 Importação e Exportação** | `sus_data_import()` | Importa e pré-processa dados do DATASUS com cache inteligente. |
+| | `sus_data_read()` | Leitura otimizada de dados processados com suporte paralelo. |
+| | `sus_data_export()` | Exporta dados processados preservando metadados. |
+| **🧹 Limpeza e Padronização** | `sus_data_clean_encoding()` | Detecta e corrige problemas de codificação de caracteres. |
+| | `sus_data_standardize()` | Padroniza nomes de colunas e valores dos dados do SUS. |
+| | `sus_create_variables()` | Cria variáveis derivadas para análise epidemiológica. |
+| **🔍 Filtros e Seleção** | `sus_data_filter_cid()` | Filtra por códigos CID-10 ou grupos de doenças (multilíngue). |
+| | `sus_data_filter_demographics()` | Filtra dados por variáveis demográficas (idade, sexo, raça). |
+| **🗺️ Espacial e Censo** | `sus_join_spatial()` | Vincula dados do SUS às malhas geográficas brasileiras. |
+| | `sus_socio_add_census()` | Enriquece dados de saúde com variáveis socioeconômicas do Censo. |
+| | `sus_data_aggregate()` | Agrega dados de saúde em séries temporais. |
+| **📊 Qualidade e Metadados** | `sus_data_quality_report()` | Gera relatórios detalhados sobre a qualidade dos dados. |
+| | `list_disease_groups()` | Lista os grupos de doenças disponíveis para filtro. |
+| | `sus_census_explore()` | Explorador interativo de variáveis do Censo. |
+| **⚡ Cache** | `clear_climasus_cache()` | Gerencia e limpa o armazenamento local de arquivos. |
 
-## Infraestrutura de Dados 
-
-A fase de infraestrutura do **climasus4r** fornece um pipeline end-to-end completo para preparação de dados de saúde, desde a aquisição bruta até dados prontos para análise. Com 9 funções principais, você pode transformar dados do DATASUS em séries temporais agregadas, padronizadas e prontas para modelagem em minutos.
-
-```r
-DADOS BRUTOS (DATASUS)
-    ↓
-[1] sus_data_import()           → Aquisição paralela
-    ↓
-[2] sus_data_clean_encoding()   → Correção de encoding
-    ↓
-[3] sus_data_standardize()      → Padronização multilíngue
-    ↓
-[4] sus_data_filter_cid()       → Filtragem por doença
-    ↓
-[5] sus_create_variables()      → Criação de variáveis
-    ↓
-[6] sus_data_filter_demographics() → Filtragem demográfica
-    ↓
-[7] sus_data_quality_report()   → Verificação de qualidade
-    ↓
-[8] sus_data_aggregate()        → Agregação temporal
-    ↓
-[9] sus_data_export()           → Exportação com metadados
-    ↓
-DADOS PRONTOS PARA ANÁLISE
-```
 
 ## Sistemas Suportados
 
@@ -144,4 +118,51 @@ O **climasus4r** permite o acesso simplificado e padronizado aos principais sist
 #### **6. SINASC (Sistema de Informação sobre Nascidos Vivos)**
 * `"SINASC"`: Declarações de Nascidos Vivos
 
-Para mais informações, consulte os [Tutoriais](articles/tutorials.html) e a [Documentação Completa](reference/index.html).
+
+## Início Rápido
+
+```r
+library(climasus4r)
+library(dplyr)
+
+# Pipeline completo: Dados prontos para análise
+df_analise <- sus_data_import(
+  uf = "SP",
+  year = 2023,
+  system = "SIM-DO"
+) |>
+  sus_data_clean_encoding(lang = "pt") |>
+  sus_data_standardize(lang = "pt") |>
+  sus_data_filter_cid(disease_group = "respiratory", lang = "pt") |>
+  sus_create_variables(create_age_groups = TRUE, lang = "pt")
+```
+
+## Infraestrutura de Dados 
+
+A fase de infraestrutura do **climasus4r** fornece um pipeline end-to-end completo para preparação de dados de saúde, desde a aquisição bruta até dados prontos para análise. Com 9 funções principais, você pode transformar dados do DATASUS em séries temporais agregadas, padronizadas e prontas para modelagem em minutos.
+
+```r
+DADOS BRUTOS (DATASUS)
+    ↓
+[1] sus_data_import()           → Aquisição paralela
+    ↓
+[2] sus_data_clean_encoding()   → Correção de encoding
+    ↓
+[3] sus_data_standardize()      → Padronização multilíngue
+    ↓
+[4] sus_data_filter_cid()       → Filtragem por doença
+    ↓
+[5] sus_create_variables()      → Criação de variáveis
+    ↓
+[6] sus_data_filter_demographics() → Filtragem demográfica
+    ↓
+[7] sus_data_quality_report()   → Verificação de qualidade
+    ↓
+[8] sus_data_aggregate()        → Agregação temporal
+    ↓
+[9] sus_data_export()           → Exportação com metadados
+    ↓
+DADOS PRONTOS PARA ANÁLISE
+```
+
+Para mais informações, consulte os [Tutoriais](..pt/articles/tutorials.html) e a [Documentação Completa](..pt/reference/index.html).
