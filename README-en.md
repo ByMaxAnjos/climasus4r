@@ -170,3 +170,12 @@ DATA READY FOR ANALYSIS
 ```
 
 For more information, see the [Tutorials](..en/articles/tutorials.html) and [Complete Documentation](..en/reference/index.html).
+
+## 🌲 Have feedback or suggestions?
+Do you have an idea for improvement or did you spot a mistake? We'd love to hear from you! Click the button below to create a new issue on GitHub and share your feedback directly with us.
+
+<a href='https://github.com/ByMaxAnjos/climasus4r/issues/new'>
+  <button type="button" class="btn" style="background-color: #2E7D32; color: white; padding: 8px 16px; font-size: 14px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.3s;">
+    Open an issue in the Github repository
+  </button>
+</a>

@@ -150,7 +150,7 @@ sus_create_variables <- function(df,
                                   create_age_groups = TRUE,
                                   age_breaks = c(0, 5, 15, 65, Inf),
                                   age_labels = NULL,
-                                  create_calendar_vars = FALSE,
+                                  create_calendar_vars = TRUE,
                                   create_climate_vars = TRUE,
                                   climate_region = NULL,
                                   date_col = NULL,
@@ -447,7 +447,15 @@ sus_create_variables <- function(df,
   # SAZONALITY CLIMATE VARIABLES
   # ========================================================================
    if (create_climate_vars) {
-    
+    if (!create_calendar_vars) {
+      cli::cli_abort(
+        "{.arg create_calendar_vars} is required but was set to {.val FALSE}.",
+        bullet = "info",
+        bullet_vct = c(
+          ">" = "Set {.code create_calendar_vars = TRUE} to enable calendar features."
+        )
+      )
+    }
     month_var <- if (lang == "en") "month" else "mes"
 
     if (is.null(climate_region)) {

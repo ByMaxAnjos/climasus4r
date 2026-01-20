@@ -166,3 +166,12 @@ DADOS PRONTOS PARA ANÁLISE
 ```
 
 Para mais informações, consulte os [Tutoriais](..pt/articles/tutorials.html) e a [Documentação Completa](..pt/reference/index.html).
+
+## 🌲 Tem feedback ou sugestões?
+Você tem alguma ideia de melhoria ou encontrou algum erro? Adoraríamos ouvir você! Clique no botão abaixo para abrir uma nova *issue* no GitHub e compartilhar suas sugestões diretamente conosco.
+
+<a href='https://github.com/ByMaxAnjos/climasus4r/issues/new'>
+  <button type="button" class="btn" style="background-color: #2E7D32; color: white; padding: 8px 16px; font-size: 14px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.3s;">
+    Abrir uma issue no repositório GitHub
+  </button>
+</a>

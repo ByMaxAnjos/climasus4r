@@ -2,25 +2,203 @@
 title: "Tutoriais"
 ---
 
-<div class="container">
-  <div class="row">
-    <div class="col-md-6">
-      <div class="card h-100">
-        <div class="card-body">
-          <h5 class="card-title">Início Rápido</h5>
-          <p class="card-text">Aprenda o básico do climasus4r em 5 minutos.</p>
-          <a href="quickstart.html" class="btn btn-primary">Começar</a>
-        </div>
+```{=html}
+<style>
+  /* --- Climate Forest Theme: Tutorial Grid --- */
+
+  :root {
+    --cf-bg-page: #F1F8E9;         /* Fundo da página (Menta suave) */
+    --cf-card-bg: #FFFFFF;         /* Fundo do card */
+    --cf-primary: #2E7D32;         /* Verde Floresta (Títulos, Bordas) */
+    --cf-secondary: #558B2F;       /* Verde Folha (Ícones) */
+    --cf-accent: #EF6C00;          /* Laranja Queimado (Botões/Badges) */
+    --cf-text-main: #1B5E20;       /* Texto escuro */
+    --cf-text-light: #52665A;      /* Texto de descrição */
+    --cf-shadow: 0 10px 30px -10px rgba(46, 125, 50, 0.15);
+  }
+
+  /* Layout */
+  .tutorial-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    padding: 2rem 0;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  /* Card Styles */
+  .tutorial-card {
+    background: var(--cf-card-bg);
+    border-radius: 12px;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(46, 125, 50, 0.1);
+    border-left: 5px solid var(--cf-primary); /* Detalhe lateral elegante */
+    box-shadow: var(--cf-shadow);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tutorial-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 15px 35px -10px rgba(46, 125, 50, 0.25);
+    border-color: var(--cf-secondary);
+  }
+
+  /* Header & Icons */
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.2rem;
+  }
+
+  .card-icon {
+    color: var(--cf-secondary);
+    background-color: #E8F5E9;
+    padding: 10px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card-badge {
+    background-color: var(--cf-bg-page);
+    color: var(--cf-primary);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    border: 1px solid rgba(46, 125, 50, 0.2);
+  }
+
+  /* Content */
+  .card-title {
+    color: var(--cf-text-main);
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin: 0 0 0.75rem 0;
+    line-height: 1.2;
+  }
+
+  .card-description {
+    color: var(--cf-text-light);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    flex-grow: 1;
+    margin-bottom: 2rem;
+  }
+
+  /* Action Button */
+  .card-cta-button {
+    background-color: var(--cf-primary);
+    color: white !important; /* Força cor branca caso o tema do site sobrescreva */
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    align-self: flex-start; /* Botão alinhado à esquerda */
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-cta-button:hover {
+    background-color: var(--cf-secondary);
+    text-decoration: none;
+    transform: translateX(4px);
+  }
+  
+  /* SVG Fix */
+  .tutorial-card svg {
+    width: 24px;
+    height: 24px;
+  }
+
+</style>
+
+<div class="tutorial-grid">
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
       </div>
+      <span class="card-badge">Essencial</span>
     </div>
-    <div class="col-md-6">
-      <div class="card h-100">
-        <div class="card-body">
-          <h5 class="card-title">Análise de Séries Temporais</h5>
-          <p class="card-text">Um guia completo para analisar dados de saúde e clima.</p>
-          <a href="time-series.html" class="btn btn-primary">Ver Tutorial</a>
-        </div>
-      </div>
-    </div>
+    <h3 class="card-title">Início Rápido</h3>
+    <p class="card-description">Instale o pacote, configure seu ambiente e gere seu primeiro gráfico em menos de 5 minutos.</p>
+    <a href="quickstart.html" class="card-cta-button">Começar Agora →</a>
   </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.58 4 8 4s8-1.79 8-4M4 7c0-2.21 3.58-4 8-4s8 1.79 8 4m0 5c0 2.21-3.58 4-8 4s-8-1.79-8-4" /></svg>
+      </div>
+      <span class="card-badge">ETL & SUS</span>
+    </div>
+    <h3 class="card-title">Fundamentos & Integração</h3>
+    <p class="card-description">Aprenda a baixar dados massivos do DATASUS, tratar anomalias e realizar o cruzamento com dados climáticos.</p>
+    <a href="data-engineering.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 7m0 13V7" /></svg>
+      </div>
+      <span class="card-badge">Prático</span>
+    </div>
+    <h3 class="card-title">Modelagem Epidemiológica</h3>
+    <p class="card-description">Exemplos reais reprodutíveis: Análise de surtos de Dengue, Ondas de Calor e impacto respiratório.</p>
+    <a href="case-studies.html" class="card-cta-button">Explorar Casos →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 14l9-5-9-5-9 5 9 5z" /><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" /></svg>
+      </div>
+      <span class="card-badge">Academia</span>
+    </div>
+    <h3 class="card-title">Saúde Planetária</h3>
+    <p class="card-description">Material didático focado no ensino de R aplicado à saúde ambiental e vigilância.</p>
+    <a href="education.html" class="card-cta-button">Acessar Aulas →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+      </div>
+      <span class="card-badge">Gestão</span>
+    </div>
+    <h3 class="card-title">Políticas Públicas & ML</h3>
+    <p class="card-description">Crie evidências para tomada de decisão usando Machine Learning e Dashboards interativos.</p>
+    <a href="public-policy.html" class="card-cta-button">Ver Soluções →</a>
+  </div>
+
 </div>
+```
+
+
+---
+
+## 🌲 Tem feedback ou sugestões?
+
+Você tem alguma ideia de melhoria ou encontrou algum erro? Adoraríamos ouvir você! Clique no botão abaixo para abrir uma nova *issue* no GitHub e compartilhar suas sugestões diretamente conosco.
+
+<a href='https://github.com/ByMaxAnjos/climasus4r/issues/new'>
+  <button type="button" class="btn" style="background-color: #1b4332; color: white; padding: 10px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s;">
+    Abrir uma issue no GitHub
+  </button>
+</a>
