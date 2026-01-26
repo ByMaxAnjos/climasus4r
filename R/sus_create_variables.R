@@ -6,21 +6,67 @@
 #' calculation that handles different data formats across systems.
 #'
 #' @param df A data frame containing health data from any SUS system.
-#' @param create_age_groups Logical. If `TRUE`, creates age group categories.
-#'   Default is `FALSE`.
-#' @param age_col Character string with the name of the age column (in years).
-#'   If `NULL` (default), auto-detects and calculates age using hierarchical logic:
-#'   1. Direct age column (if exists)
-#'   2. Calculate from dates (event_date - birth_date)
-#'   3. Decode DATASUS age codes (NU_IDADE_N, IDADE)
+#' @param create_age_groups Logical. If `TRUE`, derives age-based variables.
+#' When enabled, the function will attempt to determine age using the following
+#' hierarchy (in order of preference):
+#' \enumerate{
+#'   \item An existing age column supplied via \code{age_col}.
+#'   \item Calculation from birth date and event date columns (gold standard).
+#'   \item Decoding of DATASUS age code variables (fallback method).
+#' }
+#'
+#' If age is successfully determined, the following variables may be created:
+#'
+#' \itemize{
+#'   \item \strong{User-defined age groups}:
+#'     A categorical variable based on \code{age_breaks} and \code{age_labels},
+#'     created using \code{cut()}. This variable is always created when
+#'     \code{create_age_groups = TRUE}.
+#'
+#'   \item \strong{Climate risk age group}:
+#'     A coarse age classification designed for climate–health analyses,
+#'     with three categories:
+#'     \describe{
+#'       \item{0–4}{High risk}
+#'       \item{5–64}{Standard risk}
+#'       \item{65+}{High risk}
+#'     }
+#'     The variable name depends on the selected language:
+#'     \itemize{
+#'       \item English: \code{climate_risk_group}
+#'       \item Portuguese: \code{grupo_risco_climatico}
+#'       \item Spanish: \code{grupo_riesgo_climatico}
+#'     }
+#'
+#'   \item \strong{IBGE quinquennial age groups}:
+#'     A standardized 17-group age classification following the Brazilian
+#'     Institute of Geography and Statistics (IBGE) quinquennial structure:
+#'     \code{0–4, 5–9, ..., 75–79, 80+}.
+#'     This variable ensures national and international comparability and is
+#'     particularly useful for demographic and epidemiological analyses.
+#'     Variable names by language:
+#'     \itemize{
+#'       \item English: \code{ibge_age_group}
+#'       \item Portuguese: \code{faixa_etaria_ibge}
+#'       \item Spanish: \code{grupo_edad_ibge}
+#'     }
+#' }
+#'
+#' All age group variables are created only if age can be reliably determined.
+#' If age cannot be inferred, the function will stop with an informative error.
 #' @param age_breaks Numeric vector specifying the breakpoints for age groups.
 #'   Default is `c(0, 5, 15, 65, Inf)` for standard epidemiological categories.
 #' @param age_labels Character vector with labels for age groups. If `NULL`
 #'   (default), generates labels automatically from breaks.
 #' @param create_calendar_vars Logical. If `TRUE`, creates calendar variables
 #'   (day of week, month, season, etc.). Default is `FALSE`.
+#' @param age_col Character string with the name of the age column (in years).
+#'   If `NULL` (default), auto-detects and calculates age using hierarchical logic:
+#'   1. Direct age column (if exists)
+#'   2. Calculate from dates (event_date - birth_date)
+#'   3. Decode DATASUS age codes (NU_IDADE_N, IDADE)
 #' @param date_col Character string with the name of the date column. If `NULL`
-#'   (default), auto-detects the date column.
+#'   (default), auto-detects the date column. 
 #' @param create_climate_vars Logical. Se `TRUE`, cria variaveis climaticas e sazonais.
 #' @param climate_region Character. Regiao climatica para calculos sazonais.
 #'   Opcoes: "norte", "nordeste", "centro-oeste", "sudeste", "sul".
@@ -34,20 +80,20 @@
 #'
 #' @details
 #' **Age Calculation** (Hierarchical Logic):
-#' 
+#'
 #' The function uses a 3-tier hierarchy to ensure age is calculated correctly
 #' across all SUS systems:
-#' 
+#'
 #' 1. **Direct Age Column** (Fastest): If a column with age in years already exists
 #'    (common in SIM after microdatasus processing), uses it directly.
-#'    
+#'
 #' 2. **Date Calculation** (Gold Standard): If birth date and event date are available,
 #'    calculates exact age as: `interval(birth_date, event_date) / years(1)`.
 #'    This is the most accurate method and works for:
 #'    - SINAN: Has `DTNASC` and `DT_NOTIFIC`
 #'    - SIH: Has `NASC` and `DT_INTER`
 #'    - SINASC: Has `DTNASC` (mother) and `DTNASC` (newborn)
-#'    
+#'
 #' 3. **DATASUS Code Decoder** (Fallback): If dates are missing (common in anonymized
 #'    data), decodes the composite age code used by DATASUS:
 #'    - Codes starting with `1`: Hours (converted to 0 years)
@@ -146,126 +192,131 @@
 #' }
 #'
 #' @export
-sus_create_variables <- function(df,
-                                  create_age_groups = TRUE,
-                                  age_breaks = c(0, 5, 15, 65, Inf),
-                                  age_labels = NULL,
-                                  create_calendar_vars = TRUE,
-                                  create_climate_vars = TRUE,
-                                  climate_region = NULL,
-                                  date_col = NULL,
-                                  age_col = NULL,
-                                  hemisphere = "south",
-                                  lang = "pt",
-                                  verbose = TRUE) {
-  
+sus_create_variables <- function(
+  df,
+  create_age_groups = TRUE,
+  age_breaks = c(0, 5, 15, 60, Inf),
+  age_labels = NULL,
+  create_calendar_vars = TRUE,
+  create_climate_vars = TRUE,
+  climate_region = NULL,
+  date_col = NULL,
+  age_col = NULL,
+  hemisphere = "south",
+  lang = "pt",
+  verbose = TRUE
+) {
   # Validate inputs
   if (!is.data.frame(df)) {
     stop("df must be a data frame")
   }
-  
+
   if (nrow(df) == 0) {
-     stop("df is empty (0 rows)")
+    stop("df is empty (0 rows)")
   }
-  
+
   if (!lang %in% c("en", "pt", "es")) {
-     stop("lang must be one of: 'en', 'pt', 'es'")
+    stop("lang must be one of: 'en', 'pt', 'es'")
   }
-  
+
   if (!hemisphere %in% c("south", "north")) {
-     stop("hemisphere must be 'south' or 'north'")
+    stop("hemisphere must be 'south' or 'north'")
   }
-  
+
   # Track which variables were created
   created_vars <- character(0)
-  
+  system <- unique(df$system)
+
   # ========================================================================
-  # CREATE AGE GROUPS (WITH AGE CALCULATION)
+  # AGE COLUMN IDENTIFICATION AND CALCULATION
   # ========================================================================
-  
-  if (create_age_groups) {
-    
-    # STEP 1: Determine age column
-    age_col_to_use <- age_col
-    
-    # If user specified age_col, check if it exists
-    if (!is.null(age_col)) {
-      if (!age_col %in% names(df)) {
-        if (verbose) {
-          cli::cli_alert_warning(paste0("Age column '", age_col, "' not found in data frame. Will calculate age from dates or age codes."))
-        }
-        age_col_to_use <- NULL
-      } else {
-        if (verbose) {
-          msg <- switch(lang,
-            "en" = paste0("Using existing age column: ", age_col),
-            "pt" = paste0("Usando coluna de idade existente: ", age_col),
-            "es" = paste0("Usando columna de edad existente: ", age_col)
-          )
-          cli::cli_alert_info(msg)
-        }
+
+  # STEP 1: Determine age column
+  age_col_to_use <- age_col
+
+  # If user specified age_col, check if it exists
+  if (!is.null(age_col)) {
+    if (!age_col %in% names(df)) {
+      if (verbose) {
+        cli::cli_alert_warning(paste0(
+          "Age column '",
+          age_col,
+          "' not found in data frame. Will calculate age from dates or age codes."
+        ))
+      }
+      age_col_to_use <- NULL
+    } else {
+      if (verbose) {
+        msg <- switch(
+          lang,
+          "en" = paste0("Using existing age column: ", age_col),
+          "pt" = paste0("Usando coluna de idade existente: ", age_col),
+          "es" = paste0("Usando columna de edad existente: ", age_col)
+        )
+        cli::cli_alert_info(msg)
       }
     }
-    
-    # If no valid age column, try to calculate
-    if (is.null(age_col_to_use)) {
-      # Try to calculate from dates first (gold standard)
-      age_from_dates <- try_calculate_age_from_dates(df, lang, verbose)
-      
-      if (!is.null(age_from_dates)) {
-        df$age_years <- age_from_dates
+  }
+
+  # If no valid age column, try to calculate
+  if (is.null(age_col_to_use)) {
+    # Try to calculate from dates first (gold standard)
+    age_from_dates <- try_calculate_age_from_dates(df, lang, verbose)
+
+    if (!is.null(age_from_dates)) {
+      df$age_years <- age_from_dates
+      age_col_to_use <- "age_years"
+      if (verbose) {
+        msg <- switch(
+          lang,
+          "en" = "Calculated age from birth date and event date (gold standard)",
+          "pt" = "Idade calculada a partir da data de nascimento e data do evento (padrao ouro)",
+          "es" = "Edad calculada a partir de la fecha de nacimiento y fecha del evento (estandar de oro)"
+        )
+        cli::cli_alert_success(msg)
+      }
+    } else {
+      # Fallback to decoding DATASUS age codes
+      age_from_code <- try_decode_datasus_age(df, lang, verbose)
+
+      if (!is.null(age_from_code)) {
+        df$age_years <- age_from_code
         age_col_to_use <- "age_years"
         if (verbose) {
-          msg <- switch(lang,
-            "en" = "Calculated age from birth date and event date (gold standard)",
-            "pt" = "Idade calculada a partir da data de nascimento e data do evento (padrao ouro)",
-            "es" = "Edad calculada a partir de la fecha de nacimiento y fecha del evento (estandar de oro)"
+          msg <- switch(
+            lang,
+            "en" = "Decoded age from DATASUS age code (fallback method)",
+            "pt" = "Idade decodificada do codigo de idade DATASUS (metodo alternativo)",
+            "es" = "Edad decodificada del codigo de edad DATASUS (metodo alternativo)"
           )
-          cli::cli_alert_success(msg)
+          cli::cli_alert_warning(msg)
         }
       } else {
-        # Fallback to decoding DATASUS age codes
-        age_from_code <- try_decode_datasus_age(df, lang, verbose)
-        
-        if (!is.null(age_from_code)) {
-          df$age_years <- age_from_code
-          age_col_to_use <- "age_years"
-          if (verbose) {
-            msg <- switch(lang,
-              "en" = "Decoded age from DATASUS age code (fallback method)",
-              "pt" = "Idade decodificada do codigo de idade DATASUS (metodo alternativo)",
-              "es" = "Edad decodificada del codigo de edad DATASUS (metodo alternativo)"
-            )
-            cli::cli_alert_warning(msg)
-          }
-        } else {
-          stop("Could not determine age. Please ensure data has one of:\n  1. An age column\n  2. Birth date and event date columns\n  3. DATASUS age code column")
-        }
+        stop(
+          "Could not determine age. Please ensure data has one of:\n  1. An age column\n  2. Birth date and event date columns\n  3. DATASUS age code column"
+        )
       }
     }
-    
-    # Generate labels if not provided
-    if (is.null(age_labels)) {
-      age_labels <- generate_age_labels(age_breaks, lang)
-    }
-    
-    # Validate breaks and labels
-    if (length(age_labels) != (length(age_breaks) - 1)) {
-      stop("Length of age_labels must be one less than length of age_breaks")
-    }
-    
+  }
+
+  # Ensure age column is numeric
+  df[[age_col_to_use]] <- as.numeric(df[[age_col_to_use]])
+
+  # ========================================================================
+  # CREATE AGE GROUPS  Climate risk group (fixed definition)
+  # ========================================================================
+
+  if (create_age_groups) {
     # Create age groups
     if (verbose) {
-      msg <- switch(lang,
+      msg <- switch(
+        lang,
         "en" = "Creating age groups...",
         "pt" = "Criando faixas etarias...",
         "es" = "Creando grupos de edad..."
       )
       cli::cli_alert_info(msg)
     }
-    
-    # Ensure age column is numeric
-    df[[age_col_to_use]] <- as.numeric(df[[age_col_to_use]])
 
     df$age_group <- cut(
       df[[age_col_to_use]],
@@ -273,29 +324,43 @@ sus_create_variables <- function(df,
       labels = age_labels,
       right = FALSE,
       include.lowest = TRUE
-    )  
-    
+    )
+
     created_vars <- c(created_vars, "age_group")
-    
+
+    # --------------------------------------------------
+    # STEP 5: Climate risk group (fixed definition)
+    # --------------------------------------------------
     # Report age distribution
     if (verbose) {
       age_summary <- table(df$age_group, useNA = "ifany")
-      msg <- switch(lang,
-        "en" = paste0("Age distribution: ", 
-                      paste(names(age_summary), "=", age_summary, collapse = ", ")),
-        "pt" = paste0("Distribuicao etaria: ",
-                      paste(names(age_summary), "=", age_summary, collapse = ", ")),
-        "es" = paste0("Distribucion etaria: ",
-                      paste(names(age_summary), "=", age_summary, collapse = ", "))
+      msg <- switch(
+        lang,
+        "en" = paste0(
+          "Age distribution: ",
+          paste(names(age_summary), "=", age_summary, collapse = ", ")
+        ),
+        "pt" = paste0(
+          "Distribuicao etaria: ",
+          paste(names(age_summary), "=", age_summary, collapse = ", ")
+        ),
+        "es" = paste0(
+          "Distribucion etaria: ",
+          paste(names(age_summary), "=", age_summary, collapse = ", ")
+        )
       )
       cli::cli_alert_info(msg)
     }
 
     risk_labels <- switch(
-    lang,
-    "en" = c("High Risk (0-4)", "Standard Risk (5-64)", "High Risk (65+)"),
-    "pt" = c("Alto Risco (0-4)", "Risco Padrao (5-64)", "Alto Risco (65+)"),
-    "es" = c("Alto Riesgo (0-4)", "Riesgo Estandar (5-64)", "Alto Riesgo (65+)")
+      lang,
+      "en" = c("High Risk (0-4)", "Standard Risk (5-64)", "High Risk (65+)"),
+      "pt" = c("Alto Risco (0-4)", "Risco Padrao (5-64)", "Alto Risco (65+)"),
+      "es" = c(
+        "Alto Riesgo (0-4)",
+        "Riesgo Estandar (5-64)",
+        "Alto Riesgo (65+)"
+      )
     )
 
     risk_varname <- switch(
@@ -313,20 +378,95 @@ sus_create_variables <- function(df,
       include.lowest = TRUE
     )
 
-    created_vars <- c(created_vars, risk_varname)  
+    created_vars <- c(created_vars, risk_varname)
+
+    # --------------------------------------------------
+  # STEP : IBGE group (fixed definition)
+  # --------------------------------------------------
+  ibge_labels <- c("0-4", "5-9", "10-14", "15-19", "20-24", "25-29",
+    "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64",
+    "65-69", "70-74", "75-79","80+")
+  ibge_varname <- switch(
+    lang,
+    "pt" = "faixa_etaria_ibge",
+    "en" = "ibge_age_group",
+    "es" = "grupo_edad_ibge"
+  )
+  df[[ibge_varname]] <- cut(
+    df[[age_col_to_use]],
+    breaks = c(
+    0, 5, 10, 15, 20, 25, 30, 35,
+    40, 45, 50, 55, 60, 65, 70, 75, 80, Inf),
+    labels = ibge_labels,
+    right = FALSE,
+    include.lowest = TRUE
+  )
+
+  created_vars <- c(created_vars, ibge_varname)
+
+
+  }
+
+  # ========================================================================
+  # CREATE AGE GROUPS with age_breaks from user
+  # ========================================================================
+  if (!is.null(age_breaks)) {
+    if (!is.numeric(age_breaks) || length(age_breaks) < 2) {
+      cli::cli_abort(
+        c(
+          "{.arg age_breaks} must be numeric or coercible to numeric.",
+          i = "You can define custom age group structures.",
+          ">" = "Example (standard 5-year age groups):",
+          " " = "{.code c(0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, Inf)}"
+        )
+      )
     }
-  
+
+    # Generate labels if not provided
+    if (is.null(age_labels)) {
+      age_labels <- generate_age_labels(age_breaks, lang)
+    }
+
+    # Validate breaks and labels
+    if (length(age_labels) != (length(age_breaks) - 1)) {
+      cli::cli_abort(
+        "Length of age_labels must be one less than length of age_breaks"
+      )
+    }
+
+    if (verbose) {
+      cli::cli_alert_info(
+        switch(
+          lang,
+          "en" = "Creating age groups...",
+          "pt" = "Criando faixas etarias...",
+          "es" = "Creando grupos de edad..."
+        )
+      )
+    }
+
+    df$age_group <- cut(
+      df[[age_col_to_use]],
+      breaks = age_breaks,
+      labels = age_labels,
+      right = FALSE,
+      include.lowest = TRUE
+    )
+
+    created_vars <- c(created_vars, "age_group")
+  }
+
   # ========================================================================
-  # CREATE CALENDAR VARIABLES
+  # CREATE CALENDAR VARIABLES USER.
   # ========================================================================
-  
+
   if (create_calendar_vars) {
-    
     # Auto-detect date column if not specified
     if (is.null(date_col)) {
-      date_col <- detect_date_column(df)
+      date_col <- detect_date_column(df, system)
       if (verbose) {
-        msg <- switch(lang,
+        msg <- switch(
+          lang,
           "en" = paste0("Auto-detected date column: ", date_col),
           "pt" = paste0("Coluna de data auto-detectada: ", date_col),
           "es" = paste0("Columna de fecha auto-detectada: ", date_col)
@@ -334,57 +474,62 @@ sus_create_variables <- function(df,
         cli::cli_alert_info(msg)
       }
     }
-    
+
     # Validate date column exists
     if (!date_col %in% names(df)) {
       stop(paste0("Date column '", date_col, "' not found in data frame"))
     }
-    
+
     # Convert to Date if not already
     if (!inherits(df[[date_col]], "Date")) {
       df[[date_col]] <- as.Date(df[[date_col]])
     }
-    
+
     if (verbose) {
-      msg <- switch(lang,
+      msg <- switch(
+        lang,
         "en" = "Creating calendar variables...",
         "pt" = "Criando variaveis de calendario...",
         "es" = "Creando variables de calendario..."
       )
       cli::cli_alert_info(msg)
     }
-    
-    if (lang == "en") { 
-      # Extract date components
-    df$year <- lubridate::year(df[[date_col]])
-    df$month <- lubridate::month(df[[date_col]])
-    df$day_of_week <- lubridate::wday(df[[date_col]], week_start = 1)  # Monday = 1
-    df$day_of_year <- lubridate::yday(df[[date_col]])
-    df$quarter <- lubridate::quarter(df[[date_col]])
-    df$epidemiological_week <- lubridate::epiweek(df[[date_col]])
-    
-    # Create month names
-    df$month_name <- get_month_names(df$month, lang)
-    
-    # Create day of week names
-    df$day_of_week_name <- get_day_names(df$day_of_week, lang)
-    
-    # Create weekend indicator
-    df$is_weekend <- df$day_of_week %in% c(6, 7)
-      
-    # Create semester if requested
-    df$semester <- ifelse(df$month <= 6, 1, 2)
-    
-     created_vars <- c(
-      created_vars,
-      "year", "month", "month_name",
-      "day_of_week", "day_of_week_name",
-      "day_of_year", "quarter",
-      "epidemiological_week",
-      "is_weekend", "semester"
-    )
 
-    } else if (lang  == "pt") {
+    if (lang == "en") {
+      # Extract date components
+      df$year <- lubridate::year(df[[date_col]])
+      df$month <- lubridate::month(df[[date_col]])
+      df$day_of_week <- lubridate::wday(df[[date_col]], week_start = 1) # Monday = 1
+      df$day_of_year <- lubridate::yday(df[[date_col]])
+      df$quarter <- lubridate::quarter(df[[date_col]])
+      df$epidemiological_week <- lubridate::epiweek(df[[date_col]])
+
+      # Create month names
+      df$month_name <- get_month_names(df$month, lang)
+
+      # Create day of week names
+      df$day_of_week_name <- get_day_names(df$day_of_week, lang)
+
+      # Create weekend indicator
+      df$is_weekend <- df$day_of_week %in% c(6, 7)
+
+      # Create semester if requested
+      df$semester <- ifelse(df$month <= 6, 1, 2)
+
+      created_vars <- c(
+        created_vars,
+        "year",
+        "month",
+        "month_name",
+        "day_of_week",
+        "day_of_week_name",
+        "day_of_year",
+        "quarter",
+        "epidemiological_week",
+        "is_weekend",
+        "semester"
+      )
+    } else if (lang == "pt") {
       # Extrair componentes da data
       df$ano <- lubridate::year(df[[date_col]])
       df$mes <- lubridate::month(df[[date_col]])
@@ -405,13 +550,17 @@ sus_create_variables <- function(df,
 
       created_vars <- c(
         created_vars,
-        "ano", "mes", "nome_mes",
-        "dia_semana", "nome_dia_semana",
-        "dia_ano", "trimestre",
+        "ano",
+        "mes",
+        "nome_mes",
+        "dia_semana",
+        "nome_dia_semana",
+        "dia_ano",
+        "trimestre",
         "semana_epidemiologica",
-        "fim_semana", "semestre"
+        "fim_semana",
+        "semestre"
       )
-
     } else {
       # Extraer componentes de la fecha
       df$anio <- lubridate::year(df[[date_col]])
@@ -433,39 +582,44 @@ sus_create_variables <- function(df,
 
       created_vars <- c(
         created_vars,
-        "anio", "mes", "nombre_mes",
-        "dia_semana", "nombre_dia_semana",
-        "dia_anio", "trimestre",
+        "anio",
+        "mes",
+        "nombre_mes",
+        "dia_semana",
+        "nombre_dia_semana",
+        "dia_anio",
+        "trimestre",
         "semana_epidemiologica",
-        "fin_semana", "semestre"
+        "fin_semana",
+        "semestre"
       )
-     }
-    
+    }
   }
 
   # ========================================================================
   # SAZONALITY CLIMATE VARIABLES
   # ========================================================================
-   if (create_climate_vars) {
-    if (!create_calendar_vars) {
-      cli::cli_abort(
+
+  if (create_climate_vars && !create_calendar_vars) {
+    cli::cli_abort(
+      c(
         "{.arg create_calendar_vars} is required but was set to {.val FALSE}.",
-        bullet = "info",
-        bullet_vct = c(
-          ">" = "Set {.code create_calendar_vars = TRUE} to enable calendar features."
-        )
-      )
-    }
+        ">" = "First set {.code create_calendar_vars = TRUE} to enable climate features."
+      ),
+      call = NULL
+    )
+  }
+
+  if (create_climate_vars) {
     month_var <- if (lang == "en") "month" else "mes"
 
     if (is.null(climate_region)) {
-
       cli::cli_alert_info(
         switch(
           lang,
-          "en" = "Climate region not provided. Astronomical season was created.",
-          "pt" = "Regiao climatica nao informada. Estacao astronomica criada.",
-          "es" = "Region climatica no informada. Estacion astronomica creada."
+          "en" = "{.arg climate_region} not provided. Astronomical season was created.",
+          "pt" = "{.arg climate_region} nao informada. Estacao astronomica criada.",
+          "es" = "{.arg climate_region}  no informada. Estacion astronomica creada."
         )
       )
       season_name <- switch(
@@ -483,7 +637,11 @@ sus_create_variables <- function(df,
         "pt" = "estacao_climatica",
         "es" = "estacion_climatica"
       )
-      df[[season_climate_name]] <- get_climate_season(df[[month_var]], hemisphere, lang)
+      df[[season_climate_name]] <- get_climate_season(
+        df[[month_var]],
+        hemisphere,
+        lang
+      )
       created_vars <- c(created_vars, season_climate_name)
 
       dry_rainny_name <- switch(
@@ -492,28 +650,44 @@ sus_create_variables <- function(df,
         "pt" = "estacao_seca_chuvosa",
         "es" = "estacion_seca_lluviosa"
       )
-      df[[dry_rainny_name]] <- get_dry_rainy_season(df[[month_var]], hemisphere, lang)
+      df[[dry_rainny_name]] <- get_dry_rainy_season(
+        df[[month_var]],
+        hemisphere,
+        lang
+      )
       created_vars <- c(created_vars, dry_rainny_name)
-    
     }
-   }
-  
+  }
+
   # ========================================================================
   # SUMMARY MESSAGE
   # ========================================================================
-  
+
   if (verbose && length(created_vars) > 0) {
-    msg <- switch(lang,
-      "en" = paste0("Created ", length(created_vars), " new variables: ",
-                    paste(created_vars, collapse = ", ")),
-      "pt" = paste0("Criadas ", length(created_vars), " novas variaveis: ",
-                    paste(created_vars, collapse = ", ")),
-      "es" = paste0("Creadas ", length(created_vars), " nuevas variables: ",
-                    paste(created_vars, collapse = ", "))
+    msg <- switch(
+      lang,
+      "en" = paste0(
+        "Created ",
+        length(created_vars),
+        " new variables: ",
+        paste(created_vars, collapse = ", ")
+      ),
+      "pt" = paste0(
+        "Criadas ",
+        length(created_vars),
+        " novas variaveis: ",
+        paste(created_vars, collapse = ", ")
+      ),
+      "es" = paste0(
+        "Creadas ",
+        length(created_vars),
+        " nuevas variables: ",
+        paste(created_vars, collapse = ", ")
+      )
     )
     cli::cli_alert_success(msg)
   }
-  
+
   return(df)
 }
 
@@ -734,48 +908,6 @@ decode_datasus_age_vectorized <- function(age_codes) {
   
   return(age_years)
 }
-
-
-#' Detect Date Column
-#' 
-#' Auto-detects the date column in a data frame based on common patterns.
-#' 
-#' @param df Data frame
-#' @return Name of date column
-#' @keywords internal
-#' @noRd
-detect_date_column <- function(df) {
-  # Common date column patterns (in order of priority)
-  date_patterns <- c(
-    # English
-    "death_date", "notification_date", "birth_date", "admission_date",
-    "discharge_date", "date", "event_date",
-    # Portuguese
-    "data_obito", "data_notificacao", "data_nascimento", "data_internacao",
-    "data_alta", "data_evento", "data",
-    # Spanish
-    "fecha_muerte", "fecha_notificacion", "fecha_nacimiento", "fecha",
-    # Original DATASUS
-    "DTOBITO", "DT_NOTIFIC", "DTNASC", "DT_INTER", "DT_SAIDA", "DT_EVENT"
-  )
-  
-  # Find first matching column
-  for (pattern in date_patterns) {
-    if (pattern %in% names(df)) {
-      return(pattern)
-    }
-  }
-  
-  # If no match, look for Date class columns
-  date_cols <- names(df)[sapply(df, function(x) inherits(x, "Date") || inherits(x, "POSIXct"))]
-  if (length(date_cols) > 0) {
-    return(date_cols[1])
-  }
-  
-  # If still no match, error
-  stop("Could not auto-detect date column. Please specify 'date_col' parameter.")
-}
-
 
 #' Generate Age Labels
 #' 

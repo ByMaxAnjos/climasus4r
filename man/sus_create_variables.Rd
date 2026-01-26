@@ -7,9 +7,9 @@
 sus_create_variables(
   df,
   create_age_groups = TRUE,
-  age_breaks = c(0, 5, 15, 65, Inf),
+  age_breaks = c(0, 5, 15, 60, Inf),
   age_labels = NULL,
-  create_calendar_vars = FALSE,
+  create_calendar_vars = TRUE,
   create_climate_vars = TRUE,
   climate_region = NULL,
   date_col = NULL,
@@ -22,8 +22,54 @@ sus_create_variables(
 \arguments{
 \item{df}{A data frame containing health data from any SUS system.}
 
-\item{create_age_groups}{Logical. If \code{TRUE}, creates age group categories.
-Default is \code{FALSE}.}
+\item{create_age_groups}{Logical. If \code{TRUE}, derives age-based variables.
+When enabled, the function will attempt to determine age using the following
+hierarchy (in order of preference):
+\enumerate{
+\item An existing age column supplied via \code{age_col}.
+\item Calculation from birth date and event date columns (gold standard).
+\item Decoding of DATASUS age code variables (fallback method).
+}
+
+If age is successfully determined, the following variables may be created:
+
+\itemize{
+\item \strong{User-defined age groups}:
+A categorical variable based on \code{age_breaks} and \code{age_labels},
+created using \code{cut()}. This variable is always created when
+\code{create_age_groups = TRUE}.
+
+\item \strong{Climate risk age group}:
+A coarse age classification designed for climate–health analyses,
+with three categories:
+\describe{
+\item{0–4}{High risk}
+\item{5–64}{Standard risk}
+\item{65+}{High risk}
+}
+The variable name depends on the selected language:
+\itemize{
+\item English: \code{climate_risk_group}
+\item Portuguese: \code{grupo_risco_climatico}
+\item Spanish: \code{grupo_riesgo_climatico}
+}
+
+\item \strong{IBGE quinquennial age groups}:
+A standardized 17-group age classification following the Brazilian
+Institute of Geography and Statistics (IBGE) quinquennial structure:
+\code{0–4, 5–9, ..., 75–79, 80+}.
+    This variable ensures national and international comparability and is
+particularly useful for demographic and epidemiological analyses.
+Variable names by language:
+\itemize{
+\item English: \code{ibge_age_group}
+\item Portuguese: \code{faixa_etaria_ibge}
+\item Spanish: \code{grupo_edad_ibge}
+}
+}
+
+All age group variables are created only if age can be reliably determined.
+If age cannot be inferred, the function will stop with an informative error.}
 
 \item{age_breaks}{Numeric vector specifying the breakpoints for age groups.
 Default is \code{c(0, 5, 15, 65, Inf)} for standard epidemiological categories.}

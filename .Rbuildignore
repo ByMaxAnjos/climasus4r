@@ -15,4 +15,4 @@
 ^vignettes-es/.*
 ^vignettes-en/.*
 
-^\.inst\figures\.png$
+^inst/figures$
