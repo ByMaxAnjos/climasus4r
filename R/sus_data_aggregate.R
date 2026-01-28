@@ -4,7 +4,7 @@
 #' time units and grouping variables. This function is essential for preparing
 #' data for time series analysis, DLNM models, and other temporal epidemiological methods.
 #'
-#' @param df A data frame containing health data (output from `sus_data_standardize()`).
+#' @param df A data frame containing health data (output from `sus_data_standardize()`, or `sus_data_filter*()`).
 #' @param time_unit Character string specifying the temporal aggregation unit.
 #'   **Standard units**: `"day"`, `"week"`, `"month"`, `"quarter"`, `"year"`
 #'   **Multi-day/week/month**: `"2 days"`, `"5 days"` (pentads), `"14 days"` (fortnightly),
@@ -114,9 +114,9 @@ sus_data_aggregate <- function(df,
                                time_unit = "day",
                                fun = "count",
                                value_col = NULL,
-                               date_col = NULL,
                                group_by = NULL,
                                complete_dates = TRUE,
+                               date_col = NULL,
                                lang = "pt",
                                verbose = TRUE) {
   
@@ -154,9 +154,110 @@ sus_data_aggregate <- function(df,
   } else {
     cli::cli_abort("fun must be a character string or a named list")
   }
-  #Detect system if not specified
-  system <- unique(df$system)
+  
+   # Check if data is climasus_df
+  if (inherits(df, "climasus_df")) {
 
+    # Required stages for aggregation
+    required_stages <- c("filter_cid", "filter_demo")
+    allowed_stages  <- c("filter_cid", "filter_demo", "derive", "spatial")
+
+    current_stage <- climasus_meta(df, "stage")
+
+    # Must have passed through at least one filter stage
+    if (is.null(current_stage) || !current_stage %in% allowed_stages) {
+
+      msg_error <- list(
+        en = paste0(
+          "Data must be filtered before aggregation.\n",
+          "Current stage: ", current_stage %||% "unknown", "\n",
+          "Required stage: filter_cid or filter_demo\n\n",
+          "Please run at least one filter:\n",
+          "  df <- sus_data_filter_cid(df, ...)\n",
+          "  df <- sus_data_filter_demo(df, ...)"
+        ),
+        pt = paste0(
+          "Dados devem ser filtrados antes da agregacao.\n",
+          "Estagio atual: ", current_stage %||% "desconhecido", "\n",
+          "Estagio requerido: filter_cid ou filter_demo\n\n",
+          "Por favor, execute ao menos um filtro:\n",
+          "  df <- sus_data_filter_cid(df, ...)\n",
+          "  df <- sus_data_filter_demo(df, ...)"
+        ),
+        es = paste0(
+          "Los datos deben ser filtrados antes de la agregacion.\n",
+          "Etapa actual: ", current_stage %||% "desconocida", "\n",
+          "Etapa requerida: filter_cid o filter_demo\n\n",
+          "Por favor, ejecute al menos un filtro:\n",
+          "  df <- sus_data_filter_cid(df, ...)\n",
+          "  df <- sus_data_filter_demo(df, ...)"
+        )
+      )
+
+      cli::cli_abort(msg_error[[lang]] %||% msg_error[["en"]])
+    }
+
+    # Stage validated
+    if (verbose) {
+      msg_stage_ok <- list(
+        en = "Data stage validated: aggregation allowed",
+        pt = "Estagio de dados validado: agregacao permitida",
+        es = "Etapa de datos validada: agregacion permitida"
+      )
+
+      cli::cli_alert_success(msg_stage_ok[[lang]] %||% msg_stage_ok[["en"]])
+    }
+
+    # Update metadata
+    df <- climasus_meta(df, stage = "aggregate", type  = "agg")
+
+  } else {
+    
+    # NOT climasus_df - ABORT execution
+    msg_error <- list(
+      en = paste0(
+        "Input is not a climasus_df object.\n",
+        "This function requires data from the CLIMASUS4r pipeline.\n\n",
+        "Please prepare your data first:\n",
+        "  1. Import: df <- sus_data_import(...) or sus_data_read(...)\n",
+        "  2. Clean: df <- sus_data_clean_encoding(df)\n",
+        "  3. Standardize: df <- sus_data_standardize(df)\n",
+        "  4. Aggregate: df <- sus_data_aggregate(df, ...)\n\n",
+        "If using external data, run sus_data_standardize() first to prepare it."
+      ),
+      pt = paste0(
+        "Entrada nao e um objeto climasus_df.\n",
+        "Esta funcao requer dados do pipeline CLIMASUS4r.\n\n",
+        "Por favor, prepare seus dados primeiro:\n",
+        "  1. Importar: df <- sus_data_import(...) ou sus_data_read(...)\n",
+        "  2. Limpar: df <- sus_data_clean_encoding(df)\n",
+        "  3. Padronizar: df <- sus_data_aggregate(df)\n",
+        "  4. Agregar: df <- sus_data_aggregate(df, ...)\n\n",
+        "Se usar dados externos, execute sus_data_standardize() primeiro para prepara-los."
+      ),
+      es = paste0(
+        "La entrada no es un objeto climasus_df.\n",
+        "Esta funcion requiere datos del pipeline CLIMASUS4r.\n\n",
+        "Por favor, prepare sus datos primero:\n",
+        "  1. Importar: df <- sus_data_import(...) o sus_data_read(...)\n",
+        "  2. Limpiar: df <- sus_data_clean_encoding(df)\n",
+        "  3. Estandarizar: df <- sus_data_standardize(df)\n",
+        "  4. Agregar: df <- sus_data_aggregate(df, ...)\n\n",
+        "Si usa datos externos, ejecute sus_data_standardize() primero para prepararlos."
+      )
+    )
+    
+    cli::cli_abort(msg_error[[lang]])
+  }
+  #Detect system if not specified
+  system <- climasus_meta(df, "system")
+
+  # Detect duplicate column names
+  col_names <- names(df)
+  duplicated_names <- col_names[duplicated(col_names)]
+  df <- df[, !duplicated(col_names)]
+
+  
   # Auto-detect date column if not specified
   if (is.null(date_col)) {
     date_col <- detect_date_column(df, system)
@@ -191,6 +292,7 @@ sus_data_aggregate <- function(df,
   
   # Remove rows with missing dates
   n_missing <- sum(is.na(df[[date_col]]))
+
   if (n_missing > 0) {
     if (verbose) {
       msg <- switch(lang,
@@ -358,7 +460,127 @@ sus_data_aggregate <- function(df,
       cli::cli_alert_info(group_msg)
     }
   }
-  
+
+  if (!inherits(df_agg, "climasus_df")) {
+    # Create new climasus_df with metadata from original df
+    original_system <- climasus_meta(df, "system")
+    
+    meta <- list(
+      system = original_system,
+      stage = "aggregate",
+      type = "agg",
+      spatial = inherits(df_agg, "sf"),
+      temporal = list(
+        start = min(df_agg$date, na.rm = TRUE),
+        end = max(df_agg$date, na.rm = TRUE),
+        resolution = time_unit
+      ),
+      created = Sys.time(),
+      modified = Sys.time(),
+      history = climasus_meta(df, "history") %||% character(0),  # Preserve history
+      user = list()
+    )
+    
+    base_classes <- setdiff(class(df_agg), "climasus_df")
+    df_agg <- structure(
+      df_agg,
+      climasus_meta = meta,
+      class = c("climasus_df", base_classes)
+    )
+  }
+
+  # Update stage and type
+  df_agg <- climasus_meta(
+    df_agg,
+    system = climasus_meta(df_agg, "system"),  # Preserve original system
+    stage = "aggregate",
+    type = "agg",
+    temporal = list(
+      start = min(df_agg$date),
+      end = max(df_agg$date),
+      resolution = time_unit
+    )
+  )
+  # Build detailed aggregation history message
+  agg_details <- c()
+
+  # Time unit
+  if (!is.null(time_unit)) {
+    agg_details <- c( agg_details, sprintf("Time unit: %s", time_unit))
+  }
+
+  # Aggregation function
+  if (!is.null(fun)) {
+    if (is.character(fun)) {
+      agg_details <- c(
+        agg_details,
+        sprintf("Aggregation: %s", fun)
+      )
+    } else {
+      agg_details <- c(
+        agg_details,
+        "Aggregation: custom function"
+      )
+    }
+  }
+
+  # Value column
+  if (!is.null(value_col)) {
+    agg_details <- c(
+      agg_details,
+      sprintf("Value column: %s", value_col)
+    )
+  } else {
+    agg_details <- c(
+      agg_details,
+      "Value column: record count"
+    )
+  }
+
+  # Grouping variables
+  if (!is.null(group_by)) {
+    if (length(group_by) <= 3) {
+      agg_details <- c(
+        agg_details,
+        sprintf(
+          "Grouped by: %s",
+          paste(group_by, collapse = ", ")
+        )
+      )
+    } else {
+      agg_details <- c(
+        agg_details,
+        sprintf(
+          "Grouped by: %s and %d more",
+          paste(utils::head(group_by, 3), collapse = ", "),
+          length(group_by) - 3
+        )
+      )
+    }
+  }
+
+  # Date completion
+  if (isTRUE(complete_dates)) {
+    agg_details <- c(
+      agg_details,
+      "Completed missing dates"
+    )
+  }
+
+  # Date column used
+  if (!is.null(date_col)) {
+    agg_details <- c(
+      agg_details,
+      sprintf("Date column: %s", date_col)
+    )
+  }
+
+  # Create history message
+  history_msg <- sprintf("Data aggregated [%s]", paste(agg_details, collapse = " | "))
+
+  # Register metadata
+  df_agg <- climasus_meta(df_agg, add_history = history_msg)
+
   return(df_agg)
 }
 

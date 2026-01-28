@@ -507,6 +507,77 @@ sus_data_read <- function(path,
       cli::cli_alert_info(crs_msg)
     }
   }
+
+    # Check if loaded data is a climasus_df object
+    if (inherits(final_df, "climasus_df")) {
+      
+      # Data was saved by climasus4r pipeline - preserve and update metadata
+      if (verbose) {
+        meta_msg <- switch(lang,
+          "en" = "Detected climasus_df object - preserving metadata",
+          "pt" = "Objeto climasus_df detectado - preservando metadados",
+          "es" = "Objeto climasus_df detectado - preservando metadatos"
+        )
+        cli::cli_alert_info(meta_msg)
+      }
+      
+      # Add read action to history
+      if (is_batch) {
+        history_msg <- sprintf("Read %d files from batch: %s", 
+                              length(list_of_dfs), 
+                              paste(basename(utils::head(all_source_files, 3)), collapse=", "))
+        if (length(all_source_files) > 3) {
+          history_msg <- paste0(history_msg, sprintf(" (and %d more)", length(all_source_files) - 3))
+        }
+      } else {
+        source_file <- attr(final_df, "source_file")
+        history_msg <- if (!is.null(source_file)) {
+          sprintf("Read from file: %s", source_file)
+        } else {
+          "Read from file"
+        }
+      }
+      
+      final_df <- climasus_meta(final_df, add_history = history_msg)
+      
+      # Display metadata summary if verbose
+      if (verbose) {
+        current_stage <- climasus_meta(final_df, "stage")
+        current_system <- climasus_meta(final_df, "system")
+        
+        if (!is.null(current_stage)) {
+          stage_msg <- switch(lang,
+            "en" = paste0("Pipeline stage: ", current_stage),
+            "pt" = paste0("Estagio do pipeline: ", current_stage),
+            "es" = paste0("Etapa del pipeline: ", current_stage)
+          )
+          cli::cli_alert_info(stage_msg)
+        }
+        
+        if (!is.null(current_system)) {
+          system_msg <- switch(lang,
+            "en" = paste0("Health system: ", current_system),
+            "pt" = paste0("Sistema de saude: ", current_system),
+            "es" = paste0("Sistema de salud: ", current_system)
+          )
+          cli::cli_alert_info(system_msg)
+        }
+      }
+      
+    } else {
+      
+      # Data is NOT climasus_df (external file) - keep as-is
+      if (verbose) {
+        external_msg <- switch(lang,
+          "en" = "Loaded external data (not from climasus4r pipeline)",
+          "pt" = "Dados externos carregados (nao do pipeline climasus4r)",
+          "es" = "Datos externos cargados (no del pipeline climasus4r)"
+        )
+        cli::cli_alert_info(external_msg)
+      }
+    
+    return(final_df)
+  }
   
   return(final_df)
 }

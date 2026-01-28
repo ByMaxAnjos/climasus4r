@@ -129,6 +129,36 @@ sus_data_clean_encoding <- function(df, lang = "pt", verbose = TRUE) {
       cli::cli_alert_success(ui_msg$no_correction_needed)
     }
   }
+
+  if (!inherits(df, "climasus_df")) {
+    # Create new climasus_df
+    meta <- list(
+      system = NULL,
+      stage = "clean",
+      type = "clean",
+      spatial = inherits(df, "sf"),
+      temporal = NULL,
+      created = Sys.time(),
+      modified = Sys.time(),
+      history = sprintf(
+        "[%s] Cleaned character encoding (UTF-8)",
+        format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+      ),
+      user = list()
+    )
+
+    base_classes <- setdiff(class(df), "climasus_df")
+    df <- structure(
+      df,
+      climasus_meta = meta,
+      class = c("climasus_df", base_classes)
+    )
+  } else {
+    # Already climasus_df - update metadata
+    df <- climasus_meta(df, stage = "clean", type = "clean")
+    df <- climasus_meta(df, add_history = "Cleaned character encoding (UTF-8)")
+  }
+
   
   return(df)
 }

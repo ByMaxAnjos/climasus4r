@@ -692,6 +692,35 @@ sus_data_import <- function(uf = NULL,
     }
   }
   
+  if (!inherits(combined_data, "climasus_df")) {
+      # Create new climasus_df
+      meta <- list(
+        system = NULL,
+        stage = "import",
+        type = "raw",
+        spatial = inherits(combined_data, "sf"),
+        temporal = NULL,
+        created = Sys.time(),
+        modified = Sys.time(),
+        history = sprintf(
+          "[%s] Imported datasus with climasus4r",
+          format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+        ),
+        user = list()
+      )
+
+      base_classes <- setdiff(class(combined_data), "climasus_df")
+      combined_data <- structure(
+        combined_data,
+        climasus_meta = meta,
+        class = c("climasus_df", base_classes)
+      )
+    } else {
+      # Already climasus_df - update metadata
+      combined_data <- climasus_meta(combined_data, system = system, stage = "stand", type = "stand")
+      combined_data <- climasus_meta(combined_data, add_history = "Imported datasus with climasus4r")
+    }
+
   return(combined_data)
 }
 

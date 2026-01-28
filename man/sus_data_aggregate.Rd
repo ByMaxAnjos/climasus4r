@@ -9,15 +9,15 @@ sus_data_aggregate(
   time_unit = "day",
   fun = "count",
   value_col = NULL,
-  date_col = NULL,
   group_by = NULL,
   complete_dates = TRUE,
+  date_col = NULL,
   lang = "pt",
   verbose = TRUE
 )
 }
 \arguments{
-\item{df}{A data frame containing health data (output from \code{sus_data_standardize()}).}
+\item{df}{A data frame containing health data (output from \code{sus_data_standardize()}, or \verb{sus_data_filter*()}).}
 
 \item{time_unit}{Character string specifying the temporal aggregation unit.
 \strong{Standard units}: \code{"day"}, \code{"week"}, \code{"month"}, \code{"quarter"}, \code{"year"}
@@ -36,16 +36,16 @@ Can also be a named list for multiple aggregations, e.g.,
 using functions other than \code{"count"}. Required for \code{"sum"}, \code{"mean"}, etc.
 For example, \code{"temperature"}, \code{"precipitation"}, \code{"pm25"}.}
 
-\item{date_col}{Character string with the name of the date column to use for
-aggregation. If \code{NULL} (default), the function will attempt to auto-detect
-the date column based on common patterns.}
-
 \item{group_by}{Character vector with names of columns to group by (e.g.,
 \code{c("sex", "age_group", "municipality_code", "race")}). If \code{NULL} (default), aggregates
 across all records.}
 
 \item{complete_dates}{Logical. If \code{TRUE} (default), fills in missing time periods
 with zero counts to create a complete time series without gaps.}
+
+\item{date_col}{Character string with the name of the date column to use for
+aggregation. If \code{NULL} (default), the function will attempt to auto-detect
+the date column based on common patterns.}
 
 \item{lang}{Character string specifying the language for messages. Options:
 \code{"en"} (English, default), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}

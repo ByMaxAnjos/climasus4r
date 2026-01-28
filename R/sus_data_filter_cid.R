@@ -189,10 +189,100 @@ sus_data_filter_cid <- function(df,
   
   # Validate language
   if (!lang %in% c("en", "pt", "es")) {
-    cli::cli_alert_warning("Language '{lang}' not supported. Using English (en).")
-    lang <- "en"
+    cli::cli_alert_warning(
+      "Language '{lang}' not supported. Using Portuguese (pt)."
+    )
+    lang <- "pt"
   }
-  
+
+    # Check if data is climasus_df
+  # Check if data is climasus_df
+  if (inherits(df, "climasus_df")) {
+    current_stage <- climasus_meta(df, "stage")
+    required_stage <- "stand"
+
+    if (!is_stage_at_least(current_stage, required_stage)) {
+
+      msg_error <- list(
+        en = paste0(
+          "Data must be standardized before disease filtering (CID-10).\n",
+          "Current stage: ", current_stage %||% "unknown", "\n",
+          "Required stage: ", required_stage, "\n\n",
+          "Please run:\n",
+          "  df <- sus_data_standardize(df)"
+        ),
+        pt = paste0(
+          "Dados devem ser padronizados antes da filtragem por doenca (CID-10).\n",
+          "Estagio atual: ", current_stage %||% "desconhecido", "\n",
+          "Estagio requerido: ", required_stage, "\n\n",
+          "Por favor, execute:\n",
+          "  df <- sus_data_standardize(df)"
+        ),
+        es = paste0(
+          "Los datos deben estar estandarizados antes del filtrado por enfermedad (CID-10).\n",
+          "Etapa actual: ", current_stage %||% "desconocida", "\n",
+          "Etapa requerida: ", required_stage, "\n\n",
+          "Por favor, ejecute:\n",
+          "  df <- sus_data_standardize(df)"
+        )
+      )
+
+      cli::cli_abort(msg_error[[lang]] %||% msg_error[["en"]])
+    }
+
+    # Stage validated
+    if (verbose) {
+      msg_stage_ok <- list(
+        en = "Data stage validated: disease filtering (CID-10)",
+        pt = "Estagio de dados validado: filtragem por doenca (CID-10)",
+        es = "Etapa de datos validada: filtrado por enfermedad (CID-10)"
+      )
+
+      cli::cli_alert_success(msg_stage_ok[[lang]] %||% msg_stage_ok[["en"]])
+    }
+
+    # Update metadata
+    df <- climasus_meta(df, stage = "filter_cid", type = "filter_cid")
+
+  } else {
+      
+      # NOT climasus_df - ABORT execution
+      msg_error <- list(
+        en = paste0(
+          "Input is not a climasus_df object.\n",
+          "This function requires data from the CLIMASUS4r pipeline.\n\n",
+          "Please prepare your data first:\n",
+          "  1. Import: df <- sus_data_import(...) or sus_data_read(...)\n",
+          "  2. Clean: df <- sus_data_clean_encoding(df)\n",
+          "  3. Standardize: df <- sus_data_standardize(df)\n",
+          "  4. Filter disease: df <- sus_data_filter_cid(df, disease_group = 'dengue')\n\n",
+          "If using external data, run sus_data_standardize() first to prepare it."
+        ),
+        pt = paste0(
+          "Entrada nao e um objeto climasus_df.\n",
+          "Esta funcao requer dados do pipeline CLIMASUS4r.\n\n",
+          "Por favor, prepare seus dados primeiro:\n",
+          "  1. Importar: df <- sus_data_import(...) ou sus_data_read(...)\n",
+          "  2. Limpar: df <- sus_data_clean_encoding(df)\n",
+          "  3. Padronizar: df <- sus_data_standardize(df)\n",
+          "  4. Filtrar doencas: df <- sus_data_filter_cid(df, disease_group = 'dengue')\n\n",
+          "Se usar dados externos, execute sus_data_standardize() primeiro para prepara-los."
+        ),
+        es = paste0(
+          "La entrada no es un objeto climasus_df.\n",
+          "Esta funcion requiere datos del pipeline CLIMASUS4r.\n\n",
+          "Por favor, prepare sus datos primero:\n",
+          "  1. Importar: df <- sus_data_import(...) o sus_data_read(...)\n",
+          "  2. Limpiar: df <- sus_data_clean_encoding(df)\n",
+          "  3. Estandarizar: df <- sus_data_standardize(df)\n",
+          "  4. Filtrar: df <- sus_data_filter_cid(df, disease_group = 'dengue')\n\n",
+          "Si usa datos externos, ejecute sus_data_standardize() primero para prepararlos."
+        )
+      )
+      
+      cli::cli_abort(msg_error[[lang]])
+  }
+
   # Get UI messages
   ui_msg <- get_ui_messages(lang)
   
@@ -305,8 +395,9 @@ sus_data_filter_cid <- function(df,
   if (is.null(icd_column)) {
     
     # Detect health system
-    detected_system <- detect_health_system(df)
-  
+    detected_system <- climasus_meta(df, "system")
+    if(is.null(detected_system)) {detected_system <- detect_health_system(df)}
+
     if(lang == "en"){ 
     # Priority order by system (all 6 major SUS systems)
     icd_column_priority <- list(
@@ -440,6 +531,31 @@ sus_data_filter_cid <- function(df,
     cli::cli_alert_info("Percentage retained: {pct_txt}%")
   }
 }
+  filtered_df <- climasus_meta(
+    filtered_df,
+    system = detected_system,
+    stage = "filter_cid",
+    type = "filter_cid"
+  )
+
+  # Add to processing history
+  if (!is.null(disease_group)) {
+    history_msg <- sprintf("Filtered by disease group: %s", disease_group)
+  } else {
+    history_msg <- sprintf(
+      "Filtered by ICD codes: %s",
+      paste(utils::head(icd_codes, 3), collapse = ", ")
+    )
+    if (length(icd_codes) > 3) {
+      history_msg <- paste0(
+        history_msg,
+        sprintf(" (and %d more)", length(icd_codes) - 3)
+      )
+    }
+  }
+
+  filtered_df <- climasus_meta(filtered_df, add_history = history_msg)
+
   
   return(filtered_df)
 }

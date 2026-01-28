@@ -85,7 +85,7 @@ sus_data_standardize <- function(df,
   
   # Detect health system
   system <- detect_health_system(df)
-  df$system <- paste0(system)
+  #df$system <- paste0(system)
   
   if (verbose) {
     cli::cli_h2(messages$standardize_title)
@@ -301,7 +301,34 @@ sus_data_standardize <- function(df,
       "columns"
     ))
   }
-  
+  if (!inherits(df, "climasus_df")) {
+    # Create new climasus_df
+    meta <- list(
+      system = system,
+      stage = "stand",
+      type = "stand",
+      spatial = inherits(df, "sf"),
+      temporal = NULL,
+      created = Sys.time(),
+      modified = Sys.time(),
+      history = sprintf(
+        "[%s] Standardized column names and types",
+        format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+      ),
+      user = list()
+    )
+
+    base_classes <- setdiff(class(df), "climasus_df")
+    df <- structure(
+      df,
+      climasus_meta = meta,
+      class = c("climasus_df", base_classes)
+    )
+  } else {
+    # Already climasus_df - update metadata
+    df <- climasus_meta(df, system = system, stage = "stand", type = "stand")
+    df <- climasus_meta(df, add_history = "Standardized column names and types")
+  }
   return(df)
 }
 
