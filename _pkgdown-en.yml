@@ -97,9 +97,9 @@ reference:
       - sus_filter_cid_explore
       - climasus_meta
       - print.climasus_df
-      - `[.climasus_df`
-      - `[[.climasus_df`
-      - `$<-.climasus_df`
+      - "[.climasus_df"
+      - "[[.climasus_df"
+      - "$<-.climasus_df"
       - rbind.climasus_df
       - as.data.frame.climasus_df
 
@@ -116,4 +116,4 @@ articles:
   - title: "Tutorials"
     contents:
       - tutorials
-      
+ 
