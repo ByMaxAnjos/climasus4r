@@ -96,6 +96,12 @@ reference:
       - sus_census_explore
       - sus_filter_cid_explore
       - climasus_meta
+      - print.climasus_df
+      - `[.climasus_df`
+      - `[[.climasus_df`
+      - `$<-.climasus_df`
+      - rbind.climasus_df
+      - as.data.frame.climasus_df
 
   - title: "Gestión de Caché"
     desc: "Control del almacenamiento local de archivos descargados"
