@@ -93,6 +93,7 @@ reference:
       - get_disease_group_details
       - sus_census_explore
       - sus_filter_cid_explore
+      - climasus_meta
 
   - title: "Gerenciamento de Cache"
     desc: "Controle do armazenamento local de arquivos baixados"

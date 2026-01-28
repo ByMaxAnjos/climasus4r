@@ -95,6 +95,7 @@ reference:
       - get_disease_group_details
       - sus_census_explore
       - sus_filter_cid_explore
+      - climasus_meta
 
   - title: "Cache Management"
     desc: "Manage local storage of downloaded files"
