@@ -391,15 +391,37 @@ sus_data_filter_demographics <- function(df,
   }
 
   if (!is.null(age_range)) {
-    if (length(age_range) == 1) { 
-      filter_details <- c(filter_details, sprintf("Age: %d-%d years", age_range[1]))
-    } else if (length(age_range) == 2) { 
-      filter_details <- c(filter_details, sprintf("Age: %d-%d years", age_range[1], age_range[2]))
-    } else { 
-      filter_details <- c(filter_details, "Age: selected age groups")
+
+  if (length(age_range) == 1) {
+
+    filter_details <- c(
+      filter_details,
+      sprintf("Age: %g years", age_range[1])
+    )
+
+  } else if (length(age_range) == 2) {
+
+    min_age <- age_range[1]
+    max_age <- age_range[2]
+
+    if (is.infinite(max_age)) {
+      filter_details <- c(
+        filter_details,
+        sprintf("Age: >= %g years", min_age)
+      )
+    } else {
+      filter_details <- c(
+        filter_details,
+        sprintf("Age: %g-%g years", min_age, max_age)
+      )
     }
 
+  } else {
+
+    filter_details <- c(filter_details, "Age: selected age groups")
+
   }
+}
 
   if (!is.null(education)) {
     filter_details <- c(filter_details, sprintf("Education: %s", paste(education, collapse=", ")))

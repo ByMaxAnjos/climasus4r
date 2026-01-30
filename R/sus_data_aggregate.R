@@ -341,7 +341,7 @@ sus_data_aggregate <- function(df,
     if (length(missing_cols) > 0) {
       cli::cli_abort(paste0("Grouping columns not found: ", paste(missing_cols, collapse = ", ")))
     }
-    group_vars <- c("agg_date", "system", group_by)
+    group_vars <- c("agg_date", group_by)
   }
   
   # Aggregate counts

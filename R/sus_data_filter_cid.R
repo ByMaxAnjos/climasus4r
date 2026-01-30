@@ -317,77 +317,107 @@ sus_data_filter_cid <- function(df,
   # ============================================================================
   
   if (!is.null(disease_group)) {
+  
+  # Validate ALL disease groups exist
+  invalid_groups <- disease_group[!disease_group %in% names(.icd_disease_groups)]
+  
+  if (length(invalid_groups) > 0) {
+    # Found invalid groups - show error
+    available_groups <- paste(names(.icd_disease_groups), collapse = ", ")
     
-    # Validate disease group exists
-    if (!disease_group %in% names(.icd_disease_groups)) {
-      available_groups <- paste(names(.icd_disease_groups), collapse = ", ")
-      msg <- list(
-        en = paste0("Invalid disease group '", disease_group, "'. Available groups: ", available_groups),
-        pt = paste0("Grupo de doenca invalido '", disease_group, "'. Grupos disponiveis: ", available_groups),
-        es = paste0("Grupo de enfermedad invalido '", disease_group, "'. Grupos disponibles: ", available_groups)
+    msg <- list(
+      en = paste0(
+        "Invalid disease group(s): '", paste(invalid_groups, collapse = "', '"), "'.\n",
+        "Available groups: ", available_groups
+      ),
+      pt = paste0(
+        "Grupo(s) de doenca invalido(s): '", paste(invalid_groups, collapse = "', '"), "'.\n",
+        "Grupos disponiveis: ", available_groups
+      ),
+      es = paste0(
+        "Grupo(s) de enfermedad invalido(s): '", paste(invalid_groups, collapse = "', '"), "'.\n",
+        "Grupos disponibles: ", available_groups
       )
-      cli::cli_alert_danger(msg[[lang]])
-      stop("Invalid disease_group parameter.")
-    }
-    
-    # Get group information
-    group_info <- get_disease_group_info(disease_group, lang)
-    
-    # Extract ICD codes from group
-    icd_codes <- group_info$codes
-    
-    # Print group information if verbose
-    if (verbose) {
-      msg_header <- list(
-        en = "Epidemiological Disease Group",
-        pt = "Grupo Epidemiologico de Doencas",
-        es = "Grupo Epidemiologico de Enfermedades"
-      )
-      cli::cli_h1(msg_header[[lang]])
+    )
+    if (length(invalid_groups) > 0) {
+      available_groups <- names(.icd_disease_groups)
       
-      msg_group <- list(
-        en = paste0("Group: ", group_info$label),
-        pt = paste0("Grupo: ", group_info$label),
-        es = paste0("Grupo: ", group_info$label)
-      )
-      cli::cli_alert_info(msg_group[[lang]])
-      
-      if (!is.null(group_info$description)) {
-        msg_desc <- list(
-          en = paste0("Description: ", group_info$description),
-          pt = paste0("Descricao: ", group_info$description),
-          es = paste0("Descripcion: ", group_info$description)
-        )
-        cli::cli_alert_info(msg_desc[[lang]])
-      }
-      
-      msg_codes <- list(
-        en = paste0("ICD codes: ", paste(icd_codes, collapse = ", ")),
-        pt = paste0("Codigos CID: ", paste(icd_codes, collapse = ", ")),
-        es = paste0("Codigos CIE: ", paste(icd_codes, collapse = ", "))
-      )
-      cli::cli_alert_info(msg_codes[[lang]])
-      
-      if (group_info$climate_sensitive) {
-        msg_climate <- list(
-          en = "! Climate-sensitive disease group",
-          pt = "! Grupo sensivel a variaveis climaticas",
-          es = "! Grupo sensible a variables climaticas"
-        )
-        cli::cli_alert_warning(msg_climate[[lang]])
+      # Find similar group names for each invalid group
+      suggestions <- character(0)
+      for (inv_group in invalid_groups) {
+        # Calculate string distance
+        distances <- utils::adist(inv_group, available_groups)
+        closest_idx <- which.min(distances)
+        closest_match <- available_groups[closest_idx]
+        min_distance <- distances[closest_idx]
         
-        if (!is.null(group_info$climate_factors)) {
-          msg_factors <- list(
-            en = paste0("Climate factors: ", paste(group_info$climate_factors, collapse = ", ")),
-            pt = paste0("Fatores climaticos: ", paste(group_info$climate_factors, collapse = ", ")),
-            es = paste0("Factores climaticos: ", paste(group_info$climate_factors, collapse = ", "))
-          )
-          cli::cli_alert_info(msg_factors[[lang]])
+        # If distance is small (likely a typo), suggest the closest match
+        if (min_distance <= 3) {
+          suggestions <- c(suggestions, paste0("'", inv_group, "' -> Did you mean '", closest_match, "'?"))
         }
       }
+      
+      # Build error message with suggestions
+      available_list <- paste(available_groups, collapse = ", ")
+      
+      if (length(suggestions) > 0) {
+        suggestion_text <- paste0("\n\nSuggestions:\n  ", paste(suggestions, collapse = "\n  "))
+      } else {
+        suggestion_text <- ""
+      }
+      
+      msg <- list(
+        en = paste0(
+          "Invalid disease group(s): '", paste(invalid_groups, collapse = "', '"), "'.",
+          suggestion_text, "\n\n",
+          "Available groups: ", available_list
+        ),
+        pt = paste0(
+          "Grupo(s) de doenca invalido(s): '", paste(invalid_groups, collapse = "', '"), "'.",
+          suggestion_text, "\n\n",
+          "Grupos disponiveis: ", available_list
+        ),
+        es = paste0(
+          "Grupo(s) de enfermedad invalido(s): '", paste(invalid_groups, collapse = "', '"), "'.",
+          suggestion_text, "\n\n",
+          "Grupos disponibles: ", available_list
+        )
+      )
+      
+      cli::cli_abort(msg[[lang]])
     }
+    
   }
   
+  # All groups are valid - extract ICD codes from ALL groups
+  icd_codes <- character(0)
+  
+  for (group in disease_group) {
+    group_codes <- .icd_disease_groups[[group]]$codes
+    icd_codes <- c(icd_codes, group_codes)
+  }
+  
+  # Remove duplicates (in case groups overlap)
+  icd_codes <- unique(icd_codes)
+  
+  if (verbose) {
+    msg <- list(
+      en = paste0(
+        "Using disease group(s): ", paste(disease_group, collapse = ", "), "\n",
+        "Total ICD codes: ", length(icd_codes)
+      ),
+      pt = paste0(
+        "Usando grupo(s) de doenca: ", paste(disease_group, collapse = ", "), "\n",
+        "Total de codigos CID: ", length(icd_codes)
+      ),
+      es = paste0(
+        "Usando grupo(s) de enfermedad: ", paste(disease_group, collapse = ", "), "\n",
+        "Total de codigos CIE: ", length(icd_codes)
+      )
+    )
+    cli::cli_alert_info(msg[[lang]])
+  }
+}
   # ============================================================================
   # Auto-detect ICD column if not specified
   # ============================================================================
@@ -506,17 +536,15 @@ sus_data_filter_cid <- function(df,
   # ============================================================================
   
   if (verbose) {
-  # 1. Configurações de localidade rápidas
   b_mark <- if(lang == "en") "," else "."
   d_mark <- if(lang == "en") "." else ","
   
-  # 2. Formatação dos valores
+  
   n_orig_txt <- format(nrow(df), big.mark = b_mark, decimal.mark = d_mark)
   n_filt_txt <- format(nrow(filtered_df), big.mark = b_mark, decimal.mark = d_mark)
   pct <- round(100 * nrow(filtered_df) / nrow(df), 1)
   pct_txt <- gsub("\\.", d_mark, as.character(pct))
-  
-  # 3. Mensagens traduzidas
+
   if (lang == "pt") {
     cli::cli_alert_info("Registros originais: {n_orig_txt}")
     cli::cli_alert_success("Registros filtrados: {n_filt_txt}")
@@ -540,8 +568,17 @@ sus_data_filter_cid <- function(df,
 
   # Add to processing history
   if (!is.null(disease_group)) {
-    history_msg <- sprintf("Filtered by disease group: %s", disease_group)
+    # Handle single or multiple disease groups
+    if (length(disease_group) == 1) {
+      history_msg <- sprintf("Filtered by disease group: %s", disease_group)
+    } else {
+      history_msg <- sprintf(
+        "Filtered by disease groups: %s",
+        paste(disease_group, collapse = ", ")
+      )
+    }
   } else {
+    # Handle ICD codes
     history_msg <- sprintf(
       "Filtered by ICD codes: %s",
       paste(utils::head(icd_codes, 3), collapse = ", ")
@@ -554,8 +591,8 @@ sus_data_filter_cid <- function(df,
     }
   }
 
+  # Add history to metadata
   filtered_df <- climasus_meta(filtered_df, add_history = history_msg)
-
   
   return(filtered_df)
 }
