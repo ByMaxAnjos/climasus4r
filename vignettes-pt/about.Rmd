@@ -24,21 +24,21 @@ O climasus4r é desenvolvido por uma equipe multidisciplinar vinculada a institu
 
 ## Coordenação do Projeto
 
-**Dr. Max Anjos** — Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO / CCSRO).
+**Dr. Max Anjos** - Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO / CCSRO).
 Responsável pela coordenação geral do projeto, definição da arquitetura metodológica e orientação científica, assegurando a integração entre dados climáticos, ambientais e de saúde pública.
 
 ## Desenvolvedores do Pacote
 
-**Dr. Max Anjos** — Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO / CCSRO).
+**Dr. Max Anjos** - Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO / CCSRO).
 Atua como mentor e desenvolvedor principal do climasus4r, sendo responsável pela arquitetura do pacote, definição metodológica, implementação em R e coordenação da integração de dados climáticos, ambientais e de saúde pública.
 
-**Mestrando Thauã Menezes** — Universidade Estadual Paulista (UNESP) / Universidade Federal de Rondônia (UNIR).
+**Mestrando Thauã Menezes** - Universidade Estadual Paulista (UNESP) / Universidade Federal de Rondônia (UNIR).
 Atua como autor e contribuidor em R no desenvolvimento do climasus4r, com foco na testagem e validação do código, proposição de melhorias e apoio à padronização de dados.
 
 ## Pesquisadores Colaboradores
 
-**Dr. João Paulo Assis Gobo** — Universidade Federal de Rondônia (UNIR) / Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO / CCSRO).
+**Dr. João Paulo Assis Gobo** - Universidade Federal de Rondônia (UNIR) / Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO / CCSRO).
 Contribuidor cientifico com expertise em climatologia geográfica, biometeorologia humana e clima e saúde, atuando na validação científica dos métodos e na interpretação ambiental dos resultados.
 
-**Dr. Andredimar Martins Soares** — Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO).
+**Dr. Andredimar Martins Soares** - Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO).
 Contribuidor cientifico nas áreas de saúde pública e biotecnologia, contribuindo para a integração entre evidências epidemiológicas, inovação científica e aplicações do projeto.
