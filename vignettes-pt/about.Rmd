@@ -30,10 +30,10 @@ Responsável pela coordenação geral do projeto, definição da arquitetura met
 ## Desenvolvedores do Pacote
 
 **Dr. Max Anjos** — Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO / CCSRO).
-Atua como mentor e desenvolvedor principal do climasus4r, sendo responsável pela concepção da arquitetura do pacote, definição metodológica, implementação computacional em R e coordenação da integração entre dados climáticos, ambientais e de saúde pública.
+Atua como mentor e desenvolvedor principal do climasus4r, sendo responsável pela arquitetura do pacote, definição metodológica, implementação em R e coordenação da integração de dados climáticos, ambientais e de saúde pública.
 
 **Mestrando Thauã Menezes** — Universidade Estadual Paulista (UNESP) / Universidade Federal de Rondônia (UNIR).
-Atua como autor e contribuidor em R no desenvolvimento do climasus4r, com foco na testagem do código, validação funcional, identificação de erros e proposição de melhorias, além do apoio à padronização de dados, integração clima–saúde e suporte à modelagem estatística espaço-temporal aplicada a estudos epidemiológicos.
+Atua como autor e contribuidor em R no desenvolvimento do climasus4r, com foco na testagem e validação do código, proposição de melhorias e apoio à padronização de dados.
 
 ## Pesquisadores Colaboradores
 
