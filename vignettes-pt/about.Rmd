@@ -20,4 +20,25 @@ O **climasus4r** é um pacote em R desenvolvido para integrar, padronizar e auto
 
 ## A Equipe
 
-O **climasus4r** é desenvolvido por uma equipe multidisciplinar vinculada a instituições de pesquisa e ensino no Brasil. O pesquisador Dr. Max Anjos, da Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO / CCSRO), atua como mentor e desenvolvedor do projeto, contribuindo com a concepção metodológica, desenvolvimento computacional em R e integração de dados climáticos e de saúde. O pesquisador Thauã Menezes, vinculado à Universidade Estadual Paulista (UNESP), atua como autor e contribuidor R, com foco em Geofísica Médica e Epidemiologia Ambiental, contribuindo para a modelagem estatística espaço-temporal e aplicação do pacote em estudos clima–saúde. O pesquisador e professor Dr. João Paulo Assis Gobo, da Universidade Federal de Rondônia (UNIR) e da Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO / CCSRO), contribui cientificamente com expertise em climatologia geográfica, biometeorologia humana e clima e saúde, apoiando a validação científica e a interpretação ambiental dos resultados. O pesquisador Andreimar Martins Soares, da Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO), atua como contribuidor científico nas áreas de saúde pública e biotecnologia, colaborando na integração entre evidências epidemiológicas, inovação científica e aplicações do projeto.
+O climasus4r é desenvolvido por uma equipe multidisciplinar vinculada a instituições de pesquisa e ensino no Brasil, reunindo especialistas em saúde pública, climatologia, epidemiologia ambiental e ciência de dados.
+
+## Coordenação do Projeto
+
+Dr. Max Anjos — Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO / CCSRO)
+Responsável pela coordenação geral do projeto, definição da arquitetura metodológica e orientação científica, assegurando a integração entre dados climáticos, ambientais e de saúde pública.
+
+## Desenvolvedores do Pacote
+
+**Dr. Max Anjos** — Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO / CCSRO)
+Atua como mentor e desenvolvedor principal do climasus4r, sendo responsável pela concepção da arquitetura do pacote, definição metodológica, implementação computacional em R e coordenação da integração entre dados climáticos, ambientais e de saúde pública.
+
+**Mestrando Thauã Menezes** — Universidade Estadual Paulista (UNESP) / Universidade Federal de Rondônia (UNIR)
+Atua como autor e contribuidor em R no desenvolvimento do climasus4r, com foco na testagem do código, validação funcional, identificação de erros e proposição de melhorias, além do apoio à padronização de dados, integração clima–saúde e suporte à modelagem estatística espaço-temporal aplicada a estudos epidemiológicos.
+
+## Pesquisadores Colaboradores
+
+**Dr. João Paulo Assis Gobo** — Universidade Federal de Rondônia (UNIR) / Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO / CCSRO)
+Contribuidor cientifico com expertise em climatologia geográfica, biometeorologia humana e clima e saúde, atuando na validação científica dos métodos e na interpretação ambiental dos resultados.
+
+**Dr. Andredimar Martins Soares** — Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO)
+Contribuidor cientifico nas áreas de saúde pública e biotecnologia, contribuindo para a integração entre evidências epidemiológicas, inovação científica e aplicações do projeto.
