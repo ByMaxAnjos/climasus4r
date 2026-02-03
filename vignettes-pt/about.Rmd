@@ -24,7 +24,7 @@ O climasus4r é desenvolvido por uma equipe multidisciplinar vinculada a institu
 
 ## Coordenação do Projeto
 
-Dr. Max Anjos — Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO / CCSRO)
+**Dr. Max Anjos** — Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO / CCSRO)
 Responsável pela coordenação geral do projeto, definição da arquitetura metodológica e orientação científica, assegurando a integração entre dados climáticos, ambientais e de saúde pública.
 
 ## Desenvolvedores do Pacote
