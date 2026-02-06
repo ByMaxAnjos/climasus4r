@@ -342,10 +342,12 @@ sus_climate_inmet <- function(
   if (verbose) {
     cli::cli_progress_step(msg$aggregating)
   }
-
+  datetime_col <- if (isTRUE(impute_missing)) "date" else "data"
   climate_data_agg <- .aggregate_meteo_data(
         climate_data,
-        time_unit = time_unit)
+        time_unit = time_unit,
+        datetime_col = datetime_col
+      )
 
   # ============================================================================
   # SPATIAL and TEMPORAL MATCHING 
