@@ -128,6 +128,7 @@
 #' # Basic processing
 #' climate_processed <- sus_climate_inmet(
 #'   years = 2020:2021,
+#'   uf = "AM",
 #'   time_unit = "day"
 #' )
 #'

@@ -794,8 +794,25 @@ utils::globalVariables(c(
   }
 
   # Ensure datetime column is in correct format
+  # if (!inherits(data[[datetime_col]], "POSIXct")) {
+  #   data[[datetime_col]] <- lubridate::as_datetime(data[[datetime_col]])
+  # }
+  # Ensure datetime column is in correct format
   if (!inherits(data[[datetime_col]], "POSIXct")) {
-    data[[datetime_col]] <- lubridate::as_datetime(data[[datetime_col]])
+    # Try to convert to POSIXct
+    data[[datetime_col]] <- as.POSIXct(
+      data[[datetime_col]], 
+      tz = "UTC",
+      # Try common formats
+      tryFormats = c(
+        "%Y-%m-%d %H:%M:%S",
+        "%Y/%m/%d %H:%M:%S", 
+        "%Y-%m-%d",
+        "%Y/%m/%d",
+        "%d-%m-%Y %H:%M:%S",
+        "%d/%m/%Y %H:%M:%S"
+      )
+    )
   }
 
   # FIX #2: Use standardized column names consistently
@@ -969,10 +986,10 @@ utils::globalVariables(c(
     get_brazilian_season <- function(date) {
       month <- lubridate::month(.data$date)
       season <- dplyr::case_when(
-        .data$month %in% c(12, 1, 2) ~ "DJF",   # Summer
-        .data$month %in% c(3, 4, 5) ~ "MAM",    # Autumn
-        .data$month %in% c(6, 7, 8) ~ "JJA",    # Winter
-        .data$month %in% c(9, 10, 11) ~ "SON"   # Spring
+        month %in% c(12, 1, 2) ~ "DJF",   # Summer
+        month %in% c(3, 4, 5) ~ "MAM",    # Autumn
+        month %in% c(6, 7, 8) ~ "JJA",    # Winter
+        month %in% c(9, 10, 11) ~ "SON"   # Spring
       )
       return(season)
     }
@@ -2073,10 +2090,10 @@ utils::globalVariables(c(
   get_brazilian_season <- function(date) {
     month <- lubridate::month(date)
     dplyr::case_when(
-      .data$month %in% c(12, 1, 2) ~ "Summer",
-      .data$month %in% c(3, 4, 5) ~ "Autumn", 
-      .data$month %in% c(6, 7, 8) ~ "Winter",
-      .data$month %in% c(9, 10, 11) ~ "Spring"
+      month %in% c(12, 1, 2) ~ "Summer",
+      month %in% c(3, 4, 5) ~ "Autumn", 
+      month %in% c(6, 7, 8) ~ "Winter",
+      month %in% c(9, 10, 11) ~ "Spring"
     )
   }
   climate_seasonal <- climate_data %>%
@@ -2195,10 +2212,10 @@ utils::globalVariables(c(
     
     if (definition == "brazil") {
       dplyr::case_when(
-        .data$month %in% c(12, 1, 2) ~ "Summer",
-        .data$month %in% c(3, 4, 5) ~ "Autumn",
-        .data$month %in% c(6, 7, 8) ~ "Winter",
-        .data$month %in% c(9, 10, 11) ~ "Spring",
+        month %in% c(12, 1, 2) ~ "Summer",
+        month %in% c(3, 4, 5) ~ "Autumn",
+        month %in% c(6, 7, 8) ~ "Winter",
+        month %in% c(9, 10, 11) ~ "Spring",
         TRUE ~ NA_character_
       )
     } else if (definition == "official") {
@@ -2229,10 +2246,10 @@ utils::globalVariables(c(
     } else {
       # Por trimestre como fallback
       dplyr::case_when(
-        .data$month %in% 1:3 ~ "Q1",
-        .data$month %in% 4:6 ~ "Q2",
-        .data$month %in% 7:9 ~ "Q3",
-        .data$month %in% 10:12 ~ "Q4",
+        month %in% 1:3 ~ "Q1",
+        month %in% 4:6 ~ "Q2",
+        month %in% 7:9 ~ "Q3",
+        month %in% 10:12 ~ "Q4",
         TRUE ~ NA_character_
       )
     }
