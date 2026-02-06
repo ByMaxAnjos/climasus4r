@@ -84,6 +84,8 @@ reference:
       - sus_data_aggregate
       - sus_join_spatial
       - sus_socio_add_census
+      - sus_climate_inmet
+      - sus_climate_fill_gaps
 
   - title: "Qualidade e Metadados"
     desc: "Relatórios de qualidade de dados e dicionários de doenças"

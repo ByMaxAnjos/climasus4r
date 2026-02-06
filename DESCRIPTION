@@ -54,6 +54,10 @@ Suggests:
     sfarrow,
     knitr,
     rmarkdown,
-    ggplot2
+    ggplot2,
+    furrr,
+    xgboost,
+    zoo,
+    purrr
 URL: https://github.com/ByMaxAnjos/climasus4r
 BugReports: https://github.com/ByMaxAnjos/climasus4r/issues

@@ -24,7 +24,7 @@
 #' @noRd
 .climasus_stages <- c(
   "import", "clean", "stand", "filter_cid", "filter_demo",
-  "derive", "aggregate", "spatial"
+  "derive", "aggregate", "spatial", "climate"
 )
 
 #' Valid data types
@@ -32,7 +32,7 @@
 #' @noRd
 .climasus_types <- c(
   "raw", "clean", "stand", "filter_cid", "filter_demo",
-  "derive", "agg", "spatial"
+  "derive", "agg", "spatial", "filled"
 )
 
 #' Null-coalescing operator
@@ -53,7 +53,8 @@
   "filter_demo",
   "derive",
   "aggregate",
-  "spatial"
+  "spatial",
+  "climate"
 )
 #' Funcao hierarquia oficial de estagios
 #' @keywords internal
