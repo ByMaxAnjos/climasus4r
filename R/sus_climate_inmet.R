@@ -342,6 +342,7 @@ sus_climate_inmet <- function(
   if (verbose) {
     cli::cli_progress_step(msg$aggregating)
   }
+
   climate_data_agg <- .aggregate_meteo_data(
         climate_data,
         time_unit = time_unit)

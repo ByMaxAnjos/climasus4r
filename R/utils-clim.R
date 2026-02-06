@@ -793,8 +793,10 @@ utils::globalVariables(c(
     cli::cli_abort("{.arg data} must be a data frame.")
   }
 
-  if (!datetime_col %in% names(data)) {
-    cli::cli_abort("Column '{datetime_col}' not found in data.")
+   # Restore original datetime column name if needed
+  if (datetime_col != "date") {
+    data <- data %>%
+      dplyr::rename(!!rlang::sym(datetime_col) := date)
   }
 
   # Ensure datetime column is in correct format
