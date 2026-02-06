@@ -152,7 +152,7 @@
 #' 
 sus_climate_inmet <- function(
     spatial_obj = NULL,
-    years = 2022,
+    years = NULL,
     uf = NULL,
     time_unit = "day",
     temporal_strategy = "exact",  

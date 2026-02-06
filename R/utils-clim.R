@@ -144,11 +144,13 @@ utils::globalVariables(c(
     }
     tryCatch(
       {
+        year <- as.integer(year)
         ds <- arrow::open_dataset(dataset_dir) %>%
-          dplyr::filter(.data$year == !!year)
+          dplyr::filter(.data$year == as.integer(year))
 
         if (!is.null(uf) && !is.na(uf) && uf != "") {
-          ds <- ds %>% dplyr::filter(.data$UF %in% !!uf)
+          uf <- base::toupper(uf)
+          ds <- ds %>% dplyr::filter(.data$UF %in% uf)
         }
 
         result <- dplyr::collect(ds)
