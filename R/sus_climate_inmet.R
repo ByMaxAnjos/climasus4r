@@ -58,7 +58,7 @@
 #'   temporal + meteorological predictors. Parallel processing is recommended. Imputation is performed on raw (high-frequency) data before aggregation.
 #'
 #' @param target_var Character vector of variable (only one at once) to impute when
-#'   `impute_missing = TRUE`. Default: `"tair_dry_bulb_c"`. See variable list below.
+#'   `impute_missing = TRUE`, and quality_threshold. Default: `"tair_dry_bulb_c"`. See variable list below.
 #'
 #' @param quality_threshold Numeric. Maximum allowed proportion of missing values
 #'   per station/variable before skipping (default: 0.4). Stations are excluded if more than quality_threshold proportion of missing values exist for any target variable before imputation.
@@ -342,25 +342,9 @@ sus_climate_inmet <- function(
   if (verbose) {
     cli::cli_progress_step(msg$aggregating)
   }
-
-  tryCatch(
-    {
-      climate_data_agg <- .aggregate_meteo_data(
+  climate_data_agg <- .aggregate_meteo_data(
         climate_data,
-        time_unit = time_unit
-      )
-    },
-    error = function(e) {
-      cli::cli_abort(paste0(
-        "Invalid time_unit: '",
-        time_unit,
-        "'. ",
-        "Use formats like 'day', 'week', 'month', 'quarter', 'year', 'season', ",
-        "or multi-period like '2 days', '5 days', '14 days', '3 months', etc. The '2 weeks' period does not work in this version "
-      ))
-    }
-  )
-
+        time_unit = time_unit)
 
   # ============================================================================
   # SPATIAL and TEMPORAL MATCHING 

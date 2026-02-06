@@ -66,7 +66,7 @@ the function will error.}
 temporal + meteorological predictors. Parallel processing is recommended. Imputation is performed on raw (high-frequency) data before aggregation.}
 
 \item{target_var}{Character vector of variable (only one at once) to impute when
-\code{impute_missing = TRUE}. Default: \code{"tair_dry_bulb_c"}. See variable list below.}
+\code{impute_missing = TRUE}, and quality_threshold. Default: \code{"tair_dry_bulb_c"}. See variable list below.}
 
 \item{quality_threshold}{Numeric. Maximum allowed proportion of missing values
 per station/variable before skipping (default: 0.4). Stations are excluded if more than quality_threshold proportion of missing values exist for any target variable before imputation.}
