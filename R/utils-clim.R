@@ -793,12 +793,6 @@ utils::globalVariables(c(
     cli::cli_abort("{.arg data} must be a data frame.")
   }
 
-   # Restore original datetime column name if needed
-  if (datetime_col != "date") {
-    data <- data %>%
-      dplyr::rename(!!rlang::sym(datetime_col) := date)
-  }
-
   # Ensure datetime column is in correct format
   if (!inherits(data[[datetime_col]], "POSIXct")) {
     data[[datetime_col]] <- lubridate::as_datetime(data[[datetime_col]])
