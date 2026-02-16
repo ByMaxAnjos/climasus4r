@@ -8,8 +8,6 @@ sus_join_spatial(
   df,
   level = "munic",
   join_col = NULL,
-  year = 2020,
-  simplified = TRUE,
   lang = "pt",
   use_cache = TRUE,
   cache_dir = "~/.climasus4r_cache/spatial",
@@ -20,20 +18,22 @@ sus_join_spatial(
 \item{df}{A \code{data.frame} containing health data with a geographic identifier column.
 The data frame should have a \code{system} column created by \code{detect_health_system()}.}
 
-\item{level}{Character string specifying the geographic aggregation level.
-Options: \code{"state"}, \code{"munic"} (municipality), \code{"census"} (census tract), \code{"cep"} (postal code).
-Default is \code{"munic"}.
+\item{level}{Character string specifying the geographic aggregation level. Default is \code{"munic"}.
+Options:
+\itemize{
+\item \strong{Administrative:} "munic" (municipality). Default.
+\item \strong{Health:} "health_region", "health_facilities", "schools"
+\item \strong{Environmental:} "amazon", "biomes", "conservation_units",
+"disaster_risk_area", "semiarid", "indigenous_land"
+\item \strong{Urban:} "neighborhood", "urban_area", "metro_area",
+"urban_concentrations", "pop_arrangements",
+\item \strong{Miscellaneous:} "cep" (postal code)
+}
 \strong{Note}: \code{"cep"} level is only available for SIH and CNES systems.}
 
 \item{join_col}{Character string with the name of the column in \code{df} containing
 the geographic identifier. If \code{NULL} (default), the function will automatically
 detect the appropriate column based on the \code{level} and common SUS column patterns.}
-
-\item{year}{Numeric. Year of the geographic boundaries to use. Default is 2020.
-Only applicable for \code{"state"}, \code{"munic"}, and \code{"census"} levels.}
-
-\item{simplified}{Logical. If \code{TRUE} (default), uses simplified geometries for
-faster processing and visualization. Only applicable for polygon-based levels.}
 
 \item{lang}{Character string specifying the language for messages.
 Options: \code{"pt"} (Portuguese, default), \code{"en"} (English), \code{"es"} (Spanish).}
@@ -51,8 +51,8 @@ including cache status, download progress, and join statistics.}
 An \code{sf} object (Simple Features data.frame) with all original columns from
 \code{df} plus a \code{geometry} column containing the spatial geometries:
 \itemize{
-\item \strong{state/munic/census}: POLYGON or MULTIPOLYGON geometries
-\item \strong{cep}: POINT geometries (geocoded locations)
+\item \strong{/munic/neighborhood}: POLYGON or MULTIPOLYGON geometries
+\item \strong{/cnes/cep}: POINT geometries (geocoded locations)
 }
 }
 \description{
@@ -62,31 +62,6 @@ or geocodes postal codes (CEP). This function is the core spatial engine for the
 entire climasus4r package and serves as the foundation for all spatial analyses.
 }
 \details{
-\strong{Geographic Levels}:
-\itemize{
-\item \strong{state}: Brazilian state (UF) boundaries from IBGE via \code{geobr::read_state()}
-\item \strong{munic}: Municipality boundaries from IBGE via \code{geobr::read_municipality()}
-\item \strong{census}: Census tract boundaries from IBGE via \code{geobr::read_census_tract()}
-\item \strong{cep}: Postal code point geocoding via \code{geocodebr::busca_por_cep()}
-(only for SIH and CNES systems)
-}
-
-\strong{System-Aware Logic}:
-The function expects a \code{system} column in \code{df} (created by \code{detect_health_system()}).
-The \code{"cep"} level is restricted to SIH and CNES systems because only these systems
-reliably contain postal code information.
-
-\strong{Automatic Column Detection}:
-If \code{join_col = NULL}, the function automatically detects the appropriate geographic
-column based on common SUS patterns:
-\itemize{
-\item \strong{Municipality}: \code{residence_municipality_code}, \code{municipality_code},
-\code{codigo_municipio}, \code{CODMUNRES}, etc.
-\item \strong{State}: \code{SG_UF}, \code{UF}, \code{UF_ZI}
-\item \strong{CEP}: \code{cep}, \code{cep_paciente}, \code{codigo_postal}, \code{zip_code}, etc.
-\item \strong{Census tract}: \code{COD_SETOR}, \code{code_census_tract}
-}
-
 \strong{Caching Strategy}:
 Spatial data is cached as Parquet files in \verb{~/.climasus4r_cache/spatial} to:
 \itemize{
@@ -94,8 +69,6 @@ Spatial data is cached as Parquet files in \verb{~/.climasus4r_cache/spatial} to
 \item Improve performance (10-100x faster)
 \item Enable offline reuse
 }
-Cache files are named: \code{state_shp.parquet}, \code{munic_shp.parquet}, \code{census_shp.parquet}.
-CEP geocoding is never cached as it uses an API.
 
 \strong{Code Normalization}:
 \itemize{
@@ -119,19 +92,6 @@ sf_sim <- sus_join_spatial(
   lang = "pt"
 )
 
-# Plot the results
-library(ggplot2)
-ggplot(sf_sim) +
-  geom_sf(aes(fill = n_deaths)) +
-  theme_minimal()
-
-# Example 2: Link to states for regional analysis
-sf_states <- sus_join_spatial(
-  df = df_sim,
-  level = "state",
-  lang = "pt"
-)
-
 # Example 3: Geocode CEP for hospitalization data (SIH only)
 df_sih <- sus_data_import(uf = "RJ", year = 2023, system = "SIH-RD") \%>\%
   sus_data_standardize(lang = "pt")
@@ -145,8 +105,7 @@ sf_cep <- sus_join_spatial(
 # Example 4: Census tract level analysis
 sf_census <- sus_join_spatial(
   df = df_sim,
-  level = "census",
-  year = 2010,
+  level = "school",
   lang = "pt"
 )
 }

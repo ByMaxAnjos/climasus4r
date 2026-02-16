@@ -28,51 +28,13 @@ utils::globalVariables(c(
   "prop_valid", "missing_pct",                    # quality
   "passes_quality", "station_index",              # filtering
   "distance_m", "station_unique_name",            # spatial matching
-  "target_vars"                                    # target variables
+  "target_vars",
+   "dayofyear", "hour", "quarter", "season", "wday_tmp", "weekday", "weekofyear",
+   "month", ".join_key", ".hour", ".is_night"                                # target variables
 ))
 # ============================================================================
 # INMET HELPER FUNCTIONS
 # ============================================================================
-
-#' Get Multilingual Messages
-#' @keywords internal
-#' @noRd
-.get_messages <- function(lang = "pt") {
-  messages <- list(
-    pt = list(
-      setup = "Configurando ambiente...",
-      aggregating = "Agregando dados temporais...",
-      imputing = "Imputando dados faltantes...",
-      calc_lags = "Calculando defasagens temporais...",
-      spatial_match = "Realizando matching espacial...",
-      no_data = "Nenhum dado foi encontrado para os criterios especificados.",
-      quality_warning = "Estacao {code} com {pct}% de dados faltantes. Usando mesmo assim.",
-      lag_info = "Criando lags para: {paste(lags_weeks, collapse = ', ')} semanas"
-    ),
-    en = list(
-      setup = "Setting up environment...",
-      aggregating = "Aggregating temporal data...",
-      imputing = "Imputing missing data...",
-      calc_lags = "Calculating temporal lags...",
-      spatial_match = "Performing spatial matching...",
-      no_data = "No data found for the specified criteria.",
-      quality_warning = "Station {code} with {pct}% missing data. Using anyway.",
-      lag_info = "Creating lags for: {paste(lags_weeks, collapse = ', ')} weeks"
-    ),
-    es = list(
-      setup = "Configurando el entorno...",
-      aggregating = "Agregando datos temporales...",
-      imputing = "Imputando datos faltantes...",
-      calc_lags = "Calculando rezagos temporales...",
-      spatial_match = "Realizando coincidencia espacial...",
-      no_data = "No se encontraron datos para los criterios especificados.",
-      quality_warning = "Estacion {code} con {pct}% de datos faltantes. Usando de todos modos.",
-      lag_info = "Creando rezagos para: {paste(lags_weeks, collapse = ', ')} semanas"
-    )
-  )
-
-  return(messages[[lang]])
-}
 
 #' Helper Function: Expand Year Ranges
 #'
@@ -108,7 +70,7 @@ utils::globalVariables(c(
   return(years_expanded)
 }
 
-#' Process INMET Data for a Single Year (FIXED VERSION)
+#' Process INMET Data for a Single Year
 #'
 #' @description
 #' Downloads, parses, and caches INMET meteorological data for a specific year.
@@ -309,12 +271,12 @@ utils::globalVariables(c(
 #' @noRd
 .download_and_cache_inmet <- function(
     years,
-    uf = NULL,
+    uf = uf,
     cache_dir,
-    use_cache = TRUE,
-    parallel = FALSE,
-    workers = 2,
-    verbose = FALSE,
+    use_cache = use_cache,
+    parallel = parallel,
+    workers = workers,
+    verbose = verbose,
     lang = "en") 
     {
   
@@ -780,7 +742,6 @@ utils::globalVariables(c(
 #'
 #' @keywords internal
 #' @noRd
-
 .aggregate_meteo_data <- function(
     data,
     time_unit = "day",
@@ -794,25 +755,8 @@ utils::globalVariables(c(
   }
 
   # Ensure datetime column is in correct format
-  # if (!inherits(data[[datetime_col]], "POSIXct")) {
-  #   data[[datetime_col]] <- lubridate::as_datetime(data[[datetime_col]])
-  # }
-  # Ensure datetime column is in correct format
   if (!inherits(data[[datetime_col]], "POSIXct")) {
-    # Try to convert to POSIXct
-    data[[datetime_col]] <- as.POSIXct(
-      data[[datetime_col]], 
-      tz = "UTC",
-      # Try common formats
-      tryFormats = c(
-        "%Y-%m-%d %H:%M:%S",
-        "%Y/%m/%d %H:%M:%S", 
-        "%Y-%m-%d",
-        "%Y/%m/%d",
-        "%d-%m-%Y %H:%M:%S",
-        "%d/%m/%Y %H:%M:%S"
-      )
-    )
+    data[[datetime_col]] <- lubridate::as_datetime(data[[datetime_col]])
   }
 
   # FIX #2: Use standardized column names consistently
@@ -984,7 +928,7 @@ utils::globalVariables(c(
   } else if (time_unit == "season") {
     # Define Brazilian seasons (southern hemisphere)
     get_brazilian_season <- function(date) {
-      month <- lubridate::month(.data$date)
+      month <- lubridate::month(date)
       season <- dplyr::case_when(
         month %in% c(12, 1, 2) ~ "DJF",   # Summer
         month %in% c(3, 4, 5) ~ "MAM",    # Autumn
@@ -2158,7 +2102,7 @@ utils::globalVariables(c(
   
   if (is.null(target_vars)) { 
    target_vars <- climate_data %>%
-      dplyr::select(.data$rainfall_mm:.data$ws_2_m_s) %>%
+      dplyr::select(rainfall_mm:ws_2_m_s) %>%
       names()
   } else {
     target_vars

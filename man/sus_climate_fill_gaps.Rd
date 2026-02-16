@@ -2,163 +2,163 @@
 % Please edit documentation in R/sus_climate_fill_gap.R
 \name{sus_climate_fill_gaps}
 \alias{sus_climate_fill_gaps}
-\title{Gap-filling of climate data with station-wise machine learning}
+\title{Fill gaps in climate and air-quality time series using XGBoost}
 \usage{
 sus_climate_fill_gaps(
   df,
   target_var,
   datetime_col = NULL,
   station_col = NULL,
-  source = "auto",
   quality_threshold = 0.4,
-  lag_periods = c(3, 6, 12, 24),
-  rolling_windows = c(3, 6, 12),
   run_evaluation = FALSE,
   gap_percentage = 0.2,
-  gap_mechanism = "MCAR",
   keep_features = FALSE,
-  model_params = list(),
-  n_workers = NULL,
+  parallel = TRUE,
+  workers = NULL,
   verbose = TRUE,
   lang = "pt"
 )
 }
 \arguments{
-\item{df}{A data.frame (or tibble) containing climate or air-quality data.
-Must include:
+\item{df}{A data frame (or tibble) containing climate data, typically from \code{sus_climate_inmet()}.
+Must contain:
 \itemize{
-\item a datetime column (POSIXct, POSIXlt, or convertible to datetime),
-\item a station identifier column,
-\item at least one numeric target variable to be filled.
+\item A datetime column (POSIXct or convertible)
+\item A station identifier column
+\item The target numeric column to be imputed
 }}
 
-\item{target_var}{Character vector. One or more variable names to be gap-filled.
-Each variable is modeled and imputed \strong{independently}.
-Example: \code{c("tair_dry_bulb_c", "rh_mean_porc", "ws_2_m_s")}.}
+\item{target_var}{\strong{Single} character string specifying the column to impute.
+Example: \code{target_var = "tair_dry_bulb_c"}.}
 
-\item{datetime_col}{Character. Name of the datetime column in \code{df}.
-If \code{NULL} (default), the function attempts automatic detection.}
+\item{datetime_col}{Character. Name of the datetime column. If \code{NULL} (default), auto-detected.}
 
-\item{station_col}{Character. Name of the station identifier column.
-If \code{NULL}, it is auto-detected based on the declared \code{source}.}
+\item{station_col}{Character. Name of the station identifier column. If \code{NULL}, auto-detected.}
 
-\item{source}{Character. Data source identifier:
+\item{quality_threshold}{Numeric (0-1). Maximum allowed missing proportion per station.
+Stations exceeding this are excluded. Default: \code{0.4} (40\%).}
+
+\item{run_evaluation}{Logical. If \code{TRUE}, runs in evaluation mode:
 \itemize{
-\item \code{"INMET"} (Brazilian weather stations),
-\item \code{"NOAA"} (global weather stations),
-\item \code{"AirQuality"} (air pollution data),
-\item \code{"auto"} (default): automatically detected from column patterns.
-}}
+\item Creates artificial MCAR gaps in observed data
+\item Imputes and compares predictions with true values
+\item Returns metrics by station
+}
+Default: \code{FALSE} (production mode).}
 
-\item{quality_threshold}{Numeric. Maximum allowed proportion of missing values \strong{per station
-and per variable}.
-Stations exceeding this threshold are excluded for that variable.
-Default: \code{0.4} (40\% missing).}
+\item{gap_percentage}{Numeric (0-1). Proportion of data to set as missing in evaluation mode. The \code{"MCAR"} Missing Completely At Random is used as default.
+Default: \code{0.2} (20\%).}
 
-\item{lag_periods}{Numeric vector. Time lags (in hours) used to construct predictors.
-Default: \code{c(3, 6, 12, 24)}.}
+\item{keep_features}{Logical. If \code{TRUE}, retains engineered features (lags, rolling stats).
+Default: \code{FALSE} (returns only original columns + \code{is_imputed}).}
 
-\item{rolling_windows}{Numeric vector. Window sizes (in hours) for rolling statistics
-(mean and standard deviation).
-Default: \code{c(3, 6, 12)}.}
+\item{parallel}{Logical. If \code{TRUE} (default), processes stations in parallel using \code{furrr}.}
 
-\item{run_evaluation}{Logical. If \code{TRUE}, performs an internal missing-data simulation to assess
-imputation performance (RMSE / MAE). Default: \code{FALSE}.}
+\item{workers}{Integer. Number of parallel workers. If \code{NULL}, uses \code{availableCores() - 1}.}
 
-\item{gap_percentage}{Numeric. If \code{run_evaluation = TRUE}, proportion of observed data
-artificially removed to test performance. Default: \code{0.2} (20\%).}
+\item{verbose}{Logical. If \code{TRUE} (default), prints progress messages.}
 
-\item{gap_mechanism}{Character. Missing-data mechanism used in evaluation when
-\code{run_evaluation = TRUE}:
-\itemize{
-\item \code{"MCAR"}: Missing Completely At Random (default),
-\item \code{"MAR"}: Missing At Random,
-\item \code{"MNAR"}: Missing Not At Random.
-}}
-
-\item{keep_features}{Logical. If \code{TRUE}, retains engineered features (lags, rolling statistics,
-and temporal variables).
-If \code{FALSE} (default), only original columns + \verb{is_imputed_*} are returned.}
-
-\item{model_params}{List of additional XGBoost parameters to override defaults.
-Example:
-\code{
-  list(max_depth = 4, eta = 0.05, nrounds = 200)
-  }}
-
-\item{n_workers}{Integer. Number of parallel workers.
-If \code{NULL} (default), uses \code{availableCores() - 1}.}
-
-\item{verbose}{Logical. If \code{TRUE}, prints progress messages and warnings.}
-
-\item{lang}{Character. Language for messages:
-\code{"pt"}, \code{"en"}, or \code{"es"}. Default: \code{"pt"}.}
+\item{lang}{Character. Message language: \code{"pt"} (Portuguese), \code{"en"} (English), or \code{"es"} (Spanish).
+Default: \code{"pt"}.}
 }
 \value{
-An object of class \code{"climasus_df"} with updated metadata, containing:
+\strong{Production mode} (\code{run_evaluation = FALSE}):
+Returns a \code{tibble} (same class as input) with:
 \itemize{
-\item \strong{data}: original data with filled values,
-\item \strong{is_imputed_\if{html}{\out{<var>}}}: logical flag per variable indicating which values were imputed,
-\item \strong{climasus_meta}: metadata including:
+\item Original columns plus imputed values in \code{target_var}
+\item \code{is_imputed}: Logical flag (TRUE for filled values)
+\item \code{climasus_meta} attribute with imputation metadata
+}
+
+\strong{Evaluation mode} (\code{run_evaluation = TRUE}):
+Returns a list of class \code{climasus_eval} containing:
 \itemize{
-\item data source,
-\item number of imputed values,
-\item imputation rate,
-\item processing time,
-\item quality threshold used.
+\item \verb{$data}: Data frame with artificial gaps and predictions
+\item \verb{$metrics}: A \code{tibble} with per-station performance metrics:
+\itemize{
+\item \code{station}: Station identifier
+\item \code{rmse}: Root Mean Squared Error
+\item \code{mae}: Mean Absolute Error
+\item \code{r_squared}: R-squared (lower than 1, higher is better)
+\item \code{smape}: Symmetric MAPE (0-200\%, lower is better)
+\item \code{slope_bias}: Should be close to 1.0, indicating underestimate and overestimate
+\item \code{n_gaps}: Number of artificial gaps
 }
 }
 }
 \description{
-This function performs data-driven gap-filling (statistical imputation) in
-climate and air-quality time series using gradient boosting (XGBoost).
+\code{sus_climate_fill_gaps()} imputes missing values in climate time series using
+station-wise XGBoost models with automated feature engineering.
 
-The method:
+\strong{Key features:}
 \itemize{
-\item Trains \strong{one separate model per station} and per target variable;
-\item Uses automatic temporal feature engineering (lags and rolling windows);
-\item Applies station-level quality filtering before modeling;
-\item Supports multiple data sources (e.g., INMET, NOAA, AirQuality);
-\item Can run in parallel across stations;
-\item Returns both filled data and processing metadata.
+\item \strong{Single-target focus}: Each call imputes ONE variable
+\item \strong{Station-wise modeling}: Separate model per station
+\item \strong{Temporal features}: Automatic creation of lags and rolling statistics
+\item \strong{Quality control}: Stations with >\code{quality_threshold} missing are excluded
+\item \strong{Parallel processing}: Stations processed in parallel for speed
+\item \strong{Evaluation mode}: Assess accuracy by creating artificial gaps
+}
+}
+\section{Methodological Notes}{
+
+
+\strong{Important limitations:}
+\itemize{
+\item \strong{Not forecasting}: Predicts only where data are missing
+\item \strong{No future data}: Uses only past information (lags)
+\item \strong{Station independence}: Models don't share information
+\item \strong{Quality filter}: Stations with >\code{quality_threshold} missing are skipped
 }
 
-\strong{Important methodological notes:}
+\strong{Feature engineering:}
+Automatically creates:
 \itemize{
-\item This is a \strong{gap-filling (imputation) method, NOT a forecasting model}.
-Predictions are only made for timestamps where data are missing.
-\item Models are trained \strong{only on observed (non-missing) data} within each station.
-\item No information from the future is used to impute past values
-(only lagged and rolling features are used).
-\item If a station exceeds the allowed missingness threshold for a variable,
-that variable is not imputed for that station.
+\item Time features: hour, day, month, year, cyclic transforms
+\item Lag features: 1,2,3,6,12,24,48,72,168 periods
+\item Rolling statistics: mean and sd over windows 3,6,12,24,48,72
 }
 }
-\details{
-Fill gaps in climate and air-quality time series using XGBoost
+
+\section{Evaluation Mode Details}{
+
+
+When \code{run_evaluation = TRUE}, the function:
+\enumerate{
+\item Creates artificial gaps (MCAR by default)
+\item Runs imputation on the data with gaps
+\item Compares predictions with true values
+\item Returns per-station performance
 }
+
+This helps assess model accuracy before production use.
+}
+
 \examples{
 \dontrun{
-# Basic usage (single variable)
-filled_data <- sus_climate_fill_gaps(
-  df = inmet_climate,
-  target_var = "tair_dry_bulb_c"
-)
-
-# Multiple variables in one call
-filled_data <- sus_climate_fill_gaps(
-  df = climate_data,
-  target_var = c("tair_dry_bulb_c", "rh_mean_porc", "ws_2_m_s"),
-  quality_threshold = 0.4
-)
-
-# With performance evaluation
-filled_data <- sus_climate_fill_gaps(
+# ===== PRODUCTION MODE =====
+# Impute missing temperature data
+filled_temp <- sus_climate_fill_gaps(
   df = climate_data,
   target_var = "tair_dry_bulb_c",
-  run_evaluation = TRUE,
-  gap_percentage = 0.2
+  quality_threshold = 0.3,
+  parallel = TRUE
 )
+
+
+# ===== EVALUATION MODE =====
+# Assess model performance on a subset
+eval_results <- sus_climate_fill_gaps(
+  df = climate_data,
+  target_var = "ws_2_m_s",
+  run_evaluation = TRUE,
+  gap_percentage = 0.2,
+  workers = 4
+)
+
+# View performance metrics
+eval_results$metrics
+
 }
 
 }

@@ -2,19 +2,11 @@
 % Please edit documentation in R/sus_climate_inmet.R
 \name{sus_climate_inmet}
 \alias{sus_climate_inmet}
-\title{Import, Harmonize, and Process INMET Meteorological Data with Epidemiological Intelligence}
+\title{Import and Process INMET Meteorological Data}
 \usage{
 sus_climate_inmet(
-  spatial_obj = NULL,
   years = NULL,
   uf = NULL,
-  time_unit = "day",
-  temporal_strategy = "exact",
-  window_days = NULL,
-  lag_days = NULL,
-  impute_missing = FALSE,
-  target_var = "tair_dry_bulb_c",
-  quality_threshold = 0.4,
   use_cache = TRUE,
   cache_dir = "~/.climasus4r_cache/climate",
   parallel = TRUE,
@@ -24,171 +16,201 @@ sus_climate_inmet(
 )
 }
 \arguments{
-\item{spatial_obj}{An \code{sf} object (e.g., output from \code{sus_join_spatial()}) for
-spatial matching. If NULL (default), returns processed meteorological data only.}
+\item{years}{Numeric vector of year(s) to import.
+Examples: \code{2020}, \code{2020:2024}, \code{c(2019, 2021, 2023)}.
+Must be between 2000 and current year. If \code{NULL}, imports last 2 years.}
 
-\item{years}{Numeric vector of year(s) to filter (e.g., \code{c(2020, 2023)} or \code{2020:2025}).
-Must be between 2000 and the current year.}
+\item{uf}{Character vector of Brazilian state codes (e.g., \code{"AM"},
+\code{c("RJ", "MG")}). Case insensitive. If \code{NULL} (default), imports
+\strong{all 27 states} (may be slow - see \strong{Performance}).}
 
-\item{uf}{Character vector of Brazilian state codes (e.g., \code{c("SP","RJ")}).
-If NULL, all states are included.}
-
-\item{time_unit}{Character specifying temporal aggregation.
-Options include:
-\code{"hour"}, \code{"day"} (default), \code{"week"}, \code{"month"}, \code{"quarter"},
-\code{"year"}, \code{"season"} (DJF, MAM, JJA, SON), or multi-period formats such as
-\code{"2 days"}, \code{"5 days"}, \code{"14 days"}, \code{"3 months"}, \code{"6 months"}.}
-
-\item{temporal_strategy}{Character. Strategy for temporal matching when
-\code{spatial_obj} is provided. Must be one of:
-\describe{
-\item{"exact"}{Exact date matching between health and climate data.}
-\item{"window"}{Aggregates climate variables within a symmetric window
-around each health date (± \code{window_days}).}
-\item{"lag"}{Creates lagged climate predictors based on \code{lag_days}.}
-\item{"seasonal"}{Matches climate data by climatological season (DJF, MAM,
-JJA, SON).}
-}
-Default: \code{"exact"}.}
-
-\item{window_days}{Integer vector or single integer. Only used when
-\code{temporal_strategy = "window"}. Defines the number of days before and after
-each health date to aggregate climate variables (e.g., \code{7} = ±7 days).
-If NULL and \code{temporal_strategy = "window"}, the function will error.}
-
-\item{lag_days}{Integer vector. Only used when \code{temporal_strategy = "lag"}.
-Defines temporal lags (in days) to create lagged climate variables
-(e.g., \code{c(0, 7, 14)}). If NULL and \code{temporal_strategy = "lag"},
-the function will error.}
-
-\item{impute_missing}{Logical. If TRUE, fills missing values using
-\code{sus_climate_fill_gaps()}, which trains station-specific XGBoost models with
-temporal + meteorological predictors. Parallel processing is recommended. Imputation is performed on raw (high-frequency) data before aggregation.}
-
-\item{target_var}{Character vector of variable (only one at once) to impute when
-\code{impute_missing = TRUE}, and quality_threshold. Default: \code{"tair_dry_bulb_c"}. See variable list below.}
-
-\item{quality_threshold}{Numeric. Maximum allowed proportion of missing values
-per station/variable before skipping (default: 0.4). Stations are excluded if more than quality_threshold proportion of missing values exist for any target variable before imputation.}
-
-\item{use_cache}{Logical. If TRUE, uses Arrow/Parquet cache to speed up repeated
-processing of the same years/UFs.}
-
-\item{cache_dir}{Character. Directory for cached files.
-Default: \code{"~/.climasus4r_cache/climate"}.}
-
-\item{parallel}{Logical. If TRUE, processes year/UF combinations in parallel.}
-
-\item{workers}{Integer. Number of parallel workers (default = 4).}
-
-\item{lang}{Character. Message language: \code{"pt"}, \code{"en"}, or \code{"es"}.}
-
-\item{verbose}{Logical. If TRUE, prints progress messages.
-\subsection{\strong{Accepted & Standardized Meteorological Variables}}{
-
-The function \strong{accepts} the following INMET variables
-(suggested canonical names in parentheses):
+\item{use_cache}{Logical. If \code{TRUE} (default), implements two-level caching:
 \itemize{
-\item \code{rainfall_mm} (precipitation, mm)
-\item \code{patm_mb} (mean atmospheric pressure, mb)
-\item \code{patm_max_mb}, \code{patm_min_mb} (pressure extremes)
-\item \code{sr_kj_m2} (solar radiation, kJ/m²)
-\item \code{tair_dry_bulb_c} (mean air temperature, °C)
-\item \code{tair_max_c}, \code{tair_min_c} (temperature extremes, °C)
-\item \code{dew_tmean_c}, \code{dew_tmax_c}, \code{dew_tmin_c} (dew point, °C)
-\item \code{rh_mean_porc}, \code{rh_max_porc}, \code{rh_min_porc} (relative humidity, \%)
-\item \code{ws_2_m_s} (wind speed at 2m, m/s)
-\item \code{ws_gust_m_s} (wind gust, m/s)
-\item \code{wd_degrees} (wind direction, degrees)
+\item \strong{Session cache}: In-memory cache (MD5 hash of parameters)
+\item \strong{Disk cache}: Parquet files with Zstandard compression
 }
-}
+Use \code{unlink(cache_dir, recursive = TRUE)} to clear all caches.}
 
-\subsection{\strong{Missing Data Handling}}{
+\item{cache_dir}{Character. Directory path for disk cache.
+Default: \code{"~/.climasus4r_cache/climate"}. Created automatically.}
 
-When \code{impute_missing = TRUE}, the function:
-\enumerate{
-\item Splits data by station
-\item Trains two XGBoost models per station and variable:
+\item{parallel}{Logical. If \code{TRUE} (default), enables \strong{two levels} of parallelism:
 \itemize{
-\item Model A: Temporal + meteorological predictors
-\item Model B: Temporal predictors only (fallback)
+\item \strong{Between years}: Multiple years downloaded simultaneously
+\item \strong{Within year}: CSV files for each year parsed in parallel
 }
-\item Uses Model A where meteorological covariates are available
-\item Falls back to Model B when they are missing
-\item Marks imputed values in an \code{is_imputed} column
-}
-}
+For single-year imports, only within-year parallelization applies.}
 
-\subsection{\strong{Spatial Matching} (if \code{spatial_obj} provided)}{
+\item{workers}{Integer. Number of parallel workers. Default: \code{4}.
+Ignored if \code{parallel = FALSE}. Uses \code{future::multisession} backend.
+Automatically capped at \code{availableCores() - 1}.}
 
-The function:
-\enumerate{
-\item Computes distances between municipality centroids and stations,
-\item Assigns the nearest valid station,
-\item Falls back to nearest station with a warning if no station meets quality criteria.
-}
-}
-
-\subsection{\strong{Temporal Aggregation}}{
-
-Aggregation supports:
+\item{lang}{Character. Message language. One of:
 \itemize{
-\item Mean, sum, min, max depending on variable type,
-\item Smart handling of radiation and wind,
-\item Consistent alignment with epidemiological weeks when relevant.
-}
+\item \code{"pt"}: Portuguese (default)
+\item \code{"en"}: English
+\item \code{"es"}: Spanish
+}}
+
+\item{verbose}{Logical. If \code{TRUE} (default), prints detailed progress including:
+\itemize{
+\item Cache hits/misses
+\item Download progress with retry attempts
+\item QC modifications (rows corrected/removed)
+\item Final statistics
 }}
 }
 \value{
-A tibble with processed meteorological data containing:
-\itemize{
-\item \code{date}: aggregated datetime,
-\item \code{station_code}, \code{station_name}, \code{latitude}, \code{longitude},
-\item Standardized climate variables (list above),
-\item If \code{spatial_obj} provided: \code{code_mun}, \code{name_mun}, \code{distance_km}.
+A \code{climasus_df} object (subclass of \code{tibble}) with class hierarchy:
+\code{climasus_df} > \code{tbl_df} > \code{tbl} > \code{data.frame}
+
+\strong{Data Columns:}
+\describe{
+\item{\code{station_code}}{Character. INMET 8-digit station identifier (e.g., "A001")}
+\item{\code{station_name}}{Character. Full station name}
+\item{\code{region}}{Character. Brazilian region (Norte, Nordeste, etc.)}
+\item{\code{UF}}{Character. State abbreviation}
+\item{\code{latitude}, \code{longitude}, \code{altitude}}{Numeric. Station coordinates (WGS84)}
+\item{\code{date}}{POSIXct. Observation timestamp \strong{UTC} (always hourly)}
+\item{\code{year}}{Integer. Year extracted from date}
+\item{\strong{Climate variables}}{Numeric. Standardized names (see \strong{Variables})}
+}
+
+\strong{Metadata} (accessible via \code{attr(x, "climasus_meta")}):
+\describe{
+\item{\code{version}}{Package version used}
+\item{\code{timestamp}}{Import date/time}
+\item{\code{source}}{"INMET"}
+\item{\code{years}}{Years imported}
+\item{\code{ufs}}{States imported}
+\item{\code{cache_used}}{Whether cache was used}
+\item{\code{qc_stats}}{List with quality control statistics}
+\item{\code{n_stations}}{Number of unique stations}
+\item{\code{n_observations}}{Total rows}
+\item{\code{temporal_coverage}}{List with \code{start} and \code{end} dates}
+\item{\code{history}}{Character vector of processing steps}
 }
 }
 \description{
-\code{sus_climate_inmet()} imports, standardizes, and processes Brazilian
-meteorological data from INMET for environmental and epidemiological analysis.
+\code{sus_climate_inmet()} downloads, imports, standardizes, and quality-controls
+Brazilian meteorological data from the National Institute of Meteorology (INMET).
 
-The function implements:
+The function implements a \strong{comprehensive processing pipeline}:
+\enumerate{
+\item \strong{Download}: Multi-year data with automatic retry and backoff
+\item \strong{Parsing}: Handles INMET's CSV format with metadata extraction
+\item \strong{Standardization}: Renames columns to canonical names (see \strong{Variables})
+\item \strong{Quality Control}: Physical consistency checks (see \strong{QC Details})
+\item \strong{Caching}: Two-level (memory + disk) with Parquet format
+\item \strong{Parallel Processing}: Both between and within years
+}
+}
+\note{
 \itemize{
-\item \strong{Flexible temporal aggregation} (hour → season, including multi-period windows),
-\item \strong{Optional spatial matching} to municipalities or other sf objects,
-\item \strong{Optional gap-filling via machine learning (\code{sus_climate_fill_gaps()})}, and
-\item \strong{Parallel, cache-aware processing} for large multi-year datasets.
+\item \strong{Data frequency}: Always \strong{hourly}. Use \code{sus_climate_aggregate()} for daily/weekly.
+\item \strong{Timezone}: All timestamps are \strong{UTC}. Convert if needed.
+\item \strong{Missing data}: Represented as \code{NA}. Use \code{sus_climate_fill_gaps()} for imputation.
+\item \strong{Encoding}: All strings converted to UTF-8.
+\item \strong{Decimals}: Converted from comma (\verb{,}) to point (\code{.}).
+}
+}
+\section{Standardized Meteorological Variables}{
+
+
+INMET raw column names vary by year. This function automatically detects and
+renames them to the following canonical names:\tabular{llll}{
+   \strong{Canonical Name} \tab \strong{Description} \tab \strong{Unit} \tab \strong{Physical Range} \cr
+   \code{rainfall_mm} \tab Precipitation total \tab mm \tab 0 - 500 \cr
+   \code{patm_mb} \tab Mean atmospheric pressure \tab mb \tab 700 - 1100 \cr
+   \code{patm_max_mb} \tab Max atmospheric pressure \tab mb \tab 700 - 1100 \cr
+   \code{patm_min_mb} \tab Min atmospheric pressure \tab mb \tab 700 - 1100 \cr
+   \code{sr_kj_m2} \tab Solar radiation \tab kJ/m² \tab 0 - 40000 \cr
+   \code{tair_dry_bulb_c} \tab Mean air temperature \tab °C \tab -90 - 60 \cr
+   \code{tair_max_c} \tab Max air temperature \tab °C \tab -90 - 60 \cr
+   \code{tair_min_c} \tab Min air temperature \tab °C \tab -90 - 60 \cr
+   \code{dew_tmean_c} \tab Mean dew point \tab °C \tab -90 - 60 \cr
+   \code{dew_tmax_c} \tab Max dew point \tab °C \tab -90 - 60 \cr
+   \code{dew_tmin_c} \tab Min dew point \tab °C \tab -90 - 60 \cr
+   \code{rh_mean_porc} \tab Mean relative humidity \tab \% \tab 0 - 100 \cr
+   \code{rh_max_porc} \tab Max relative humidity \tab \% \tab 0 - 100 \cr
+   \code{rh_min_porc} \tab Min relative humidity \tab \% \tab 0 - 100 \cr
+   \code{ws_2_m_s} \tab Wind speed at 2m \tab m/s \tab 0 - 100 \cr
+   \code{ws_gust_m_s} \tab Wind gust \tab m/s \tab 0 - 100 \cr
+   \code{wd_degrees} \tab Wind direction \tab degrees \tab 0 - 360 \cr
+}
 }
 
-This function is designed for:
+\section{Quality Control Details}{
+
+
+The function applies \strong{automatic physical consistency checks}:
+
+\strong{1. Physical Range Validation:}
+Values outside physically possible ranges are set to \code{NA}:
 \itemize{
-\item Climate–health studies (e.g., dengue, malaria, heat stress),
-\item Environmental exposure assessment,
-\item Time-series gap filling and preprocessing,
-\item Spatiotemporal integration of climate and health data.
+\item \strong{Temperature}: -90°C to 60°C
+\item \strong{Pressure}: 700 mb to 1100 mb
+\item \strong{Humidity}: 0\% to 100\%
+\item \strong{Precipitation}: 0 mm to 500 mm
+\item \strong{Solar radiation}: 0 to 40000 kJ/m²
+\item \strong{Wind speed}: 0 to 100 m/s
+\item \strong{Wind direction}: 0° to 360°
+}
+
+\strong{2. Dew Point Consistency:}
+Calculates theoretical dew point from T and RH using Magnus formula.
+If |observed - calculated| > 3°C, observed is set to NA.
+
+\strong{3. Solar Radiation:}
+Nighttime values (18h-6h) are set to 0 for physical consistency.
+}
+
+\section{Caching System Details}{
+
+
+\strong{Disk Cache:}
+\itemize{
+\item \strong{Format}: Apache Parquet with Zstandard compression (level 6)
+\item \strong{Partitioning}: By \code{year} and \code{UF} for fast filtering
+\item \strong{Backup}: Compressed CSV as fallback if Parquet corrupted
+\item \strong{Location}: \verb{~/.climasus4r_cache/climate/inmet_parquet/}
 }
 }
+
 \examples{
 \dontrun{
-# Basic processing
-climate_processed <- sus_climate_inmet(
-  years = 2020:2021,
-  time_unit = "day"
+# Basic import - single state, single year
+climate_am <- sus_climate_inmet(
+  years = 2023,
+  uf = "AM"
 )
 
-# With spatial matching + gap filling
-mun_sf <- sus_join_spatial(df_health)
 
-climate_with_spatial <- sus_climate_inmet(
-  spatial_obj = mun_sf,
-  years = 2020:2021,
-  uf = c("SP","RJ"),
-  time_unit = "week",
-  target_vars = c("tair_dry_bulb_c", "rh_mean_porc", "ws_2_m_s"),
-  impute_missing = TRUE,
+# Multi-year import with parallel processing
+climate_sp <- sus_climate_inmet(
+  years = 2020:2024,
+  uf = "SP",
   parallel = TRUE,
   workers = 4
 )
+
+# Import all Southeast states
+climate_se <- sus_climate_inmet(
+  years = 2023,
+  uf = c("SP", "RJ", "MG", "ES"),
+  verbose = TRUE
+)
+
+
+# Inspect available stations
+climate_df \%>\%
+  dplyr::distinct(station_code, station_name, latitude, longitude)
 }
 
+}
+\seealso{
+\itemize{
+\item \code{\link[=sus_climate_fill_gaps]{sus_climate_fill_gaps()}} for ML-based gap filling
+\item \code{\link[=sus_join_spatial]{sus_join_spatial()}} for preparing municipality data
+}
 }

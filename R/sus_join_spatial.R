@@ -6,17 +6,21 @@
 #'
 #' @param df A `data.frame` containing health data with a geographic identifier column.
 #'   The data frame should have a `system` column created by `detect_health_system()`.
-#' @param level Character string specifying the geographic aggregation level.
-#'   Options: `"state"`, `"munic"` (municipality), `"census"` (census tract), `"cep"` (postal code).
-#'   Default is `"munic"`.
+#' @param level Character string specifying the geographic aggregation level. Default is `"munic"`.
+#'   Options: 
+#'   \itemize{
+#'     \item \strong{Administrative:} "munic" (municipality). Default. 
+#'     \item \strong{Health:} "health_region", "health_facilities", "schools"
+#'     \item \strong{Environmental:} "amazon", "biomes", "conservation_units", 
+#'           "disaster_risk_area", "semiarid", "indigenous_land"
+#'     \item \strong{Urban:} "neighborhood", "urban_area", "metro_area", 
+#'           "urban_concentrations", "pop_arrangements",
+#'     \item \strong{Miscellaneous:} "cep" (postal code)
+#'   }
 #'   **Note**: `"cep"` level is only available for SIH and CNES systems.
 #' @param join_col Character string with the name of the column in `df` containing
 #'   the geographic identifier. If `NULL` (default), the function will automatically
 #'   detect the appropriate column based on the `level` and common SUS column patterns.
-#' @param year Numeric. Year of the geographic boundaries to use. Default is 2020.
-#'   Only applicable for `"state"`, `"munic"`, and `"census"` levels.
-#' @param simplified Logical. If `TRUE` (default), uses simplified geometries for
-#'   faster processing and visualization. Only applicable for polygon-based levels.
 #' @param lang Character string specifying the language for messages.
 #'   Options: `"pt"` (Portuguese, default), `"en"` (English), `"es"` (Spanish).
 #' @param use_cache Logical. If `TRUE` (default), uses cached spatial data to avoid
@@ -29,36 +33,11 @@
 #' @return An `sf` object (Simple Features data.frame) with all original columns from
 #'   `df` plus a `geometry` column containing the spatial geometries:
 #'   \itemize{
-#'     \item **state/munic/census**: POLYGON or MULTIPOLYGON geometries
-#'     \item **cep**: POINT geometries (geocoded locations)
+#'     \item **/munic/neighborhood**: POLYGON or MULTIPOLYGON geometries
+#'     \item **/cnes/cep**: POINT geometries (geocoded locations)
 #'   }
 #'
 #' @details
-#' **Geographic Levels**:
-#' \itemize{
-#'   \item **state**: Brazilian state (UF) boundaries from IBGE via `geobr::read_state()`
-#'   \item **munic**: Municipality boundaries from IBGE via `geobr::read_municipality()`
-#'   \item **census**: Census tract boundaries from IBGE via `geobr::read_census_tract()`
-#'   \item **cep**: Postal code point geocoding via `geocodebr::busca_por_cep()`
-#'     (only for SIH and CNES systems)
-#' }
-#'
-#' **System-Aware Logic**:
-#' The function expects a `system` column in `df` (created by `detect_health_system()`).
-#' The `"cep"` level is restricted to SIH and CNES systems because only these systems
-#' reliably contain postal code information.
-#'
-#' **Automatic Column Detection**:
-#' If `join_col = NULL`, the function automatically detects the appropriate geographic
-#' column based on common SUS patterns:
-#' \itemize{
-#'   \item **Municipality**: `residence_municipality_code`, `municipality_code`,
-#'     `codigo_municipio`, `CODMUNRES`, etc.
-#'   \item **State**: `SG_UF`, `UF`, `UF_ZI`
-#'   \item **CEP**: `cep`, `cep_paciente`, `codigo_postal`, `zip_code`, etc.
-#'   \item **Census tract**: `COD_SETOR`, `code_census_tract`
-#' }
-#'
 #' **Caching Strategy**:
 #' Spatial data is cached as Parquet files in `~/.climasus4r_cache/spatial` to:
 #' \itemize{
@@ -66,8 +45,6 @@
 #'   \item Improve performance (10-100x faster)
 #'   \item Enable offline reuse
 #' }
-#' Cache files are named: `state_shp.parquet`, `munic_shp.parquet`, `census_shp.parquet`.
-#' CEP geocoding is never cached as it uses an API.
 #'
 #' **Code Normalization**:
 #' \itemize{
@@ -94,19 +71,6 @@
 #'   lang = "pt"
 #' )
 #'
-#' # Plot the results
-#' library(ggplot2)
-#' ggplot(sf_sim) +
-#'   geom_sf(aes(fill = n_deaths)) +
-#'   theme_minimal()
-#'
-#' # Example 2: Link to states for regional analysis
-#' sf_states <- sus_join_spatial(
-#'   df = df_sim,
-#'   level = "state",
-#'   lang = "pt"
-#' )
-#'
 #' # Example 3: Geocode CEP for hospitalization data (SIH only)
 #' df_sih <- sus_data_import(uf = "RJ", year = 2023, system = "SIH-RD") %>%
 #'   sus_data_standardize(lang = "pt")
@@ -120,8 +84,7 @@
 #' # Example 4: Census tract level analysis
 #' sf_census <- sus_join_spatial(
 #'   df = df_sim,
-#'   level = "census",
-#'   year = 2010,
+#'   level = "school",
 #'   lang = "pt"
 #' )
 #' }
@@ -132,8 +95,6 @@ sus_join_spatial <- function(
   df,
   level = "munic",
   join_col = NULL,
-  year = 2020,
-  simplified = TRUE,
   lang = "pt",
   use_cache = TRUE,
   cache_dir = "~/.climasus4r_cache/spatial",
@@ -161,25 +122,111 @@ sus_join_spatial <- function(
   msg <- get_spatial_messages(lang)
 
   # Validate level
-  valid_levels <- c("state", "munic", "census", "cep")
+  valid_levels <- c("munic", "cep", "school","health_region","amazon",
+    "semiarid", "biomes", "conservation_units", "disaster_risk_area", 
+    "indigenous_land", "urban_area", "metro_area", "urban_concentrations",
+    "pop_arrangements", "health_facilities", "neighborhood" 
+    )
   if (!level %in% valid_levels) {
     cli::cli_alert_danger(msg$invalid_level)
     cli::cli_alert_info(msg$valid_levels)
     cli::cli_abort(paste0("Invalid level: '", level, "'"))
   }
 
+  # Check if data is climasus_df
+  if (inherits(df, "climasus_df")) {
+
+    # Minimum required stage
+    required_stage <- "stand"
+    current_stage  <- climasus_meta(df, "stage")
+
+    if (!is_stage_at_least(current_stage, required_stage)) {
+
+      msg_error <- list(
+        en = paste0(
+          "Data must be standardized before spatial aggregation\n",
+          "Current stage: ", current_stage %||% "unknown", "\n",
+          "Required stage: ", required_stage, "\n\n",
+          "Please run:\n",
+          "  df <- sus_data_standardize(df)"
+        ),
+        pt = paste0(
+          "Dados devem ser padronizados antes de agregar espacialmente.\n",
+          "Estagio atual: ", current_stage %||% "desconhecido", "\n",
+          "Estagio requerido: ", required_stage, "\n\n",
+          "Por favor, execute:\n",
+          "  df <- sus_data_standardize(df)"
+        ),
+        es = paste0(
+          "Los datos deben estar estandarizados antes de agregar espacialmente.\n",
+          "Etapa actual: ", current_stage %||% "desconocida", "\n",
+          "Etapa requerida: ", required_stage, "\n\n",
+          "Por favor, ejecute:\n",
+          "  df <- sus_data_standardize(df)"
+        )
+      )
+
+      cli::cli_abort(msg_error[[lang]] %||% msg_error[["en"]])
+    }
+
+    # Stage validated
+    if (verbose) {
+      msg_stage_ok <- list(
+        en = "Data stage validated",
+        pt = "Estagio de dados validado",
+        es = "Etapa de datos validada"
+      )
+
+      cli::cli_alert_success(msg_stage_ok[[lang]] %||% msg_stage_ok[["en"]])
+    }
+
+    # Update metadata
+    df <- climasus_meta(df, stage = "spatial", type = level)
+  } else {
+    
+    # NOT climasus_df - ABORT execution
+    msg_error <- list(
+      en = paste0(
+        "Input is not a climasus_df object.\n",
+        "This function requires data from the CLIMASUS4r pipeline.\n\n",
+        "Please prepare your data first:\n",
+        "  1. Import: df <- sus_data_import(...) or sus_data_read(...)\n",
+        "  2. Clean: df <- sus_data_clean_encoding(df)\n",
+        "  3. Standardize: df <- sus_data_standardize(df)\n",
+        "If using external data, run sus_data_standardize() first to prepare it."
+      ),
+      pt = paste0(
+        "Entrada nao e um objeto climasus_df.\n",
+        "Esta funcao requer dados do pipeline CLIMASUS4r.\n\n",
+        "Por favor, prepare seus dados primeiro:\n",
+        "  1. Importar: df <- sus_data_import(...) ou sus_data_read(...)\n",
+        "  2. Limpar: df <- sus_data_clean_encoding(df)\n",
+        "  3. Padronizar: df <- sus_data_standardize(df)\n",
+        "Se usar dados externos, execute sus_data_standardize() primeiro para prepara-los."
+      ),
+      es = paste0(
+        "La entrada no es un objeto climasus_df.\n",
+        "Esta funcion requiere datos del pipeline CLIMASUS4r.\n\n",
+        "Por favor, prepare sus datos primero:\n",
+        "  1. Importar: df <- sus_data_import(...) o sus_data_read(...)\n",
+        "  2. Limpiar: df <- sus_data_clean_encoding(df)\n",
+        "  3. Estandarizar: df <- sus_data_standardize(df)\n",
+        "Si usa datos externos, ejecute sus_data_standardize() primero para prepararlos."
+      )
+    )
+    
+    cli::cli_abort(msg_error[[lang]])
+  }
+
+  system <- climasus_meta(df, "system")
   # ============================================================================
   # 2. SYSTEM-AWARE VALIDATION (CEP restriction)
   # ============================================================================
 
   if (level == "cep") {
-    # Check if system column exists
-    if (!"system" %in% names(df)) {
-      cli::cli_abort(msg$system_column_missing)
-    }
 
     # Get unique systems in the data
-    systems_in_data <- unique(df$system)
+    systems_in_data <- system
     allowed_systems <- c("SIH", "CNES")
 
     # Check if any system is allowed
@@ -197,15 +244,14 @@ sus_join_spatial <- function(
   # ============================================================================
 
   if (is.null(join_col)) {
-    if (verbose) {
-      cli::cli_alert_info(msg$detecting_column)
-    }
+    
+    if (verbose) {cli::cli_alert_info(msg$detecting_column)}
 
     # Define column candidates based on level
     common_cols <- switch(
       level,
       "munic" = c(
-         "codigo_municipio_residencia",
+        "codigo_municipio_residencia",
         "residence_municipality_code",
 
         "codigo_municipio_ocorrencia",
@@ -236,8 +282,7 @@ sus_join_spatial <- function(
         "codigo_postal_paciente",
         "zip_code",
         "patient_zip_code"
-      ),
-      "census" = c("COD_SETOR", "code_census_tract", "codigo_setor_censitario")
+      )
     )
 
     if (level == "munic") {
@@ -323,7 +368,7 @@ sus_join_spatial <- function(
   # 5. CACHE SETUP
   # ============================================================================
 
-  if (use_cache && level != "cep") {
+  if (use_cache) {
     cache_dir <- path.expand(cache_dir)
     if (!fs::dir_exists(cache_dir)) {
       if (verbose) {
@@ -341,12 +386,10 @@ sus_join_spatial <- function(
   # 6. SPATIAL DATA RETRIEVAL
   # ============================================================================
 
-  if (level %in% c("state", "munic", "census")) {
+  if (level %in% c("munic")) {
     # Use cache-enabled retrieval for polygon-based levels
-    spatial_df <- get_spatial_data_with_cache(
-      level = level,
-      year = year,
-      simplified = simplified,
+    spatial_df <- get_spatial_munic_cache(
+      level = "munic",
       cache_dir = cache_dir,
       use_cache = use_cache,
       lang = lang,
@@ -355,10 +398,126 @@ sus_join_spatial <- function(
 
     # Determine the code column name in spatial data
     code_col_spatial <- switch(
-      level,
-      "state" = "code_state",
-      "munic" = "code_muni",
-      "census" = "code_tract"
+      "munic",
+      "munic" = "code_muni"
+    )
+
+    # Ensure code column is character
+    spatial_df[[code_col_spatial]] <- as.character(spatial_df[[code_col_spatial]])
+
+    # ============================================================================
+    # 7. PERFORM SPATIAL JOIN
+    # ============================================================================
+
+    if (verbose) {
+      cli::cli_alert_info(msg$joining_data)
+    }
+
+    if (nchar(df[[join_col]][1]) == 6) {
+      cli::cli_alert_info(
+        switch(
+          lang,
+          "pt" = "Convertendo codigos de municipio (6 to 7 digitos - IBGE)",
+          "en" = "Converting municipality codes (6 to 7 digits - IBGE)",
+          "es" = "Convirtiendo codigos municipales (6 to 7 digitos - IBGE)"
+        )
+      )
+
+      df[[join_col]] <- .convert_muni_6_to_7(
+        muni_code_6 = df[[join_col]],
+        spatial_df = spatial_df
+      )
+    }
+
+    df <- df %>% dplyr::arrange(.data[[join_col]])
+    spatial_df <- spatial_df %>% dplyr::arrange(.data[[code_col_spatial]])
+
+    # Perform left join
+    result_sf <- dplyr::inner_join(
+      df,
+      spatial_df,
+      by = stats::setNames(code_col_spatial, join_col)
+    )
+
+    if (join_col != code_col_spatial) {
+      names(result_sf)[names(result_sf) == join_col] <- code_col_spatial
+    }
+
+    # Convert to sf object
+    result_sf <- result_sf %>% sf::st_as_sf()
+
+    # Remove rows with missing geometries
+    result_sf <- result_sf %>%
+      dplyr::filter(!is.na(sf::st_dimension(.data$geom)))
+  }
+
+  if (level %in% c("cep", "health_facilities", "neighborhood")) {
+    # ============================================================================
+    # 8. CEP GEOCODING (API-based, no cache)
+    # ============================================================================
+
+    if (verbose) {
+      cli::cli_alert_info(msg$geocoding_cep)
+    }
+
+    # Get unique CEPs
+    unique_ceps <- unique(df[[join_col]])
+
+    if (verbose) {
+      cli::cli_alert_info(paste0(msg$geocoding_count, length(unique_ceps)))
+    }
+
+    # Geocode using geocodebr
+    tryCatch(
+      {
+        geo_points <- geocodebr::busca_por_cep(
+          cep = unique_ceps,
+          resultado_sf = TRUE,
+          verboso = FALSE,
+          cache = FALSE
+        )
+        geo_points$cep <- stringr::str_replace_all(geo_points$cep, "\\D", "")
+
+        df <- df %>% dplyr::arrange(.data[[join_col]])
+
+
+        # Join geocoded points back to original data
+        result_sf <- dplyr::left_join(
+          df,
+          geo_points,
+          by = stats::setNames("cep", join_col),
+          relationship = "many-to-many", multiple = "first"
+        )
+
+        if (join_col != "cep") {
+          names(result_sf)[names(result_sf) == join_col] <- "cep"
+        }
+        result_sf <- sf::st_as_sf(result_sf)
+      },
+      error = function(e) {
+        cli::cli_abort(paste0(msg$geocoding_error, e$message))
+      }
+    )
+  }
+
+  # ============================================================================
+  # 9. CHECK OTHER LEVEL 
+  # ============================================================================
+  
+  if (!level %in% any("muni", "cep")) {
+  # Use cache-enabled retrieval for polygon-based levels
+    spatial_df <- get_spatial_munic_cache(
+      level = "munic",
+      cache_dir = cache_dir,
+      use_cache = use_cache,
+      lang = lang,
+      verbose = verbose
+    )
+
+    # Determine the code column name in spatial data
+    code_col_spatial <- switch(
+      "munic",
+      "munic" = "code_muni"
     )
 
     # Ensure code column is character
@@ -404,74 +563,318 @@ sus_join_spatial <- function(
       names(result_sf)[names(result_sf) == join_col] <- code_col_spatial
     }
 
-    # Convert to sf object
+  }
+  
+  if (level %in% c("school")) { 
+
+    spatial_var <- get_spatial_data_with_cache(
+      level = "school",
+      cache_dir = cache_dir,
+      use_cache = use_cache,
+      lang = lang,
+      verbose = verbose
+    )
+    spatial_var <- sf::st_make_valid(spatial_var)
+    
+    result_sf <- dplyr::inner_join(
+      result_sf,
+      spatial_var,
+      by = c("name_muni", "abbrev_state"),
+      relationship = "many-to-many"
+     )
+  }
+
+  if (level == "health_region") {
+     
+    spatial_var <- get_spatial_data_with_cache(
+      level = "health_region",
+      cache_dir = cache_dir,
+      use_cache = use_cache,
+      lang = lang,
+      verbose = verbose
+    )
+    spatial_var <- sf::st_make_valid(spatial_var)
+    result_sf$geom <- NULL
+
+    result_sf <- dplyr::inner_join(
+      result_sf,
+      spatial_var,
+      by = c("abbrev_state", "code_state", "name_state"),
+      relationship = "many-to-many"
+     )
+  }
+
+  if (level == "amazon") {
+     
+    spatial_var <- get_spatial_data_with_cache(
+      level = "amazon",
+      cache_dir = cache_dir,
+      use_cache = use_cache,
+      lang = lang,
+      verbose = verbose
+    )
+    spatial_var <- sf::st_make_valid(spatial_var)
+
     result_sf <- result_sf %>% sf::st_as_sf()
 
-    # Remove rows with missing geometries
-    n_before <- nrow(result_sf)
-    result_sf <- result_sf %>%
-      dplyr::filter(!is.na(sf::st_dimension(.data$geom)))
-    n_after <- nrow(result_sf)
+    result_sf <- sf::st_join(result_sf, spatial_var)
+  }
 
-    if (verbose && n_before > n_after) {
-      n_removed <- n_before - n_after
-      cli::cli_alert_warning(paste0(msg$rows_removed, n_removed))
-    }
-  } else if (level == "cep") {
-    # ============================================================================
-    # 8. CEP GEOCODING (API-based, no cache)
-    # ============================================================================
+  if (level == "semiarid") {
+     
+    spatial_var <- get_spatial_data_with_cache(
+      level = "semiarid",
+      cache_dir = cache_dir,
+      use_cache = use_cache,
+      lang = lang,
+      verbose = verbose
+    )
+    spatial_var <- sf::st_make_valid(spatial_var)
+    spatial_var$name_muni <- NULL
+    spatial_var$code_state <- NULL
 
-    if (verbose) {
-      cli::cli_alert_info(msg$geocoding_cep)
-    }
+    result_sf <- dplyr::inner_join(
+      result_sf,
+      spatial_var,
+      by = c("code_muni", "abbrev_state"),
+      relationship = "many-to-many"
+     )
+  }
 
-    # Get unique CEPs
-    unique_ceps <- unique(df[[join_col]])
+  if (level == "biomes") { 
 
-    if (verbose) {
-      cli::cli_alert_info(paste0(msg$geocoding_count, length(unique_ceps)))
-    }
+    spatial_var <- get_spatial_data_with_cache(
+      level = "biomes",
+      cache_dir = cache_dir,
+      use_cache = use_cache,
+      lang = lang,
+      verbose = verbose
+    )
+    spatial_var <- sf::st_make_valid(spatial_var)
 
-    # Geocode using geocodebr
-    tryCatch(
-      {
-        geo_points <- geocodebr::busca_por_cep(
-          cep = unique_ceps,
-          resultado_sf = TRUE,
-          verboso = FALSE,
-          cache = FALSE
-        )
-        geo_points$cep <- stringr::str_replace_all(geo_points$cep, "\\D", "")
+    result_sf <- result_sf %>% sf::st_as_sf()
 
-        df <- df %>% dplyr::arrange(.data[[join_col]])
-        spatial_df <- spatial_df %>% dplyr::arrange(.data[[code_col_spatial]])
-        # Join geocoded points back to original data
-        result_sf <- dplyr::inner_join(
-          df,
-          geo_points,
-          by = stats::setNames("cep", join_col),
-          relationship = "many-to-many"
-        )
+    result_sf <- sf::st_join(result_sf, spatial_var)
+  }
 
-        # Convert to sf object
-        result_sf <- sf::st_as_sf(result_sf)
-      },
-      error = function(e) {
-        cli::cli_abort(paste0(msg$geocoding_error, e$message))
-      }
+  if (level == "conservation_units") { 
+
+    spatial_var <- get_spatial_data_with_cache(
+      level = "conservation_units",
+      cache_dir = cache_dir,
+      use_cache = use_cache,
+      lang = lang,
+      verbose = verbose
+    )
+    result_sf <- result_sf %>% sf::st_as_sf()
+    spatial_var$date <- NULL
+    spatial_var <- sf::st_make_valid(spatial_var)
+    result_sf <- sf::st_make_valid(result_sf)
+    #Join
+    result_sf <- sf::st_join(result_sf, spatial_var)
+  }
+
+  if (level == "disaster_risk_area") { 
+
+    spatial_var <- get_spatial_data_with_cache(
+      level = "disaster_risk_area",
+      cache_dir = cache_dir,
+      use_cache = use_cache,
+      lang = lang,
+      verbose = verbose
+    )
+
+    spatial_var <- sf::st_make_valid(spatial_var)
+
+    result_sf$geom <- NULL
+    result_sf$code_state <- NULL
+    spatial_var$name_muni <- NULL
+    #Join
+    result_sf <- dplyr::inner_join(
+      result_sf,
+      spatial_var,
+      by = c("code_muni", "abbrev_state"),
+      relationship = "many-to-many"
+     )
+    
+  }
+
+  if (level == "indigenous_land") { 
+
+    spatial_var <- get_spatial_data_with_cache(
+      level = "indigenous_land",
+      cache_dir = cache_dir,
+      use_cache = use_cache,
+      lang = lang,
+      verbose = verbose
+    )
+    spatial_var <- sf::st_make_valid(spatial_var)
+
+    result_sf$code_state <- NULL
+    spatial_var$date <- NULL
+    #Join
+    result_sf <- dplyr::inner_join(
+      result_sf,
+      spatial_var,
+      by = c("name_muni", "abbrev_state"),
+      relationship = "many-to-many"
+     )
+    
+  }
+
+  if (level == "urban_area") {
+     
+    spatial_var <- get_spatial_data_with_cache(
+      level = "urban_area",
+      cache_dir = cache_dir,
+      use_cache = use_cache,
+      lang = lang,
+      verbose = verbose
+    )
+    spatial_var <- sf::st_make_valid(spatial_var)
+    spatial_var$name_muni <- NULL
+    spatial_var$code_state <- NULL
+    spatial_var$name_state <- NULL
+   
+    result_sf <- dplyr::inner_join(
+      result_sf,
+      spatial_var,
+      by = c("code_muni", "abbrev_state"),
+      relationship = "many-to-many"
+     )
+  }
+
+  if (level == "metro_area") {
+     
+    spatial_var <- get_spatial_data_with_cache(
+      level = "metro_area",
+      cache_dir = cache_dir,
+      use_cache = use_cache,
+      lang = lang,
+      verbose = verbose
+    )
+    spatial_var <- sf::st_make_valid(spatial_var)
+    spatial_var$name_muni <- NULL
+    spatial_var$code_state <- NULL
+   
+    result_sf <- dplyr::inner_join(
+      result_sf,
+      spatial_var,
+      by = c("code_muni", "abbrev_state"),
+      relationship = "many-to-many"
+     )
+  }
+
+  if (level == "urban_concentrations") {
+     
+    spatial_var <- get_spatial_data_with_cache(
+      level = "urban_concentrations",
+      cache_dir = cache_dir,
+      use_cache = use_cache,
+      lang = lang,
+      verbose = verbose
+    )
+    spatial_var <- sf::st_make_valid(spatial_var)
+    spatial_var$name_muni <- NULL
+    spatial_var$code_state <- NULL
+    spatial_var$name_state <- NULL
+   
+    result_sf <- dplyr::inner_join(
+      result_sf,
+      spatial_var,
+      by = c("code_muni", "abbrev_state"),
+      relationship = "many-to-many"
+     )
+  }
+
+   if (level == "pop_arrangements") {
+     
+    spatial_var <- get_spatial_data_with_cache(
+      level = "pop_arrangements",
+      cache_dir = cache_dir,
+      use_cache = use_cache,
+      lang = lang,
+      verbose = verbose
+    )
+    spatial_var <- sf::st_make_valid(spatial_var)
+    spatial_var$name_muni <- NULL
+    spatial_var$code_state <- NULL
+    spatial_var$name_state <- NULL
+   
+    result_sf <- dplyr::inner_join(
+      result_sf,
+      spatial_var,
+      by = c("code_muni", "abbrev_state"),
+      relationship = "many-to-many"
+     )
+  }
+  
+  
+  if (level == "health_facilities" && !system == "CNES") {
+    if (verbose) {cli::cli_abort("The level {.val health_facilities} is only available for the {.code CNES} system.")}
+  }
+  if (level == "health_facilities") {
+    spatial_var <- get_spatial_data_with_cache(
+      level = "health_facilities",
+      cache_dir = cache_dir,
+      use_cache = use_cache,
+      lang = lang,
+      verbose = verbose
+    )
+    # Join geocoded points back to original data
+    result_sf <- dplyr::inner_join(
+      df,
+      spatial_var,
+      by = stats::setNames("code_cnes", "cnes"),
+      relationship = "many-to-many"
     )
   }
 
+  if (level == "neighborhood" && !system %in% c("CNES", "SIH")) {
+    if (verbose) {cli::cli_abort("The level {.val neighborhood} is only available for the {.code CNES} system.")}
+  }
+
+  if (level == "neighborhood") { 
+
+    spatial_var <- get_spatial_data_with_cache(
+      level = "neighborhood",
+      cache_dir = cache_dir,
+      use_cache = use_cache,
+      lang = lang,
+      verbose = verbose
+    )
+    spatial_var <- sf::st_make_valid(spatial_var)
+
+    # Join geocoded points back to original data
+    result_sf <- sf::st_join(result_sf, spatial_var)
+    
+  }
+    
   # ============================================================================
-  # 9. FINAL VALIDATION AND SUCCESS MESSAGE
+  # 10. FINAL VALIDATION AND SUCCESS MESSAGE
   # ============================================================================
+
+  if (!inherits(result_sf, "sf")) {
+    result_sf <- result_sf %>% sf::st_as_sf()
+  }
+  # Remove rows with missing geometries
+  result_sf <- result_sf %>% dplyr::filter(!is.na(sf::st_dimension(.data$geom)))
+
+  # Update stage and type
+  result_sf <- climasus_meta(
+    result_sf,
+    system = climasus_meta(result_sf, "system"),  # Preserve original system
+    stage = "spatial",
+    type = level,
+    temporal = NULL,
+    add_history = "Spatial join"
+  )
 
   if (verbose) {
     cli::cli_alert_success(msg$join_success)
     cli::cli_alert_info(paste0(msg$final_rows, nrow(result_sf)))
   }
-
+  
   return(result_sf)
 }
 
@@ -480,14 +883,13 @@ sus_join_spatial <- function(
 # HELPER FUNCTIONS
 # ============================================================================
 
-#' Get Spatial Data with Caching
+
+#' Get Spatial Municipality Data with Caching
 #'
 #' Retrieves spatial data from IBGE with intelligent caching to improve performance.
 #' Spatial data is cached as Parquet files for fast reloading.
 #'
-#' @param level Geographic level ("state", "munic", "census")
-#' @param year Year of the boundaries
-#' @param simplified Use simplified geometries
+#' @param level Geographic level ("munic")
 #' @param cache_dir Cache directory path
 #' @param use_cache Whether to use cache
 #' @param lang Language for messages
@@ -496,10 +898,8 @@ sus_join_spatial <- function(
 #' @return sf object with spatial data
 #' @keywords internal
 #' @noRd
-get_spatial_data_with_cache <- function(
-  level,
-  year,
-  simplified,
+get_spatial_munic_cache <- function(
+  level = "munic",
   cache_dir,
   use_cache,
   lang,
@@ -511,14 +911,13 @@ get_spatial_data_with_cache <- function(
   # Define cache file name
   cache_file <- file.path(
     cache_dir,
-    # paste0(level, "_", year, "_", ifelse(simplified, "simp", "full"), ".gpkg")
-    paste0(level, "_", year, "_", ifelse(simplified, "simp", "full"), ".parquet")
+    paste0(level, "_", ".parquet")
   )
   } else { 
   # Define cache file name
   cache_file <- file.path(
     cache_dir,
-    paste0(level, "_", year, "_", ifelse(simplified, "simp", "full"), ".gpkg")
+    paste0(level, "_", ".gpkg")
   )
   }
 
@@ -553,25 +952,10 @@ get_spatial_data_with_cache <- function(
 
   spatial_df <- switch(
     level,
-    "state" = geobr::read_state(
-      code_state = "all",
-      year = year,
-      simplified = simplified,
-      showProgress = verbose,
-      cache = FALSE
-    ),
     "munic" = geobr::read_municipality(
       code_muni = "all",
-      year = year,
-      simplified = simplified,
+      simplified = TRUE,
       showProgress = verbose
-    ),
-    "census" = geobr::read_census_tract(
-      code_tract = "all",
-      year = year,
-      simplified = simplified,
-      showProgress = verbose,
-      cache = FALSE
     )
   )
 
@@ -603,6 +987,165 @@ get_spatial_data_with_cache <- function(
   return(spatial_df)
 }
 
+
+
+#' Get Spatial Data with Caching
+#'
+#' Retrieves spatial data from IBGE with intelligent caching to improve performance.
+#' Spatial data is cached as Parquet files for fast reloading.
+#'
+#' @param level Geographic level ("munic")
+#' @param cache_dir Cache directory path
+#' @param use_cache Whether to use cache
+#' @param lang Language for messages
+#' @param verbose Print messages
+#'
+#' @return sf object with spatial data
+#' @keywords internal
+#' @noRd
+get_spatial_data_with_cache <- function(
+  level,
+  year,
+  cache_dir,
+  use_cache,
+  lang,
+  verbose
+) {
+  msg <- get_spatial_messages(lang)
+
+  if ((requireNamespace("sfarrow", quietly = TRUE))) { 
+  # Define cache file name
+  cache_file <- file.path(
+    cache_dir,
+    paste0(level, "_", ".parquet")
+  )
+  } else { 
+  # Define cache file name
+  cache_file <- file.path(
+    cache_dir,
+    paste0(level, "_", ".gpkg")
+  )
+  }
+
+  # Try to load from cache
+  if (use_cache && file.exists(cache_file)) {
+    if (verbose) {
+      cli::cli_alert_success(paste0(msg$loading_cache, basename(cache_file)))
+    }
+
+    tryCatch(
+      {
+        if ((requireNamespace("sfarrow", quietly = TRUE))) { 
+          spatial_df <- sfarrow::st_read_parquet(cache_file)
+        } else { 
+          spatial_df <- sf::st_read(cache_file)
+          spatial_df <- sf::st_as_sf(spatial_df)
+        }
+        return(spatial_df)
+      },
+      error = function(e) {
+        if (verbose) {
+          cli::cli_alert_warning(msg$cache_error)
+        }
+      }
+    )
+  }
+
+  # Download from IBGE
+  if (verbose) {
+    cli::cli_alert_info(msg$downloading_data)
+  }
+
+  spatial_df <- switch(
+    level,
+    "school" = geobr::read_schools(
+      cache = FALSE,
+      showProgress = verbose
+    ),
+    "health_facilities" = geobr::read_health_facilities(
+      date = 202303,
+      showProgress = verbose,
+      cache = FALSE
+    ),
+    "health_region" = geobr::read_health_region(
+      showProgress = verbose,
+      cache = FALSE
+    ),
+    "amazon" = geobr::read_amazon(
+      showProgress = verbose,
+      cache = FALSE
+    ),
+    "semiarid" = geobr::read_semiarid(
+      showProgress = verbose,
+      cache = FALSE
+    ),
+    "biomes" = geobr::read_biomes(
+      showProgress = verbose,
+      cache = FALSE
+    ),
+    "conservation_units" = geobr::read_conservation_units(
+      date = 201909,
+      showProgress = verbose,
+      cache = FALSE
+    ),
+    "disaster_risk_area" = geobr::read_disaster_risk_area(
+      showProgress = verbose,
+      cache = FALSE
+    ),
+    "indigenous_land" = geobr::read_indigenous_land(
+      date= 201907,
+      showProgress = verbose,
+      cache = FALSE
+    ),
+    "neighborhood" = geobr::read_neighborhood(
+      showProgress = verbose,
+      cache = FALSE
+    ),
+    "urban_area" = geobr::read_urban_area(
+      showProgress = verbose,
+      cache = FALSE
+    ),
+    "metro_area" = geobr::read_metro_area(
+      showProgress = verbose,
+      cache = FALSE
+    ),
+    "urban_concentrations" = geobr::read_urban_concentrations(
+      showProgress = verbose,
+      cache = FALSE
+    ),
+    "pop_arrangements" = geobr::read_pop_arrangements(
+      showProgress = verbose,
+      cache = FALSE
+    )
+  )
+
+  # Save to cache
+  if (use_cache) {
+    if (verbose) {
+      cli::cli_alert_info(msg$saving_cache)
+    }
+
+    tryCatch(
+      { 
+        if ((requireNamespace("sfarrow", quietly = TRUE))) { 
+         suppressWarnings(sfarrow::st_write_parquet(obj = spatial_df, dsn = cache_file))
+        } else {
+          sf::st_write(spatial_df, cache_file, driver = "GPKG", quiet = TRUE, delete_dsn = TRUE, append = TRUE)
+         }
+        if (verbose) {
+          cli::cli_alert_success(msg$cache_saved)
+        }
+      },
+      error = function(e) {
+        if (verbose) {
+          cli::cli_alert_warning(paste0(msg$cache_save_error, e$message))
+        }
+      }
+    )
+  }
+
+  return(spatial_df)
+}
 
 #' Get Multilingual Messages for Spatial Operations
 #'

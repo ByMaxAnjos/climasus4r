@@ -1,155 +1,152 @@
-#' Fill gaps in climate and air-quality time series using XGBoost
-#'
-#' @title Gap-filling of climate data with station-wise machine learning
+#' @title Fill gaps in climate and air-quality time series using XGBoost
 #'
 #' @description
-#' This function performs data-driven gap-filling (statistical imputation) in
-#' climate and air-quality time series using gradient boosting (XGBoost).
+#' `sus_climate_fill_gaps()` imputes missing values in climate time series using
+#' station-wise XGBoost models with automated feature engineering.
 #' 
-#' The method:
+#' **Key features:**
 #' \itemize{
-#'   \item Trains **one separate model per station** and per target variable;
-#'   \item Uses automatic temporal feature engineering (lags and rolling windows);
-#'   \item Applies station-level quality filtering before modeling;
-#'   \item Supports multiple data sources (e.g., INMET, NOAA, AirQuality);
-#'   \item Can run in parallel across stations;
-#'   \item Returns both filled data and processing metadata.
-#' }
-#'
-#' **Important methodological notes:**
-#' \itemize{
-#'   \item This is a **gap-filling (imputation) method, NOT a forecasting model**.
-#'         Predictions are only made for timestamps where data are missing.
-#'   \item Models are trained **only on observed (non-missing) data** within each station.
-#'   \item No information from the future is used to impute past values
-#'         (only lagged and rolling features are used).
-#'   \item If a station exceeds the allowed missingness threshold for a variable,
-#'         that variable is not imputed for that station.
+#'   \item **Single-target focus**: Each call imputes ONE variable
+#'   \item **Station-wise modeling**: Separate model per station
+#'   \item **Temporal features**: Automatic creation of lags and rolling statistics
+#'   \item **Quality control**: Stations with >`quality_threshold` missing are excluded
+#'   \item **Parallel processing**: Stations processed in parallel for speed
+#'   \item **Evaluation mode**: Assess accuracy by creating artificial gaps
 #' }
 #'
 #' @param df 
-#'   A data.frame (or tibble) containing climate or air-quality data.
-#'   Must include:
+#'   A data frame (or tibble) containing climate data, typically from `sus_climate_inmet()`.
+#'   Must contain:
 #'   \itemize{
-#'     \item a datetime column (POSIXct, POSIXlt, or convertible to datetime),
-#'     \item a station identifier column,
-#'     \item at least one numeric target variable to be filled.
+#'     \item A datetime column (POSIXct or convertible)
+#'     \item A station identifier column
+#'     \item The target numeric column to be imputed
 #'   }
 #'
 #' @param target_var 
-#'   Character vector. One or more variable names to be gap-filled.
-#'   Each variable is modeled and imputed **independently**.
-#'   Example: `c("tair_dry_bulb_c", "rh_mean_porc", "ws_2_m_s")`.
+#'   **Single** character string specifying the column to impute.
+#'   Example: `target_var = "tair_dry_bulb_c"`.
 #'
 #' @param datetime_col 
-#'   Character. Name of the datetime column in `df`.  
-#'   If `NULL` (default), the function attempts automatic detection.
+#'   Character. Name of the datetime column. If `NULL` (default), auto-detected.
 #'
 #' @param station_col 
-#'   Character. Name of the station identifier column.  
-#'   If `NULL`, it is auto-detected based on the declared `source`.
-#'
-#' @param source 
-#'   Character. Data source identifier:
-#'   \itemize{
-#'     \item `"INMET"` (Brazilian weather stations),
-#'     \item `"NOAA"` (global weather stations),
-#'     \item `"AirQuality"` (air pollution data),
-#'     \item `"auto"` (default): automatically detected from column patterns.
-#'   }
+#'   Character. Name of the station identifier column. If `NULL`, auto-detected.
 #'
 #' @param quality_threshold 
-#'   Numeric. Maximum allowed proportion of missing values **per station
-#'   and per variable**.  
-#'   Stations exceeding this threshold are excluded for that variable.
-#'   Default: `0.4` (40% missing).
-#'
-#' @param lag_periods 
-#'   Numeric vector. Time lags (in hours) used to construct predictors.
-#'   Default: `c(3, 6, 12, 24)`.
-#'
-#' @param rolling_windows 
-#'   Numeric vector. Window sizes (in hours) for rolling statistics
-#'   (mean and standard deviation).  
-#'   Default: `c(3, 6, 12)`.
+#'   Numeric (0-1). Maximum allowed missing proportion per station.
+#'   Stations exceeding this are excluded. Default: `0.4` (40%).
 #'
 #' @param run_evaluation 
-#'   Logical. If `TRUE`, performs an internal missing-data simulation to assess
-#'   imputation performance (RMSE / MAE). Default: `FALSE`.
+#'   Logical. If `TRUE`, runs in evaluation mode:
+#'   \itemize{
+#'     \item Creates artificial MCAR gaps in observed data
+#'     \item Imputes and compares predictions with true values
+#'     \item Returns metrics by station
+#'   }
+#'   Default: `FALSE` (production mode).
 #'
 #' @param gap_percentage 
-#'   Numeric. If `run_evaluation = TRUE`, proportion of observed data
-#'   artificially removed to test performance. Default: `0.2` (20%).
-#'
-#' @param gap_mechanism 
-#'   Character. Missing-data mechanism used in evaluation when
-#'   `run_evaluation = TRUE`:
-#'   \itemize{
-#'     \item `"MCAR"`: Missing Completely At Random (default),
-#'     \item `"MAR"`: Missing At Random,
-#'     \item `"MNAR"`: Missing Not At Random.
-#'   }
+#'   Numeric (0-1). Proportion of data to set as missing in evaluation mode. The `"MCAR"` Missing Completely At Random is used as default.
+#'   Default: `0.2` (20%).
 #'
 #' @param keep_features 
-#'   Logical. If `TRUE`, retains engineered features (lags, rolling statistics,
-#'   and temporal variables).  
-#'   If `FALSE` (default), only original columns + `is_imputed_*` are returned.
+#'   Logical. If `TRUE`, retains engineered features (lags, rolling stats).
+#'   Default: `FALSE` (returns only original columns + `is_imputed`).
 #'
-#' @param model_params 
-#'   List of additional XGBoost parameters to override defaults.
-#'   Example:
-#'   \code{
-#'   list(max_depth = 4, eta = 0.05, nrounds = 200)
-#'   }
+#' @param parallel 
+#'   Logical. If `TRUE` (default), processes stations in parallel using `furrr`.
 #'
-#' @param n_workers 
-#'   Integer. Number of parallel workers.  
-#'   If `NULL` (default), uses `availableCores() - 1`.
+#' @param workers 
+#'   Integer. Number of parallel workers. If `NULL`, uses `availableCores() - 1`.
 #'
 #' @param verbose 
-#'   Logical. If `TRUE`, prints progress messages and warnings.
+#'   Logical. If `TRUE` (default), prints progress messages.
 #'
 #' @param lang 
-#'   Character. Language for messages:
-#'   `"pt"`, `"en"`, or `"es"`. Default: `"pt"`.
+#'   Character. Message language: `"pt"` (Portuguese), `"en"` (English), or `"es"` (Spanish).
+#'   Default: `"pt"`.
 #'
-#' @return 
-#' An object of class `"climasus_df"` with updated metadata, containing:
+#' @return
+#' **Production mode** (`run_evaluation = FALSE`):
+#' Returns a `tibble` (same class as input) with:
 #' \itemize{
-#'   \item **data**: original data with filled values,
-#'   \item **is_imputed_<var>**: logical flag per variable indicating which values were imputed,
-#'   \item **climasus_meta**: metadata including:
+#'   \item Original columns plus imputed values in `target_var`
+#'   \item `is_imputed`: Logical flag (TRUE for filled values)
+#'   \item `climasus_meta` attribute with imputation metadata
+#' }
+#'
+#' **Evaluation mode** (`run_evaluation = TRUE`):
+#' Returns a list of class `climasus_eval` containing:
+#' \itemize{
+#'   \item `$data`: Data frame with artificial gaps and predictions
+#'   \item `$metrics`: A `tibble` with per-station performance metrics:
 #'     \itemize{
-#'       \item data source,
-#'       \item number of imputed values,
-#'       \item imputation rate,
-#'       \item processing time,
-#'       \item quality threshold used.
+#'       \item `station`: Station identifier
+#'       \item `rmse`: Root Mean Squared Error
+#'       \item `mae`: Mean Absolute Error
+#'       \item `r_squared`: R-squared (lower than 1, higher is better)
+#'       \item `smape`: Symmetric MAPE (0-200%, lower is better)
+#'       \item `slope_bias`: Should be close to 1.0, indicating underestimate and overestimate
+#'       \item `n_gaps`: Number of artificial gaps
 #'     }
 #' }
 #'
+#' @section Methodological Notes:
+#' 
+#' **Important limitations:**
+#' \itemize{
+#'   \item **Not forecasting**: Predicts only where data are missing
+#'   \item **No future data**: Uses only past information (lags)
+#'   \item **Station independence**: Models don't share information
+#'   \item **Quality filter**: Stations with >`quality_threshold` missing are skipped
+#' }
+#'
+#' **Feature engineering:**
+#' Automatically creates:
+#' \itemize{
+#'   \item Time features: hour, day, month, year, cyclic transforms
+#'   \item Lag features: 1,2,3,6,12,24,48,72,168 periods
+#'   \item Rolling statistics: mean and sd over windows 3,6,12,24,48,72
+#' }
+#'
+#' @section Evaluation Mode Details:
+#' 
+#' When `run_evaluation = TRUE`, the function:
+#' \enumerate{
+#'   \item Creates artificial gaps (MCAR by default)
+#'   \item Runs imputation on the data with gaps
+#'   \item Compares predictions with true values
+#'   \item Returns per-station performance
+#' }
+#' 
+#' This helps assess model accuracy before production use.
+#'
 #' @examples
 #' \dontrun{
-#' # Basic usage (single variable)
-#' filled_data <- sus_climate_fill_gaps(
-#'   df = inmet_climate,
-#'   target_var = "tair_dry_bulb_c"
-#' )
-#'
-#' # Multiple variables in one call
-#' filled_data <- sus_climate_fill_gaps(
-#'   df = climate_data,
-#'   target_var = c("tair_dry_bulb_c", "rh_mean_porc", "ws_2_m_s"),
-#'   quality_threshold = 0.4
-#' )
-#'
-#' # With performance evaluation
-#' filled_data <- sus_climate_fill_gaps(
+#' # ===== PRODUCTION MODE =====
+#' # Impute missing temperature data
+#' filled_temp <- sus_climate_fill_gaps(
 #'   df = climate_data,
 #'   target_var = "tair_dry_bulb_c",
-#'   run_evaluation = TRUE,
-#'   gap_percentage = 0.2
+#'   quality_threshold = 0.3,
+#'   parallel = TRUE
 #' )
+#'
+#'
+#' # ===== EVALUATION MODE =====
+#' # Assess model performance on a subset
+#' eval_results <- sus_climate_fill_gaps(
+#'   df = climate_data,
+#'   target_var = "ws_2_m_s",
+#'   run_evaluation = TRUE,
+#'   gap_percentage = 0.2,
+#'   workers = 4
+#' )
+#'
+#' # View performance metrics
+#' eval_results$metrics
+#' 
 #' }
 #'
 #' @export
@@ -160,22 +157,18 @@ sus_climate_fill_gaps <- function(
   target_var,
   datetime_col = NULL,
   station_col = NULL,
-  source = "auto",
   quality_threshold = 0.4,
-  lag_periods = c(3, 6, 12, 24),
-  rolling_windows = c(3, 6, 12),
   run_evaluation = FALSE,
   gap_percentage = 0.2,
-  gap_mechanism = "MCAR", 
   keep_features = FALSE,
-  model_params = list(),
-  n_workers = NULL,
+  parallel = TRUE,
+  workers = NULL,
   verbose = TRUE,
   lang = "pt"
 ) {
   
   # Check pak
-  rlang::check_installed(c("furrr", "xgboost", "zoo"), 
+  rlang::check_installed(c("furrr", "xgboost", "zoo", "MASS"), 
                        reason = "to run sus_climate_fill_gaps()")
   
   # Set seed for reproducibility
@@ -185,23 +178,16 @@ sus_climate_fill_gaps <- function(
   messages <- .get_fill_gaps_messages(lang)
 
   # ---- Detect Data Source ----
-  if (source == "auto") {
-    source <- .detect_data_source(df)
-    if (verbose) cli::cli_alert_info(messages$source_detected(source))
-  }
+  source <- .detect_data_source(df)
 
   # ---- Auto-detect Columns ----
+  
   datetime_col <- .detect_datetime_column(df, datetime_col, verbose, messages)
-  station_col <- .detect_station_column(
-    df,
-    station_col,
-    source,
-    verbose,
-    messages
-  )
- 
+  station_col <- .detect_station_column(df, station_col, source, verbose, messages)
+
   # ---- Validate all targets exist ----
   missing_targets <- setdiff(target_var, colnames(df))
+
   if (length(missing_targets) > 0) {
     cli::cli_abort(
       sprintf(
@@ -209,6 +195,16 @@ sus_climate_fill_gaps <- function(
         paste(missing_targets, collapse = ", ")
       )
     )
+  }
+
+ if (length(target_var) > 1) {
+    msg <- switch(lang,
+      "pt" = "Apenas uma variavel alvo e permitida. Por favor, selecione apenas {.strong one target_var}.",
+      "es" = "Solo se permite una variable objetivo. Por favor, seleccione solo {.strong una target_var}.",
+      "en" = "Just one target variable is possible. Please, provide {.strong one target_var} at a time.",
+      "Just one target variable is possible."
+    )
+    cli::cli_abort(msg)
   }
 
   if (verbose) {
@@ -256,7 +252,6 @@ sus_climate_fill_gaps <- function(
     dplyr::filter(.data$missing_pct <= quality_threshold) %>%
     dplyr::pull(!!rlang::sym(station_col))
 
-
   if (length(valid_stations) == 0) {
     cli::cli_abort(
       sprintf(
@@ -266,43 +261,51 @@ sus_climate_fill_gaps <- function(
     )
   }
   
- if (verbose) {
-    skipped <- setdiff(unique(df[[station_col]]), valid_stations)
-    if (length(skipped) > 0) {
-      cli::cli_alert_warning(
-        sprintf(
-          "Skipping %d stations for ALL variables: %s",
-          length(skipped),
-          paste(utils::head(skipped, 10), collapse = ", ")
-        )
-      )
-    }
-  }
-
   df_filtered <- df %>%
     dplyr::filter(!!rlang::sym(station_col) %in% valid_stations)
 
   # ===========================================================
+  # BRANCH PRINCIPAL
+  # ===========================================================
+  if (run_evaluation) {
+      
+      if (verbose) cli::cli_h3("EVALUATION MODE - {target_var}")
+      
+      df_filled <- .evaluate_single_station(
+        df = df_filtered, 
+        target_var = target_var,
+        station_col = station_col,
+        gap_percentage = gap_percentage,
+        parallel = parallel,
+        workers = future::availableCores() - 1,
+        lang = lang,
+        verbose = verbose
+      ) 
+      if (verbose) cli::cli_alert_success("Evaluation complete")
+      
+      return(df_filled) 
+      
+  } else { 
+
+    # ===========================================================
   # PARALLEL SETUP
   # ===========================================================
-  if (is.null(n_workers)) {
-    n_workers <- max(1, future::availableCores() - 1)
+  if(parallel && length(valid_stations) > 1) { 
+
+    if (is.null(workers)) { workers <- max(1, future::availableCores() - 1)}
+
+    if (verbose) { cli::cli_alert_info(sprintf(messages$parallel_setup, workers))}
+
+    old_plan <- future::plan()
+    future::plan(future::multisession, workers = workers)
+    on.exit(future::plan(old_plan), add = TRUE)
+
   }
-
-  if (verbose) {
-    cli::cli_alert_info(sprintf(messages$parallel_setup, n_workers))
-  }
-
-  old_plan <- future::plan()
-  future::plan(future::multisession, workers = n_workers)
-  on.exit(future::plan(old_plan), add = TRUE)
-
+ 
   # ===========================================================
   # PROCESS STATIONS IN PARALLEL
   # ===========================================================
   if (verbose) {cli::cli_alert_info(messages$processing_stations)}
-
-  start_time <- Sys.time()
 
   # Process stations in parallel
   stations_list <- df_filtered %>%
@@ -312,12 +315,10 @@ sus_climate_fill_gaps <- function(
     stations_list,
     function(station_df) {
       tryCatch(
-        .process_single_station_xgboost(
+        .process_single_station_xgboost2(
           station_df = station_df,
           target_var = target_var,
           station_col = station_col,
-          lag_periods = lag_periods,
-          rolling_windows = rolling_windows,
           verbose = FALSE
         ),
         error = function(e) {
@@ -328,81 +329,46 @@ sus_climate_fill_gaps <- function(
               e$message
             )
           )
-          return(station_df) 
+          return(station_df)
         }
       )
     },
     .options = furrr::furrr_options(seed = TRUE),
     .progress = verbose
   )
-
   df_filled <- dplyr::bind_rows(results_list)
-  
-  # Restore original datetime column name if needed
+
+  #Restore original datetime column name if needed
   if (datetime_col != "date") {
     df_filled <- df_filled %>%
       dplyr::rename(!!rlang::sym(datetime_col) := date)
   }
-
-  # ===========================================================
-  # EVALUATION (MUST HAPPEN BEFORE IMPUTATION!)
-  # ===========================================================
-    if (run_evaluation) {
-      if (verbose) {
-        cli::cli_alert_info("Running evaluation with artificial gaps...")
-      }
-      
-      # Run evaluation on a sample of stations to save time
-      eval_stations <- sample(valid_stations, min(3, length(valid_stations)))
-      df_eval <- df_filtered %>%
-        dplyr::filter(!!rlang::sym(station_col) %in% eval_stations)
-      
-      eval_metrics <- .evaluate_single_station(
-        station_df = df_eval,
-        target_var = target_var,
-        station_col = station_col,
-        gap_percentage = gap_percentage,
-        gap_mechanism = gap_mechanism,
-        lag_periods = lag_periods,
-        rolling_windows = rolling_windows,
-        model_params = model_params,
-        verbose = verbose
-      )
-
-      if (verbose) {
-        cli::cli_alert_success(sprintf(
-          "Evaluation completed: RMSE = %.3f, MAE = %.3f, R2 = %.3f",
-          eval_metrics$rmse,
-          eval_metrics$mae,
-          eval_metrics$r_squared
-        ))
-        print(eval_metrics)
-      }
-    }
-  
-  # ===========================================================
+   # ===========================================================
   # STATISTICS PER VARIABLE
   # ===========================================================
   n_imputed <- sum(df_filled$is_imputed, na.rm = TRUE)
   n_total <- nrow(df_filled)
-  imputation_rate <- n_imputed / n_total
-
-  end_time <- Sys.time()
-  processing_time <- difftime(end_time, start_time, units = "secs")
+  imputation_rate <- n_imputed / n_total * 100
 
   if (verbose) {
     cli::cli_alert_success(
-      sprintf(
-        messages$process_complete,
-        n_imputed,
-        n_total,
-        round(imputation_rate * 100, 2),
-        round(as.numeric(processing_time), 2)
-      )
+      "Imputation completed for {.strong {target_var}}: {.val {n_imputed}} row{?s} imputed out of {.val {n_total}} 
+      ({.strong {round(imputation_rate, 2)}%})."
     )
   }
-
+  
   # ===========================================================
+  # DROP ENGINEERED FEATURES IF REQUESTED
+  # ===========================================================
+  if (!keep_features) {
+      original_cols <- colnames(df)
+      impute_cols <- paste0(grep("^is_imputed", colnames(df_filled), value = TRUE),"_", target_var)
+      cols_to_keep <- c(original_cols, impute_cols)
+      cols_to_keep <- cols_to_keep[cols_to_keep %in% colnames(df_filled)]
+      df_filled <- df_filled[, cols_to_keep, drop = FALSE]
+    }
+
+     # ===========================================================
   # S3 CLASS + METADATA
   # ===========================================================
   if (!inherits(df_filled, "climasus_df")) {
@@ -416,7 +382,7 @@ sus_climate_fill_gaps <- function(
       created = Sys.time(),
       modified = Sys.time(),
       history = sprintf(
-        "[%s] Gap-filling with dual ML model (multitarget)",
+        "[%s] Gap-filling with dual ML model",
         format(Sys.time(), "%Y-%m-%d %H:%M:%S")
       ),
       user = list()
@@ -440,28 +406,23 @@ sus_climate_fill_gaps <- function(
         end = max(df_filled$date),
         source = source,
         imputed = TRUE,
+        evaluation = FALSE,
         target_var = target_var,
-        imputation_rate = n_imputed / nrow(df_filled),
+        imputation_rate = n_imputed / n_total,
         quality_threshold = quality_threshold
       )
     )
     df_filled <- climasus_meta(
       df_filled,
-      add_history = "Gap-filling with dual ML model (multitarget)"
+      add_history = "Gap-filling with ML model"
     )
   }
-  # ===========================================================
-  # DROP ENGINEERED FEATURES IF REQUESTED
-  # ===========================================================
- if (!keep_features) {
-    original_cols <- colnames(df)
-    impute_cols <- paste0("is_imputed_", target_var)
-    cols_to_keep <- unique(c(original_cols, impute_cols))
-    cols_to_keep <- cols_to_keep[cols_to_keep %in% colnames(df_filled)]
-    df_filled <- df_filled[, cols_to_keep, drop = FALSE]
-  }
 
-  return(df_filled)
+    return(df_filled)
+
+  }
+  
+ 
 }
 
 # ============================================================================
@@ -514,6 +475,7 @@ sus_climate_fill_gaps <- function(
 #' @keywords internal
 #' @noRd
 .detect_station_column <- function(df, station_col, source, verbose, messages) {
+  
   if (!is.null(station_col)) {
     if (station_col %in% colnames(df)) {
       return(station_col)
@@ -600,477 +562,358 @@ sus_climate_fill_gaps <- function(
   return(messages[[lang]])
 }
 
-#' Process Single Station with Dual-Model XGBoost Strategy (PYTHON STRATEGY)
-#'
-#' COMPLETE REWRITE following the Python approach:
-#' 1. Train on COMPLETE data only (dropna)
-#' 2. Make predictions in BATCH (not per-row loop)
-#' 3. Use simple, robust features (no lag complexity)
-#' 4. Fast vectorized operations
-#'
-#' This approach is proven to work and runs in minutes, not hours.
-#'
-#' @param station_df Data frame with station data
-#' @param target_var Name of target variable to impute
-#' @param station_col Name of station column
-#' @param lag_periods Vector of lag periods (OPTIONAL, for advanced features)
-#' @param rolling_windows Vector of rolling window sizes (OPTIONAL)
-#' @param model_params List of XGBoost parameters
-#' @param verbose Logical, print progress messages
-#' @param system_name Optional system identifier
+#' Process Single Station with XGBoost (Non-Negative Support)
 #'
 #' @return Data frame with imputed values and is_imputed column
-#'
 #' @keywords internal
 #' @noRd
-.process_single_station_xgboost <- function(
-  station_df,
-  target_var,
-  station_col,
-  lag_periods = c(1, 24),
-  rolling_windows = c(6, 24),
-  model_params = list(),
-  verbose = TRUE
+.process_single_station_xgboost2 <- function(
+    station_df,
+    target_var,
+    station_col,
+    model_params = list(),
+    verbose = TRUE
 ) {
-  # ---- Step 0: Sort and Initialize ----
-  if ("date" %in% colnames(station_df)) {
-    station_df <- station_df %>% dplyr::arrange(.data$date)
+  
+  get_transform_rule <- function(target_var) {
+    dplyr::case_when(
+      grepl("rainfall", target_var) ~ "log1p",
+      grepl("ws_|gust", target_var) ~ "sqrt",
+      grepl("sr_kj", target_var)    ~ "sqrt",
+      grepl("rh_|patm", target_var) ~ "none", # Adaptativo para estabilidade
+      TRUE                          ~ "none"
+    )
   }
+  transform_type <- get_transform_rule(target_var)
 
-  if (!"is_imputed" %in% colnames(station_df)) {
-    station_df$is_imputed <- FALSE
-  }
-    # Handle solar radiation
-  if ("sr_kj_m2" %in% colnames(station_df)) {
-    station_df <- .handle_solar_radiation(station_df, "sr_kj_m2", "date")
-  }
-  # ---- Step 1: Identify Missing and Training Data ----
+if (!target_var %in% colnames(station_df)) {
+  cli::cli_abort("target_var '{target_var}' not found in data")
+}
+
+if ("date" %in% colnames(station_df)) {
+  station_df <- station_df %>% dplyr::arrange(.data$date)
+}
+if (!"is_imputed" %in% colnames(station_df)) {
+  station_df$is_imputed <- FALSE
+}
+
+if (target_var == "sr_kj_m2" && "date" %in% colnames(station_df)) {
+  station_df <- .handle_solar_radiation(station_df, target_var, "date")
+}
+
   original_nas_idx <- which(is.na(station_df[[target_var]]))
-  train_idx <- which(!is.na(station_df[[target_var]]))
-  base_train_idx <- train_idx
+train_idx <- which(!is.na(station_df[[target_var]]))
 
-  # ---- Step 2: Create SIMPLE Temporal Features (no lags yet) ----
+if (length(train_idx) < 30) {
+  if (verbose) cli::cli_alert_warning("Insufficient training data ({length(train_idx)} obs), skipping")
+  return(station_df)
+}
+
+y_train_original <- station_df[[target_var]][train_idx]
+y_train <- y_train_original
+transform_params <- list(shift = 0, lambda = 1, type = transform_type)
+
+if (transform_type != "none") {
+  
+  if (transform_type %in% c("log", "boxcox")) {
+    min_val <- min(y_train, na.rm = TRUE)
+    shift <- if (min_val <= 0) abs(min_val) + 0.001 else 0
+    y_train_shifted <- y_train + shift
+    transform_params$shift <- shift
+    
+    if (transform_type == "log") {
+      y_train <- log(y_train_shifted)
+    } else {
+      # Box-Cox
+      lambda <- tryCatch({
+        bc <- MASS::boxcox(y_train_shifted ~ 1, plotit = FALSE)
+        bc$x[which.max(bc$y)]
+      }, error = function(e) 1)
+      
+      y_train <- if (abs(lambda) < 1e-6) log(y_train_shifted) else (y_train_shifted^lambda - 1) / lambda
+      transform_params$lambda <- lambda
+    }
+  } 
+  
+  else if (transform_type == "log1p") {
+    y_train <- log1p(y_train)
+  } else if (transform_type == "sqrt") {
+    y_train <- sqrt(y_train)
+  }
+    
+    if (verbose) {
+      cli::cli_alert_success("Transformation applied: {.field {transform_type}} | Shift: {round(transform_params$shift, 4)}")
+    }
+  }
+  
+  # ============================================================================
+  # CRIAR FEATURES
+  # ============================================================================
+  
   station_df <- create_time_features(station_df, "date")
+  
   station_df <- create_lag_features(
     station_df,
     target_cols = target_var,
-    lag_periods = lag_periods, # ex: c(1, 3, 6, 12, 24)
-    datetime_col = "date",
     verbose = FALSE
   )
   station_df <- create_rolling_features(
     station_df,
-    target_vars = target_var,
-    windows = rolling_windows, # ex: c(3, 6, 12)
-    stats = c("mean", "sd") # Python usa "std", R usa "sd"
+    target_vars = target_var
   )
-
-  # ---- Step 3: Identify Feature Sets ----
+  # ============================================================================
+  # IDENTIFICAR FEATURES
+  # ============================================================================
+  
   all_numeric <- colnames(station_df)[sapply(station_df, is.numeric)]
-
+  
   exclude_cols <- c(
-    target_var, "year", "latitude", "longitude", "altitude",
-    #target_var,
-    station_col,
-    "is_imputed"
+    target_var, 
+    station_col, "is_imputed"
   )
-
-  # Temporal features (from create_time_features)
+  
+  # Features temporais
   temporal_features <- all_numeric[grepl(
-    "hour|minute|day|month|dayofyear|weekday|quarter|weekofyear|season|is_|solar_|heating_|cooling_|lunar_|synoptic_|weekly_|fourier_|time_index|days_since|months_since|years_since|potential_|evapotranspiration_|phase|rain_season|zone",
+    "hour|minute|day|month|dayofyear|weekday|quarter|weekofyear|season|is_|hour_|sin|cos",
     all_numeric,
     ignore.case = TRUE
   )]
-
+  
+  # Features de lag/rolling
   lag_rolling_features <- all_numeric[grepl(
-    "lag_|lead_|rolling_",
+    paste0(target_var, "_(lag|lead|rolling|same_hour|diff)"),
     all_numeric,
     ignore.case = TRUE
   )]
+  
+  temporal_features <- unique(c(temporal_features, lag_rolling_features))
+  temporal_features <- setdiff(temporal_features, exclude_cols)
+  
+  available_meteo <- setdiff(all_numeric, c(temporal_features, lag_rolling_features, exclude_cols))
+  
+  # ============================================================================
+  # TREINAR MODELOS (APENAS MODELO B - TEMPORAL)
+  # ============================================================================
+  
+  X_train <- station_df[train_idx, temporal_features, drop = FALSE]
+    
+  model <- tryCatch({
+    
+    params <- list(
+      booster = "gbtree",
+      eval_metric = "rmse",
+      objective = "reg:squarederror",
+      eta = 0.05, 
+      max_depth = 4,
+      subsample = 0.7,
+      colsample_bytree = 0.7,
+      min_child_weight = 3,
+      alpha = 0.5, 
+      lambda = 2.0, 
+      gamma = 0.1, 
+      nthread = 1,
+      tree_method = "hist"
+    )   
 
-  temporal_features <- c(temporal_features, lag_rolling_features)
-
-  # Everything else numeric is meteorological/covariate
-  available_meteo <- setdiff(
-    all_numeric,
-    c(temporal_features, lag_rolling_features, exclude_cols)
-  )
-
-  # ---- Step 5: Train Model A (All Features) ----
-  model_a <- NULL
-  feature_cols_a <- c(temporal_features, available_meteo)
-
-  if (length(feature_cols_a) > 0) {
-    model_a <- tryCatch(
-      {
-        X_train <- station_df[train_idx, feature_cols_a, drop = FALSE]
-        y_train <- station_df[[target_var]][train_idx]
-
-        params <- list(
-          booster = "gbtree",
-          objective = "reg:squarederror",
-          eta = 0.1,
-          max_depth = 3,
-          subsample = 0.8,
-          colsample_bytree = 0.8,
-          min_child_weight = 5,
-          alpha = 0.0, 
-          lambda = 1.5, 
-          nthread = parallel::detectCores() - 1,
-          tree_method = "hist" 
-        )
-
-        dtrain <- xgboost::xgb.DMatrix(
-          data = as.matrix(X_train),
-          label = y_train
-        )
-        nrounds <- params$nrounds %||% 150
-        model <- xgboost::xgb.train(
-          params = params,
-          data = dtrain,
-          nrounds = nrounds,
-          verbose = 0
-        )
-
-        if (verbose) {
-          cli::cli_alert_success("Model A trained successfully")
-        }
-        model
-      },
-      error = function(e) {
-        if (verbose) {
-          cli::cli_alert_warning(sprintf(
-            "Model A training failed: %s",
-            e$message
-          ))
-        }
-        NULL
-      }
+    params <- utils::modifyList(params, model_params)
+    nrounds <- params$nrounds %||% 200  
+    
+    dtrain <- xgboost::xgb.DMatrix(
+      data = as.matrix(X_train),
+      label = y_train
     )
-  }
-
-  # ---- Step 6: Train Model B (Temporal Features Only) ----
-  model_b <- NULL
-
-  if (length(temporal_features) > 0) {
-    model_b <- tryCatch(
-      {
-        X_train <- station_df[train_idx, temporal_features, drop = FALSE]
-        y_train <- station_df[[target_var]][train_idx]
-
-        params <- list(
-          booster = "gbtree",
-          objective = "reg:squarederror",
-          eta = 0.1,
-          max_depth = 3,
-          subsample = 0.8,
-          colsample_bytree = 0.8,
-          min_child_weight = 5,
-          alpha = 0.0, 
-          lambda = 1.5, 
-          nthread = parallel::detectCores() - 1,
-          tree_method = "hist" 
-        )
-        dtrain <- xgboost::xgb.DMatrix(
-          data = as.matrix(X_train),
-          label = y_train
-        )
-        nrounds <- params$nrounds %||% 150
-        model <- xgboost::xgb.train(
-          params = params,
-          data = dtrain,
-          nrounds = nrounds,
-          verbose = 0
-        )
-
-
-        if (verbose) {
-          cli::cli_alert_success("Model B trained successfully")
-        }
-        model
-      },
-      error = function(e) {
-        if (verbose) {
-          cli::cli_alert_warning(sprintf(
-            "Model B training failed: %s",
-            e$message
-          ))
-        }
-        NULL
-      }
+    
+    xgboost::xgb.train(
+      params = params,
+      data = dtrain,
+      nrounds = nrounds,
+      verbose = 0,
+      early_stopping_rounds = 20,
+      eval = list(train = dtrain)
     )
-  }
-
-  if (is.null(model_a) && is.null(model_b)) {
+    
+  }, error = function(e) {
     if (verbose) {
-      cli::cli_alert_warning("No models trained successfully")
+      cli::cli_alert_warning(sprintf("Model training failed: %s", e$message))
     }
-    return(station_df)
-  }
-
-  # ---- Step 7: BATCH PREDICTIONS (not per-row loop!) ----
-  if (verbose) {
-    cli::cli_alert_info("Making predictions...")
-  }
-
+    NULL
+  })
+  
+  if (is.null(model)) {return(station_df)}
+  
   missing_data <- station_df[original_nas_idx, , drop = FALSE]
-  predictions <- numeric(length(original_nas_idx))
-  model_used <- character(length(original_nas_idx))
+  
+  X_pred <- missing_data[, temporal_features, drop = FALSE]
+  
+  predictions <- tryCatch({
+    preds <- stats::predict(model, as.matrix(X_pred))
 
-  # ---- Predict with Model A (if meteorological data available) ----
-  if (!is.null(model_a)) {
-    has_meteo <- stats::complete.cases(missing_data[, available_meteo, drop = FALSE])
-
-    if (any(has_meteo)) {
-      X_pred <- missing_data[has_meteo, feature_cols_a, drop = FALSE]
-
-      # Impute any remaining NAs with column means from training data
-      for (col in colnames(X_pred)) {
-        col_mean <- mean(
-          station_df[train_idx, col, drop = TRUE],
-          na.rm = TRUE
-        )
-        X_pred[[col]][is.na(X_pred[[col]])] <- col_mean
-      }
-
-      # BATCH prediction (single call, not 113k calls!)
-      y_train_mean <- mean(y_train, na.rm = TRUE)
-      preds <- stats::predict(model_a, as.matrix(X_pred))
-      preds <- ifelse(is.na(preds), y_train_mean, preds)
-
-      predictions[has_meteo] <- preds
-      model_used[has_meteo] <- "A"
-
-      if (verbose) {
-        cli::cli_alert_info(sprintf("Model A: %d predictions", sum(has_meteo)))
+    if (transform_type != "none") {
+      
+      if (transform_type == "log") {
+        preds <- exp(preds) - transform_params$shift
+      } else if (transform_type == "log1p") {
+        preds <- expm1(preds)
+      } else if (transform_type == "sqrt") {
+        preds <- preds^2
+      } else if (transform_type == "boxcox") {
+        if (abs(transform_params$lambda) < 1e-6) {
+          preds <- exp(preds) - transform_params$shift
+        } else {
+          preds <- (preds * transform_params$lambda + 1)^(1/transform_params$lambda) - 
+                   transform_params$shift
+        }
       }
     }
-  }
-  # ---- Predict with Model B (fallback for missing meteorological data) ----
-  needs_b <- is.na(model_used) | model_used == ""
-
-  if (!is.null(model_b) && any(needs_b)) {
-    X_pred <- missing_data[needs_b, temporal_features, drop = FALSE]
-
-    # Impute any remaining NAs
-    for (col in colnames(X_pred)) {
-      col_mean <- mean(
-        station_df[train_idx, col, drop = TRUE],
-        na.rm = TRUE
-      )
-      X_pred[[col]][is.na(X_pred[[col]])] <- col_mean
-    }
-
-    # BATCH prediction
-    y_train_mean <- mean(y_train, na.rm = TRUE)
-    preds <- stats::predict(model_b, as.matrix(X_pred))
-    preds <- ifelse(is.na(preds), y_train_mean, preds)
-
-    predictions[needs_b] <- preds
-    model_used[needs_b] <- "B"
-
+    
+    # # 2. Garantir nao-negatividade
+    # preds <- pmax(preds, 0)
+    
+    # 3. Aplicar limites fisicos (se fornecidos)
+    if (grepl("rh|umid|humidity", target_var, ignore.case = TRUE)) {
+        preds <- pmin(pmax(preds, 0), 100)
+      } else if (grepl("t.*c|temp", target_var, ignore.case = TRUE)) {
+        preds <- pmin(pmax(preds, -90), 60)
+      } else if (grepl("pres|patm", target_var, ignore.case = TRUE)) {
+        preds <- pmin(pmax(preds, 700), 1100)
+      } else if (grepl("rain|precip", target_var, ignore.case = TRUE)) {
+        preds <- pmax(preds, 0)
+      } else if (grepl("ws|wind", target_var, ignore.case = TRUE)) {
+        preds <- pmax(preds, 0)
+      }
+    
+    preds <- .smooth_extreme_predictions(preds, y_train_original)
+    
+    preds
+    
+  }, error = function(e) {
     if (verbose) {
-      cli::cli_alert_info(sprintf("Model B: %d predictions", sum(needs_b)))
+      cli::cli_alert_warning(sprintf("Prediction failed: %s", e$message))
     }
-  }
-  # ---- Step 8: Update DataFrame ----
+    rep(mean(y_train_original, na.rm = TRUE), length(original_nas_idx))
+  })
+  
   station_df[[target_var]][original_nas_idx] <- predictions
   station_df$is_imputed[original_nas_idx] <- TRUE
-
   return(station_df)
 }
 
-#' Create Time-Based Features
+
+#' Smooth Extreme Predictions
 #'
-#' @description Adds comprehensive time-related features including cyclical
-#'   transformations and categorical indicators for temporal patterns.
+#' @param preds Numeric vector of predictions
+#' @param train_vals Training values for reference
+#' @param iqr_multiplier IQR multiplier for outlier detection
 #'
+#' @return Smoothed predictions
 #' @keywords internal
 #' @noRd
-create_time_features <- function(data, datetime_col = 'date') {
-  `.` <- NULL
-  original_cols <- colnames(data)
-
-  if (!inherits(data[[datetime_col]], "POSIXct")) {
-    data[[datetime_col]] <- as.POSIXct(data[[datetime_col]])
+.smooth_extreme_predictions <- function(preds, train_vals, iqr_multiplier = 5) {
+  
+  # Calcular limites baseados nos dados de treino
+  q1 <- stats::quantile(train_vals, 0.25, na.rm = TRUE)
+  q3 <- stats::quantile(train_vals, 0.75, na.rm = TRUE)
+  iqr <- q3 - q1
+  
+  lower_bound <- q1 - iqr_multiplier * iqr
+  upper_bound <- q3 + iqr_multiplier * iqr
+  
+  train_mean <- mean(train_vals, na.rm = TRUE)
+  
+  # Identificar predicoes extremas
+  extreme_idx <- which(preds < lower_bound | preds > upper_bound)
+  
+  if (length(extreme_idx) > 0) {
+    # Suavizar: misturar predicao extrema com media
+    alpha <- 0.3  # Peso da media
+    preds[extreme_idx] <- alpha * train_mean + (1 - alpha) * preds[extreme_idx]
   }
+  
+  return(preds)
+}
 
-  df <- data
 
+#' Create Time-Based Features
+#'
+#' @description Generates cyclical and categorical time-based features from a datetime column.
+#' @param data A data.frame or tibble.
+#' @param datetime_col Character string with the name of the datetime column. Default is "datetime".
+#' @keywords internal
+#' @noRd
+create_time_features <- function(data, datetime_col = "date") {
+  
+  # Ensure input is a tibble and handle datetime conversion
+  df <- dplyr::as_tibble(data)
+  df[[datetime_col]] <- lubridate::as_datetime(df[[datetime_col]])
+  
+  # 1. Basic Temporal Components
   df <- df %>%
     dplyr::mutate(
-      hour = lubridate::hour(!!rlang::sym(datetime_col)),
-      minute = lubridate::minute(!!rlang::sym(datetime_col)),
-      day = lubridate::day(!!rlang::sym(datetime_col)),
-      month = lubridate::month(!!rlang::sym(datetime_col)),
-      year = lubridate::year(!!rlang::sym(datetime_col)),
-      dayofyear = lubridate::yday(!!rlang::sym(datetime_col)),
-      weekday = lubridate::wday(!!rlang::sym(datetime_col), week_start = 1) - 1,
-      quarter = lubridate::quarter(!!rlang::sym(datetime_col)),
-      weekofyear = lubridate::week(!!rlang::sym(datetime_col)),
-
-      is_weekend = as.integer(.data$weekday %in% c(5, 6)),
-
-      hour_sin = sin(2 * pi * .data$hour / 24),
-      hour_cos = cos(2 * pi * .data$hour / 24),
-      month_sin = sin(2 * pi * .data$month / 12),
-      month_cos = cos(2 * pi * .data$month / 12),
-      dayofyear_sin = sin(2 * pi * .data$dayofyear / 365.25),
-      dayofyear_cos = cos(2 * pi * .data$dayofyear / 365.25),
-      weekday_sin = sin(2 * pi * .data$weekday / 7),
-      weekday_cos = cos(2 * pi * .data$weekday / 7),
-      quarter_sin = sin(2 * pi * .data$quarter / 4),
-      quarter_cos = cos(2 * pi * .data$quarter / 4),
-      weekofyear_sin = sin(2 * pi * .data$weekofyear / 52),
-      weekofyear_cos = cos(2 * pi * .data$weekofyear / 52),
-
-      hour_decimal = .data$hour + .data$minute / 60.0,
-      minute_decimal = .data$minute / 60.0,
-
+      hour       = as.integer(lubridate::hour(.data[[datetime_col]])),
+      day        = as.integer(lubridate::day(.data[[datetime_col]])),
+      month      = as.integer(lubridate::month(.data[[datetime_col]])),
+      year       = as.integer(lubridate::year(.data[[datetime_col]])),
+      dayofyear  = as.integer(lubridate::yday(.data[[datetime_col]])),
+      quarter    = as.integer(lubridate::quarter(.data[[datetime_col]])),
+      weekofyear = as.integer(lubridate::isoweek(.data[[datetime_col]])),
+      # Internal helper for weekday (1=Mon, 7=Sun)
+      wday_tmp   = lubridate::wday(.data[[datetime_col]], week_start = 1)
+    )
+  
+  # 2. Boolean and Categorical Indicators
+  df <- df %>%
+    dplyr::mutate(
+      weekday    = as.integer(wday_tmp - 1), # Base 0-6 (0=Mon, 6=Sun)
+      is_weekend = dplyr::if_else(wday_tmp %in% c(6, 7), 1L, 0L),
+      
+      # Season mapping (0: Winter/Summer context dependent, 1: Autumn/Spring, etc)
       season = dplyr::case_when(
-        .data$month %in% c(12, 1, 2) ~ 0, # summer
-        .data$month %in% c(3, 4, 5) ~ 1, # autumn
-        .data$month %in% c(6, 7, 8) ~ 2, # winter
-        .data$month %in% c(9, 10, 11) ~ 3, # spring
-        TRUE ~ NA_real_
-      ),
-
-      is_morning = as.integer(.data$hour >= 6 & .data$hour < 12),
-      is_afternoon = as.integer(.data$hour >= 12 & .data$hour < 18),
-      is_evening = as.integer(.data$hour >= 18 & .data$hour < 22),
-      is_night = as.integer(.data$hour >= 22 | .data$hour < 6),
-
-      solar_noon_proximity = abs(.data$hour - 12) / 12,
-      is_sunrise = as.integer(.data$hour >= 5 & .data$hour <= 7),
-      is_sunset = as.integer(.data$hour >= 17 & .data$hour <= 19),
-
-      is_dry_season = as.integer(.data$month %in% c(5:10)),
-      is_rainy_season = as.integer(.data$month %in% c(11:4)),
-
-      day_length = dplyr::case_when(
-        .data$month %in% c(12) ~ 13.5,
-        .data$month %in% c(6) ~ 10.5,
-        TRUE ~ 12 + 2 * sin(2 * pi * (.data$dayofyear - 80) / 365.25)
-      ),
-
-      is_holiday = 0,
-      is_working_hour = as.integer(
-        .data$hour >= 8 & .data$hour < 18 & !(.data$weekday %in% c(5, 6))
-      ),
-
-      diurnal_phase = dplyr::case_when(
-        .data$hour >= 5 & .data$hour < 11 ~ "morning_rise",
-        .data$hour >= 11 & .data$hour < 14 ~ "midday",
-        .data$hour >= 14 & .data$hour < 18 ~ "afternoon_decline",
-        .data$hour >= 18 & .data$hour < 22 ~ "evening",
-        TRUE ~ "night"
+        month %in% c(12, 1, 2) ~ 0L,
+        month %in% c(3, 4, 5)  ~ 1L,
+        month %in% c(6, 7, 8)  ~ 2L,
+        month %in% c(9, 10, 11) ~ 3L,
+        TRUE                   ~ NA_integer_
       )
     )
-
-  season_dummies <- stats::model.matrix(
-    ~ factor(.data$season, levels = 0:3) - 1,
-    data = df
-  )
-  colnames(season_dummies) <- c("season_0", "season_1", "season_2", "season_3")
-  df <- cbind(df, season_dummies)
-
+  
+  # 3. Cyclical Features (Sine/Cosine transformations)
   df <- df %>%
     dplyr::mutate(
-      hour_month_interaction = .data$hour * .data$month / 288,
-      season_hour_interaction = .data$season * .data$hour / 72
+      hour_sin      = sin(2 * pi * hour / 24),
+      hour_cos      = cos(2 * pi * hour / 24),
+      month_sin     = sin(2 * pi * month / 12),
+      month_cos     = cos(2 * pi * month / 12),
+      dayofyear_sin = sin(2 * pi * dayofyear / 365.25),
+      dayofyear_cos = cos(2 * pi * dayofyear / 365.25),
+      weekday_sin   = sin(2 * pi * weekday / 7),
+      weekday_cos   = cos(2 * pi * weekday / 7),
+      quarter_sin   = sin(2 * pi * quarter / 4),
+      quarter_cos   = cos(2 * pi * quarter / 4),
+      weekofyear_sin = sin(2 * pi * weekofyear / 52),
+      weekofyear_cos = cos(2 * pi * weekofyear / 52)
     )
-
+  
+  # 4. Feature Engineering: Dummies and Buckets
   df <- df %>%
     dplyr::mutate(
-      fourier_year_sin1 = sin(2 * pi * .data$dayofyear / 365.25),
-      fourier_year_cos1 = cos(2 * pi * .data$dayofyear / 365.25),
-      fourier_year_sin2 = sin(4 * pi * .data$dayofyear / 365.25),
-      fourier_year_cos2 = cos(4 * pi * .data$dayofyear / 365.25),
-
-      fourier_day_sin1 = sin(2 * pi * .data$hour_decimal / 24),
-      fourier_day_cos1 = cos(2 * pi * .data$hour_decimal / 24),
-      fourier_day_sin2 = sin(4 * pi * .data$hour_decimal / 24),
-      fourier_day_cos2 = cos(4 * pi * .data$hour_decimal / 24)
-    )
-
-  df <- df %>%
-    dplyr::group_by(dplyr::across(dplyr::any_of(c(
-      "station_name",
-      "station_code"
-    )))) %>%
-    dplyr::arrange(!!rlang::sym(datetime_col)) %>%
-    dplyr::mutate(
-      time_index = dplyr::row_number(),
-      days_since_start = as.numeric(difftime(
-        !!rlang::sym(datetime_col),
-        min(!!rlang::sym(datetime_col)),
-        units = "days"
-      )),
-      months_since_start = .data$days_since_start / 30.44,
-      years_since_start = .data$days_since_start / 365.25
+      # Manual One-Hot Encoding for seasons
+      season_0 = dplyr::if_else(season == 0, 1L, 0L),
+      season_1 = dplyr::if_else(season == 1, 1L, 0L),
+      season_2 = dplyr::if_else(season == 2, 1L, 0L),
+      season_3 = dplyr::if_else(season == 3, 1L, 0L),
+      
+      # Day period indicators
+      is_morning   = dplyr::if_else(hour >= 6 & hour < 12, 1L, 0L),
+      is_afternoon = dplyr::if_else(hour >= 12 & hour < 18, 1L, 0L),
+      is_evening   = dplyr::if_else(hour >= 18 & hour < 22, 1L, 0L),
+      is_night     = dplyr::if_else(hour >= 22 | hour < 6, 1L, 0L),
+      
+      # Additional continuous features
+      hour_decimal = hour + (lubridate::minute(.data[[datetime_col]]) / 60.0)
     ) %>%
-    dplyr::ungroup()
-
-  df <- df %>%
-    dplyr::mutate(
-      lunar_phase = (.data$day %% 29.53) / 29.53,
-      synoptic_period = .data$dayofyear %% 5,
-      weekly_cycle = .data$weekday / 6
-    )
-
-  df <- df %>%
-    dplyr::mutate(
-      heating_degree_hours = pmax(18 - .data$hour_decimal / 24 * 10, 0),
-      cooling_degree_hours = pmax(.data$hour_decimal / 24 * 10 - 24, 0),
-
-      solar_angle = 90 - abs(12 - .data$hour) * 15,
-      potential_solar_radiation = pmax(sin(pi * .data$solar_angle / 180), 0),
-
-      evapotranspiration_potential = dplyr::case_when(
-        .data$season == 0 ~ 1.2,
-        .data$season == 1 ~ 0.9,
-        .data$season == 2 ~ 0.6,
-        .data$season == 3 ~ 1.0,
-        TRUE ~ 0.8
-      ) *
-        (1 - .data$is_night)
-    )
-
-  if ("diurnal_phase" %in% colnames(df)) {
-    phase_dummies <- stats::model.matrix(~ diurnal_phase - 1, data = df)
-    phase_dummy_cols <- as.data.frame(phase_dummies) %>%
-      stats::setNames(gsub("diurnal_phase", "phase", colnames(.)))
-    df <- cbind(df, phase_dummy_cols)
-    df <- df %>% dplyr::select(-.data$diurnal_phase)
-  }
-
-  df <- df %>%
-    dplyr::mutate(
-      climate_zone = dplyr::case_when(
-        .data$month %in% c(1:3, 10:12) & .data$hour >= 12 ~ "hot_humid",
-        .data$month %in% c(4:9) & .data$hour >= 12 ~ "warm_dry",
-        TRUE ~ "moderate"
-      ),
-
-      is_transition_season = as.integer(.data$month %in% c(3, 4, 9, 10)),
-
-      rain_season_intensity = dplyr::case_when(
-        .data$month == 1 ~ 0.9,
-        .data$month == 2 ~ 0.8,
-        .data$month == 3 ~ 0.7,
-        .data$month == 12 ~ 0.8,
-        TRUE ~ 0.3
-      )
-    )
-  if ("climate_zone" %in% colnames(df)) {
-    zone_dummies <- stats::model.matrix(~ climate_zone - 1, data = df)
-    zone_dummy_cols <- as.data.frame(zone_dummies) %>%
-      stats::setNames(gsub("climate_zone", "zone", colnames(.)))
-    df <- cbind(df, zone_dummy_cols)
-    df <- df %>% dplyr::select(-.data$climate_zone)
-  }
-
-  return(dplyr::as_tibble(df))
+    dplyr::select(-wday_tmp) # Clean up helper column
+  
+  return(df)
 }
 
 #' Create Lagged Features with Robust Imputation
@@ -1081,7 +924,7 @@ create_time_features <- function(data, datetime_col = 'date') {
 create_lag_features <- function(
   data,
   target_cols,
-  lag_periods = c(1, 2, 3, 6, 12),
+  lag_periods = c(1, 2, 3, 12, 24, 168),
   group_cols = NULL,
   datetime_col = "date",
   include_forward_lags = TRUE,
@@ -1210,9 +1053,11 @@ create_lag_features <- function(
   # ==============================================================================
   if (na_action == TRUE) {
     created_cols <- setdiff(colnames(result_data), original_all_cols)
-    created_numeric <- created_cols[sapply(created_cols, function(x) {
-      is.numeric(result_data[[x]])
-    })]
+    # created_numeric <- created_cols[sapply(created_cols, function(x) {
+    #   is.numeric(result_data[[x]])
+    # })]
+    is_num <- vapply(created_cols, function(x) is.numeric(result_data[[x]]), FUN.VALUE = logical(1))
+    created_numeric <- created_cols[is_num]
 
     if (length(created_numeric) > 0) {
       impute_vector <- function(x) {
@@ -1262,7 +1107,7 @@ create_rolling_features <- function(
   data,
   target_vars,
   windows = c(3, 6, 12, 24),
-  stats = c("mean", "sd", "min", "max"),
+  stats = c("mean", "sd"),
   impute_nans = TRUE
 ) {
   # require(zoo)
@@ -1360,7 +1205,8 @@ create_rolling_features <- function(
     radiation_col = "sr_kj_m2",
     datetime_col = "date",
     night_start = 18,
-    night_end = 6) {
+    night_end = 6) 
+    {
   
   if (!radiation_col %in% colnames(data)) {
     return(data)
@@ -1373,14 +1219,14 @@ create_rolling_features <- function(
   df <- df %>%
     dplyr::mutate(
       .hour = lubridate::hour(!!rlang::sym(datetime_col)),
-      .is_night = .data$.hour >= night_start | .data$.hour < night_end,
+      .is_night = .hour >= night_start | .hour < night_end,
       !!radiation_col := dplyr::if_else(
-        .data$.is_night & is.na(!!rlang::sym(radiation_col)),
+        .is_night & is.na(!!rlang::sym(radiation_col)),
         0,
         !!rlang::sym(radiation_col)
       )
     ) %>%
-    dplyr::select(-.data$.hour, -.data$.is_night)
+    dplyr::select(-.hour, -.is_night)
   
   return(df)
 }
@@ -1388,102 +1234,643 @@ create_rolling_features <- function(
 
 # ---- EVALUATION MODULE ----
 
-#' Introduce Artificial Gaps
+
+#' Calculate ML Performance Metrics for Imputation Evaluation
 #'
-#' @description Generate artificial missing values for evaluation
+#' @description
+#' Computa m\u00e9tricas de performance para avaliar imputa\u00e7\u00e3o de dados clim\u00e1ticos.
+#' Inclui remo\u00e7\u00e3o opcional de outliers via Z-score e m\u00e9tricas robustas.
 #'
-#' @param data Data frame
-#' @param target_var Character. Target variable
-#' @param gap_percentage Numeric. Percentage of data to remove (0-1)
-#' @param gap_mechanism Character. 'MCAR', 'MAR', or 'MNAR'
+#' @param true_values Numeric vector. Valores reais (observados).
+#' @param pred_values Numeric vector. Valores preditos (imputados).
+#' @param na.rm Logical. Remove NAs antes do c\u00e1lculo? (default: TRUE)
+#' @param remove_outliers Logical. Remove outliers via Z-score? (default: FALSE)
+#' @param z_threshold Numeric. Limiar Z-score para outlier (default: 3)
+#' @param digits Integer. N\u00famero de casas decimais para exibi\u00e7\u00e3o (default: 2)
+#' @param lang Character. Idioma: "pt", "en", "es" (default: "pt")
+#'
+#' @return Invis\u00edvel: lista com todas as m\u00e9tricas calculadas
+#'
+#' @examples
+#' \dontrun{
+#' true <- rnorm(100, mean = 25, sd = 5)
+#' pred <- true + rnorm(100, mean = 0, sd = 2)
+#' 
+#' # B\u00e1sico
+#' calc_ml_metrics(true, pred)
+#' 
+#' # Com remo\u00e7\u00e3o de outliers (recomendado para dados clim\u00e1ticos)
+#' calc_ml_metrics(true, pred, remove_outliers = TRUE, z_threshold = 3)
+#' }
+#' @keywords internal
+#' @noRd
+calc_ml_metrics <- function(
+    true_values, 
+    pred_values, 
+    na.rm = TRUE,
+    remove_outliers = TRUE,
+    z_threshold = 3,
+    digits = 2,
+    lang = "pt",
+    verbose = verbose
+) {
+  
+  # ============================================================================
+  # VALIDA\u00c7\u00c3O INICIAL
+  # ============================================================================
+  
+  # Verificar se s\u00e3o vetores num\u00e9ricos
+  if (!is.numeric(true_values) || !is.numeric(pred_values)) {
+    cli::cli_abort("true_values and pred_values must be numeric vectors")
+  }
+  
+  # Verificar mesmo comprimento
+  if (length(true_values) != length(pred_values)) {
+    cli::cli_abort("true_values and pred_values must have the same length")
+  }
+  
+  # ============================================================================
+  # REMO\u00c7\u00c3O DE OUTLIERS (OPCIONAL)
+  # ============================================================================
+  
+  if (remove_outliers) {
+    # Calcular Z-scores para valores reais
+    true_mean <- mean(true_values, na.rm = na.rm)
+    true_sd <- sd(true_values, na.rm = na.rm)
+    
+    if (true_sd > 0 && !is.na(true_sd)) {
+      z_scores <- abs((true_values - true_mean) / true_sd)
+      outlier_idx <- which(z_scores > z_threshold)
+      
+      if (length(outlier_idx) > 0) {
+        # Remover outliers de AMBOS os vetores
+        true_values <- true_values[-outlier_idx]
+        pred_values <- pred_values[-outlier_idx]
+      }
+    }
+  }
+  
+  # ============================================================================
+  # REMO\u00c7\u00c3O DE NAs (SE SOLICITADO)
+  # ============================================================================
+  
+  if (na.rm) {
+    valid_idx <- !is.na(true_values) & !is.na(pred_values)
+    true_values <- true_values[valid_idx]
+    pred_values <- pred_values[valid_idx] 
+    if (length(true_values) == 0) {
+      cli::cli_abort("No valid observations after NA removal")
+    }
+  }
+  
+  # ============================================================================
+  # C\u00c1LCULO DAS M\u00c9TRICAS BASE
+  # ============================================================================
+  
+  n <- length(true_values)
+  errors <- true_values - pred_values
+  abs_errors <- abs(errors)
+  squared_errors <- errors^2
+  
+  # RMSE - Root Mean Squared Error
+  rmse <- sqrt(mean(squared_errors))
+  
+  # MAE - Mean Absolute Error
+  mae <- mean(abs_errors)
+  
+  # R\u00b2 - Coeficiente de Determina\u00e7\u00e3o
+  ss_res <- sum(squared_errors)
+  ss_tot <- sum((true_values - mean(true_values))^2)
+  
+  # R\u00b2 pode ser negativo se o modelo for pior que a m\u00e9dia
+  r_squared <- 1 - (ss_res / ss_tot)
+  
+  # ============================================================================
+  # M\u00c9TRICAS DE ERRO PERCENTUAL
+  # ============================================================================
+  
+  # sMAPE - Symmetric Mean Absolute Percentage Error
+  denominator <- abs(true_values) + abs(pred_values)
+  
+  # Evitar divis\u00e3o por zero
+  denominator[denominator < 1e-8] <- 1e-8
+  
+  smape <- 200 * mean(abs_errors / denominator)
+  
+  # # MPE - Mean Percentage Error (vi\u00e9s percentual)
+  # mpe <- 100 * mean(errors / true_values, na.rm = TRUE)
+  
+  # ============================================================================
+  # M\u00c9TRICAS DE VI\u00c9S E CORRELA\u00c7\u00c3O
+  # ============================================================================
+  
+  # Slope Bias (coeficiente angular da regress\u00e3o pred ~ true)
+  if (stats::var(true_values) > 1e-10 && n >= 3) {
+    slope_bias <- tryCatch({
+      fit <- stats::lm(pred_values ~ true_values)
+      unname(stats::coef(fit)[2])
+    }, error = function(e) NA_real_)
+  } else {
+    slope_bias <- NA_real_
+  }
+
+  # # Intercept Bias (coeficiente linear)
+  # if (var(true_values) > 1e-10 && n >= 3 && !is.na(slope_bias)) {
+  #   intercept_bias <- tryCatch({
+  #     fit <- lm(pred_values ~ true_values)
+  #     unname(coef(fit)[1])
+  #   }, error = function(e) NA_real_)
+  # } else {
+  #   intercept_bias <- NA_real_
+  # }
+  
+  # Correla\u00e7\u00e3o de Pearson
+  # correlation <- cor(true_values, pred_values, use = "complete.obs")
+  
+  # ============================================================================
+  # M\u00c9TRICAS DE ERRO ESCALONADO
+  # ============================================================================
+  
+  # # nRMSE - RMSE normalizado pela m\u00e9dia
+  # mean_true <- mean(true_values)
+  # if (abs(mean_true) > 1e-10) {
+  #   nrmse_mean <- rmse / abs(mean_true)
+  # } else {
+  #   nrmse_mean <- NA_real_
+  # }
+  
+  # # nRMSE - RMSE normalizado pelo desvio padr\u00e3o
+  # sd_true <- sd(true_values)
+  # if (sd_true > 1e-10) {
+  #   nrmse_sd <- rmse / sd_true
+  # } else {
+  #   nrmse_sd <- NA_real_
+  # }
+  
+  # ============================================================================
+  # M\u00c9TRICAS DE VI\u00c9S ABSOLUTO
+  # ============================================================================
+  
+  # # Mean Bias Error (vi\u00e9s m\u00e9dio)
+  # mbe <- mean(errors)
+  
+  # # Mean Absolute Scaled Error (MASE) - simplificado
+  # naive_errors <- abs(diff(true_values))
+  # if (length(naive_errors) > 0 && mean(naive_errors) > 0) {
+  #   mase <- mae / mean(naive_errors)
+  # } else {
+  #   mase <- NA_real_
+  # }
+  
+  # ============================================================================
+  # MENSAGENS INTERNACIONALIZADAS COM UNICODE ESCAPES
+  # ============================================================================
+  
+  labels <- list(
+    en = list(
+      title = "ML Imputation Performance Metrics",
+      subtitle = "{n} observations | {if(remove_outliers) paste('Outliers removed (|z| >', z_threshold, ')') else 'No outlier removal'}",
+      rmse = "Root Mean Squared Error",
+      mae  = "Mean Absolute Error",
+      r2   = "R-Squared",
+      smape = "sMAPE",
+      mpe = "MPE",
+      slope = "Slope Bias",
+      intercept = "Intercept Bias",
+      cor = "Pearson Correlation",
+      nrmse_mean = "nRMSE (by mean)",
+      nrmse_sd = "nRMSE (by SD)",
+      mbe = "Mean Bias Error",
+      mase = "MASE",
+      rmse_desc = "Same unit as target. Lower is better.",
+      mae_desc  = "Same unit as target. Lower is better.",
+      r2_desc   = "\u2264 1.0. 1.0 is perfect, 0 is baseline, <0 is worse than baseline.",
+      smape_desc = "0-200%. 0% is perfect. More robust than MAPE.",
+      mpe_desc = "Positive = overestimation, negative = underestimation.",
+      slope_desc = "Should be close to 1.0.",
+      intercept_desc = "Should be close to 0.",
+      cor_desc = "Strength of linear relationship (0-1).",
+      nrmse_desc = "Unitless. <0.1 = excellent, <0.5 = good.",
+      mbe_desc = "Positive = overestimation, negative = underestimation.",
+      mase_desc = "<1 = better than naive forecast."
+    ),
+    pt = list(
+      title = "M\u00e9tricas de Performance de Imputa\u00e7\u00e3o ML",
+      subtitle = "{n} observa\u00e7\u00f5es | {if(remove_outliers) paste('Outliers removidos (|z| >', z_threshold, ')') else 'Sem remo\u00e7\u00e3o de outliers'}",
+      rmse = "Raiz do Erro Quadr\u00e1tico M\u00e9dio (RMSE)",
+      mae  = "Erro Absoluto M\u00e9dio (MAE)",
+      r2   = "R-Quadrado",
+      smape = "sMAPE",
+      mpe = "EPM",
+      slope = "Vi\u00e9s de Inclina\u00e7\u00e3o",
+      intercept = "Vi\u00e9s de Intercepto",
+      cor = "Correla\u00e7\u00e3o de Pearson",
+      nrmse_mean = "nRMSE (pela m\u00e9dia)",
+      nrmse_sd = "nRMSE (pelo DP)",
+      mbe = "Erro M\u00e9dio de Vi\u00e9s",
+      mase = "MASE",
+      rmse_desc = "Mesma unidade do alvo. Menor \u00e9 melhor.",
+      mae_desc  = "Mesma unidade do alvo. Menor \u00e9 melhor.",
+      r2_desc   = "\u2264 1,0. 1,0 \u00e9 perfeito, 0 \u00e9 linha de base, <0 \u00e9 pior que a linha de base.",
+      smape_desc = "0-200%. 0% \u00e9 perfeito. Mais robusto que MAPE.",
+      mpe_desc = "Positivo = superestimativa, negativo = subestimativa.",
+      slope_desc = "Deve ser pr\u00f3ximo de 1,0.",
+      intercept_desc = "Deve ser pr\u00f3ximo de 0.",
+      cor_desc = "For\u00e7a da rela\u00e7\u00e3o linear (0-1).",
+      nrmse_desc = "Sem unidade. <0,1 = excelente, <0,5 = bom.",
+      mbe_desc = "Positivo = superestimativa, negativo = subestimativa.",
+      mase_desc = "<1 = melhor que previs\u00e3o ing\u00eanua."
+    ),
+    es = list(
+      title = "M\u00e9tricas de Rendimiento de Imputaci\u00f3n ML",
+      subtitle = "{n} observaciones | {if(remove_outliers) paste('Outliers removidos (|z| >', z_threshold, ')') else 'Sin remoci\u00f3n de outliers'}",
+      rmse = "Ra\u00edz del Error Cuadr\u00e1tico Medio (RMSE)",
+      mae  = "Error Absoluto Medio (MAE)",
+      r2   = "R-Cuadrado",
+      smape = "sMAPE",
+      mpe = "EPM",
+      slope = "Sesgo de Pendiente",
+      intercept = "Sesgo de Intercepto",
+      cor = "Correlaci\u00f3n de Pearson",
+      nrmse_mean = "nRMSE (por media)",
+      nrmse_sd = "nRMSE (por DE)",
+      mbe = "Error Medio de Sesgo",
+      mase = "MASE",
+      rmse_desc = "Misma unidad del objetivo. Menor es mejor.",
+      mae_desc  = "Misma unidad del objetivo. Menor es mejor.",
+      r2_desc   = "\u2264 1,0. 1,0 es perfecto, 0 es l\u00ednea base, <0 es peor que l\u00ednea base.",
+      smape_desc = "0-200%. 0% es perfecto. M\u00e1s robusto que MAPE.",
+      mpe_desc = "Positivo = sobreestimaci\u00f3n, negativo = subestimaci\u00f3n.",
+      slope_desc = "Debe estar cerca de 1,0.",
+      intercept_desc = "Debe estar cerca de 0.",
+      cor_desc = "Fuerza de la relaci\u00f3n lineal (0-1).",
+      nrmse_desc = "Sin unidad. <0,1 = excelente, <0,5 = bueno.",
+      mbe_desc = "Positivo = sobreestimaci\u00f3n, negativo = subestimaci\u00f3n.",
+      mase_desc = "<1 = mejor que predicci\u00f3n ingenua."
+    )
+  )
+  
+  l <- if (lang %in% names(labels)) labels[[lang]] else labels[["en"]]
+  
+  # ============================================================================
+  # EXIBI\u00c7\u00c3O DOS RESULTADOS
+  # ============================================================================
+  if(verbose) { 
+    cli::cli_h1(l$title)
+    cli::cli_text(glue::glue(l$subtitle))
+    cli::cli_text("")
+    
+    # Grupo 1: M\u00e9tricas de Erro (mesma unidade)
+    cli::cli_h3("\ud83d\udccf Error Metrics (same unit)")
+    cli::cli_bullets(c(
+      " " = " ",
+      "\u2022" = "{.strong {l$rmse}}: {round(rmse, digits)} - {.grey {l$rmse_desc}}",
+      "\u2022" = "{.strong {l$mae}}: {round(mae, digits)} - {.grey {l$mae_desc}}"
+    ))
+    
+    # Grupo 2: M\u00e9tricas de Qualidade do Ajuste
+    cli::cli_h3("\ud83d\udcca Goodness of Fit")
+    cli::cli_bullets(c(
+      " " = " ",
+      "\u2022" = "{.strong {l$r2}}: {round(r_squared, digits)} - {.grey {l$r2_desc}}"
+    ))
+    
+    # Grupo 3: M\u00e9tricas Percentuais
+    cli::cli_h3("\ud83d\udcc8 Percentage Metrics")
+    cli::cli_bullets(c(
+      " " = " ",
+      "\u2022" = "{.strong {l$smape}}: {round(smape, 2)}% - {.grey {l$smape_desc}}"
+    ))
+    
+    # Grupo 4: M\u00e9tricas de Vi\u00e9s
+    cli::cli_h3("\u2696\ufe0f Bias Metrics")
+    cli::cli_bullets(c(
+      " " = " ",
+      "\u2022" = "{.strong {l$slope}}: {round(slope_bias, digits)} - {.grey {l$slope_desc}}"
+    ))
+  } 
+  # ============================================================================
+  # AVALIA\u00c7\u00c3O QUALITATIVA
+  # ============================================================================
+  if(verbose) {
+    if (lang == "pt") {
+    if (abs(r_squared) < 0.3) {
+      cli::cli_alert_danger("R\u00b2 muito baixo. O modelo n\u00e3o est\u00e1 explicando a variabilidade dos dados.")
+    } else if (r_squared < 0.6) {
+      cli::cli_alert_warning("R\u00b2 moderado. O modelo explica parcialmente os dados.")
+    } else if (r_squared > 0.9) {
+      cli::cli_alert_success("R\u00b2 excelente! O modelo explica muito bem os dados.")
+    }
+    
+    if (abs(slope_bias - 1) > 0.2 && !is.na(slope_bias)) {
+      cli::cli_alert_warning("Vi\u00e9s de inclina\u00e7\u00e3o detectado. Slope = {round(slope_bias, 3)} (ideal = 1.0)")
+    }
+    
+    if (smape < 10) {
+      cli::cli_alert_success("sMAPE excelente: {round(smape, 1)}%")
+    } else if (smape < 30) {
+      cli::cli_alert_info("sMAPE aceit\u00e1vel: {round(smape, 1)}%")
+    } else {
+      cli::cli_alert_danger("sMAPE alto: {round(smape, 1)}%. Erro percentual significativo.")
+    }
+    
+  } else if (lang == "en") {
+    if (abs(r_squared) < 0.3) {
+      cli::cli_alert_danger("Very low R\u00b2. Model is not explaining data variability.")
+    } else if (r_squared < 0.6) {
+      cli::cli_alert_warning("Moderate R\u00b2. Model partially explains the data.")
+    } else if (r_squared > 0.9) {
+      cli::cli_alert_success("Excellent R\u00b2! Model explains data very well.")
+    }
+    
+    if (abs(slope_bias - 1) > 0.2 && !is.na(slope_bias)) {
+      cli::cli_alert_warning("Slope bias detected. Slope = {round(slope_bias, 3)} (ideal = 1.0)")
+    }
+    
+    if (smape < 10) {
+      cli::cli_alert_success("Excellent sMAPE: {round(smape, 1)}%")
+    } else if (smape < 30) {
+      cli::cli_alert_info("Acceptable sMAPE: {round(smape, 1)}%")
+    } else {
+      cli::cli_alert_danger("High sMAPE: {round(smape, 1)}%. Significant percentage error.")
+    }
+  }
+
+  }
+  
+  # ===========================================================================
+  # RETORNO INVIS\u00cdVEL
+  # ============================================================================
+  
+metrics_table <- dplyr::tibble(
+  rmse = rmse,
+  mae = mae,
+  r_squared = r_squared,
+  smape = smape,
+  slope_bias = slope_bias,
+  n_obs = n
+)
+  return(metrics_table)
+}
+
+
+#' Introduce Artificial Gaps in Time Series
+#'
+#' @description Generate artificial missing values for evaluation with proper mechanisms
+#'
+#' @param data Data frame with time series data
+#' @param target_var Character. Name of target variable
+#' @param gap_percentage Numeric. Proportion of data to set as missing (0-1)
+#' @param gap_mechanism Character. One of "MCAR", "MAR", "MNAR"
+#' @param mar_depends_on Character. Variable(s) to use for MAR (required if MAR)
+#' @param seed Integer. Random seed for reproducibility
 #'
 #' @return List with gap_indices and data_with_gaps
-#'
 #' @keywords internal
 #' @noRd
 .introduce_nan <- function(
     data,
     target_var,
     gap_percentage = 0.2,
-    gap_mechanism = "MCAR") {
+    gap_mechanism = "MCAR",
+    mar_depends_on = NULL,
+    seed = 42
+) {
   
+  set.seed(seed)
   n <- nrow(data)
   n_gaps <- ceiling(n * gap_percentage)
   
   if (gap_mechanism == "MCAR") {
     # Missing Completely At Random
     gap_indices <- sample(seq_len(n), n_gaps, replace = FALSE)
+    
   } else if (gap_mechanism == "MAR") {
-    # Missing At Random (depends on other variables)
-    gap_indices <- which(rank(data[[target_var]], na.last = "keep") <= n_gaps)
+    # Missing At Random (depends on OTHER variables)
+    if (is.null(mar_depends_on)) {
+      cli::cli_abort("mar_depends_on must be provided for MAR mechanism")
+    }
+    
+    missing_vars <- setdiff(mar_depends_on, colnames(data))
+    if (length(missing_vars) > 0) {
+      cli::cli_abort("mar_depends_on variables not found: {paste(missing_vars, collapse = ', ')}")
+    }
+    
+    dep_vars_scaled <- scale(data[, mar_depends_on, drop = FALSE])
+    
+    mar_score <- rowMeans(dep_vars_scaled, na.rm = TRUE)
+    
+    # Probabilidade de missing proporcional ao escore
+    prob <- (mar_score - min(mar_score, na.rm = TRUE)) / 
+            diff(range(mar_score, na.rm = TRUE))
+    prob[is.na(prob)] <- 0.5  # Handle NAs
+    
+    # Amostrar com probabilidades
+    gap_indices <- sample(seq_len(n), n_gaps, replace = FALSE, prob = prob)
+    
   } else if (gap_mechanism == "MNAR") {
-    # Missing Not At Random (depends on target itself)
-    gap_indices <- which(data[[target_var]] >stats::quantile(data[[target_var]], 0.9, na.rm = TRUE))
-    gap_indices <- gap_indices[seq_len(min(n_gaps, length(gap_indices)))]
+    # Missing Not At Random (depends on target value)
+    target_vals <- data[[target_var]]
+    
+    valid_idx <- which(!is.na(target_vals))
+    valid_vals <- target_vals[valid_idx]
+    
+    val_std <- scale(valid_vals)
+    
+    prob_extreme <- abs(val_std) / sum(abs(val_std), na.rm = TRUE)
+    
+    selected_valid <- sample(seq_along(valid_idx), 
+                            min(n_gaps, length(valid_idx)), 
+                            replace = FALSE, 
+                            prob = prob_extreme)
+    
+    gap_indices <- valid_idx[selected_valid]
+    
+  } else {
+    cli::cli_abort("gap_mechanism must be one of: 'MCAR', 'MAR', 'MNAR'")
   }
   
+  gap_indices <- unique(gap_indices)
+  if (length(gap_indices) > n_gaps) {
+    gap_indices <- gap_indices[1:n_gaps]
+  }
+
   data_with_gaps <- data
   data_with_gaps[[target_var]][gap_indices] <- NA
   
   return(list(
     gap_indices = gap_indices,
-    data_with_gaps = data_with_gaps
+    data_with_gaps = data_with_gaps,
+    mechanism = gap_mechanism,
+    n_gaps = length(gap_indices)
   ))
 }
 
 
-#' Introduce Artificial Gaps
+#' Evaluate Single Station Imputation Performance
 #'
-#' @description Generate artificial missing values for evaluation
-#' @return List with gap_indices and data_with_gaps
+#' @description Evaluate imputation performance by introducing artificial gaps
 #'
+#' @return List with evaluation metrics
 #' @keywords internal
 #' @noRd
 .evaluate_single_station <- function(
-  station_df,
-  target_var,
-  station_col,
-  gap_percentage = 0.2,
-  gap_mechanism = "MCAR",
-  ...
+    df,
+    target_var,
+    station_col,
+    gap_percentage = 0.2,
+    gap_mechanism = "MCAR",
+    mar_depends_on = NULL,
+    remove_outliers = TRUE,
+    parallel = TRUE,
+    workers = future::availableCores() - 1,
+    lang = "pt",
+    seed = 42,
+    verbose = verbose
 ) {
+  
+  # ============================================================================
+  # VALIDATION
+  # ============================================================================
 
-  original_data <- station_df %>%
-    dplyr::filter(!is.na(.data[[target_var]]))
-
+  original_data <- df %>%
+    dplyr::filter(!is.na(.data[[target_var]])) %>%
+    dplyr::arrange(.data$date, .data[[station_col]]) %>%
+    dplyr::mutate(
+      .row_id = dplyr::row_number(), 
+      .station_id = .data[[station_col]]
+    )
+  
+  # ============================================================================
+  # INTRODUZIR GAPS ARTIFICIAIS
+  # ============================================================================
+  
   gap_info <- .introduce_nan(
     data = original_data,
     target_var = target_var,
     gap_percentage = gap_percentage,
-    gap_mechanism = gap_mechanism
+    gap_mechanism = gap_mechanism,
+    mar_depends_on = mar_depends_on,
+    seed = 42
   )
-
+  
+  gap_indices <- gap_info$gap_indices  
   data_with_gaps <- gap_info$data_with_gaps
-  gap_indices <- gap_info$gap_indices
+  n_gaps <- length(gap_indices)
+  
+  # ============================================================================
+  # APLICAR
+  # ============================================================================
+  if(parallel) { 
+    old_plan <- future::plan()
+    future::plan(future::multisession, workers = workers)
+    on.exit(future::plan(old_plan), add = TRUE)
 
-  filled_data <- .process_single_station_xgboost(
-    station_df = data_with_gaps,
-    target_var = target_var,
-    station_col = station_col,
-    ...
-  )
+    # Process stations in parallel
+    stations_list <- data_with_gaps %>%
+      dplyr::group_split(!!rlang::sym(station_col), .keep = TRUE)
 
-  true_values <- original_data[[target_var]][gap_indices]
-  pred_values <- filled_data[[target_var]][gap_indices]
+    filled_list <- furrr::future_map(
+      stations_list,
+      function(station_df) {
+        tryCatch(
+          .process_single_station_xgboost2(
+            station_df = station_df,
+            target_var = target_var,
+            station_col = station_col,
+            verbose = FALSE
+          ),
+          error = function(e) {
+            cli::cli_alert_warning(
+              sprintf(
+                "Station %s failed: %s",
+                unique(station_df[[station_col]]),
+                e$message
+              )
+            )
+            return(station_df)
+          }
+        )
+      },
+      .options = furrr::furrr_options(seed = TRUE),
+      .progress = verbose
+    )
+  } else {
+    stations_list <- data_with_gaps %>%
+      dplyr::group_split(!!rlang::sym(station_col), .keep = TRUE)
+    
+    filled_list <- list()
+    for (i in seq_along(stations_list)) {
+      station_id <- unique(stations_list[[i]][[station_col]]) 
+      filled_list[[i]] <- .process_single_station_xgboost2(
+        station_df = stations_list[[i]],
+        target_var = target_var,
+        station_col = station_col,
+        verbose = FALSE
+      )
+    }  
+  }
+  filled_data <- dplyr::bind_rows(filled_list)
 
-  rmse <- sqrt(mean((true_values - pred_values)^2, na.rm = TRUE))
-  mae <- mean(abs(true_values - pred_values), na.rm = TRUE)
-  r_squared <- 1 - (
-    sum((true_values - pred_values)^2, na.rm = TRUE) /
-      sum((true_values - mean(true_values, na.rm = TRUE))^2, na.rm = TRUE)
-  )
+  # ============================================================================
+  # ALINHAR DADOS PARA COMPARACAO
+  # ============================================================================
+  
+  # Criar chave
+  original_data <- original_data %>%
+    dplyr::mutate(
+      .join_key = paste(.data[[station_col]], .data$date, sep = "_")
+    )
+  
+  filled_data <- filled_data %>%
+    dplyr::mutate(
+      .join_key = paste(.data[[station_col]], .data$date, sep = "_")
+    )
+  
+  comparison_data <- original_data[gap_indices, ] %>%
+    dplyr::select(.data$date, dplyr::all_of(station_col), .join_key, true_value = dplyr::all_of(target_var)) %>%
+    dplyr::left_join(
+      filled_data %>% dplyr::select(.join_key, pred_value = dplyr::all_of(target_var)),
+      by = ".join_key"
+    )
 
+  my_stations <- unique(comparison_data %>% dplyr::select(dplyr::all_of(station_col)))
+  
+  # ============================================================================
+  # CALCULAR METRICAS
+  # ============================================================================
+  metrics_list <- lapply(1:nrow(my_stations), function(i) { 
+    
+    current_station <- my_stations[i, 1, drop = TRUE]
+    comparison_df <- comparison_data %>% 
+      dplyr::filter(.data[[station_col]] == current_station)
+  
+    res <- calc_ml_metrics(
+      true_values = comparison_df$true_value,
+      pred_values = comparison_df$pred_value,
+      remove_outliers = TRUE,
+      lang = lang,
+      verbose = FALSE)
+  
+    res$station_id <-  as.character(current_station)
+
+    return(res)
+
+  })
+
+  metrics <- dplyr::bind_rows(metrics_list) %>%
+    dplyr::relocate(station_id, .before = 1) %>%
+    dplyr::mutate(
+      gap_percentage = gap_percentage,
+      gap_mechanism = gap_mechanism
+    )
+  
+  db_final <- comparison_data %>%
+    dplyr::select(-.join_key) |> 
+    dplyr::arrange(.data$date)
+  
   return(list(
-    rmse = rmse,
-    mae = mae,
-    r_squared = r_squared,
-    n_gaps = length(gap_indices),
-    gap_percentage = gap_percentage,
-    gap_mechanism = gap_mechanism
+    data = db_final,
+    metrics = metrics
   ))
 }

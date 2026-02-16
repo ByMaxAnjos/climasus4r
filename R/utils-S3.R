@@ -31,8 +31,20 @@
 #' @keywords internal
 #' @noRd
 .climasus_types <- c(
-  "raw", "clean", "stand", "filter_cid", "filter_demo",
-  "derive", "agg", "spatial", "filled"
+  #import and star
+  "raw", "clean", "stand", 
+  #Filter
+  "filter_cid", "filter_demo",
+  #Create variable and aggregation
+  "derive", "agg", 
+  #climate
+  "inmet", "filled",
+  #spatial
+  "munic", "cep", "school","health_region","amazon",
+  "semiarid", "biomes", "conservation_units", "disaster_risk_area", 
+  "indigenous_land", "urban_area", "metro_area", "urban_concentrations",
+  "pop_arrangements", "health_facilities", "neighborhood" 
+    
 )
 
 #' Null-coalescing operator

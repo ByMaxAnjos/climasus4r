@@ -58,6 +58,7 @@ Suggests:
     furrr,
     xgboost,
     zoo,
-    purrr
+    purrr,
+    MASS
 URL: https://github.com/ByMaxAnjos/climasus4r
 BugReports: https://github.com/ByMaxAnjos/climasus4r/issues

@@ -1,167 +1,201 @@
-#' Import, Harmonize, and Process INMET Meteorological Data with Epidemiological Intelligence
+#' Import and Process INMET Meteorological Data
 #'
 #' @description
-#' `sus_climate_inmet()` imports, standardizes, and processes Brazilian
-#' meteorological data from INMET for environmental and epidemiological analysis.
+#' `sus_climate_inmet()` downloads, imports, standardizes, and quality-controls
+#' Brazilian meteorological data from the National Institute of Meteorology (INMET).
 #' 
-#' The function implements:
-#' - **Flexible temporal aggregation** (hour → season, including multi-period windows),
-#' - **Optional spatial matching** to municipalities or other sf objects,
-#' - **Optional gap-filling via machine learning (`sus_climate_fill_gaps()`)**, and
-#' - **Parallel, cache-aware processing** for large multi-year datasets.
+#' The function implements a **comprehensive processing pipeline**:
+#' \enumerate{
+#'   \item **Download**: Multi-year data with automatic retry and backoff
+#'   \item **Parsing**: Handles INMET's CSV format with metadata extraction
+#'   \item **Standardization**: Renames columns to canonical names (see **Variables**)
+#'   \item **Quality Control**: Physical consistency checks (see **QC Details**)
+#'   \item **Caching**: Two-level (memory + disk) with Parquet format
+#'   \item **Parallel Processing**: Both between and within years
+#' }
 #'
-#' This function is designed for:
-#' - Climate–health studies (e.g., dengue, malaria, heat stress),
-#' - Environmental exposure assessment,
-#' - Time-series gap filling and preprocessing,
-#' - Spatiotemporal integration of climate and health data.
+#' @param years Numeric vector of year(s) to import. 
+#'   Examples: `2020`, `2020:2024`, `c(2019, 2021, 2023)`.
+#'   Must be between 2000 and current year. If `NULL`, imports last 2 years.
 #'
-#' @param spatial_obj An `sf` object (e.g., output from `sus_join_spatial()`) for
-#'   spatial matching. If NULL (default), returns processed meteorological data only.
+#' @param uf Character vector of Brazilian state codes (e.g., `"AM"`, 
+#'   `c("RJ", "MG")`). Case insensitive. If `NULL` (default), imports 
+#'   **all 27 states** (may be slow - see **Performance**).
 #'
-#' @param years Numeric vector of year(s) to filter (e.g., `c(2020, 2023)` or `2020:2025`).
-#'   Must be between 2000 and the current year.
-#'
-#' @param uf Character vector of Brazilian state codes (e.g., `c("SP","RJ")`).
-#'   If NULL, all states are included.
-#'
-#' @param time_unit Character specifying temporal aggregation.
-#'   Options include:
-#'   `"hour"`, `"day"` (default), `"week"`, `"month"`, `"quarter"`,
-#'   `"year"`, `"season"` (DJF, MAM, JJA, SON), or multi-period formats such as
-#'   `"2 days"`, `"5 days"`, `"14 days"`, `"3 months"`, `"6 months"`.
-#' 
-#' @param temporal_strategy Character. Strategy for temporal matching when
-#'   `spatial_obj` is provided. Must be one of:
-#'   \describe{
-#'     \item{"exact"}{Exact date matching between health and climate data.}
-#'     \item{"window"}{Aggregates climate variables within a symmetric window
-#'       around each health date (± `window_days`).}
-#'     \item{"lag"}{Creates lagged climate predictors based on `lag_days`.}
-#'     \item{"seasonal"}{Matches climate data by climatological season (DJF, MAM,
-#'       JJA, SON).}
+#' @param use_cache Logical. If `TRUE` (default), implements two-level caching:
+#'   \itemize{
+#'     \item **Session cache**: In-memory cache (MD5 hash of parameters)
+#'     \item **Disk cache**: Parquet files with Zstandard compression
 #'   }
-#'   Default: `"exact"`.
+#'   Use `unlink(cache_dir, recursive = TRUE)` to clear all caches.
 #'
-#' @param window_days Integer vector or single integer. Only used when
-#'   `temporal_strategy = "window"`. Defines the number of days before and after
-#'   each health date to aggregate climate variables (e.g., `7` = ±7 days).
-#'   If NULL and `temporal_strategy = "window"`, the function will error.
+#' @param cache_dir Character. Directory path for disk cache. 
+#'   Default: `"~/.climasus4r_cache/climate"`. Created automatically.
 #'
-#' @param lag_days Integer vector. Only used when `temporal_strategy = "lag"`.
-#'   Defines temporal lags (in days) to create lagged climate variables
-#'   (e.g., `c(0, 7, 14)`). If NULL and `temporal_strategy = "lag"`,
-#'   the function will error.
+#' @param parallel Logical. If `TRUE` (default), enables **two levels** of parallelism:
+#'   \itemize{
+#'     \item **Between years**: Multiple years downloaded simultaneously
+#'     \item **Within year**: CSV files for each year parsed in parallel
+#'   }
+#'   For single-year imports, only within-year parallelization applies.
 #'
-#' @param impute_missing Logical. If TRUE, fills missing values using
-#'   `sus_climate_fill_gaps()`, which trains station-specific XGBoost models with
-#'   temporal + meteorological predictors. Parallel processing is recommended. Imputation is performed on raw (high-frequency) data before aggregation.
+#' @param workers Integer. Number of parallel workers. Default: `4`.
+#'   Ignored if `parallel = FALSE`. Uses `future::multisession` backend.
+#'   Automatically capped at `availableCores() - 1`.
 #'
-#' @param target_var Character vector of variable (only one at once) to impute when
-#'   `impute_missing = TRUE`, and quality_threshold. Default: `"tair_dry_bulb_c"`. See variable list below.
+#' @param lang Character. Message language. One of:
+#'   \itemize{
+#'     \item `"pt"`: Portuguese (default)
+#'     \item `"en"`: English
+#'     \item `"es"`: Spanish
+#'   }
 #'
-#' @param quality_threshold Numeric. Maximum allowed proportion of missing values
-#'   per station/variable before skipping (default: 0.4). Stations are excluded if more than quality_threshold proportion of missing values exist for any target variable before imputation.
-#'
-#' @param use_cache Logical. If TRUE, uses Arrow/Parquet cache to speed up repeated
-#'   processing of the same years/UFs.
-#'
-#' @param cache_dir Character. Directory for cached files.
-#'   Default: `"~/.climasus4r_cache/climate"`.
-#'
-#' @param parallel Logical. If TRUE, processes year/UF combinations in parallel.
-#'
-#' @param workers Integer. Number of parallel workers (default = 4).
-#'
-#' @param lang Character. Message language: `"pt"`, `"en"`, or `"es"`.
-#'
-#' @param verbose Logical. If TRUE, prints progress messages.
-#'
-#' ## **Accepted & Standardized Meteorological Variables**
-#'
-#' The function **accepts** the following INMET variables
-#' (suggested canonical names in parentheses):
-#'
-#' - `rainfall_mm` (precipitation, mm)
-#' - `patm_mb` (mean atmospheric pressure, mb)
-#' - `patm_max_mb`, `patm_min_mb` (pressure extremes)
-#' - `sr_kj_m2` (solar radiation, kJ/m²)
-#' - `tair_dry_bulb_c` (mean air temperature, °C)
-#' - `tair_max_c`, `tair_min_c` (temperature extremes, °C)
-#' - `dew_tmean_c`, `dew_tmax_c`, `dew_tmin_c` (dew point, °C)
-#' - `rh_mean_porc`, `rh_max_porc`, `rh_min_porc` (relative humidity, %)
-#' - `ws_2_m_s` (wind speed at 2m, m/s)
-#' - `ws_gust_m_s` (wind gust, m/s)
-#' - `wd_degrees` (wind direction, degrees)
-#' 
-#' ## **Missing Data Handling**
-#' When `impute_missing = TRUE`, the function:
-#' 1. Splits data by station
-#' 2. Trains two XGBoost models per station and variable:
-#'    - Model A: Temporal + meteorological predictors
-#'    - Model B: Temporal predictors only (fallback)
-#' 3. Uses Model A where meteorological covariates are available
-#' 4. Falls back to Model B when they are missing
-#' 5. Marks imputed values in an `is_imputed` column
-#' 
-#' ## **Spatial Matching** (if `spatial_obj` provided)
-#' The function:
-#' 1. Computes distances between municipality centroids and stations,
-#' 2. Assigns the nearest valid station,
-#' 3. Falls back to nearest station with a warning if no station meets quality criteria.
-#'
-#' ## **Temporal Aggregation**
-#' Aggregation supports:
-#' - Mean, sum, min, max depending on variable type,
-#' - Smart handling of radiation and wind,
-#' - Consistent alignment with epidemiological weeks when relevant.
+#' @param verbose Logical. If `TRUE` (default), prints detailed progress including:
+#'   \itemize{
+#'     \item Cache hits/misses
+#'     \item Download progress with retry attempts
+#'     \item QC modifications (rows corrected/removed)
+#'     \item Final statistics
+#'   }
 #'
 #' @return
-#' A tibble with processed meteorological data containing:
-#' - `date`: aggregated datetime,
-#' - `station_code`, `station_name`, `latitude`, `longitude`,
-#' - Standardized climate variables (list above),
-#' - If `spatial_obj` provided: `code_mun`, `name_mun`, `distance_km`.
+#' A `climasus_df` object (subclass of `tibble`) with class hierarchy:
+#' `climasus_df` > `tbl_df` > `tbl` > `data.frame`
+#' 
+#' **Data Columns:**
+#' \describe{
+#'   \item{`station_code`}{Character. INMET 8-digit station identifier (e.g., "A001")}
+#'   \item{`station_name`}{Character. Full station name}
+#'   \item{`region`}{Character. Brazilian region (Norte, Nordeste, etc.)}
+#'   \item{`UF`}{Character. State abbreviation}
+#'   \item{`latitude`, `longitude`, `altitude`}{Numeric. Station coordinates (WGS84)}
+#'   \item{`date`}{POSIXct. Observation timestamp **UTC** (always hourly)}
+#'   \item{`year`}{Integer. Year extracted from date}
+#'   \item{**Climate variables**}{Numeric. Standardized names (see **Variables**)}
+#' }
+#'
+#' **Metadata** (accessible via `attr(x, "climasus_meta")`):
+#' \describe{
+#'   \item{`version`}{Package version used}
+#'   \item{`timestamp`}{Import date/time}
+#'   \item{`source`}{"INMET"}
+#'   \item{`years`}{Years imported}
+#'   \item{`ufs`}{States imported}
+#'   \item{`cache_used`}{Whether cache was used}
+#'   \item{`qc_stats`}{List with quality control statistics}
+#'   \item{`n_stations`}{Number of unique stations}
+#'   \item{`n_observations`}{Total rows}
+#'   \item{`temporal_coverage`}{List with `start` and `end` dates}
+#'   \item{`history`}{Character vector of processing steps}
+#' }
+#'
+#' @section Standardized Meteorological Variables:
+#' 
+#' INMET raw column names vary by year. This function automatically detects and
+#' renames them to the following canonical names:
+#'
+#' | **Canonical Name** | **Description** | **Unit** | **Physical Range** |
+#' |--------------------|-----------------|----------|-------------------|
+#' | `rainfall_mm` | Precipitation total | mm | 0 - 500 |
+#' | `patm_mb` | Mean atmospheric pressure | mb | 700 - 1100 |
+#' | `patm_max_mb` | Max atmospheric pressure | mb | 700 - 1100 |
+#' | `patm_min_mb` | Min atmospheric pressure | mb | 700 - 1100 |
+#' | `sr_kj_m2` | Solar radiation | kJ/m² | 0 - 40000 |
+#' | `tair_dry_bulb_c` | Mean air temperature | °C | -90 - 60 |
+#' | `tair_max_c` | Max air temperature | °C | -90 - 60 |
+#' | `tair_min_c` | Min air temperature | °C | -90 - 60 |
+#' | `dew_tmean_c` | Mean dew point | °C | -90 - 60 |
+#' | `dew_tmax_c` | Max dew point | °C | -90 - 60 |
+#' | `dew_tmin_c` | Min dew point | °C | -90 - 60 |
+#' | `rh_mean_porc` | Mean relative humidity | % | 0 - 100 |
+#' | `rh_max_porc` | Max relative humidity | % | 0 - 100 |
+#' | `rh_min_porc` | Min relative humidity | % | 0 - 100 |
+#' | `ws_2_m_s` | Wind speed at 2m | m/s | 0 - 100 |
+#' | `ws_gust_m_s` | Wind gust | m/s | 0 - 100 |
+#' | `wd_degrees` | Wind direction | degrees | 0 - 360 |
+#'
+#' @section Quality Control Details:
+#'
+#' The function applies **automatic physical consistency checks**:
+#' 
+#' **1. Physical Range Validation:**
+#' Values outside physically possible ranges are set to `NA`:
+#' \itemize{
+#'   \item **Temperature**: -90°C to 60°C
+#'   \item **Pressure**: 700 mb to 1100 mb
+#'   \item **Humidity**: 0% to 100%
+#'   \item **Precipitation**: 0 mm to 500 mm
+#'   \item **Solar radiation**: 0 to 40000 kJ/m²
+#'   \item **Wind speed**: 0 to 100 m/s
+#'   \item **Wind direction**: 0° to 360°
+#' }
+#'
+#' **2. Dew Point Consistency:**
+#' Calculates theoretical dew point from T and RH using Magnus formula.
+#' If |observed - calculated| > 3°C, observed is set to NA.
+#'
+#' **3. Solar Radiation:**
+#' Nighttime values (18h-6h) are set to 0 for physical consistency.
+#'
+#' @section Caching System Details:
+#'
+#' **Disk Cache:** 
+#' \itemize{
+#'   \item **Format**: Apache Parquet with Zstandard compression (level 6)
+#'   \item **Partitioning**: By `year` and `UF` for fast filtering
+#'   \item **Backup**: Compressed CSV as fallback if Parquet corrupted
+#'   \item **Location**: `~/.climasus4r_cache/climate/inmet_parquet/`
+#' }
+#'
+#' @note
+#' \itemize{
+#'   \item **Data frequency**: Always **hourly**. Use `sus_climate_aggregate()` for daily/weekly.
+#'   \item **Timezone**: All timestamps are **UTC**. Convert if needed.
+#'   \item **Missing data**: Represented as `NA`. Use `sus_climate_fill_gaps()` for imputation.
+#'   \item **Encoding**: All strings converted to UTF-8.
+#'   \item **Decimals**: Converted from comma (`,`) to point (`.`).
+#' }
+#'
+#' @seealso
+#' * [sus_climate_fill_gaps()] for ML-based gap filling
+#' * [sus_join_spatial()] for preparing municipality data
 #'
 #' @examples
 #' \dontrun{
-#' # Basic processing
-#' climate_processed <- sus_climate_inmet(
-#'   years = 2020:2021,
-#'   uf = "AM",
-#'   time_unit = "day"
+#' # Basic import - single state, single year
+#' climate_am <- sus_climate_inmet(
+#'   years = 2023,
+#'   uf = "AM"
 #' )
+#' 
 #'
-#' # With spatial matching + gap filling
-#' mun_sf <- sus_join_spatial(df_health)
-#'
-#' climate_with_spatial <- sus_climate_inmet(
-#'   spatial_obj = mun_sf,
-#'   years = 2020:2021,
-#'   uf = c("SP","RJ"),
-#'   time_unit = "week",
-#'   target_vars = c("tair_dry_bulb_c", "rh_mean_porc", "ws_2_m_s"),
-#'   impute_missing = TRUE,
+#' # Multi-year import with parallel processing
+#' climate_sp <- sus_climate_inmet(
+#'   years = 2020:2024,
+#'   uf = "SP",
 #'   parallel = TRUE,
 #'   workers = 4
 #' )
+#'
+#' # Import all Southeast states
+#' climate_se <- sus_climate_inmet(
+#'   years = 2023,
+#'   uf = c("SP", "RJ", "MG", "ES"),
+#'   verbose = TRUE
+#' )
+#'
+#'
+#' # Inspect available stations
+#' climate_df %>%
+#'   dplyr::distinct(station_code, station_name, latitude, longitude)
 #' }
 #'
 #' @export
 #' @importFrom rlang .data
 #' @importFrom data.table :=
-#' 
 sus_climate_inmet <- function(
-    spatial_obj = NULL,
     years = NULL,
     uf = NULL,
-    time_unit = "day",
-    temporal_strategy = "exact",  
-    window_days = NULL,            
-    lag_days = NULL,               
-    impute_missing = FALSE,
-    target_var = "tair_dry_bulb_c",
-    quality_threshold = 0.4,
     use_cache = TRUE,
     cache_dir = "~/.climasus4r_cache/climate",
     parallel = TRUE,
@@ -172,8 +206,7 @@ sus_climate_inmet <- function(
   # ============================================================================
   # VALIDATION AND SETUP
   # ============================================================================
-  rlang::check_installed(c("purrr"), 
-                       reason = "to run sus_climate_fill_gaps()")  
+  rlang::check_installed(c("purrr"), reason = "to run sus_climate_inmet()")  
   # Validate years (Requirement 2: Dynamic time validation)
   current_year <- as.integer(format(Sys.Date(), "%Y"))
   if (!is.null(years)) {
@@ -187,16 +220,6 @@ sus_climate_inmet <- function(
       )
     }
   }
-
-  # Validate spatial_obj (Requirement 1: Optional spatial matching)
-  if (!is.null(spatial_obj) && !inherits(spatial_obj, "sf")) {
-    cli::cli_abort("{.arg spatial_obj} must be an sf object or NULL.")
-  }
-
-  if (!is.null(spatial_obj) && nrow(spatial_obj) == 0) {
-    cli::cli_abort("{.arg spatial_obj} is empty (0 rows).")
-  }
-
 
   # Validate language (Requirement 3: i18n support)
   if (!lang %in% c("pt", "en", "es")) {
@@ -218,78 +241,29 @@ sus_climate_inmet <- function(
     }
   }
 
-  if (!is.numeric(quality_threshold) || length(quality_threshold) != 1) {
-    cli::cli_abort("{.arg quality_threshold} must be a single numeric value between 0 and 1.")
-  }
-
-  if (is.na(quality_threshold) || quality_threshold < 0 || quality_threshold > 1) {
-    cli::cli_abort(
-      "{.arg quality_threshold} must be between 0 and 1. Received: {quality_threshold}"
+ # ============================================================================
+  # MESSAGES
+  # ============================================================================
+  msg <- list(
+    pt = list(
+      cache_config = "Usando cache em: {dir}",
+      import_start = "Importando dados INMET para {n_years} ano{?s}...",
+      import_done = "Importa\u00E7\u00E3o conclu\u00EDda: {n_rows} observa\u00E7\u00F5es de {n_stations} esta\u00E7\u00F5es"
+    ),
+    en = list(
+      cache_config = "Using cache directory: {dir}",
+      import_start = "Importing INMET data for {n_years} year{?s}...",
+      import_done = "Import complete: {n_rows} observations from {n_stations} stations"
+    ),
+    es = list(
+      cache_config = "Usando cache en: {dir}",
+      import_start = "Importando datos INMET para {n_years} ano{?s}...",
+      import_done = "Importacion completada: {n_rows} observaciones de {n_stations} estaciones"
     )
-  }
-
-  temporal_strategy <- match.arg(
-    temporal_strategy,
-    choices = c("exact", "window", "lag", "seasonal")
-  )
-  if (temporal_strategy == "window") {
-
-  if (is.null(window_days)) {
-      cli::cli_abort(
-        "{.arg window_days} must be provided when {.arg temporal_strategy = 'window'}."
-      )
-    }
-
-    if (!is.numeric(window_days) || anyNA(window_days)) {
-      cli::cli_abort("{.arg window_days} must be numeric.")
-    }
-
-    window_days <- as.integer(window_days)
-
-    if (any(window_days < 0)) {
-      cli::cli_abort("{.arg window_days} must be non-negative integers.")
-    }
-
-    if (length(window_days) > 1) {
-      cli::cli_alert_info(
-        "Using the maximum value of {.arg window_days}: {max(window_days)}"
-      )
-      window_days <- max(window_days)
-    }
-
-  } else {
-    # If not window strategy, silently ignore user input (best practice)
-    window_days <- NULL
-  }
-
-  if (temporal_strategy == "lag") {
-      if (is.null(lag_days)) {
-        cli::cli_abort(
-          "{.arg lag_days} must be provided when {.arg temporal_strategy = 'lag'}."
-        )
-      }
-
-      if (!is.numeric(lag_days) || anyNA(lag_days)) {
-        cli::cli_abort("{.arg lag_days} must be numeric.")
-      }
-
-      lag_days <- as.integer(lag_days)
-
-      if (any(lag_days < 0)) {
-        cli::cli_abort("{.arg lag_days} must be non-negative integers.")
-      }
-
-      # Sort for consistency in output and modeling
-      lag_days <- sort(unique(lag_days))
-
-    } else {
-      lag_days <- NULL
-    }
-  # Initialize messages (Requirement 3: i18n)
-  msg <- .get_messages(lang)
+  )[[lang]]
 
   # ==========================================================================
-  # CONFIGURE CENSOBR CACHE
+  # CHACE CONFIGURATION
   # ==========================================================================
   if (use_cache) {
     cache_dir <- path.expand(cache_dir)
@@ -298,131 +272,40 @@ sus_climate_inmet <- function(
     }
 
     if (verbose) {
-      cli::cli_alert_info(glue::glue(
-        msg$configuring_cache,
-        dir = cache_dir
-      ))
+      cli::cli_alert_info(glue::glue( msg$configuring_cache, dir = cache_dir))
     }
   }
 
   # ============================================================================
-  # DOWNLAOD AND CHACE
+  # IMPORT DATA
   # ============================================================================
-  
+   if (verbose && !is.null(years)) {
+      cli::cli_alert_info(glue::glue(
+        msg$import_start, 
+        n_years = length(years)
+      ))
+    }
   climate_data <- .download_and_cache_inmet(
-    years = years,
-    uf = uf,
+    years = 2022,
+    uf = "AM",
     cache_dir = cache_dir,
-    use_cache = TRUE,
+    use_cache = use_cache,
     parallel = parallel,
     workers = workers,
     verbose = verbose,
     lang = lang
   )
-  # ============================================================================
-  # MISSING DATA IMPUTATION (Parallel processing)
-  # ============================================================================
-
-  if (impute_missing) {
-    if (verbose) cli::cli_progress_step(msg$imputing)
-
-    # Apply imputation
-    climate_data <- sus_climate_fill_gaps(
-      climate_data,
-      target_var = target_var,
-      quality_threshold = quality_threshold,
-      run_evaluation = TRUE
-    )
-
-  }
-
-  # ============================================================================
-  # TEMPORAL AGGREGATION
-  # ============================================================================
-
-  if (verbose) {
-    cli::cli_progress_step(msg$aggregating)
-  }
-  datetime_col <- if (isTRUE(impute_missing)) "date" else "data"
-  climate_data_agg <- .aggregate_meteo_data(
-        climate_data,
-        time_unit = time_unit,
-        datetime_col = datetime_col
-      )
-
-  # ============================================================================
-  # SPATIAL and TEMPORAL MATCHING 
-  # ============================================================================
-
-  if (!is.null(spatial_obj)) {
-    
-    #SPATIAL
-    if (verbose) cli::cli_progress_step(msg$spatial_match)
-    
-    if (parallel) {  
-      climate_data_agg <- .match_spatial_with_parallel(
-      df = climate_data_agg,
-      spatial_obj = spatial_obj,
-      msg = msg,
-      verbose = verbose,
-      quality_vars = target_vars,
-      quality_method = "any", #c("any", "all", "mean")
-      quality_threshold = quality_threshold
-    )
-    } else { 
-      climate_data_agg <- .match_spatial(
-      df = climate_data_agg,
-      spatial_obj = spatial_obj,
-      msg = msg,
-      verbose = verbose,
-      quality_vars = target_vars,
-      quality_method = "any",
-      quality_threshold = quality_threshold
-    )
-    }
-    
-    # FASE: Matching Temporal
-    if (verbose) cli::cli_h2("Fase 2: Matching Temporal")
-    
-    climate_macth_temporal <- switch(
-      temporal_strategy,
-      exact = .join_exact(
-        health_data = spatial_obj,
-        climate_data = climate_data_agg,
-        target_vars = target_vars
-      ),
-      window = .join_window(
-        health_data = spatial_obj,
-        climate_data = climate_data_agg,
-        target_vars = target_vars,
-        window_days = window_days
-      ),
-      lag = .join_lag(
-        health_data = spatial_obj,
-        climate_data = climate_data_agg,
-        target_vars = target_vars,
-        lag_days = lag_days
-      ),
-      seasonal = .join_seasonal(
-        health_data = spatial_obj,
-        climate_data = climate_data_agg,
-        target_vars = target_vars
-      )
-    )
-  }
-
-  if (verbose) cli::cli_progress_done()
-
+  
   # ===========================================================
   # S3 CLASS + METADATA
   # ===========================================================
-  if (!inherits(climate_data_agg, "climasus_df")) {
+  if (!inherits(climate_data, "climasus_df")) {
     # Create new climasus_df
     meta <- list(
       system = NULL,
       stage = "climate",
       type = "inmet",
-      spatial = inherits(climate_data_agg, "sf"),
+      spatial = inherits(climate_data, "sf"),
       temporal = NULL,
       created = Sys.time(),
       modified = Sys.time(),
@@ -433,31 +316,29 @@ sus_climate_inmet <- function(
       user = list()
     )
 
-    base_classes <- setdiff(class(climate_data_agg), "climasus_df")
-    climate_data_agg <- structure(
-      climate_data_agg,
+    base_classes <- setdiff(class(climate_data), "climasus_df")
+    climate_data <- structure(
+      climate_data,
       climasus_meta = meta,
       class = c("climasus_df", base_classes)
     )
   } else {
     # Already climasus_df - update metadata
-    climate_data_agg <- climasus_meta(
-      climate_data_agg,
+    climate_data <- climasus_meta(
+      climate_data,
       system = NULL,
       stage = "climate",
       type = "inmet",
       temporal = list(
-        start = min(climate_data_agg$date),
-        end = max(climate_data_agg$date),
-        imputed = impute_missing,
-        source = "inmet"
+        start = min(climate_data$date),
+        end = max(climate_data$date)
       )
     )
-    climate_data_agg <- climasus_meta(
-      climate_data_agg,
+    climate_data <- climasus_meta(
+      climate_data,
       add_history = "INMET data Imported"
     )
   }
 
-  return(dplyr::as_tibble(climate_data_agg))
+  return(climate_data)
 }
