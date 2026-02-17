@@ -269,7 +269,16 @@ sus_climate_fill_gaps <- function(
   # ===========================================================
   if (run_evaluation) {
       
-      if (verbose) cli::cli_h3("EVALUATION MODE - {target_var}")
+     if (verbose) {
+      msg <- switch(lang,
+        "en" = "{.info Evaluating model performance for {.field {target_var}}}",
+        "pt" = "{.info Avaliando performance do modelo para {.field {target_var}}}",
+        "es" = "{.info Evaluando desempeño del modelo para {.field {target_var}}}",
+        "{.info Evaluating model performance: {.field {target_var}}}"
+      )
+      
+      cli::cli_h3(msg)
+    }
       
       df_filled <- .evaluate_single_station(
         df = df_filtered, 
@@ -292,6 +301,8 @@ sus_climate_fill_gaps <- function(
   # ===========================================================
   if(parallel && length(valid_stations) > 1) { 
 
+    if (verbose) {cli::cli_alert_info(messages$processing_stations)}
+
     if (is.null(workers)) { workers <- max(1, future::availableCores() - 1)}
 
     if (verbose) { cli::cli_alert_info(sprintf(messages$parallel_setup, workers))}
@@ -305,7 +316,6 @@ sus_climate_fill_gaps <- function(
   # ===========================================================
   # PROCESS STATIONS IN PARALLEL
   # ===========================================================
-  if (verbose) {cli::cli_alert_info(messages$processing_stations)}
 
   # Process stations in parallel
   stations_list <- df_filtered %>%
@@ -729,7 +739,7 @@ if (transform_type != "none") {
       nrounds = nrounds,
       verbose = 0,
       early_stopping_rounds = 20,
-      eval = list(train = dtrain)
+      evals = list(train = dtrain)
     )
     
   }, error = function(e) {
