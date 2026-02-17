@@ -566,65 +566,41 @@ sus_data_import <- function(uf = NULL,
 
   # Execute downloads (parallel or sequential)
   if (parallel && total_tasks > 1) {
-    # Configurar plano paralelo
-    future::plan(future::multisession, workers = workers)
-    on.exit(future::plan(future::sequential), add = TRUE)
 
-    # Progress bar
-    # pb <- cli::cli_progress_bar(
-    #   format = "Downloading {cli::pb_current}/{cli::pb_total} files [{cli::pb_percent}] ETA: {cli::pb_eta}",
-    #   total = total_tasks,
-    #   clear = FALSE
-    # )
-    
-    pb <- cli::cli_progress_bar(
-      format = pb_format,
-      total = total_tasks,
-      clear = FALSE
-    )
+    if (verbose) {cli::cli_alert_info("Parallel processing enabled ({workers} workers)")}
 
-    # Dividir em chunks para poder atualizar entre chunks
-    chunk_size <- ceiling(total_tasks / workers)
-    chunks <- split(
+    list_of_dfs <- furrr::future_map(
       seq_len(nrow(params)),
-      ceiling(seq_len(nrow(params)) / chunk_size)
-    )
+      function(i) {
 
-    list_of_dfs <- list()
+        if (!is.null(month)) {
+          download_one(
+            year_i = params$year[i],
+            uf_i = params$uf[i],
+            system_i = params$system[i],
+            month_i = params$month[i],
+            use_cache = use_cache,
+            force_redownload = force_redownload,
+            cache_dir = cache_dir,
+            verbose = FALSE
+          )
+        } else {
+          download_one(
+            year_i = params$year[i],
+            uf_i = params$uf[i],
+            system_i = params$system[i],
+            month_i = NULL,
+            use_cache = use_cache,
+            force_redownload = force_redownload,
+            cache_dir = cache_dir,
+            verbose = FALSE
+          )
+        }
 
-    for (chunk in chunks) {
-      # Processar chunk em paralelo
-      chunk_results <- future.apply::future_lapply(
-        X = chunk,
-        FUN = function(i) {
-          if (!is.null(month)) {
-            download_one(
-              year_i = params$year[i],
-              uf_i = params$uf[i],
-              system_i = params$system[i],
-              month_i = params$month[i],
-              p = NULL,
-              use_cache = use_cache,
-              force_redownload = force_redownload,
-              cache_dir = cache_dir,
-              verbose = verbose
-            )
-          } else {
-            download_one(
-              year_i = params$year[i],
-              uf_i = params$uf[i],
-              system_i = params$system[i],
-              month_i = NULL,
-              p = NULL,
-              use_cache = use_cache,
-              force_redownload = force_redownload,
-              cache_dir = cache_dir,
-              verbose = verbose
-            )
-          }
-        },
-        future.seed = TRUE,
-        future.packages = c(
+      },
+      .options = furrr::furrr_options(
+        seed = TRUE,
+        packages = c(
           "cli",
           "fs",
           "digest",
@@ -633,74 +609,27 @@ sus_data_import <- function(uf = NULL,
           "arrow"
         )
       )
+    )
 
-      # Adicionar resultados
-      list_of_dfs <- c(list_of_dfs, chunk_results)
-
-      # Atualizar progress bar
-      if (verbose && exists("pb")) {
-        current_size <- 1024 * 500
-        cli::cli_progress_update(
-          id = pb,
-          set = min(length(list_of_dfs), total_tasks),
-          status = prettyunits::pretty_bytes(current_size)
-        )
-      }
-    }
-
-    cli::cli_progress_done(id = pb)
   } else {
-    # Sequential execution
-    list_of_dfs <- vector("list", nrow(params))
 
-    # if (verbose && nrow(params) > 1) {
-    #   cli::cli_progress_bar("Downloading data", total = nrow(params))
-    # }
-    if (verbose && nrow(params) > 1) {
-      pb <- cli::cli_progress_bar(
-        format = pb_format, 
-        total = nrow(params),
-        clear = FALSE
-      )
-    }
-    for (i in seq_len(nrow(params))) {
-      if (!is.null(month)) {
-        list_of_dfs[[i]] <- download_one(
+    list_of_dfs <- purrr::map(
+      seq_len(nrow(params)),
+      function(i) {
+        download_one(
           year_i = params$year[i],
           uf_i = params$uf[i],
           system_i = params$system[i],
-          month_i = params$month[i],
-          p = NULL,
+          month_i = if (!is.null(month)) params$month[i] else NULL,
           use_cache = use_cache,
           force_redownload = force_redownload,
           cache_dir = cache_dir,
-          verbose = verbose # <-- ADICIONAR ESTE ARGUMENTO
-        )
-      } else {
-        list_of_dfs[[i]] <- download_one(
-          year_i = params$year[i],
-          uf_i = params$uf[i],
-          system_i = params$system[i],
-          month_i = NULL,
-          p = NULL,
-          use_cache = use_cache,
-          force_redownload = force_redownload,
-          cache_dir = cache_dir,
-          verbose = verbose # <-- ADICIONAR ESTE ARGUMENTO
+          verbose = verbose
         )
       }
-
-      if (verbose && nrow(params) > 1) {
-        # cli::cli_progress_update()
-        if (verbose && exists("pb")) {cli::cli_progress_update(id = pb)}
-      }
-    }
-
-    if (verbose && nrow(params) > 1) {
-      # cli::cli_progress_done()
-      cli::cli_progress_done(id = pb)
-    }
+    )
   }
+
   
   # Remove any NULL results from failed downloads
   list_of_dfs <- list_of_dfs[!sapply(list_of_dfs, is.null)]

@@ -367,18 +367,25 @@ sus_climate_fill_gaps <- function(
     )
   }
   
+  
   # ===========================================================
   # DROP ENGINEERED FEATURES IF REQUESTED
   # ===========================================================
+  cols_originais <- grep("^is_imputed", colnames(df_filled), value = TRUE)
+  impute_cols <- paste0(cols_originais, "_", target_var)
+
+  df_filled <- df_filled %>%
+    dplyr::rename_with(~ paste0(.x, "_", target_var), dplyr::all_of(cols_originais)) %>%
+    dplyr::mutate(dplyr::across(dplyr::all_of(impute_cols), ~ as.factor(.x)))
+
   if (!keep_features) {
       original_cols <- colnames(df)
-      impute_cols <- paste0(grep("^is_imputed", colnames(df_filled), value = TRUE),"_", target_var)
-      cols_to_keep <- c(original_cols, impute_cols)
+      cols_to_keep <- unique(c(original_cols, impute_cols, "date"))
       cols_to_keep <- cols_to_keep[cols_to_keep %in% colnames(df_filled)]
       df_filled <- df_filled[, cols_to_keep, drop = FALSE]
-    }
+  }
 
-     # ===========================================================
+  # ===========================================================
   # S3 CLASS + METADATA
   # ===========================================================
   if (!inherits(df_filled, "climasus_df")) {
