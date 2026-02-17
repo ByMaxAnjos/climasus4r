@@ -564,6 +564,21 @@ sus_data_import <- function(uf = NULL,
   n_months <- if (is.null(month)) 1 else length(month)
   total_tasks <- length(uf) * length(year) * n_months
 
+
+  pb_format <- paste0(
+    "{cli::col_cyan('\u2b07 Climasus4r')} ", # Seta para baixo
+    "{cli::symbol$arrow_right} ",
+    "{cli::col_white('Downloading DATASUS data')}\n",
+    "{cli::col_blue('\u2590')}{cli::pb_bar}{cli::col_blue('\u258c')} ", # Blocos laterais
+    "{cli::pb_percent} {cli::pb_status}\n",
+    "{cli::col_green(cli::symbol$tick)} {cli::pb_current}/{cli::pb_total} files ",
+    "({cli::col_yellow(cli::pb_rate)} files/s)\n",
+    "{cli::col_magenta('\u23f1')} Elapsed: {cli::pb_elapsed} ", # Cronometro
+    "| ETA: {cli::pb_eta} ",
+    "| {cli::col_cyan('\u23be')} ~{cli::pb_bytes}", # icone de disco/salvamento
+    if (!is.null(month)) "\n{cli::col_blue('\u1f4c5')} Monthly data: {length(month)} months/state"
+  )
+  
   # Execute downloads (parallel or sequential)
   if (parallel && total_tasks > 1) {
     # Configurar plano paralelo
@@ -571,10 +586,16 @@ sus_data_import <- function(uf = NULL,
     on.exit(future::plan(future::sequential), add = TRUE)
 
     # Progress bar
+    # pb <- cli::cli_progress_bar(
+    #   format = "Downloading {cli::pb_current}/{cli::pb_total} files [{cli::pb_percent}] ETA: {cli::pb_eta}",
+    #   total = total_tasks,
+    #   clear = FALSE
+    # )
     pb <- cli::cli_progress_bar(
-      format = "Downloading {cli::pb_current}/{cli::pb_total} files [{cli::pb_percent}] ETA: {cli::pb_eta}",
+      format = pb_format,
       total = total_tasks,
-      clear = FALSE
+      clear = FALSE,
+      .auto_close = FALSE
     )
 
     # Dividir em chunks para poder atualizar entre chunks
@@ -654,10 +675,16 @@ sus_data_import <- function(uf = NULL,
     # Sequential execution
     list_of_dfs <- vector("list", nrow(params))
 
+    # if (verbose && nrow(params) > 1) {
+    #   cli::cli_progress_bar("Downloading data", total = nrow(params))
+    # }
     if (verbose && nrow(params) > 1) {
-      cli::cli_progress_bar("Downloading data", total = nrow(params))
+      pb <- cli::cli_progress_bar(
+        format = pb_format, 
+        total = nrow(params),
+        clear = FALSE
+      )
     }
-
     for (i in seq_len(nrow(params))) {
       if (!is.null(month)) {
         list_of_dfs[[i]] <- download_one(
@@ -686,12 +713,14 @@ sus_data_import <- function(uf = NULL,
       }
 
       if (verbose && nrow(params) > 1) {
-        cli::cli_progress_update()
+        # cli::cli_progress_update()
+        cli::cli_progress_update(id = pb)
       }
     }
 
     if (verbose && nrow(params) > 1) {
-      cli::cli_progress_done()
+      # cli::cli_progress_done()
+      cli::cli_progress_done(id = pb)
     }
   }
   

@@ -286,8 +286,8 @@ sus_climate_inmet <- function(
       ))
     }
   climate_data <- .download_and_cache_inmet(
-    years = 2022,
-    uf = "AM",
+    years = years,
+    uf = uf,
     cache_dir = cache_dir,
     use_cache = use_cache,
     parallel = parallel,

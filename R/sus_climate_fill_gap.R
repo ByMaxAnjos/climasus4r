@@ -599,7 +599,12 @@ sus_climate_fill_gaps <- function(
 if (!target_var %in% colnames(station_df)) {
   cli::cli_abort("target_var '{target_var}' not found in data")
 }
-
+#Restore original datetime column name if needed
+detected_col <- names(station_df)[sapply(station_df, function(x) inherits(x, c("Date", "POSIXt")))][1]
+  
+if (!is.na(detected_col) && detected_col != "date") {
+  station_df <- station_df %>% dplyr::rename(date = !!rlang::sym(detected_col))
+}
 if ("date" %in% colnames(station_df)) {
   station_df <- station_df %>% dplyr::arrange(.data$date)
 }

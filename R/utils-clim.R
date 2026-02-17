@@ -386,7 +386,11 @@ utils::globalVariables(c(
   if (nrow(climate_data) == 0) {
     cli::cli_abort("No data rows in combined dataset.")  # FIX #9: Use direct string
   }
-
+  detected_col <- names(climate_data)[sapply(climate_data, function(x) inherits(x, c("Date", "POSIXt")))][1]
+  
+  if (!is.na(detected_col) && detected_col != "date") {
+    climate_data <- climate_data %>% dplyr::rename(date = !!rlang::sym(detected_col))
+  }
   if (verbose) {
     cli::cli_alert_success("Successfully loaded {nrow(climate_data)} rows of climate data")
   }
