@@ -461,7 +461,7 @@ sus_data_import <- function(uf = NULL,
   
   # Auxiliary function to download and process a single combination
   download_one <- function(year_i, uf_i, system_i, month_i = NULL, p = NULL, 
-                           use_cache, force_redownload, cache_dir) {
+                           use_cache, force_redownload, cache_dir, verbose) {
     
     if (verbose && !is.null(p)) {
       if (!is.null(month_i)) {
