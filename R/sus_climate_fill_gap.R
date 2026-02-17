@@ -712,51 +712,99 @@ if (transform_type != "none") {
   
   X_train <- station_df[train_idx, temporal_features, drop = FALSE]
     
-  model <- tryCatch({
-    
-    params <- list(
+    model <- tryCatch({
+
+    # ----------------------------
+    # 1. Base booster params
+    # ----------------------------
+    base_params <- list(
       booster = "gbtree",
       eval_metric = "rmse",
       objective = "reg:squarederror",
-      eta = 0.05, 
+      eta = 0.05,
       max_depth = 4,
       subsample = 0.7,
       colsample_bytree = 0.7,
       min_child_weight = 3,
-      alpha = 0.5, 
-      lambda = 2.0, 
-      gamma = 0.1, 
+      alpha = 0.5,
+      lambda = 2.0,
+      gamma = 0.1,
       nthread = 1,
       tree_method = "hist"
-    )   
+    )
 
-    params <- utils::modifyList(params, model_params)
-    nrounds <- params$nrounds %||% 200  
-    
+    # ----------------------------
+    # 2. Separar parametros invalidos
+    # ----------------------------
+    forbidden <- c("nrounds", "early_stopping_rounds", "evals")
+
+    booster_params <- model_params[!names(model_params) %in% forbidden]
+
+    params <- utils::modifyList(base_params, booster_params)
+
+    nrounds <- model_params$nrounds %||% 200
+    early_stopping_rounds <- model_params$early_stopping_rounds %||% 20
+
+    # ----------------------------
+    # 3. Garantir que ha features
+    # ----------------------------
+    if (length(temporal_features) == 0) {
+      stop("No temporal features available for training")
+    }
+
+    X_train <- station_df[train_idx, temporal_features, drop = FALSE]
+
+    # remover colunas totalmente NA
+    X_train <- X_train[, colSums(is.na(X_train)) < nrow(X_train), drop = FALSE]
+
+    if (ncol(X_train) == 0) {
+      stop("All training features are NA")
+    }
+
+    # substituir NA por media (XGBoost nao aceita NA por padrão)
+    for (j in seq_len(ncol(X_train))) {
+      if (anyNA(X_train[, j])) {
+        X_train[is.na(X_train[, j]), j] <- mean(X_train[, j], na.rm = TRUE)
+      }
+    }
+
     dtrain <- xgboost::xgb.DMatrix(
       data = as.matrix(X_train),
       label = y_train
     )
-    
+
     xgboost::xgb.train(
       params = params,
       data = dtrain,
       nrounds = nrounds,
       verbose = 0,
-      early_stopping_rounds = 20,
-      evals = list(train = dtrain)
+      early_stopping_rounds = early_stopping_rounds,
+      watchlist = list(train = dtrain)  # <- CORRETO
     )
-    
+
   }, error = function(e) {
+
     if (verbose) {
-      cli::cli_alert_warning(sprintf("Model training failed: %s", e$message))
+      cli::cli_alert_warning(
+        sprintf("Model training failed: %s", e$message)
+      )
     }
+
     NULL
   })
+
   
   if (is.null(model)) {return(station_df)}
   
   missing_data <- station_df[original_nas_idx, , drop = FALSE]
+  
+  X_pred <- X_pred[, colnames(X_train), drop = FALSE]
+  # Imputar NA nas features
+  for (j in seq_len(ncol(X_pred))) {
+    if (anyNA(X_pred[, j])) {
+      X_pred[is.na(X_pred[, j]), j] <- mean(X_train[, j], na.rm = TRUE)
+    }
+  }
   
   X_pred <- missing_data[, temporal_features, drop = FALSE]
   

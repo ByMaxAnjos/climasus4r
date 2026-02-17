@@ -566,24 +566,26 @@ sus_data_import <- function(uf = NULL,
 
 
   pb_format <- paste0(
-  "{cli::col_cyan('\u2b07 Climasus4r')} ", 
-  "{cli::symbol$arrow_right} ",
-  "{cli::col_white('Downloading DATASUS data')}\n",
-  "{cli::col_blue('\u2590')}{cli::pb_bar}{cli::col_blue('\u258c')} ",
-  "{cli::pb_percent}\n", # Removi o status daqui para organizar
-  "{cli::col_green(cli::symbol$tick)} {cli::pb_current}/{cli::pb_total} files ",
-  "({cli::col_yellow(cli::pb_rate)} files/s)\n",
-  "{cli::col_magenta('\u23f1')} Elapsed: {cli::pb_elapsed} ",
-  "| ETA: {cli::pb_eta} ",
-  "| {cli::col_cyan('\u1f4be')} {cli::pb_status}", # Usamos status para o tamanho em bytes
-  if (!is.null(month)) "\n{cli::col_blue('\u1f4c5')} Monthly: {length(month)} months/state"
-)
-  
+    "{cli::col_cyan('\u2B07 Climasus4r')} ",
+    "{cli::symbol$arrow_right} ",
+    "{cli::col_white('Downloading DATASUS data')}\n",
+    "{cli::col_blue('\u2590')}{cli::pb_bar}{cli::col_blue('\u258C')} ",
+    "{cli::pb_percent}\n",
+    "{cli::col_green(cli::symbol$tick)} {cli::pb_current}/{cli::pb_total} files ",
+    "({cli::col_yellow(cli::pb_rate)} files/s)\n",
+    "{cli::col_magenta('\u23F1')} Elapsed: {cli::pb_elapsed} ",
+    "| ETA: {cli::pb_eta} ",
+    "| {cli::col_cyan('\U0001F4BE')} {cli::pb_status}",
+    if (!is.null(month))
+      "\n{cli::col_blue('\U0001F4C5')} Monthly mode"
+  )
+
   # Execute downloads (parallel or sequential)
   if (parallel && total_tasks > 1) {
     # Configurar plano paralelo
     future::plan(future::multisession, workers = workers)
-    on.exit(future::plan(future::sequential), add = TRUE)
+    old_plan <- future::plan()
+    on.exit(future::plan(old_plan), add = TRUE)
 
     # Progress bar
     # pb <- cli::cli_progress_bar(
@@ -667,11 +669,14 @@ sus_data_import <- function(uf = NULL,
       list_of_dfs <- c(list_of_dfs, chunk_results)
 
       # Atualizar progress bar
-      current_size <- 1024 * 500
-      cli::cli_progress_update(
-        id = pb, 
-        set = length(list_of_dfs),
-        status = cli::format_bytes(current_size))
+      if (verbose && exists("pb")) {
+        current_size <- 1024 * 500
+        cli::cli_progress_update(
+          id = pb,
+          set = min(length(list_of_dfs), total_tasks),
+          status = prettyunits::pretty_bytes(current_size)
+        )
+      }
     }
 
     cli::cli_progress_done(id = pb)
@@ -718,13 +723,13 @@ sus_data_import <- function(uf = NULL,
 
       if (verbose && nrow(params) > 1) {
         # cli::cli_progress_update()
-        cli::cli_progress_update(id = pb)
+        if (verbose && exists("pb")) {cli::cli_progress_update(id = pb)}
       }
     }
 
     if (verbose && nrow(params) > 1) {
       # cli::cli_progress_done()
-      cli::cli_progress_done(id = pb)
+      if (verbose && exists("pb")) {cli::cli_progress_update(id = pb)}
     }
   }
   
