@@ -602,45 +602,74 @@ sus_data_import <- function(uf = NULL,
   }
   
   if (parallel && total_tasks > 1) {
-    
+  
+  if (!is.null(month)) {
     # Parallel execution with progress
     progressr::with_progress({
       p <- progressr::progressor(steps = nrow(params))
       
-      # Split parameters into chunks for better memory management
-      chunk_size <- ceiling(nrow(params) / workers)
-      chunks <- split(seq_len(nrow(params)), ceiling(seq_len(nrow(params)) / chunk_size))
-      
-      list_of_dfs <- future.apply::future_lapply(chunks, function(chunk_idx) {
-        chunk_params <- params[chunk_idx, , drop = FALSE]
-        chunk_results <- vector("list", nrow(chunk_params))
-        
-        for (i in seq_len(nrow(chunk_params))) {
-          if (!is.null(month)) {
-            chunk_results[[i]] <- download_one(
-              chunk_params$year[i],
-              chunk_params$uf[i],
-              chunk_params$system[i],
-              chunk_params$month[i],
-              p = p
-            )
-          } else {
-            chunk_results[[i]] <- download_one(
-              chunk_params$year[i],
-              chunk_params$uf[i],
-              chunk_params$system[i],
-              p = p
-            )
-          }
-        }
-        return(chunk_results)
-      }, future.seed = TRUE)
-      
-      # Flatten the list of lists
-      list_of_dfs <- unlist(list_of_dfs, recursive = FALSE)
+      list_of_dfs <- future.apply::future_lapply(
+        X = seq_len(nrow(params)),
+        FUN = function(i) {
+          download_one(
+            year_i = params$year[i],
+            uf_i = params$uf[i],
+            system_i = params$system[i],
+            month_i = params$month[i],
+            p = p
+          )
+        },
+        future.seed = TRUE,
+        future.globals = list(
+          download_one = download_one,
+          use_cache = use_cache,
+          force_redownload = force_redownload,
+          cache_dir = cache_dir,
+          verbose = verbose,
+          generate_cache_key = generate_cache_key,
+          get_cache_path = get_cache_path,
+          is_cache_valid = is_cache_valid,
+          load_from_cache = load_from_cache,
+          save_to_cache = save_to_cache
+        ),
+        future.packages = c("cli", "fs", "digest", "microdatasus", "dplyr")
+      )
     })
-    
   } else {
+    # Parallel execution with progress
+    progressr::with_progress({
+      p <- progressr::progressor(steps = nrow(params))
+      
+      list_of_dfs <- future.apply::future_lapply(
+        X = seq_len(nrow(params)),
+        FUN = function(i) {
+          download_one(
+            year_i = params$year[i],
+            uf_i = params$uf[i],
+            system_i = params$system[i],
+            month_i = NULL,
+            p = p
+          )
+        },
+        future.seed = TRUE,
+        future.globals = list(
+          download_one = download_one,
+          use_cache = use_cache,
+          force_redownload = force_redownload,
+          cache_dir = cache_dir,
+          verbose = verbose,
+          generate_cache_key = generate_cache_key,
+          get_cache_path = get_cache_path,
+          is_cache_valid = is_cache_valid,
+          load_from_cache = load_from_cache,
+          save_to_cache = save_to_cache
+        ),
+        future.packages = c("cli", "fs", "digest", "microdatasus", "dplyr")
+      )
+    })
+  }
+  
+} else {
     
     # Sequential execution
     list_of_dfs <- vector("list", nrow(params))
