@@ -112,15 +112,16 @@ utils::globalVariables(c(
       if (verbose)
         cli::cli_alert_info("Loading year {year_int} from Arrow cache")
 
-      ds_year <- arrow::open_dataset(year_path)
+      ds_year <- arrow::open_dataset(year_path) |> 
+        dplyr::collect()
 
       # Filtro por UF
       if (!is.null(uf) && length(uf) > 0 && !all(is.na(uf))) {
-        ds_year <- ds_year |>
+        ds_year <- ds_year %>%
           dplyr::filter(.data$UF %in% toupper(uf))
       }
 
-      result <- dplyr::collect(ds_year)
+      result <- ds_year
 
       if (nrow(result) > 0) {
         if (verbose)

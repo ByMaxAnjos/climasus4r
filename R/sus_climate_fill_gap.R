@@ -616,7 +616,7 @@ if (target_var == "sr_kj_m2" && "date" %in% colnames(station_df)) {
   station_df <- .handle_solar_radiation(station_df, target_var, "date")
 }
 
-  original_nas_idx <- which(is.na(station_df[[target_var]]))
+original_nas_idx <- which(is.na(station_df[[target_var]]))
 train_idx <- which(!is.na(station_df[[target_var]]))
 
 if (length(train_idx) < 30) {
@@ -797,14 +797,6 @@ if (transform_type != "none") {
   if (is.null(model)) {return(station_df)}
   
   missing_data <- station_df[original_nas_idx, , drop = FALSE]
-  
-  X_pred <- X_pred[, colnames(X_train), drop = FALSE]
-  # Imputar NA nas features
-  for (j in seq_len(ncol(X_pred))) {
-    if (anyNA(X_pred[, j])) {
-      X_pred[is.na(X_pred[, j]), j] <- mean(X_train[, j], na.rm = TRUE)
-    }
-  }
   
   X_pred <- missing_data[, temporal_features, drop = FALSE]
   

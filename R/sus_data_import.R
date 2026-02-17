@@ -564,28 +564,11 @@ sus_data_import <- function(uf = NULL,
   n_months <- if (is.null(month)) 1 else length(month)
   total_tasks <- length(uf) * length(year) * n_months
 
-
-  pb_format <- paste0(
-    "{cli::col_cyan('\u2B07 Climasus4r')} ",
-    "{cli::symbol$arrow_right} ",
-    "{cli::col_white('Downloading DATASUS data')}\n",
-    "{cli::col_blue('\u2590')}{cli::pb_bar}{cli::col_blue('\u258C')} ",
-    "{cli::pb_percent}\n",
-    "{cli::col_green(cli::symbol$tick)} {cli::pb_current}/{cli::pb_total} files ",
-    "({cli::col_yellow(cli::pb_rate)} files/s)\n",
-    "{cli::col_magenta('\u23F1')} Elapsed: {cli::pb_elapsed} ",
-    "| ETA: {cli::pb_eta} ",
-    "| {cli::col_cyan('\U0001F4BE')} {cli::pb_status}",
-    if (!is.null(month))
-      "\n{cli::col_blue('\U0001F4C5')} Monthly mode"
-  )
-
   # Execute downloads (parallel or sequential)
   if (parallel && total_tasks > 1) {
     # Configurar plano paralelo
     future::plan(future::multisession, workers = workers)
-    old_plan <- future::plan()
-    on.exit(future::plan(old_plan), add = TRUE)
+    on.exit(future::plan(future::sequential), add = TRUE)
 
     # Progress bar
     # pb <- cli::cli_progress_bar(
@@ -641,20 +624,6 @@ sus_data_import <- function(uf = NULL,
           }
         },
         future.seed = TRUE,
-        future.globals = list(
-          download_one = download_one,
-          generate_cache_key = generate_cache_key,
-          get_cache_path = get_cache_path,
-          is_cache_valid = is_cache_valid,
-          load_from_cache = load_from_cache,
-          save_to_cache = save_to_cache,
-          use_cache = use_cache,
-          force_redownload = force_redownload,
-          cache_dir = cache_dir,
-          verbose = verbose,
-          month = month,
-          params = params
-        ),
         future.packages = c(
           "cli",
           "fs",
@@ -729,7 +698,7 @@ sus_data_import <- function(uf = NULL,
 
     if (verbose && nrow(params) > 1) {
       # cli::cli_progress_done()
-      if (verbose && exists("pb")) {cli::cli_progress_update(id = pb)}
+      cli::cli_progress_done(id = pb)
     }
   }
   
