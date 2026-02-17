@@ -563,45 +563,8 @@ sus_data_import <- function(uf = NULL,
   }
   n_months <- if (is.null(month)) 1 else length(month)
   total_tasks <- length(uf) * length(year) * n_months
-
-  # Execute downloads (parallel or sequential)
-  if (parallel && total_tasks > 1) {
-    
-    # Setup parallel processing
-    if (!requireNamespace("future", quietly = TRUE)) {
-      cli::cli_alert_warning("Package 'future' not installed. Falling back to sequential processing.")
-      parallel <- FALSE
-    } else {
-      # Export necessary variables and functions to workers
-      future::plan(future::multisession, workers = workers)
-      on.exit(future::plan(future::sequential), add = TRUE)
-      
-      # Export all required objects to the parallel workers
-      future.apply::future_lapply(1, function(x) {
-        # These will be available in the worker environment
-        NULL
-      }, future.globals = list(
-        # Variables
-        verbose = verbose,
-        use_cache = use_cache,
-        force_redownload = force_redownload,
-        cache_dir = cache_dir,
-        
-        # Functions
-        generate_cache_key = generate_cache_key,
-        get_cache_path = get_cache_path,
-        is_cache_valid = is_cache_valid,
-        load_from_cache = load_from_cache,
-        save_to_cache = save_to_cache,
-        download_one = download_one,
-        
-        # Packages
-        .packages = c("cli", "fs", "digest", "microdatasus", "dplyr")
-      ))
-    }
-  }
   
-  if (parallel && total_tasks > 1) {
+ if (parallel && total_tasks > 1) {
   
   if (!is.null(month)) {
     # Parallel execution with progress
@@ -616,23 +579,27 @@ sus_data_import <- function(uf = NULL,
             uf_i = params$uf[i],
             system_i = params$system[i],
             month_i = params$month[i],
-            p = p
+            p = p,
+            use_cache = use_cache,
+            force_redownload = force_redownload,
+            cache_dir = cache_dir,
+            verbose = verbose
           )
         },
         future.seed = TRUE,
         future.globals = list(
           download_one = download_one,
-          use_cache = use_cache,
-          force_redownload = force_redownload,
-          cache_dir = cache_dir,
-          verbose = verbose,
           generate_cache_key = generate_cache_key,
           get_cache_path = get_cache_path,
           is_cache_valid = is_cache_valid,
           load_from_cache = load_from_cache,
-          save_to_cache = save_to_cache
+          save_to_cache = save_to_cache,
+          use_cache = use_cache,
+          force_redownload = force_redownload,
+          cache_dir = cache_dir,
+          verbose = verbose
         ),
-        future.packages = c("cli", "fs", "digest", "microdatasus", "dplyr")
+        future.packages = c("cli", "fs", "digest", "microdatasus", "dplyr", "arrow")
       )
     })
   } else {
@@ -648,27 +615,30 @@ sus_data_import <- function(uf = NULL,
             uf_i = params$uf[i],
             system_i = params$system[i],
             month_i = NULL,
-            p = p
+            p = p,
+            use_cache = use_cache,
+            force_redownload = force_redownload,
+            cache_dir = cache_dir,
+            verbose = verbose
           )
         },
         future.seed = TRUE,
         future.globals = list(
           download_one = download_one,
-          use_cache = use_cache,
-          force_redownload = force_redownload,
-          cache_dir = cache_dir,
-          verbose = verbose,
           generate_cache_key = generate_cache_key,
           get_cache_path = get_cache_path,
           is_cache_valid = is_cache_valid,
           load_from_cache = load_from_cache,
-          save_to_cache = save_to_cache
+          save_to_cache = save_to_cache,
+          use_cache = use_cache,
+          force_redownload = force_redownload,
+          cache_dir = cache_dir,
+          verbose = verbose
         ),
-        future.packages = c("cli", "fs", "digest", "microdatasus", "dplyr")
+        future.packages = c("cli", "fs", "digest", "microdatasus", "dplyr", "arrow")
       )
     })
   }
-  
 } else {
     
     # Sequential execution
