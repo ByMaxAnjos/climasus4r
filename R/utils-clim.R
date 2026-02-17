@@ -92,161 +92,200 @@ utils::globalVariables(c(
     year,
     uf = NULL,
     cache_dir,
-    use_cache = use_cache,
+    use_cache,  # Removido o "= use_cache" que causava confusão
     parallel = parallel,
     workers = workers,
     verbose = verbose)
 {
-
+  # Converter year para inteiro uma unica vez
+  year_int <- as.integer(year)
+  
   dataset_dir <- file.path(cache_dir, "inmet_parquet")
-
+  
+  # ---- 1. Tentar ler do cache primeiro ----
   if (use_cache && dir.exists(dataset_dir) && requireNamespace("arrow", quietly = TRUE)) {
     if (verbose) {
-      cli::cli_alert_info("Using cached Arrow dataset for year {year}")
+      cli::cli_alert_info("Checking Arrow dataset cache for year {year_int}")
     }
+    
     tryCatch(
       {
-        year <- as.integer(year)
-        ds <- arrow::open_dataset(dataset_dir) %>%
-          dplyr::filter(.data$year == as.integer(year))
-
-        if (!is.null(uf) && !is.na(uf) && uf != "") {
-          uf <- base::toupper(uf)
-          ds <- ds %>% dplyr::filter(.data$UF %in% uf)
-        }
-
-        result <- dplyr::collect(ds)
-
-        if (nrow(result) > 0) {
-          if (verbose) {
-            cli::cli_alert_success("Loaded {nrow(result)} rows from cache")
+        # Abrir dataset
+        ds <- arrow::open_dataset(dataset_dir)
+        
+        # Verificar se o ano existe no dataset
+        available_years <- ds %>% 
+          dplyr::select(year) %>% 
+          dplyr::distinct() %>% 
+          dplyr::collect() %>% 
+          dplyr::pull(year)
+        
+        if (year_int %in% available_years) {
+          # Filtrar por ano
+          ds_year <- ds %>% dplyr::filter(.data$year == year_int)
+          
+          # Filtrar por UF se fornecido
+          if (!is.null(uf) && !any(is.na(uf)) && !any(uf == "")) {
+            uf_upper <- base::toupper(uf)
+            ds_year <- ds_year %>% dplyr::filter(.data$UF %in% uf_upper)
           }
-          return(result)
+          
+          # Coletar dados
+          result <- dplyr::collect(ds_year)
+          
+          if (nrow(result) > 0) {
+            if (verbose) {
+              cli::cli_alert_success("Loaded {nrow(result)} rows from cache for year {year_int}")
+            }
+            return(result)  # <-- IMPORTANTE: Retorna aqui se cache funcionou
+          } else {
+            if (verbose) {
+              cli::cli_alert_warning(
+                "Cache exists but no data for year {year_int} with specified filters"
+              )
+            }
+          }
         } else {
           if (verbose) {
-            cli::cli_alert_warning(
-              "Cache is empty for year {year}, will re-download"
-            )
+            cli::cli_alert_info("Year {year_int} not found in cache, will download")
           }
         }
       },
       error = function(e) {
-        if (verbose) cli::cli_alert_warning("Error reading cache: {e$message}")
+        if (verbose) {
+          cli::cli_alert_warning("Error reading cache for year {year_int}: {e$message}")
+          cli::cli_alert_info("Will download fresh data")
+        }
       }
+    )
+  }
+  
+  # ---- 2. Se chegou aqui, precisa fazer download ----
+  if (verbose) {
+    cli::cli_alert_info("Downloading INMET data for year {year_int}")
+  }
+  
+  zip_file <- file.path(cache_dir, paste0("inmet_", year_int, ".zip"))
+  
+  # Download se arquivo não existe
+  if (!file.exists(zip_file)) {
+    options(timeout = 600)
+    url <- paste0(
+      "https://portal.inmet.gov.br/uploads/dadoshistoricos/",
+      year_int,
+      ".zip"
+    )
+    
+    download_success <- tryCatch({
+      utils::download.file(
+        url,
+        zip_file,
+        method = "libcurl",
+        mode = "wb",
+        cacheOK = FALSE,
+        headers = c(
+          "User-Agent" = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        ),
+        quiet = !verbose
+      )
+      TRUE
+    }, error = function(e) {
+      if (verbose) cli::cli_alert_danger("Download failed: {e$message}")
+      FALSE
+    })
+    
+    if (!download_success || !file.exists(zip_file)) {
+      if (verbose) cli::cli_alert_warning("Failed to download data for year {year_int}")
+      return(data.frame())
+    }
+  } else {
+    if (verbose) cli::cli_alert_info("Using existing zip file for year {year_int}")
+  }
+  
+  # Extrair arquivos
+  temp_dir <- file.path(tempdir(), paste0("inmet_", year_int))
+  if (dir.exists(temp_dir)) unlink(temp_dir, recursive = TRUE)
+  
+  utils::unzip(zip_file, exdir = temp_dir)
+  
+  files <- list.files(
+    temp_dir,
+    full.names = TRUE,
+    pattern = "\\.CSV$|\\.csv$",
+    ignore.case = TRUE
+  )
+  
+  if (length(files) == 0) {
+    if (verbose) cli::cli_alert_warning("No CSV files found in {year_int} archive")
+    return(data.frame())
+  }
+  
+  if (verbose) cli::cli_alert_info("Parsing {length(files)} CSV files for year {year_int}")
+  
+  if (!is.null(uf) && !any(is.na(uf)) && !any(uf == "")) {
+    uf_pattern <- paste0(toupper(uf), collapse = "|")
+    files <- files[grepl(uf_pattern, basename(files), ignore.case = TRUE)]
+    if (length(files) == 0) {
+      if (verbose) cli::cli_alert_warning("No files match UF filter for year {year_int}")
+      return(data.frame())
+    }
+    if (verbose) cli::cli_alert_info("After UF filter: {length(files)} files")
+  }
+  
+  # Parse files (parallel ou sequential)
+  if (parallel && length(files) > 1 && requireNamespace("furrr", quietly = TRUE)) {
+    if (verbose) cli::cli_alert_info("Using parallel processing for year {year_int} ({workers} workers)")
+    
+    old_plan <- future::plan()
+    on.exit(future::plan(old_plan), add = TRUE)
+    future::plan(future::multisession, workers = workers)
+    
+    year_data <- furrr::future_map_dfr(
+      files,
+      .parse_inmet_csv,
+      .progress = verbose
     )
   } else {
-    # ---- 2. Download / unzip ----
-    zip_file <- file.path(cache_dir, paste0("inmet_", year, ".zip"))
-
-    if (!file.exists(zip_file)) {
-      if (verbose) {
-        cli::cli_alert_info("Downloading INMET data for {year}")
-      }
-      options(timeout = 600)
-      url <- paste0(
-        "https://portal.inmet.gov.br/uploads/dadoshistoricos/",
-        year,
-        ".zip"
-      )
-      try(
-        utils::download.file(
-          url,
-          zip_file,
-          method = "libcurl",
-          mode = "wb",
-          cacheOK = FALSE,
-          headers = c(
-            "User-Agent" = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-          ),
-          quiet = TRUE
-        ),
-        silent = TRUE
-      )
-    }
-
-    if (!file.exists(zip_file)) {
-      if (verbose) {
-        cli::cli_alert_warning("Failed to download data for year {year}")
-      }
-      return(data.frame())
-    }
-
-    temp_dir <- file.path(tempdir(), paste0("inmet_", year))
-    unlink(temp_dir, recursive = TRUE)
-    utils::unzip(zip_file, exdir = temp_dir)
-
-    files <- list.files(
-      temp_dir,
-      full.names = TRUE,
-      pattern = "\\.CSV$|\\.csv$"
-    )
-
-    if (length(files) == 0) {
-      if (verbose) {
-        cli::cli_alert_warning("No CSV files found in {year} archive")
-      }
-      return(data.frame())
-    }
-
-    if (verbose) {
-      cli::cli_alert_info("Parsing {length(files)} CSV files")
-    }
-
-    # ---- 3. Parse files (with optional internal parallelization) ----
-    if (
-      parallel && length(files) > 1 && requireNamespace("furrr", quietly = TRUE)
-    ) {
-      if (verbose) {
-        cli::cli_alert_info("Using parallel processing ({workers} workers)")
-      }
-
-      # Setup parallel backend
-      old_plan <- future::plan()
-      on.exit(future::plan(old_plan), add = TRUE)
-      future::plan(future::multisession, workers = workers)
-
-      year_data <- furrr::future_map_dfr(
-        files,
-        .parse_inmet_csv,
-        .progress = verbose
-      )
-    } else {
-      # Sequential parsing
-      year_data <- purrr::map_dfr(
-        files,
-        .parse_inmet_csv
-      )
-    }
-
-    # ---- 4. Save partitioned dataset ----
-    if (nrow(year_data) > 0 && use_cache && requireNamespace("arrow", quietly = TRUE)) {
-      if (verbose) {
-        cli::cli_alert_info("Caching data to Arrow Parquet format")
-      }
-
-      # Ensure parquet directory exists
-      if (!dir.exists(dataset_dir)) {
-        dir.create(dataset_dir, recursive = TRUE, showWarnings = FALSE)
-      }
-
-      tryCatch(
-        {
-          arrow::write_dataset(
-            year_data,
-            path = dataset_dir,
-            format = "parquet",
-            partitioning = c("year", "UF")
-          )
-          if (verbose) cli::cli_alert_success("Cached successfully")
-        },
-        error = function(e) {
-          if (verbose) cli::cli_alert_warning("Failed to cache: {e$message}")
-        }
-      )
-    }
-    unlink(temp_dir, recursive = TRUE)
-    return(dplyr::as_tibble(year_data))
+    year_data <- purrr::map_dfr(files, .parse_inmet_csv)
   }
+  
+  if (!"year" %in% names(year_data)) {
+    year_data$year <- year_int
+  }
+  
+  if ("UF" %in% names(year_data)) {
+    year_data$UF <- toupper(year_data$UF)
+  }
+  
+  if (nrow(year_data) > 0 && use_cache && requireNamespace("arrow", quietly = TRUE)) {
+    if (verbose) cli::cli_alert_info("Caching year {year_int} data to Arrow Parquet format")
+    
+    if (!dir.exists(dataset_dir)) {
+      dir.create(dataset_dir, recursive = TRUE, showWarnings = FALSE)
+    }
+    
+    tryCatch(
+      {
+        arrow::write_dataset(
+          year_data,
+          path = dataset_dir,
+          format = "parquet",
+          partitioning = c("year", "UF")
+        )
+        if (verbose) cli::cli_alert_success("Successfully cached year {year_int}")
+      },
+      error = function(e) {
+        if (verbose) cli::cli_alert_warning("Failed to cache year {year_int}: {e$message}")
+      }
+    )
+  }
+  
+  # Limpeza
+  unlink(temp_dir, recursive = TRUE)
+  
+  if (verbose) cli::cli_alert_success("Processed {nrow(year_data)} rows for year {year_int}")
+  
+  return(dplyr::as_tibble(year_data))
 }
 
 

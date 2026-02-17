@@ -566,18 +566,18 @@ sus_data_import <- function(uf = NULL,
 
 
   pb_format <- paste0(
-    "{cli::col_cyan('\u2b07 Climasus4r')} ", # Seta para baixo
-    "{cli::symbol$arrow_right} ",
-    "{cli::col_white('Downloading DATASUS data')}\n",
-    "{cli::col_blue('\u2590')}{cli::pb_bar}{cli::col_blue('\u258c')} ", # Blocos laterais
-    "{cli::pb_percent} {cli::pb_status}\n",
-    "{cli::col_green(cli::symbol$tick)} {cli::pb_current}/{cli::pb_total} files ",
-    "({cli::col_yellow(cli::pb_rate)} files/s)\n",
-    "{cli::col_magenta('\u23f1')} Elapsed: {cli::pb_elapsed} ", # Cronometro
-    "| ETA: {cli::pb_eta} ",
-    "| {cli::col_cyan('\u23be')} ~{cli::pb_bytes}", # icone de disco/salvamento
-    if (!is.null(month)) "\n{cli::col_blue('\u1f4c5')} Monthly data: {length(month)} months/state"
-  )
+  "{cli::col_cyan('\u2b07 Climasus4r')} ", 
+  "{cli::symbol$arrow_right} ",
+  "{cli::col_white('Downloading DATASUS data')}\n",
+  "{cli::col_blue('\u2590')}{cli::pb_bar}{cli::col_blue('\u258c')} ",
+  "{cli::pb_percent}\n", # Removi o status daqui para organizar
+  "{cli::col_green(cli::symbol$tick)} {cli::pb_current}/{cli::pb_total} files ",
+  "({cli::col_yellow(cli::pb_rate)} files/s)\n",
+  "{cli::col_magenta('\u23f1')} Elapsed: {cli::pb_elapsed} ",
+  "| ETA: {cli::pb_eta} ",
+  "| {cli::col_cyan('\u1f4be')} {cli::pb_status}", # Usamos status para o tamanho em bytes
+  if (!is.null(month)) "\n{cli::col_blue('\u1f4c5')} Monthly: {length(month)} months/state"
+)
   
   # Execute downloads (parallel or sequential)
   if (parallel && total_tasks > 1) {
@@ -591,11 +591,11 @@ sus_data_import <- function(uf = NULL,
     #   total = total_tasks,
     #   clear = FALSE
     # )
+    
     pb <- cli::cli_progress_bar(
       format = pb_format,
       total = total_tasks,
-      clear = FALSE,
-      .auto_close = FALSE
+      clear = FALSE
     )
 
     # Dividir em chunks para poder atualizar entre chunks
@@ -667,7 +667,11 @@ sus_data_import <- function(uf = NULL,
       list_of_dfs <- c(list_of_dfs, chunk_results)
 
       # Atualizar progress bar
-      cli::cli_progress_update(id = pb, set = length(list_of_dfs))
+      current_size <- 1024 * 500
+      cli::cli_progress_update(
+        id = pb, 
+        set = length(list_of_dfs),
+        status = cli::format_bytes(current_size))
     }
 
     cli::cli_progress_done(id = pb)
