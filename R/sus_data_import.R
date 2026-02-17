@@ -577,7 +577,7 @@ sus_data_import <- function(uf = NULL,
       on.exit(future::plan(future::sequential), add = TRUE)
       
       # Export all required objects to the parallel workers
-      future::future_lapply(1, function(x) {
+      future.apply::future_lapply(1, function(x) {
         # These will be available in the worker environment
         NULL
       }, future.globals = list(
