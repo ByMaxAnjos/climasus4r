@@ -9,7 +9,7 @@ sus_climate_inmet(
   uf = NULL,
   use_cache = TRUE,
   cache_dir = "~/.climasus4r_cache/climate",
-  parallel = TRUE,
+  parallel = FALSE,
   workers = 4,
   lang = "pt",
   verbose = TRUE

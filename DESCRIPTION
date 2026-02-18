@@ -36,10 +36,10 @@ Imports:
     fs,
     stats,
     rlang,
-    future.apply,
-    progressr,
-    stringr,
     future,
+    furrr,
+    stringr,
+    purrr,
     data.table,
     glue
 Remotes: 
@@ -55,10 +55,9 @@ Suggests:
     knitr,
     rmarkdown,
     ggplot2,
-    furrr,
+    future.apply,
     xgboost,
     zoo,
-    purrr,
     MASS
 URL: https://github.com/ByMaxAnjos/climasus4r
 BugReports: https://github.com/ByMaxAnjos/climasus4r/issues

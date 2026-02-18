@@ -194,8 +194,8 @@
 #' @importFrom rlang .data
 #' @importFrom data.table :=
 sus_climate_inmet <- function(
-    years = NULL,
-    uf = NULL,
+    years = 2022,
+    uf = 'AM',
     use_cache = TRUE,
     cache_dir = "~/.climasus4r_cache/climate",
     parallel = TRUE,
@@ -206,7 +206,7 @@ sus_climate_inmet <- function(
   # ============================================================================
   # VALIDATION AND SETUP
   # ============================================================================
-  rlang::check_installed(c("purrr"), reason = "to run sus_climate_inmet()")  
+  
   # Validate years (Requirement 2: Dynamic time validation)
   current_year <- as.integer(format(Sys.Date(), "%Y"))
   if (!is.null(years)) {
@@ -285,7 +285,7 @@ sus_climate_inmet <- function(
         n_years = length(years)
       ))
     }
-  climate_data <- .download_and_cache_inmet(
+  climate_data <- download_inmet(
     years = years,
     uf = uf,
     cache_dir = cache_dir,
@@ -341,4 +341,293 @@ sus_climate_inmet <- function(
   }
 
   return(climate_data)
+}
+
+
+#' Download and Cache INMET Meteorological Data
+#'
+#' @description
+#' Downloads, processes, and caches INMET meteorological data for one or multiple years.
+#' Features intelligent caching, parallel processing, and UF filtering.
+#'
+#' @param years Numeric vector. Year(s) to download. Can be single year (e.g., 2023),
+#'   vector (e.g., c(2020, 2021, 2022)), or range (e.g., 2015:2020).
+#' @param uf Character vector. State codes to filter (optional). Examples: "SP", c("RJ", "MG").
+#'   If NULL, downloads all available states.
+#' @param cache_dir Character. Directory for caching downloaded and processed data.
+#'   Default is "~/.climasus4r_cache/inmet".
+#' @param use_cache Logical. Whether to use cached data. If TRUE, avoids re-downloading
+#'   and re-processing existing data. Default is TRUE.
+#' @param parallel Logical. Whether to use parallel processing. If TRUE, parallelizes
+#'   across years (multiple years) or across CSV files (single year). Default is FALSE.
+#' @param workers Integer. Number of workers for parallel processing. If NULL,
+#'   uses `future::availableCores() - 1`. Default is NULL.
+#' @param verbose Logical. Whether to print progress messages. Default is FALSE.
+#' @param lang Character. Language for messages. Options: "en" (English), "pt" (Portuguese),
+#'   "es" (Spanish). Default is "en".
+#'
+#' @return A tibble with standardized meteorological data containing:
+#'   \itemize{
+#'     \item All original weather variables (temperature, humidity, precipitation, etc.)
+#'     \item Standardized date column named "date"
+#'     \item UF column with state codes
+#'     \item year column for filtering
+#'   }
+#'
+#' @details
+#' ## Data Source
+#' Data is downloaded from INMET's historical portal:
+#' https://portal.inmet.gov.br/dadoshistoricos
+#'
+#' ## Caching Strategy
+#' The function uses a two-level caching system:
+#' 1. **ZIP files**: Raw downloads are cached as ZIP files to avoid re-downloading
+#' 2. **Parquet dataset**: Processed data is stored as a partitioned Arrow dataset
+#'    (by year and UF) for lightning-fast subsequent access
+#'
+#' ## Parallel Processing Modes
+#' - **Multiple years**: Parallelizes across years (each year processed independently)
+#' - **Single year**: Parallelizes across CSV files within that year
+#'
+#' @examples
+#' \dontrun{
+#' # Download single year for São Paulo
+#' data_sp <- download_inmet(
+#'   years = 2023,
+#'   uf = "SP",
+#'   verbose = TRUE
+#' )
+#'
+#' # Download multiple years with parallel processing
+#' data_multi <- download_inmet(
+#'   years = 2020:2022,
+#'   uf = c("RJ", "MG"),
+#'   parallel = TRUE,
+#'   workers = 4,
+#'   verbose = TRUE
+#' )
+#'
+#' # Use cache (second run will be instant)
+#' data_cached <- download_inmet(
+#'   years = 2023,
+#'   uf = "SP",
+#'   use_cache = TRUE
+#' )
+#' }
+#' @keywords internal
+#' @noRd
+download_inmet <- function(
+  years,
+  uf = NULL,
+  cache_dir = "~/.climasus4r_cache/climate",
+  use_cache = TRUE,
+  parallel = FALSE,
+  workers = NULL,
+  verbose = FALSE,
+  lang = "en"
+) {
+
+  if (is.null(workers)) {
+    workers <- future::availableCores()
+  }
+
+  year_range <- .expand_year_range(years)
+  cache_dir <- path.expand(cache_dir)
+  dataset_dir <- file.path(cache_dir, "parquet")
+
+  if (verbose) {
+    cli::cli_h1("INMET Data Download")
+    cli::cli_alert_info("Years: {paste(year_range, collapse = ', ')}")
+    if (!is.null(uf))
+      cli::cli_alert_info("States: {paste(uf, collapse = ', ')}")
+    cli::cli_alert_info("Cache: {ifelse(use_cache, 'ENABLED', 'DISABLED')}")
+    cli::cli_alert_info("Cache dir: {cache_dir}")
+  }
+
+  # --------------------------------------------------------------------------
+  # FUNÇÃO INTERNA PARA PROCESSAR UM ANO
+  # --------------------------------------------------------------------------
+
+  process_year <- function(year) {
+
+    year_int <- as.integer(year)
+    zip_file <- file.path(cache_dir, paste0("inmet_", year_int, ".zip"))
+    year_cache_path <- file.path(dataset_dir, paste0("year=", year_int))
+
+    # ----------------------------------------------------
+    # 1. TENTAR CACHE
+    # ----------------------------------------------------
+    if (use_cache && requireNamespace("arrow", quietly = TRUE)) {
+
+      if (dir.exists(year_cache_path)) {
+
+        if (verbose)
+          cli::cli_alert_info("Year {year_int}: Loading from cache")
+
+        data_cached <- try(
+          arrow::open_dataset(year_cache_path) |>
+            dplyr::collect(),
+          silent = TRUE
+        )
+
+        if (!inherits(data_cached, "try-error") &&
+            nrow(data_cached) > 0) {
+
+          if (!is.null(uf) && "UF" %in% names(data_cached)) {
+            data_cached <- data_cached |>
+              dplyr::filter(UF %in% toupper(uf))
+          }
+
+          return(dplyr::as_tibble(data_cached))
+        }
+      }
+    }
+
+    # ----------------------------------------------------
+    # 2. DOWNLOAD
+    # ----------------------------------------------------
+    if (!file.exists(zip_file)) {
+
+      if (verbose)
+        cli::cli_alert_info("Year {year_int}: Downloading")
+
+      url <- paste0(
+        "https://portal.inmet.gov.br/uploads/dadoshistoricos/",
+        year_int,
+        ".zip"
+      )
+
+      try(
+        utils::download.file(
+          url,
+          zip_file,
+          method = "libcurl",
+          mode = "wb",
+          quiet = !verbose
+        ),
+        silent = TRUE
+      )
+    }
+
+    if (!file.exists(zip_file)) {
+      cli::cli_alert_warning("Year {year_int}: Download failed")
+      return(dplyr::tibble())
+    }
+
+    # ----------------------------------------------------
+    # 3. UNZIP
+    # ----------------------------------------------------
+    temp_dir <- file.path(tempdir(), paste0("inmet_", year_int))
+    unlink(temp_dir, recursive = TRUE)
+    dir.create(temp_dir)
+
+    unzip(zip_file, exdir = temp_dir)
+
+    files <- list.files(
+      temp_dir,
+      pattern = "\\.csv$|\\.CSV$",
+      full.names = TRUE,
+      recursive = TRUE
+    )
+
+    if (length(files) == 0)
+      return(dplyr::tibble())
+
+    # ----------------------------------------------------
+    # 4. PROCESSAMENTO CSV
+    # ----------------------------------------------------
+    if (!is.null(uf)) {
+      pattern <- paste(toupper(uf), collapse = "|")
+      files <- files[grepl(pattern, basename(files), ignore.case = TRUE)]
+    }
+
+    if (length(files) == 0)
+      return(dplyr::tibble())
+
+    if (parallel && length(files) > 1 &&
+        requireNamespace("furrr", quietly = TRUE)) {
+
+      old_plan <- future::plan()
+      on.exit(future::plan(old_plan), add = TRUE)
+      future::plan(future::multisession, workers = workers)
+
+      year_data <- furrr::future_map_dfr(
+        files,
+        .parse_inmet_csv,
+        .progress = verbose
+      )
+
+    } else {
+
+      year_data <- purrr::map_dfr(
+        files,
+        .parse_inmet_csv
+      )
+    }
+
+    if (nrow(year_data) == 0)
+      return(dplyr::tibble())
+
+    year_data$year <- year_int
+
+    # ----------------------------------------------------
+    # 5. SALVAR CACHE (SOMENTE POR YEAR)
+    # ----------------------------------------------------
+    if (use_cache && requireNamespace("arrow", quietly = TRUE)) {
+
+      dir.create(year_cache_path, recursive = TRUE, showWarnings = FALSE)
+
+      arrow::write_dataset(
+        year_data,
+        path = year_cache_path,
+        format = "parquet"
+      )
+    }
+
+    unlink(temp_dir, recursive = TRUE)
+
+    return(dplyr::as_tibble(year_data))
+  }
+
+  # --------------------------------------------------------------------------
+  # PROCESSAR TODOS OS ANOS
+  # --------------------------------------------------------------------------
+
+  if (parallel && length(year_range) > 1 &&
+      requireNamespace("furrr", quietly = TRUE)) {
+
+    old_plan <- future::plan()
+    on.exit(future::plan(old_plan), add = TRUE)
+    future::plan(future::multisession, workers = workers)
+
+    results <- furrr::future_map(
+      year_range,
+      process_year,
+      .progress = verbose
+    )
+
+  } else {
+
+    results <- purrr::map(
+      year_range,
+      process_year
+    )
+  }
+
+  results <- purrr::keep(results, ~ nrow(.x) > 0)
+
+  if (length(results) == 0)
+    cli::cli_abort("No data downloaded.")
+
+  combined <- dplyr::bind_rows(results)
+
+  if ("date" %in% names(combined))
+    combined <- combined |> dplyr::arrange(date)
+
+  if (verbose)
+    cli::cli_alert_success(
+      "Loaded {nrow(combined)} total rows"
+    )
+
+  return(dplyr::as_tibble(combined))
 }

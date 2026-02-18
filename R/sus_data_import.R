@@ -612,7 +612,6 @@ sus_data_import <- function(uf = NULL,
     )
 
   } else {
-
     list_of_dfs <- purrr::map(
       seq_len(nrow(params)),
       function(i) {

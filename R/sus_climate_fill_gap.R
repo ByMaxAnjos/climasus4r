@@ -273,7 +273,7 @@ sus_climate_fill_gaps <- function(
       msg <- switch(lang,
         "en" = "{.info Evaluating model performance for {.field {target_var}}}",
         "pt" = "{.info Avaliando performance do modelo para {.field {target_var}}}",
-        "es" = "{.info Evaluando desempeño del modelo para {.field {target_var}}}",
+        "es" = "{.info Evaluando desempeno del modelo para {.field {target_var}}}",
         "{.info Evaluating model performance: {.field {target_var}}}"
       )
       
@@ -375,8 +375,7 @@ sus_climate_fill_gaps <- function(
   impute_cols <- paste0(cols_originais, "_", target_var)
 
   df_filled <- df_filled %>%
-    dplyr::rename_with(~ paste0(.x, "_", target_var), dplyr::all_of(cols_originais)) %>%
-    dplyr::mutate(dplyr::across(dplyr::all_of(impute_cols), ~ as.factor(.x)))
+    dplyr::rename_with(~ paste0(.x, "_", target_var), dplyr::all_of(cols_originais))
 
   if (!keep_features) {
       original_cols <- colnames(df)
@@ -752,24 +751,19 @@ if (transform_type != "none") {
     nrounds <- model_params$nrounds %||% 200
     early_stopping_rounds <- model_params$early_stopping_rounds %||% 20
 
-    # ----------------------------
-    # 3. Garantir que ha features
-    # ----------------------------
     if (length(temporal_features) == 0) {
       stop("No temporal features available for training")
     }
 
     X_train <- station_df[train_idx, temporal_features, drop = FALSE]
 
-    # remover colunas totalmente NA
     X_train <- X_train[, colSums(is.na(X_train)) < nrow(X_train), drop = FALSE]
 
     if (ncol(X_train) == 0) {
       stop("All training features are NA")
     }
 
-    # substituir NA por media (XGBoost nao aceita NA por padrão)
-    for (j in seq_len(ncol(X_train))) {
+      for (j in seq_len(ncol(X_train))) {
       if (anyNA(X_train[, j])) {
         X_train[is.na(X_train[, j]), j] <- mean(X_train[, j], na.rm = TRUE)
       }
@@ -786,10 +780,10 @@ if (transform_type != "none") {
       nrounds = nrounds,
       verbose = 0,
       early_stopping_rounds = early_stopping_rounds,
-      watchlist = list(train = dtrain)  # <- CORRETO
+      watchlist = list(train = dtrain)  
     )
 
-  }, error = function(e) {
+    }, error = function(e) {
 
     if (verbose) {
       cli::cli_alert_warning(
