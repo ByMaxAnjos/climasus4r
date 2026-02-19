@@ -219,12 +219,11 @@ sus_data_import <- function(uf = NULL,
   if (!is.null(region)) {
     reg_clean <- tolower(region)
     target_key <- if (reg_clean %in% names(.region_aliases)) .region_aliases[[reg_clean]] else reg_clean
-    
     if (target_key %in% names(.br_regions)) {
       if (!is.null(uf) && verbose) {
-        cli::cli_alert_warning("Both {.arg uf} and {.arg region} provided. Using region mapping for: {.val {region}}.")
+      cli::cli_alert_warning("Both {.arg uf} and {.arg region} provided. Using region mapping for: {.val {region}}.")
       }
-      uf <- .br_regions[[target_key]]
+     uf <- .br_regions[[target_key]]
       if (verbose) cli::cli_alert_info("Region {.val {region}} expanded to: {paste(uf, collapse = ', ')}")
     } else {
       cli::cli_abort("Region {.val {region}} not recognized. Check documentation for valid regions.")

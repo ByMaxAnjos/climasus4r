@@ -777,13 +777,40 @@ sus_create_variables <- function(
     cli::cli_alert_success(msg)
   }
 
+
   # Update stage and type
-  df <- climasus_meta(
+   if (!inherits(df, "climasus_df")) {
+    # Create new climasus_df
+    meta <- list(
+      system = system,
+      stage = "derive",
+      type = "derive",
+      spatial = inherits(df, "sf"),
+      temporal = NULL,
+      created = Sys.time(),
+      modified = Sys.time(),
+      history = sprintf(
+        "[%s] Create variables",
+        format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+      ),
+      user = list()
+    )
+
+    base_classes <- setdiff(class(df), "climasus_df")
+    df <- structure(
+      df,
+      climasus_meta = meta,
+      class = c("climasus_df", base_classes)
+    )
+  } else { 
+    df <- climasus_meta(
     df,
     system = climasus_meta(df, "system"),  # Preserve original system
     stage = "derive",
     type = "derive"
-  )
+  ) 
+   }
+  
   # Build detailed processing history message
   var_details <- c()
 

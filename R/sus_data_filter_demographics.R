@@ -18,6 +18,7 @@
 #'   If `NULL` (default), includes all education levels.
 #' @param marital_status Character vector specifying marital status categories
 #'   to include. If `NULL` (default), includes all marital statuses.
+#' @param region A string indicating a predefined group of states or regions (supports multilingual names PT, EN, ES). See below in details.
 #' @param municipality_code Character or numeric vector specifying municipality
 #'   codes (IBGE 6 or 7-digit codes) to include. If `NULL` (default), includes
 #'   all municipalities.
@@ -46,6 +47,34 @@
 #'   \item Portuguese: `"Branca"`, `"Preta"`, `"Amarela"`, `"Parda"`, `"Indigena"`
 #'   \item Spanish: `"Blanca"`, `"Negra"`, `"Amarilla"`, `"Parda"`, `"Indigena"`
 #' }
+#' **IBGE Macro-regions:**
+#'   * `"norte"`: c("AC", "AP", "AM", "PA", "RO", "RR", "TO")
+#'   * `"nordeste"`: c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE")
+#'   * `"centro_oeste"`: c("DF", "GO", "MT", "MS")
+#'   * `"sudeste"`: c("ES", "MG", "RJ", "SP")
+#'   * `"sul"`: c("PR", "RS", "SC")
+#'   
+#'   **Biomes (Ecological Borders):**
+#'   * `"amazonia_legal"`: c("AC", "AP", "AM", "PA", "RO", "RR", "MT", "MA", "TO")
+#'   * `"mata_atlantica"`: c("AL", "BA", "CE", "ES", "GO", "MA", "MG", "MS", "PB", "PE", "PI", "PR", "RJ", "RN", "RS", "SC", "SE", "SP")
+#'   * `"caatinga"`: c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE", "MG")
+#'   * `"cerrado"`: c("BA", "DF", "GO", "MA", "MG", "MS", "MT", "PA", "PI", "PR", "RO", "SP", "TO")
+#'   * `"pantanal"`: c("MT", "MS")
+#'   * `"pampa"`: c("RS")
+#' 
+#'   **Hydrography & Climate:**
+#'   * `"bacia_amazonia"`: c("AC", "AM", "AP", "MT", "PA", "RO", "RR")
+#'   * `"bacia_sao_francisco"`: c("AL", "BA", "DF", "GO", "MG", "PE", "SE")
+#'   * `"bacia_parana"`: c("GO", "MG", "MS", "PR", "SP")
+#'   * `"bacia_tocantins"`: c("GO", "MA", "PA", "TO")
+#'   * `"semi_arido"`: c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE", "MG")
+#'   
+#'   **Health, Agriculture & Geopolitics:**
+#'   * `"matopiba"`: c("MA", "TO", "PI", "BA")
+#'   * `"arco_desmatamento"`: c("RO", "AC", "AM", "PA", "MT", "MA")
+#'   * `"dengue_hyperendemic"`: c("GO", "MS", "MT", "PR", "RJ", "SP")
+#'   * `"sudene"`: c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE", "MG", "ES")
+#'   * `"fronteira_brasil"`: c("AC", "AM", "AP", "MT", "MS", "PA", "PR", "RO", "RR", "RS", "SC")
 #'
 #' @examples
 #' \dontrun{
@@ -77,7 +106,7 @@
 #' df_children <- sus_data_filter_demographics(
 #'   df,
 #'   age_range = c(0, 5),
-#'   municipality_code = "3550308",
+#'   region = "Norte",
 #'   lang = "en"
 #' )
 #' }
@@ -191,7 +220,7 @@ sus_data_filter_demographics <- function(df,
   }
   
   # Store original row count
-  df <- data.table::setDT(df)
+  df <- data.table::as.data.table(df)
 
   n_original <- nrow(df)
   
@@ -204,14 +233,14 @@ sus_data_filter_demographics <- function(df,
   
   if (!is.null(sex)) {
     sex_col <- find_column(df, c("sex", "sexo", "SEXO"))
-    
+    sex_col <- tolower(sex_col)
     if (is.null(sex_col)) {
       cli::cli_alert_warning("Sex column not found. Skipping sex filter.")
     } else {
       # Normalize sex values (case-insensitive matching)
-      df <- df[tolower(df[[sex_col]]) %in% tolower(sex), ]
-      sex <- tools::toTitleCase(sex)
-      filters_applied <- c(filters_applied, paste0("sex: ", paste(sex, collapse = ", ")))
+      sex_targets <- tools::toTitleCase(sex)
+      df <- df[get(sex_col) %in% sex_targets]
+      filters_applied <- c(filters_applied, paste0("sex: ", paste(sex_targets, collapse = ", ")))
     }
   }
   
@@ -221,13 +250,13 @@ sus_data_filter_demographics <- function(df,
   
   if (!is.null(race)) {
     race_col <- find_column(df, c("race", "raca", "raza", "RACACOR", "RACA_COR"))
-    
+    race_col <- tolower(race_col)
     if (is.null(race_col)) {
       cli::cli_alert_warning("Race column not found. Skipping race filter.")
     } else {
-      df <- df[tolower(df[[race_col]]) %in% tolower(race), ]
-      race <- tools::toTitleCase(race)
-      filters_applied <- c(filters_applied, paste0("race: ", paste(race, collapse = ", ")))
+      race_targets <- tools::toTitleCase(race)
+      df <- df[get(race_col) %in% race_targets]
+      filters_applied <- c(filters_applied, paste0("race: ", paste(race_targets, collapse = ", ")))
     }
   }
   
@@ -248,10 +277,8 @@ sus_data_filter_demographics <- function(df,
       min_age <- age_range[1]
       max_age <- age_range[2]
       
-      df <- df[df[[age_col]] >= min_age & df[[age_col]] <= max_age, ]
-      filters_applied <- c(filters_applied, 
-                          paste0("age: ", min_age, "-", 
-                                 ifelse(is.infinite(max_age), "+", max_age)))
+      df <- df[data.table::between(get(age_col)), min_age, max_age]
+      filters_applied <- c(filters_applied, paste0("age: ", min_age, "-", ifelse(is.infinite(max_age), "+", max_age)))
     }
   }
   
@@ -262,14 +289,13 @@ sus_data_filter_demographics <- function(df,
   if (!is.null(education)) {
     edu_col <- find_column(df, c("education", "escolaridade", "escolaridad", 
                                   "ESC", "ESC2010"))
-    
+    edu_col <- tolower(edu_col)
     if (is.null(edu_col)) {
       cli::cli_alert_warning("Education column not found. Skipping education filter.")
     } else {
-      df <- df[tolower(df[[edu_col]]) %in% tolower(education), ]
-      education <- tools::toTitleCase(education)
-      filters_applied <- c(filters_applied, 
-                          paste0("education: ", paste(education, collapse = ", ")))
+      education_targets <- tools::toTitleCase(education)
+      df <- df[get(edu_col) %in% education_targets]
+      filters_applied <- c(filters_applied, paste0("education: ", paste(education_targets, collapse = ", ")))
     }
   }
     
@@ -280,21 +306,73 @@ sus_data_filter_demographics <- function(df,
   if (!is.null(marital_status)) {
     marital_col <- find_column(df, c("marital_status", "estado_civil", 
                                       "estado_civil", "ESTCIV"))
-    
+    marital_col <- tolower(marital_col)
     if (is.null(marital_col)) {
       warning("Marital status column not found. Skipping marital status filter.")
     } else {
-      df <- df[tolower(df[[marital_col]]) %in% tolower(marital_status), ]
-      marital_status <- tools::toTitleCase(marital_status)
-      filters_applied <- c(filters_applied, 
-                          paste0("marital_status: ", paste(marital_status, collapse = ", ")))
+      marital_targets <- tools::toTitleCase(marital_status)
+      df <- df[get(marital_col) %in% marital_targets]
+      filters_applied <- c(filters_applied, paste0("marital_status: ", paste(marital_targets, collapse = ", ")))
     }
   }
   
   # ========================================================================
+  # FILTER BY REGION OR STATES
+  # ========================================================================
+  if (!is.null(region)) {
+   df_ufs_brasil <- data.table::data.table(
+    sigla  = c("RO", "AC", "AM", "RR", "PA", "AP", "TO", "MA", "PI", "CE", "RN", "PB", "PE", "AL", "SE", "BA", "MG", "ES", "RJ", "SP", "PR", "SC", "RS", "MS", "MT", "GO", "DF"),
+    codigo = c(11, 12, 13, 14, 15, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31, 32, 33, 35, 41, 42, 43, 50, 51, 52, 53),
+    estado_pt = c("Rondônia", "Acre", "Amazonas", "Roraima", "Pará", "Amapá", "Tocantins", "Maranhão", "Piauí", "Ceará", "Rio Grande do Norte", "Paraíba", "Pernambuco", "Alagoas", "Sergipe", "Bahia", "Minas Gerais", "Espírito Santo", "Rio de Janeiro", "São Paulo", "Paraná", "Santa Catarina", "Rio Grande do Sul", "Mato Grosso do Sul", "Mato Grosso", "Goiás", "Distrito Federal"),
+    
+    # english
+    state_en = c("Rondonia", "Acre", "Amazonas", "Roraima", "Para", "Amapa", "Tocantins", "Maranhao", "Piaui", "Ceara", "Rio Grande do Norte", "Paraiba", "Pernambuco", "Alagoas", "Sergipe", "Bahia", "Minas Gerais", "Espirito Santo", "Rio de Janeiro", "Sao Paulo", "Parana", "Santa Catarina", "Rio Grande do Sul", "Mato Grosso do Sul", "Mato Grosso", "Goias", "Federal District"),
+    
+    # Espanhol
+    estado_es = c("Rondonia", "Acre", "Amazonas", "Roraima", "Pará", "Amapá", "Tocantins", "Maranhão", "Piauí", "Ceará", "Rio Grande del Norte", "Paraíba", "Pernambuco", "Alagoas", "Sergipe", "Bahía", "Minas Gerais", "Espírito Santo", "Río de Janeiro", "São Paulo", "Paraná", "Santa Catarina", "Rio Grande del Sur", "Mato Grosso del Sur", "Mato Grosso", "Goiás", "Distrito Federal")
+  )
+  data.table::setDT(df)
+  translate_input <- function(x) {
+    if (is.numeric(x) || !is.na(suppressWarnings(as.numeric(x)))) {
+      return(df_ufs_brasil[codigo == as.numeric(x), sigla])
+    }
+    
+    reg_clean <- tolower(x)
+    target_key <- if (reg_clean %in% names(.region_aliases)) .region_aliases[[reg_clean]] else reg_clean
+    
+    if (target_key %in% names(.br_regions)) {
+      return(.br_regions[[target_key]]) 
+    } else {
+      return(toupper(x)) 
+    }
+  }
+  
+  all_target_siglas <- unique(unlist(lapply(region, translate_input)))
+  
+  target_codes <- df_ufs_brasil[sigla %in% all_target_siglas, codigo]
+  
+  if (length(target_codes) > 0) {
+    uf_col <- find_column(df, c("manager_uf", "UF_ZI", "uf_gestor", "notification_uf"))
+    df <- df[as.numeric(get(uf_col)) %in% target_codes]
+    col_name <- base::switch(lang,
+                             "pt" = "estado_pt",
+                             "en" = "state_en",
+                             "es" = "estado_es",
+                             "estado_pt")
+    
+    names_log <- df_ufs_brasil[codigo %in% target_codes, get(col_name)]
+    filters_applied <- c(filters_applied, paste0("States: ", paste(names_log, collapse = ", ")))
+    
+    cli::cli_alert_success("Filtered by {length(target_codes)} states based on: {paste(region, collapse = ', ')}")
+  } else {
+    cli::cli_abort("No valid states found for: {.val {region}}")
+  }
+}
+
+
+  # ========================================================================
   # FILTER BY MUNICIPALITY
   # ========================================================================
-  
   if (!is.null(municipality_code)) {
     muni_col <- find_column(df, c("residence_municipality_code", 
                                   "municipality_code", 
@@ -311,7 +389,7 @@ sus_data_filter_demographics <- function(df,
       municipality_code <- as.character(municipality_code)
       df[[muni_col]] <- as.character(df[[muni_col]])
       
-      df <- df[df[[muni_col]] %in% municipality_code, ]
+      df <- df[get(muni_col) %in% municipality_code]
       filters_applied <- c(filters_applied, 
                           paste0("municipality: ", length(municipality_code), " codes"))
     }
@@ -373,12 +451,38 @@ sus_data_filter_demographics <- function(df,
   # ============================================================================
 
   # Update stage and type
-  df <- climasus_meta(
+   if (!inherits(df, "climasus_df")) {
+    # Create new climasus_df
+    meta <- list(
+      system = system,
+      stage = "filter_demo",
+      type = "filter_demo",
+      spatial = inherits(df, "sf"),
+      temporal = NULL,
+      created = Sys.time(),
+      modified = Sys.time(),
+      history = sprintf(
+        "[%s] Standardized column names and types",
+        format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+      ),
+      user = list()
+    )
+
+    base_classes <- setdiff(class(df), "climasus_df")
+    df <- structure(
+      df,
+      climasus_meta = meta,
+      class = c("climasus_df", base_classes)
+    )
+  } else { 
+    df <- climasus_meta(
     df,
     system = climasus_meta(df, "system"),  # Preserve original system
     stage = "filter_demo",
     type = "filter_demo"
-  )
+  )     
+  }
+
 
   # Build detailed processing history message
   filter_details <- c()
@@ -472,3 +576,54 @@ find_column <- function(df, patterns) {
   }
   return(NULL)
 }
+
+#Helper functions
+#' @title Regional Definitions for Brazilian States
+#' @description Internal dataset with state to region mappings including Biomes, 
+#' Hydrography, and Epidemiological clusters.
+#' @noRd
+.br_regions <- list(
+  # --- IBGE Macro-regions ---
+  norte = c("AC", "AP", "AM", "PA", "RO", "RR", "TO"),
+  nordeste = c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE"),
+  centro_oeste = c("DF", "GO", "MT", "MS"),
+  sudeste = c("ES", "MG", "RJ", "SP"),
+  sul = c("PR", "RS", "SC"),
+  
+  # --- Biomes (Ecological Borders) ---
+  amazonia_legal = c("AC", "AP", "AM", "PA", "RO", "RR", "MT", "MA", "TO"),
+  mata_atlantica = c("AL", "BA", "CE", "ES", "GO", "MA", "MG", "MS", "PB", 
+                     "PE", "PI", "PR", "RJ", "RN", "RS", "SC", "SE", "SP"),
+  caatinga = c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE", "MG"),
+  cerrado = c("BA", "DF", "GO", "MA", "MG", "MS", "MT", "PA", "PI", "PR", "RO", "SP", "TO"),
+  pantanal = c("MT", "MS"),
+  pampa = c("RS"),
+  
+  # --- Hydrography & Climate ---
+  bacia_amazonica = c("AC", "AM", "AP", "MT", "PA", "RO", "RR"),
+  bacia_sao_francisco = c("AL", "BA", "DF", "GO", "MG", "PE", "SE"),
+  bacia_parana = c("GO", "MG", "MS", "PR", "SP"),
+  bacia_tocantins = c("GO", "MA", "PA", "TO"),
+  semi_arido = c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE", "MG"),
+  
+  # --- Health, Agriculture & Geopolitics ---
+  matopiba = c("MA", "TO", "PI", "BA"),
+  arco_desmatamento = c("RO", "AC", "AM", "PA", "MT", "MA"),
+  dengue_hyperendemic = c("GO", "MS", "MT", "PR", "RJ", "SP"),
+  sudene = c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE", "MG", "ES"),
+  fronteira_brasil = c("AC", "AM", "AP", "MT", "MS", "PA", "PR", "RO", "RR", "RS", "SC")
+)
+
+#' @description Multilingual aliases for the region argument (EN, ES, PT).
+#' @noRd
+.region_aliases <- list(
+  # English
+  north = "norte", northeast = "nordeste", central_west = "centro_oeste", 
+  southeast = "sudeste", south = "sul", amazon = "amazonia_legal", 
+  legal_amazon = "amazonia_legal", atlantic_forest = "mata_atlantica",
+  semi_arid = "semi_arido", border = "fronteira_brasil",
+  # Spanish
+  noreste = "nordeste", sudeste = "sudeste", sur = "sul", 
+  amazonia = "amazonia_legal", bosque_atlantico = "mata_atlantica",
+  semiarido = "semi_arido", frontera = "fronteira_brasil"
+)
