@@ -97,7 +97,7 @@ sus_data_filter_demographics <- function(df,
   if (!is.data.frame(df)) {
     cli::cli_abort("df must be a data frame")
   }
-  
+
   if (!lang %in% c("en", "pt", "es")) {
     cli::cli_abort("lang must be one of: 'en', 'pt', 'es'")
   }
@@ -191,6 +191,8 @@ sus_data_filter_demographics <- function(df,
   }
   
   # Store original row count
+  df <- data.table::setDT(df)
+
   n_original <- nrow(df)
   
   # Track filters applied
@@ -270,7 +272,7 @@ sus_data_filter_demographics <- function(df,
                           paste0("education: ", paste(education, collapse = ", ")))
     }
   }
-  
+    
   # ========================================================================
   # FILTER BY MARITAL STATUS
   # ========================================================================

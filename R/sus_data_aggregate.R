@@ -154,43 +154,36 @@ sus_data_aggregate <- function(df,
   } else {
     cli::cli_abort("fun must be a character string or a named list")
   }
-  
+
    # Check if data is climasus_df
   if (inherits(df, "climasus_df")) {
-
-    # Required stages for aggregation
-    required_stages <- c("filter_cid", "filter_demo")
-    allowed_stages  <- c("filter_cid", "filter_demo", "derive", "spatial")
-
+    
     current_stage <- climasus_meta(df, "stage")
+    required_stage <- "stand"
 
-    # Must have passed through at least one filter stage
-    if (is.null(current_stage) || !current_stage %in% allowed_stages) {
+    if (!is_stage_at_least(current_stage, required_stage)) {
 
       msg_error <- list(
         en = paste0(
           "Data must be filtered before aggregation.\n",
           "Current stage: ", current_stage %||% "unknown", "\n",
-          "Required stage: filter_cid or filter_demo\n\n",
-          "Please run at least one filter:\n",
-          "  df <- sus_data_filter_cid(df, ...)\n",
-          "  df <- sus_data_filter_demo(df, ...)"
+          "Required stage: ", required_stage, "\n\n",
+          "Please run:\n",
+          "  df <- sus_data_standardize(df)"
         ),
         pt = paste0(
           "Dados devem ser filtrados antes da agregacao.\n",
           "Estagio atual: ", current_stage %||% "desconhecido", "\n",
-          "Estagio requerido: filter_cid ou filter_demo\n\n",
-          "Por favor, execute ao menos um filtro:\n",
-          "  df <- sus_data_filter_cid(df, ...)\n",
-          "  df <- sus_data_filter_demo(df, ...)"
+          "Estagio requerido: ", required_stage, "\n\n",
+          "Por favor, execute:\n",
+          "  df <- sus_data_standardize(df)"
         ),
         es = paste0(
           "Los datos deben ser filtrados antes de la agregacion.\n",
           "Etapa actual: ", current_stage %||% "desconocida", "\n",
-          "Etapa requerida: filter_cid o filter_demo\n\n",
-          "Por favor, ejecute al menos un filtro:\n",
-          "  df <- sus_data_filter_cid(df, ...)\n",
-          "  df <- sus_data_filter_demo(df, ...)"
+          "Etapa requerida: ", required_stage, "\n\n",
+          "Por favor, ejecute:\n",
+          "  df <- sus_data_standardize(df)"
         )
       )
 
@@ -200,7 +193,7 @@ sus_data_aggregate <- function(df,
     # Stage validated
     if (verbose) {
       msg_stage_ok <- list(
-        en = "Data stage validated: aggregation allowed",
+         en = "Data stage validated: aggregation allowed",
         pt = "Estagio de dados validado: agregacao permitida",
         es = "Etapa de datos validada: agregacion permitida"
       )
@@ -209,12 +202,12 @@ sus_data_aggregate <- function(df,
     }
 
     # Update metadata
-    df <- climasus_meta(df, stage = "aggregate", type  = "agg")
+    df <- climasus_meta(df, stage = "aggregate", type = "agg")
 
   } else {
-    
-    # NOT climasus_df - ABORT execution
-    msg_error <- list(
+      
+      # NOT climasus_df - ABORT execution
+      msg_error <- list(
       en = paste0(
         "Input is not a climasus_df object.\n",
         "This function requires data from the CLIMASUS4r pipeline.\n\n",
@@ -247,8 +240,10 @@ sus_data_aggregate <- function(df,
       )
     )
     
-    cli::cli_abort(msg_error[[lang]])
+      
+      cli::cli_abort(msg_error[[lang]])
   }
+  
   #Detect system if not specified
   system <- climasus_meta(df, "system")
 

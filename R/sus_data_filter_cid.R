@@ -195,7 +195,7 @@ sus_data_filter_cid <- function(df,
     lang <- "pt"
   }
 
-    # Check if data is climasus_df
+  
   # Check if data is climasus_df
   if (inherits(df, "climasus_df")) {
     current_stage <- climasus_meta(df, "stage")

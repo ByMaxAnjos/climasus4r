@@ -124,7 +124,7 @@ utils::globalVariables(c(
         dplyr::mutate(
           datetime_str = paste(date, hour),
           # Try to parse, and if fails, return NA
-          date = lubridate::ymd_hm(datetime_str, quiet = TRUE)
+          date = lubridate::ymd_hm(.data$datetime_str, quiet = TRUE)
         ) %>% 
         dplyr::select(-dplyr::starts_with("v"), -hour, -.data$datetime_str)
       
@@ -723,213 +723,155 @@ utils::globalVariables(c(
 #' 
 #' @param df Data frame with climate station data
 #' @param spatial_obj Spatial object with municipality data
-#' @param quality_threshold Maximum allowed missing data percentage (0 to 1)
-#' @param msg Message templates for warnings/info
 #' @param verbose Logical, whether to display messages
-#' @param quality_vars Character vector of variable names to use for quality assessment
-#' @param quality_method Method for combining multiple quality variables: "any", "all", or "mean"
 #' 
 #' @details This function matches climate stations to municipalities based on:
 #' - Spatial proximity (nearest station using sf::st_nearest_feature)
-#' - Data quality (completeness of specified variables)
-#' - Allows fallback to nearest station if quality criteria not met
 #' 
 #' @return Data frame with matched climate data and municipality information
 #' @noRd
-.match_spatial <- function(df, spatial_obj, quality_threshold, msg, verbose,
-                          quality_vars = "tair_dry_bulb_c",
-                          quality_method = c("any", "all", "mean"))
-                          {
+.match_spatial <- function(
+  df, 
+  spatial_obj, 
+  verbose = FALSE
+){
   
-  # Validar quality_method
-  quality_method <- match.arg(quality_method)
-  
-  required_cols <- c("station_name", "latitude", "longitude")
+  # Validar colunas necessárias
+  required_cols <- c("station_name", "station_code", "latitude", "longitude")
   if (!all(required_cols %in% names(df))) {
-    cli::cli_abort("Dados de estacoes devem conter colunas: {paste(required_cols, collapse = ', ')}")
+    cli::cli_abort("Station data must contain columns: {paste(required_cols, collapse = ', ')}")
   }
   
   if (!"code_muni" %in% names(spatial_obj)) {
-    cli::cli_abort("spatial_obj deve conter coluna 'code_muni'. Please, use sus_join_spatial() for getting it")
-  }
-  
-  missing_vars <- setdiff(quality_vars, names(df))
-  if (length(missing_vars) > 0) {
-    cli::cli_warn("Algumas variaveis de qualidade nao encontradas: {missing_vars}")
-    cli::cli_inform("Usando apenas variaveis disponiveis para calculo de qualidade")
-    quality_vars <- intersect(quality_vars, names(df))
-  }
-  
-  if (length(quality_vars) == 0) {
-    cli::cli_abort("Nenhuma variavel de qualidade valida encontrada no conjunto de dados")
+    cli::cli_abort("spatial_obj must contain 'code_muni' column. Please use sus_join_spatial() first")
   }
   
   if (verbose) {
-    cli::cli_inform("Calculando qualidade com {length(quality_vars)} variavel(s): {paste(quality_vars, collapse = ', ')}")
-    cli::cli_inform("Metodo de combinacao: {quality_method}")
+    cli::cli_inform("Performing spatial matching of climate stations to municipalities")
   }
   
+  # ----------------------------------------------------------------------------
+  # 1. PREPARAR DADOS ESPACIAIS DAS ESTAÇÕES
+  # ----------------------------------------------------------------------------
+  
+  # Obter estações únicas com suas coordenadas
   stations <- df %>%
-    dplyr::distinct(.data$station_name, .data$latitude, .data$longitude) %>%
+    dplyr::distinct(
+      .data$station_code, 
+      .data$station_name,
+      .data$latitude, 
+      .data$longitude
+    ) %>%
     sf::st_as_sf(
       coords = c("longitude", "latitude"),
-      crs = 4674,
+      crs = 4674,  # SIRGAS 2000 (comum no Brasil)
       remove = FALSE
     )
   
-  station_quality <- .calculate_station_quality(
-    df = df,
-    quality_vars = quality_vars,
-    quality_method = quality_method,
-    verbose = verbose
-  )
+  if (verbose) {
+    cli::cli_inform("Found {nrow(stations)} unique stations")
+  }
   
+  # ----------------------------------------------------------------------------
+  # 2. PREPARAR DADOS ESPACIAIS DOS MUNICÍPIOS
+  # ----------------------------------------------------------------------------
+  
+  # Garantir mesmo CRS
   if (sf::st_crs(spatial_obj) != sf::st_crs(stations)) {
     spatial_obj <- sf::st_transform(spatial_obj, sf::st_crs(stations))
   }
   
+  # Calcular centróides dos municípios (ponto mais próximo da estação)
   spatial_centroids <- suppressWarnings(
-    spatial_obj %>% sf::st_centroid()
+    spatial_obj %>% 
+      sf::st_centroid()
   )
   
+  # ----------------------------------------------------------------------------
+  # 3. ENCONTRAR ESTAÇÃO MAIS PRÓXIMA PARA CADA MUNICÍPIO
+  # ----------------------------------------------------------------------------
+  
+  # Encontrar índice da estação mais próxima para cada centróide municipal
   nearest_indices <- sf::st_nearest_feature(spatial_centroids, stations)
   
+  # Calcular distâncias
+  distances <- sf::st_distance(spatial_centroids, stations[nearest_indices, ], by_element = TRUE)
+  
+  # Criar mapa município-estação
   mun_station_map <- data.frame(
     code_muni = spatial_centroids$code_muni,
     station_index = nearest_indices,
+    station_code = stations$station_code[nearest_indices],
+    station_name = stations$station_name[nearest_indices],
+    distance_m = as.numeric(distances),
     row.names = NULL
   )
   
-  distances_list <- list()
-  
-  for (i in seq_len(nrow(spatial_centroids))) {
-    mun_center <- spatial_centroids[i, ]
-    station_idx <- nearest_indices[i]
-    
-    distance_m <- as.numeric(sf::st_distance(mun_center, stations[station_idx, ]))
-    distances_list[[i]] <- distance_m
+  if (verbose) {
+    # Estatísticas de distância
+    dist_stats <- summary(mun_station_map$distance_m / 1000)  # Converter para km
+    cli::cli_inform("Distance statistics (km):")
+    cli::cli_inform("  Min: {round(dist_stats[1], 1)}")
+    cli::cli_inform("  Median: {round(dist_stats[3], 1)}")
+    cli::cli_inform("  Max: {round(dist_stats[6], 1)}")
   }
   
-  mun_station_map <- mun_station_map %>%
-    dplyr::mutate(
-      station_name = stations$station_name[station_index],
-      distance_m = unlist(distances_list)
-    )
+  # ----------------------------------------------------------------------------
+  # 4. ATRIBUIR DADOS CLIMÁTICOS AOS MUNICÍPIOS
+  # ----------------------------------------------------------------------------
   
-  mun_station_map <- mun_station_map %>%
-    dplyr::left_join(station_quality, by = "station_name") %>%
-    dplyr::mutate(
-      passes_quality = missing_pct <= quality_threshold
-    )
-  
-  problematic_munis <- mun_station_map %>%
-    dplyr::filter(!passes_quality) %>%
-    dplyr::pull(code_muni)
-  
-  if (length(problematic_munis) > 0) {
-    if (verbose) {
-      cli::cli_inform("Encontradas {length(problematic_munis)} municipios com qualidade abaixo do limiar")
-    }
-    
-    for (mun_code in problematic_munis) {
-      mun_idx <- which(spatial_centroids$code_muni == mun_code)
-      mun_center <- spatial_centroids[mun_idx, ]
-      
-      distances <- sf::st_distance(mun_center, stations) %>%
-        as.numeric()
-      
-      station_order <- order(distances)
-      
-      found <- FALSE
-      for (idx in station_order) {
-        station_name <- stations$station_name[idx]
-        quality_info <- station_quality %>%
-          dplyr::filter(station_name == !!station_name)
-        
-        if (nrow(quality_info) > 0 && quality_info$missing_pct <= quality_threshold) {
-          # Atualizar mapeamento
-          mun_station_map$station_name[mun_station_map$code_muni == mun_code] <- station_name
-          mun_station_map$station_index[mun_station_map$code_muni == mun_code] <- idx
-          mun_station_map$distance_m[mun_station_map$code_muni == mun_code] <- distances[idx]
-          mun_station_map$missing_pct[mun_station_map$code_muni == mun_code] <- quality_info$missing_pct
-          mun_station_map$passes_quality[mun_station_map$code_muni == mun_code] <- TRUE
-          found <- TRUE
-          break
-        }
-      }
-      
-      if (!found && verbose) {
-        best_idx <- station_order[1]
-        station_name <- stations$station_name[best_idx]
-        quality_info <- station_quality %>%
-          dplyr::filter(station_name == !!station_name)
-        
-        if (nrow(quality_info) > 0) {
-          quality_pct <- quality_info$missing_pct * 100
-          
-          if ("missing_details" %in% names(quality_info)) {
-            details <- quality_info$missing_details[[1]]
-            problem_vars <- names(details)[details > quality_threshold]
-            if (length(problem_vars) > 0) {
-              cli::cli_alert_warning(glue::glue(
-                msg$quality_warning_detail,
-                name = station_name,
-                pct = round(quality_pct, 1),
-                vars = paste(problem_vars, collapse = ", ")
-              ))
-            } else {
-              cli::cli_alert_warning(glue::glue(
-                msg$quality_warning,
-                name = station_name,
-                pct = round(quality_pct, 1)
-              ))
-            }
-          } else {
-            cli::cli_alert_warning(glue::glue(
-              msg$quality_warning,
-              name = station_name,
-              pct = round(quality_pct, 1)
-            ))
-          }
-        }
-      }
-    }
-  }
-  
-  unique_munis <- unique(spatial_obj$code_muni)
-  
+  # Lista para armazenar resultados
   matched_data_list <- list()
+  
+  # Para cada município único
+  unique_munis <- unique(mun_station_map$code_muni)
   
   for (i in seq_along(unique_munis)) {
     mun_code <- unique_munis[i]
     
+    # Informações da estação para este município
     station_info <- mun_station_map %>%
-      dplyr::filter(code_muni == mun_code) %>%
-      dplyr::slice(1)  # Pegar primeiro se houver duplicatas
+      dplyr::filter(.data$code_muni == mun_code) %>%
+      dplyr::slice(1)
     
-    if (nrow(station_info) > 0) {
-      mun_info <- spatial_obj %>%
-        dplyr::filter(code_muni == mun_code) %>%
-        dplyr::slice(1) %>%
-        sf::st_drop_geometry()
-      
-      station_data <- df %>%
-        dplyr::filter(station_name == station_info$station_name) %>%
-        dplyr::mutate(
-          code_muni = mun_code,
-          name_muni = ifelse("name_muni" %in% names(mun_info), 
-                           mun_info$name_muni[1], NA_character_),
-          distance_km = station_info$distance_m / 1000,
-          quality_missing_pct = ifelse(!is.na(station_info$missing_pct), 
-                                      station_info$missing_pct * 100, NA_real_)
-        )
-      
-      matched_data_list[[i]] <- station_data
-    }
+    # Informações do município (sem geometria)
+    mun_info <- spatial_obj %>%
+      sf::st_drop_geometry() %>%
+      dplyr::filter(.data$code_muni == mun_code) %>%
+      dplyr::slice(1)
+    
+    # Dados climáticos desta estação
+    station_data <- df %>%
+      dplyr::filter(.data$station_code == station_info$station_code) %>%
+      dplyr::mutate(
+        # Adicionar identificadores do município
+        code_muni = mun_code,
+        name_muni = if ("name_muni" %in% names(mun_info)) mun_info$name_muni[1] else NA_character_,
+        
+        # Adicionar informação de distância
+        distance_km = station_info$distance_m / 1000
+      )
+    
+    matched_data_list[[i]] <- station_data
   }
   
-  # Combinar todos os dados
+  # ----------------------------------------------------------------------------
+  # 5. COMBINAR E ORGANIZAR RESULTADOS
+  # ----------------------------------------------------------------------------
+  
   matched_data <- dplyr::bind_rows(matched_data_list)
+  
+  # Reordenar colunas para colocar identificadores no início
+  id_cols <- c("code_muni", "name_muni", "station_code", "station_name", "distance_km")
+  other_cols <- setdiff(names(matched_data), id_cols)
+  matched_data <- matched_data[, c(id_cols, other_cols)]
+  
+  if (verbose) {
+    cli::cli_inform("Spatial matching completed:")
+    cli::cli_inform("  {length(unique_munis)} municipalities matched")
+    cli::cli_inform("  {nrow(matched_data)} rows of climate data assigned")
+    cli::cli_inform("  {length(unique(matched_data$station_code))} unique stations used")
+  }
   
   return(matched_data)
 }
@@ -1002,28 +944,6 @@ utils::globalVariables(c(
   return(station_quality)
 }
 
-#' Helper function: Calculate station quality based on multiple variables (parallel version)
-#' @keywords internal
-#' @noRd
-.generate_quality_messages <- function() {
-  list(
-    quality_warning = paste(
-      "Estacao {name} usada apesar de {pct}% de dados faltantes.",
-      "Considere aumentar quality_threshold ou revisar os dados."
-    ),
-    quality_warning_detail = paste(
-      "Estacao {name} usada apesar de {pct}% de dados faltantes.",
-      "Variaveis problematicas: {vars}.",
-      "Considere ajustar quality_vars ou quality_threshold."
-    ),
-    quality_info = paste(
-      "Matching espacial concluido.",
-      "Variaveis de qualidade: {vars}",
-      "Metodo: {method}",
-      "Limiar: {threshold}%"
-    )
-  )
-}
 
 
 #' Spatial Matching: Assign Climate Data to Geographic Units (Parallel Version)

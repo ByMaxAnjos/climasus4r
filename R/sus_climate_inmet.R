@@ -521,7 +521,7 @@ download_inmet <- function(
     unlink(temp_dir, recursive = TRUE)
     dir.create(temp_dir)
 
-    unzip(zip_file, exdir = temp_dir)
+    utils::unzip(zip_file, exdir = temp_dir)
 
     files <- list.files(
       temp_dir,
