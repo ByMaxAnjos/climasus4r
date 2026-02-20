@@ -28,7 +28,7 @@
 #' @param complete_dates Logical. If `TRUE` (default), fills in missing time periods
 #'   with zero counts to create a complete time series without gaps.
 #' @param lang Character string specifying the language for messages. Options:
-#'   `"en"` (English, default), `"pt"` (Portuguese, default), `"es"` (Spanish).
+#'   `"en"` (English), `"pt"` (Portuguese, default), `"es"` (Spanish).
 #' @param verbose Logical. If `TRUE` (default), prints progress messages.
 #'
 #' @return A tibble with aggregated data containing:
@@ -71,9 +71,9 @@
 #' library(climasus4r)
 #'
 #' # Basic daily aggregation
-#' df_daily <- sus_data_import(uf = "SP", year = 2023, system = "SIM-DO") |>
-#'   sus_data_standardize() |>
-#'   sus_data_filter_cid(disease_group = "respiratory") |>
+#' df_daily <- sus_data_import(uf = "SP", year = 2023, system = "SIM-DO") %>%
+#'   sus_data_standardize() %>%
+#'   sus_data_filter_cid(disease_group = "respiratory") %>%
 #'   sus_data_aggregate(time_unit = "day")
 #'
 #' # Pentad aggregation (5-day periods) for heat wave analysis
@@ -215,7 +215,7 @@ sus_data_aggregate <- function(df,
         "  1. Import: df <- sus_data_import(...) or sus_data_read(...)\n",
         "  2. Clean: df <- sus_data_clean_encoding(df)\n",
         "  3. Standardize: df <- sus_data_standardize(df)\n",
-        "  4. Aggregate: df <- sus_data_aggregate(df, ...)\n\n",
+        "  4. Aggregate: df <- sus_data_aggregate(...)\n\n",
         "If using external data, run sus_data_standardize() first to prepare it."
       ),
       pt = paste0(
@@ -224,8 +224,8 @@ sus_data_aggregate <- function(df,
         "Por favor, prepare seus dados primeiro:\n",
         "  1. Importar: df <- sus_data_import(...) ou sus_data_read(...)\n",
         "  2. Limpar: df <- sus_data_clean_encoding(df)\n",
-        "  3. Padronizar: df <- sus_data_aggregate(df)\n",
-        "  4. Agregar: df <- sus_data_aggregate(df, ...)\n\n",
+        "  3. Padronizar: df <- sus_data_standardize(df)\n",
+        "  4. Agregar: df <- sus_data_aggregate(...)\n\n",
         "Se usar dados externos, execute sus_data_standardize() primeiro para prepara-los."
       ),
       es = paste0(
@@ -235,7 +235,7 @@ sus_data_aggregate <- function(df,
         "  1. Importar: df <- sus_data_import(...) o sus_data_read(...)\n",
         "  2. Limpiar: df <- sus_data_clean_encoding(df)\n",
         "  3. Estandarizar: df <- sus_data_standardize(df)\n",
-        "  4. Agregar: df <- sus_data_aggregate(df, ...)\n\n",
+        "  4. Agregar: df <- sus_data_aggregate(...)\n\n",
         "Si usa datos externos, ejecute sus_data_standardize() primero para prepararlos."
       )
     )
@@ -473,7 +473,7 @@ sus_data_aggregate <- function(df,
       modified = Sys.time(),
       history = climasus_meta(df, "history") %||% character(0),  # Preserve history
       user = list()
-    )
+    ) 
     
     base_classes <- setdiff(class(df_agg), "climasus_df")
     df_agg <- structure(
@@ -901,8 +901,8 @@ complete_time_series <- function(df_agg, time_unit, group_by, fill_value = 0, la
     df_agg <- dplyr::left_join(complete_df, df_agg, by = "date")
   } else {
     # With grouping: complete for each group
-    all_groups <- df_agg |>
-      dplyr::select(dplyr::all_of(group_by)) |>
+    all_groups <- df_agg %>%
+      dplyr::select(dplyr::all_of(group_by)) %>%
       dplyr::distinct()
     
     complete_df <- tidyr::expand_grid(

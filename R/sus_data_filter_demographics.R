@@ -1,7 +1,7 @@
 #' Filter Health Data by Demographic Variables
 #'
 #' Filters health data based on demographic characteristics such as sex, race,
-#' age range, education level, and marital status. This function complements
+#' age range, education level, region, and municipality. This function complements
 #' `sus_data_filter_cid()` by enabling stratified analyses by population subgroups.
 #'
 #' @param df A data frame containing health data.
@@ -16,7 +16,7 @@
 #'   includes all ages.
 #' @param education Character vector specifying education levels to include.
 #'   If `NULL` (default), includes all education levels.
-#'   to include. If `NULL` (default), includes all marital statuses.
+#'   to include. If `NULL` (default).
 #' @param region A string indicating a predefined group of states or regions (supports multilingual names PT, EN, ES). See below in details.
 #' @param municipality_code Character or numeric vector specifying municipality
 #'   codes (IBGE 6 or 7-digit codes) to include. If `NULL` (default), includes
@@ -35,9 +35,9 @@
 #'
 #' **Sex categories** (case-insensitive):
 #' \itemize{
-#'   \item English: `"Male"`, `"Female"`, `"Unknown"`
-#'   \item Portuguese: `"Masculino"`, `"Feminino"`, `"Ignorado"`
-#'   \item Spanish: `"Masculino"`, `"Femenino"`, `"Desconocido"`
+#'   \item English: `"Male"`, `"Female"`
+#'   \item Portuguese: `"Masculino"`, `"Feminino"`
+#'   \item Spanish: `"Masculino"`, `"Femenino"`
 #' }
 #'
 #' **Race/Color categories** (IBGE standard):
@@ -129,6 +129,20 @@ sus_data_filter_demographics <- function(df,
   if (!lang %in% c("en", "pt", "es")) {
     cli::cli_abort("lang must be one of: 'en', 'pt', 'es'")
   }
+
+  if (!is.null(sex)) {
+    valid_sex <- c("Male", "Female", "Unknown",
+                  "Masculino", "Feminino", "Ignorado",
+                  "Femenino", "Desconocido")
+    unrecognized <- setdiff(tools::toTitleCase(sex), valid_sex)
+    if (length(unrecognized) > 0) {
+      cli::cli_warn(c(
+        "Unrecognized sex values: {.val {unrecognized}}",
+        "i" = "Valid values: {.val {valid_sex}}"
+      ))
+    }
+  }
+
 
   # Check if data is climasus_df
   if (inherits(df, "climasus_df")) {
