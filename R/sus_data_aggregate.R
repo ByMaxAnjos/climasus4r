@@ -249,7 +249,7 @@ sus_data_aggregate <- function(df,
 
   # Detect duplicate column names
   data.table::setDT(df)
-  cols_to_keep <- !data.table::duplicated(names(df))
+  cols_to_keep <- !base::duplicated(names(df))
   if (any(!cols_to_keep)) {df <- df[, cols_to_keep, with = FALSE]} 
   
   # Auto-detect date column if not specified

@@ -277,7 +277,7 @@ sus_data_filter_demographics <- function(df,
       min_age <- age_range[1]
       max_age <- age_range[2]
       
-      df <- df[data.table::between(get(age_col)), min_age, max_age]
+      df <- df[data.table::between(get(age_col), min_age, max_age)]
       filters_applied <- c(filters_applied, paste0("age: ", min_age, "-", ifelse(is.infinite(max_age), "+", max_age)))
     }
   }
