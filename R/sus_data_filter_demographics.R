@@ -16,7 +16,6 @@
 #'   includes all ages.
 #' @param education Character vector specifying education levels to include.
 #'   If `NULL` (default), includes all education levels.
-#' @param marital_status Character vector specifying marital status categories
 #'   to include. If `NULL` (default), includes all marital statuses.
 #' @param region A string indicating a predefined group of states or regions (supports multilingual names PT, EN, ES). See below in details.
 #' @param municipality_code Character or numeric vector specifying municipality
@@ -117,7 +116,7 @@ sus_data_filter_demographics <- function(df,
                                           race = NULL,
                                           age_range = NULL,
                                           education = NULL,
-                                          marital_status = NULL,
+                                          region = NULL,
                                           municipality_code = NULL,
                                           lang = "pt",
                                           verbose = TRUE) {
@@ -299,23 +298,6 @@ sus_data_filter_demographics <- function(df,
     }
   }
     
-  # ========================================================================
-  # FILTER BY MARITAL STATUS
-  # ========================================================================
-  
-  if (!is.null(marital_status)) {
-    marital_col <- find_column(df, c("marital_status", "estado_civil", 
-                                      "estado_civil", "ESTCIV"))
-    marital_col <- tolower(marital_col)
-    if (is.null(marital_col)) {
-      warning("Marital status column not found. Skipping marital status filter.")
-    } else {
-      marital_targets <- tools::toTitleCase(marital_status)
-      df <- df[get(marital_col) %in% marital_targets]
-      filters_applied <- c(filters_applied, paste0("marital_status: ", paste(marital_targets, collapse = ", ")))
-    }
-  }
-  
   # ========================================================================
   # FILTER BY REGION OR STATES
   # ========================================================================
@@ -533,9 +515,8 @@ sus_data_filter_demographics <- function(df,
     filter_details <- c(filter_details, sprintf("Education: %s", paste(education, collapse=", ")))
   }
 
-  if (!is.null(marital_status)) {
-    marital_names <- sapply(marital_status, function(m) marital_status[as.character(m)] %||% m)
-    filter_details <- c(filter_details, sprintf("Marital: %s", paste(marital_names, collapse=", ")))
+  if (!is.null(region)) {
+    filter_details <- c(filter_details, sprintf("Region: %s", paste(region, collapse=", ")))
   }
 
   if (!is.null(municipality_code)) {

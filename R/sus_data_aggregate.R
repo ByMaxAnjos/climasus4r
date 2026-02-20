@@ -481,20 +481,22 @@ sus_data_aggregate <- function(df,
       climasus_meta = meta,
       class = c("climasus_df", base_classes)
     )
+  } else { 
+    # Update stage and type
+    df_agg <- climasus_meta(
+      df_agg,
+      system = climasus_meta(df_agg, "system"),  # Preserve original system
+      stage = "aggregate",
+      type = "agg",
+      temporal = list(
+        start = min(df_agg$date),
+        end = max(df_agg$date),
+        resolution = time_unit
+      )
+    )
   }
 
-  # Update stage and type
-  df_agg <- climasus_meta(
-    df_agg,
-    system = climasus_meta(df_agg, "system"),  # Preserve original system
-    stage = "aggregate",
-    type = "agg",
-    temporal = list(
-      start = min(df_agg$date),
-      end = max(df_agg$date),
-      resolution = time_unit
-    )
-  )
+ 
   # Build detailed aggregation history message
   agg_details <- c()
 

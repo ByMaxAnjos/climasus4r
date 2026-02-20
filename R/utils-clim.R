@@ -30,7 +30,7 @@ utils::globalVariables(c(
   "distance_m", "station_unique_name",            # spatial matching
   "target_vars",
    "dayofyear", "hour", "quarter", "season", "wday_tmp", "weekday", "weekofyear",
-   "month", ".join_key", ".hour", ".is_night", "date"                               # target variables
+   "month", ".join_key", ".hour", ".is_night", "date", "codigo", "sigla"                               # target variables
 ))
 # ============================================================================
 # INMET HELPER FUNCTIONS

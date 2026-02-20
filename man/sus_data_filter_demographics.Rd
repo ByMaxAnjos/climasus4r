@@ -10,7 +10,7 @@ sus_data_filter_demographics(
   race = NULL,
   age_range = NULL,
   education = NULL,
-  marital_status = NULL,
+  region = NULL,
   municipality_code = NULL,
   lang = "pt",
   verbose = TRUE
@@ -32,10 +32,10 @@ includes all races.}
 includes all ages.}
 
 \item{education}{Character vector specifying education levels to include.
-If \code{NULL} (default), includes all education levels.}
-
-\item{marital_status}{Character vector specifying marital status categories
+If \code{NULL} (default), includes all education levels.
 to include. If \code{NULL} (default), includes all marital statuses.}
+
+\item{region}{A string indicating a predefined group of states or regions (supports multilingual names PT, EN, ES). See below in details.}
 
 \item{municipality_code}{Character or numeric vector specifying municipality
 codes (IBGE 6 or 7-digit codes) to include. If \code{NULL} (default), includes
@@ -73,6 +73,42 @@ names from \code{sus_data_standardize()}.
 \item Portuguese: \code{"Branca"}, \code{"Preta"}, \code{"Amarela"}, \code{"Parda"}, \code{"Indigena"}
 \item Spanish: \code{"Blanca"}, \code{"Negra"}, \code{"Amarilla"}, \code{"Parda"}, \code{"Indigena"}
 }
+\strong{IBGE Macro-regions:}
+\itemize{
+\item \code{"norte"}: c("AC", "AP", "AM", "PA", "RO", "RR", "TO")
+\item \code{"nordeste"}: c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE")
+\item \code{"centro_oeste"}: c("DF", "GO", "MT", "MS")
+\item \code{"sudeste"}: c("ES", "MG", "RJ", "SP")
+\item \code{"sul"}: c("PR", "RS", "SC")
+}
+
+\strong{Biomes (Ecological Borders):}
+\itemize{
+\item \code{"amazonia_legal"}: c("AC", "AP", "AM", "PA", "RO", "RR", "MT", "MA", "TO")
+\item \code{"mata_atlantica"}: c("AL", "BA", "CE", "ES", "GO", "MA", "MG", "MS", "PB", "PE", "PI", "PR", "RJ", "RN", "RS", "SC", "SE", "SP")
+\item \code{"caatinga"}: c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE", "MG")
+\item \code{"cerrado"}: c("BA", "DF", "GO", "MA", "MG", "MS", "MT", "PA", "PI", "PR", "RO", "SP", "TO")
+\item \code{"pantanal"}: c("MT", "MS")
+\item \code{"pampa"}: c("RS")
+}
+
+\strong{Hydrography & Climate:}
+\itemize{
+\item \code{"bacia_amazonia"}: c("AC", "AM", "AP", "MT", "PA", "RO", "RR")
+\item \code{"bacia_sao_francisco"}: c("AL", "BA", "DF", "GO", "MG", "PE", "SE")
+\item \code{"bacia_parana"}: c("GO", "MG", "MS", "PR", "SP")
+\item \code{"bacia_tocantins"}: c("GO", "MA", "PA", "TO")
+\item \code{"semi_arido"}: c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE", "MG")
+}
+
+\strong{Health, Agriculture & Geopolitics:}
+\itemize{
+\item \code{"matopiba"}: c("MA", "TO", "PI", "BA")
+\item \code{"arco_desmatamento"}: c("RO", "AC", "AM", "PA", "MT", "MA")
+\item \code{"dengue_hyperendemic"}: c("GO", "MS", "MT", "PR", "RJ", "SP")
+\item \code{"sudene"}: c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE", "MG", "ES")
+\item \code{"fronteira_brasil"}: c("AC", "AM", "AP", "MT", "MS", "PA", "PR", "RO", "RR", "RS", "SC")
+}
 }
 \examples{
 \dontrun{
@@ -104,7 +140,7 @@ df_subset <- sus_data_filter_demographics(
 df_children <- sus_data_filter_demographics(
   df,
   age_range = c(0, 5),
-  municipality_code = "3550308",
+  region = "Norte",
   lang = "en"
 )
 }
