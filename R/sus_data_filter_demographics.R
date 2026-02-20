@@ -143,9 +143,20 @@ sus_data_filter_demographics <- function(df,
     }
   }
 
+  # Verificar se e climasus_df
+  is_climasus <- inherits(df, "climasus_df")
+  
+  # Se for climasus_df, obter o system
+  if (is_climasus) {
+    system <- climasus_meta(df, "system")
+  } else {
+    system <- NULL  # Sera definido depois se necessario
+  }
+
+
 
   # Check if data is climasus_df
-  if (inherits(df, "climasus_df")) {
+  if (is_climasus) {
 
     # Minimum required stage
     required_stage <- "stand"
@@ -232,15 +243,14 @@ sus_data_filter_demographics <- function(df,
     cli::cli_abort(msg_error[[lang]])
   }
   
+  n_original <- nrow(df)
+  
   # Store original row count
   df <- data.table::as.data.table(df)
 
-  n_original <- nrow(df)
-  
   # Track filters applied
   filters_applied <- character()
   
-  system <- climasus_meta(df, "system")
   # ========================================================================
   # FILTER BY SEX
   # ========================================================================
@@ -432,11 +442,14 @@ sus_data_filter_demographics <- function(df,
   # Update climasus_df metadata (DETAILED VERSION)
   # ============================================================================
 
+  if (is.null(system) && inherits(df, "climasus_df")) {
+    system <- climasus_meta(df, "system")
+  }
   # Update stage and type
    if (!inherits(df, "climasus_df")) {
     # Create new climasus_df
     meta <- list(
-      system = system,
+      system = system %||% "unknown",
       stage = "filter_demo",
       type = "filter_demo",
       spatial = inherits(df, "sf"),
@@ -444,7 +457,7 @@ sus_data_filter_demographics <- function(df,
       created = Sys.time(),
       modified = Sys.time(),
       history = sprintf(
-        "[%s] Standardized column names and types",
+        "[%s] Demographic filters applied",
         format(Sys.time(), "%Y-%m-%d %H:%M:%S")
       ),
       user = list()
