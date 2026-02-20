@@ -143,20 +143,8 @@ sus_data_filter_demographics <- function(df,
     }
   }
 
-  # Verificar se e climasus_df
-  is_climasus <- inherits(df, "climasus_df")
-  
-  # Se for climasus_df, obter o system
-  if (is_climasus) {
-    system <- climasus_meta(df, "system")
-  } else {
-    system <- NULL  # Sera definido depois se necessario
-  }
-
-
-
   # Check if data is climasus_df
-  if (is_climasus) {
+  if (inherits(df, "climasus_df")) {
 
     # Minimum required stage
     required_stage <- "stand"
@@ -215,7 +203,8 @@ sus_data_filter_demographics <- function(df,
         "  1. Import: df <- sus_data_import(...) or sus_data_read(...)\n",
         "  2. Clean: df <- sus_data_clean_encoding(df)\n",
         "  3. Standardize: df <- sus_data_standardize(df)\n",
-        "  4. Filter demographics: df <- sus_filter_demographics(df, ...)\n\n",
+        "  4. Create: df <- sus_create_variables(...)\n\n",
+        "  5. Filter demographics: df <- sus_filter_demographics(...)\n\n",
         "If using external data, run sus_data_standardize() first to prepare it."
       ),
       pt = paste0(
@@ -225,7 +214,8 @@ sus_data_filter_demographics <- function(df,
         "  1. Importar: df <- sus_data_import(...) ou sus_data_read(...)\n",
         "  2. Limpar: df <- sus_data_clean_encoding(df)\n",
         "  3. Padronizar: df <- sus_data_standardize(df)\n",
-        "  4. Filtrar demografia: df <- sus_filter_demographics(df, ...)\n\n",
+        "  4. Criar: df <- sus_create_variables(...)\n\n",
+        "  5. Filtrar demografia: df <- sus_filter_demographics(...)\n\n",
         "Se usar dados externos, execute sus_data_standardize() primeiro para prepara-los."
       ),
       es = paste0(
@@ -235,7 +225,8 @@ sus_data_filter_demographics <- function(df,
         "  1. Importar: df <- sus_data_import(...) o sus_data_read(...)\n",
         "  2. Limpiar: df <- sus_data_clean_encoding(df)\n",
         "  3. Estandarizar: df <- sus_data_standardize(df)\n",
-        "  4. Filtrar demografia: df <- sus_filter_demographics(df, ...)\n\n",
+        "  4. Criar: df <- sus_create_variables(...)\n\n",
+        "  5. Filtrar demografia: df <- sus_filter_demographics(...)\n\n",
         "Si usa datos externos, ejecute sus_data_standardize() primero para prepararlos."
       )
     )
@@ -251,6 +242,7 @@ sus_data_filter_demographics <- function(df,
   # Track filters applied
   filters_applied <- character()
   
+  system <- climasus_meta(df, "system")
   # ========================================================================
   # FILTER BY SEX
   # ========================================================================
@@ -442,14 +434,11 @@ sus_data_filter_demographics <- function(df,
   # Update climasus_df metadata (DETAILED VERSION)
   # ============================================================================
 
-  if (is.null(system) && inherits(df, "climasus_df")) {
-    system <- climasus_meta(df, "system")
-  }
   # Update stage and type
    if (!inherits(df, "climasus_df")) {
     # Create new climasus_df
     meta <- list(
-      system = system %||% "unknown",
+      system = system,
       stage = "filter_demo",
       type = "filter_demo",
       spatial = inherits(df, "sf"),
@@ -553,7 +542,7 @@ sus_data_filter_demographics <- function(df,
 
   df <- climasus_meta(df, add_history = history_msg)
 
-  return(dplyr::as_tibble(df))
+  return(df)
 }
 
 
