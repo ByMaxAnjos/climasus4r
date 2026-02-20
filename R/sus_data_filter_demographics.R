@@ -236,13 +236,12 @@ sus_data_filter_demographics <- function(df,
   
   n_original <- nrow(df)
   
-  # Store original row count
-  df <- data.table::as.data.table(df)
-
   # Track filters applied
   filters_applied <- character()
   
   system <- climasus_meta(df, "system")
+
+  df <- data.table::setDT(df)
   # ========================================================================
   # FILTER BY SEX
   # ========================================================================
