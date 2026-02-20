@@ -454,38 +454,10 @@ sus_data_aggregate <- function(df,
       cli::cli_alert_info(group_msg)
     }
   }
-
-  if (!inherits(df_agg, "climasus_df")) {
-    # Create new climasus_df with metadata from original df
-    original_system <- climasus_meta(df, "system")
-    
-    meta <- list(
-      system = original_system,
-      stage = "aggregate",
-      type = "agg",
-      spatial = inherits(df_agg, "sf"),
-      temporal = list(
-        start = min(df_agg$date, na.rm = TRUE),
-        end = max(df_agg$date, na.rm = TRUE),
-        resolution = time_unit
-      ),
-      created = Sys.time(),
-      modified = Sys.time(),
-      history = climasus_meta(df, "history") %||% character(0),  # Preserve history
-      user = list()
-    ) 
-    
-    base_classes <- setdiff(class(df_agg), "climasus_df")
-    df_agg <- structure(
-      df_agg,
-      climasus_meta = meta,
-      class = c("climasus_df", base_classes)
-    )
-  } else { 
-    # Update stage and type
+  # Update stage and type
     df_agg <- climasus_meta(
       df_agg,
-      system = climasus_meta(df_agg, "system"),  # Preserve original system
+      system = climasus_meta(df, "system"),  # Preserve original system
       stage = "aggregate",
       type = "agg",
       temporal = list(
@@ -494,8 +466,6 @@ sus_data_aggregate <- function(df,
         resolution = time_unit
       )
     )
-  }
-
  
   # Build detailed aggregation history message
   agg_details <- c()

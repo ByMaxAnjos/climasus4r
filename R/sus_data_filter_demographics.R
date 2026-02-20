@@ -240,6 +240,7 @@ sus_data_filter_demographics <- function(df,
   # Track filters applied
   filters_applied <- character()
   
+  system <- climasus_meta(df, "system")
   # ========================================================================
   # FILTER BY SEX
   # ========================================================================
@@ -316,53 +317,38 @@ sus_data_filter_demographics <- function(df,
   # FILTER BY REGION OR STATES
   # ========================================================================
   if (!is.null(region)) {
-   df_ufs_brasil <- data.table::data.table(
-    sigla  = c("RO", "AC", "AM", "RR", "PA", "AP", "TO", "MA", "PI", "CE", "RN", "PB", "PE", "AL", "SE", "BA", "MG", "ES", "RJ", "SP", "PR", "SC", "RS", "MS", "MT", "GO", "DF"),
-    codigo = c(11, 12, 13, 14, 15, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31, 32, 33, 35, 41, 42, 43, 50, 51, 52, 53),
-    estado_pt = c("Rondônia", "Acre", "Amazonas", "Roraima", "Pará", "Amapá", "Tocantins", "Maranhão", "Piauí", "Ceará", "Rio Grande do Norte", "Paraíba", "Pernambuco", "Alagoas", "Sergipe", "Bahia", "Minas Gerais", "Espírito Santo", "Rio de Janeiro", "São Paulo", "Paraná", "Santa Catarina", "Rio Grande do Sul", "Mato Grosso do Sul", "Mato Grosso", "Goiás", "Distrito Federal"),
+    df_ufs_brasil <- data.table::data.table(
+      sigla  = c("RO", "AC", "AM", "RR", "PA", "AP", "TO", "MA", "PI", "CE", "RN", "PB", "PE", "AL", "SE", "BA", "MG", "ES", "RJ", "SP", "PR", "SC", "RS", "MS", "MT", "GO", "DF"),
+      codigo = c(11, 12, 13, 14, 15, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31, 32, 33, 35, 41, 42, 43, 50, 51, 52, 53),
+      estado_pt = c("Rondônia", "Acre", "Amazonas", "Roraima", "Pará", "Amapá", "Tocantins", "Maranhão", "Piauí", "Ceará", "Rio Grande do Norte", "Paraíba", "Pernambuco", "Alagoas", "Sergipe", "Bahia", "Minas Gerais", "Espírito Santo", "Rio de Janeiro", "São Paulo", "Paraná", "Santa Catarina", "Rio Grande do Sul", "Mato Grosso do Sul", "Mato Grosso", "Goiás", "Distrito Federal"),
+      
+      # english
+      state_en = c("Rondonia", "Acre", "Amazonas", "Roraima", "Para", "Amapa", "Tocantins", "Maranhao", "Piaui", "Ceara", "Rio Grande do Norte", "Paraiba", "Pernambuco", "Alagoas", "Sergipe", "Bahia", "Minas Gerais", "Espirito Santo", "Rio de Janeiro", "Sao Paulo", "Parana", "Santa Catarina", "Rio Grande do Sul", "Mato Grosso do Sul", "Mato Grosso", "Goias", "Federal District"),
+      
+      # Espanhol
+      estado_es = c("Rondonia", "Acre", "Amazonas", "Roraima", "Pará", "Amapá", "Tocantins", "Maranhão", "Piauí", "Ceará", "Rio Grande del Norte", "Paraíba", "Pernambuco", "Alagoas", "Sergipe", "Bahía", "Minas Gerais", "Espírito Santo", "Río de Janeiro", "São Paulo", "Paraná", "Santa Catarina", "Rio Grande del Sur", "Mato Grosso del Sur", "Mato Grosso", "Goiás", "Distrito Federal")
+    )
+    data.table::setDT(df)    
+    all_target_siglas <- unique(unlist(lapply(region, translate_input)))
     
-    # english
-    state_en = c("Rondonia", "Acre", "Amazonas", "Roraima", "Para", "Amapa", "Tocantins", "Maranhao", "Piaui", "Ceara", "Rio Grande do Norte", "Paraiba", "Pernambuco", "Alagoas", "Sergipe", "Bahia", "Minas Gerais", "Espirito Santo", "Rio de Janeiro", "Sao Paulo", "Parana", "Santa Catarina", "Rio Grande do Sul", "Mato Grosso do Sul", "Mato Grosso", "Goias", "Federal District"),
+    target_codes <- df_ufs_brasil[sigla %in% all_target_siglas, codigo]
     
-    # Espanhol
-    estado_es = c("Rondonia", "Acre", "Amazonas", "Roraima", "Pará", "Amapá", "Tocantins", "Maranhão", "Piauí", "Ceará", "Rio Grande del Norte", "Paraíba", "Pernambuco", "Alagoas", "Sergipe", "Bahía", "Minas Gerais", "Espírito Santo", "Río de Janeiro", "São Paulo", "Paraná", "Santa Catarina", "Rio Grande del Sur", "Mato Grosso del Sur", "Mato Grosso", "Goiás", "Distrito Federal")
-  )
-  data.table::setDT(df)
-  translate_input <- function(x) {
-    if (is.numeric(x) || !is.na(suppressWarnings(as.numeric(x)))) {
-      return(df_ufs_brasil[codigo == as.numeric(x), sigla])
-    }
-    
-    reg_clean <- tolower(x)
-    target_key <- if (reg_clean %in% names(.region_aliases)) .region_aliases[[reg_clean]] else reg_clean
-    
-    if (target_key %in% names(.br_regions)) {
-      return(.br_regions[[target_key]]) 
+    if (length(target_codes) > 0) {
+      uf_col <- find_column(df, c("manager_uf", "UF_ZI", "uf_gestor", "notification_uf"))
+      df <- df[as.numeric(get(uf_col)) %in% target_codes]
+      col_name <- base::switch(lang,
+                              "pt" = "estado_pt",
+                              "en" = "state_en",
+                              "es" = "estado_es",
+                              "estado_pt")
+      
+      names_log <- df_ufs_brasil[codigo %in% target_codes, get(col_name)]
+      filters_applied <- c(filters_applied, paste0("States: ", paste(names_log, collapse = ", ")))
+      
+      cli::cli_alert_success("Filtered by {length(target_codes)} states based on: {paste(region, collapse = ', ')}")
     } else {
-      return(toupper(x)) 
+      cli::cli_abort("No valid states found for: {.val {region}}")
     }
-  }
-  
-  all_target_siglas <- unique(unlist(lapply(region, translate_input)))
-  
-  target_codes <- df_ufs_brasil[sigla %in% all_target_siglas, codigo]
-  
-  if (length(target_codes) > 0) {
-    uf_col <- find_column(df, c("manager_uf", "UF_ZI", "uf_gestor", "notification_uf"))
-    df <- df[as.numeric(get(uf_col)) %in% target_codes]
-    col_name <- base::switch(lang,
-                             "pt" = "estado_pt",
-                             "en" = "state_en",
-                             "es" = "estado_es",
-                             "estado_pt")
-    
-    names_log <- df_ufs_brasil[codigo %in% target_codes, get(col_name)]
-    filters_applied <- c(filters_applied, paste0("States: ", paste(names_log, collapse = ", ")))
-    
-    cli::cli_alert_success("Filtered by {length(target_codes)} states based on: {paste(region, collapse = ', ')}")
-  } else {
-    cli::cli_abort("No valid states found for: {.val {region}}")
-  }
 }
 
 
@@ -571,6 +557,25 @@ find_column <- function(df, patterns) {
   }
   return(NULL)
 }
+#Helper functions
+#' @title Regional Definitions for Brazilian States
+#' @description Internal dataset with state to region mappings including Biomes, 
+#' Hydrography, and Epidemiological clusters.
+#' @noRd
+translate_input <- function(x) {
+      if (is.numeric(x) || !is.na(suppressWarnings(as.numeric(x)))) {
+        return(df_ufs_brasil[codigo == as.numeric(x), sigla])
+      }
+      
+      reg_clean <- tolower(x)
+      target_key <- if (reg_clean %in% names(.region_aliases)) .region_aliases[[reg_clean]] else reg_clean
+      
+      if (target_key %in% names(.br_regions)) {
+        return(.br_regions[[target_key]]) 
+      } else {
+        return(toupper(x)) 
+      }
+    }
 
 #Helper functions
 #' @title Regional Definitions for Brazilian States
