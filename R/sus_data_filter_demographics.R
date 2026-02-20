@@ -553,7 +553,7 @@ sus_data_filter_demographics <- function(df,
 
   df <- climasus_meta(df, add_history = history_msg)
 
-  return(df)
+  return(dplyr::as_tibble(df))
 }
 
 

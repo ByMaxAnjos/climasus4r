@@ -457,7 +457,7 @@ sus_data_aggregate <- function(df,
   # Update stage and type
     df_agg <- climasus_meta(
       df_agg,
-      system = climasus_meta(df, "system"),  # Preserve original system
+      system = system,
       stage = "aggregate",
       type = "agg",
       temporal = list(
@@ -547,7 +547,7 @@ sus_data_aggregate <- function(df,
   # Register metadata
   df_agg <- climasus_meta(df_agg, add_history = history_msg)
 
-  return(df_agg)
+  return(dplyr::as_tibble(df_agg))
 }
 
 
