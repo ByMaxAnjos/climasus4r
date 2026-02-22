@@ -109,12 +109,11 @@ new_climasus_df <- function(x, meta = list()) {
   base_classes <- setdiff(class(x), "climasus_df")
   
   structure(
-    x,
+    dplyr::as_tibble(x), #new before only 'x'.
     climasus_meta = meta,
-    class = c("climasus_df", base_classes)
+    class = c("climasus_df", "tbl_df", "tbl", "data.frame", base_classes,) #new before without "tbl_df", "tbl", "data.frame"
   )
 }
-
 
 #' Validate climasus_df object
 #' @keywords internal
@@ -329,41 +328,79 @@ get_valid_values_internal <- function(field) {
 #' @param n Integer. Number of rows to print
 #' @param ... Additional arguments passed to print.data.frame
 #' @export
+# print.climasus_df <- function(x, n = 10, ...) {
+  
+#   meta <- attr(x, "climasus_meta") %||% list()
+  
+#   # Header
+#   cat(sprintf("<climasus_df [%d x %d]>\n", nrow(x), ncol(x)))
+  
+#   # Metadata summary
+#   cat("System:  ", meta$system %||% "unknown", "\n", sep = "")
+#   cat("Stage:   ", meta$stage %||% "unknown", "\n", sep = "")
+#   cat("Type:    ", meta$type %||% "unknown", "\n", sep = "")
+#   cat("Spatial: ", meta$spatial %||% FALSE, "\n", sep = "")
+  
+#   if (!is.null(meta$created)) {
+#     cat("Created: ", format(meta$created, "%Y-%m-%d %H:%M:%S"), "\n", sep = "")
+#   }
+  
+#   if (length(meta$history) > 0) {
+#     cat("History: ", length(meta$history), " steps\n", sep = "")
+#   }
+  
+#   cat("\n")
+  
+#   # Print data
+#   if (nrow(x) > n) {
+#     cat("# Showing first", n, "of", nrow(x), "rows\n")
+#     print(utils::head(x, n), ...)
+#     cat("# ... with", nrow(x) - n, "more rows\n")
+#   } else {
+#     NextMethod()
+#   }
+  
+#   invisible(x)
+# }
+
 print.climasus_df <- function(x, n = 10, ...) {
   
   meta <- attr(x, "climasus_meta") %||% list()
   
-  # Header
-  cat(sprintf("<climasus_df [%d x %d]>\n", nrow(x), ncol(x)))
+  # Cabecalho Principal com Estilo de Objeto
+  cli::cli_h1("{.cls climasus_df} [{nrow(x)} x {ncol(x)}]")
   
-  # Metadata summary
-  cat("System:  ", meta$system %||% "unknown", "\n", sep = "")
-  cat("Stage:   ", meta$stage %||% "unknown", "\n", sep = "")
-  cat("Type:    ", meta$type %||% "unknown", "\n", sep = "")
-  cat("Spatial: ", meta$spatial %||% FALSE, "\n", sep = "")
+  # Metadata em formato de lista compacta e colorida
+  cli::cli_inform(c(
+    "i" = "{.strong System:}  {.val {meta$system %||% 'unknown'}}",
+    " " = "{.strong Stage:}   {.emph {meta$stage %||% 'unknown'}}",
+    " " = "{.strong Type:}    {meta$type %||% 'unknown'}",
+    " " = "{.strong Spatial:} {if(meta$spatial %||% FALSE) '{.green TRUE} {cli::symbol$tick}' else '{.red FALSE} {cli::symbol$cross}'}"
+  ))
   
+  # Informacoes de Auditoria (Data e Historico)
   if (!is.null(meta$created)) {
-    cat("Created: ", format(meta$created, "%Y-%m-%d %H:%M:%S"), "\n", sep = "")
+    cli::cli_bullet("{.strong Created:} {format(meta$created, '%Y-%m-%d %H:%M:%S')}")
   }
   
   if (length(meta$history) > 0) {
-    cat("History: ", length(meta$history), " steps\n", sep = "")
+    cli::cli_bullet("{.strong History:} {.info {length(meta$history)} step(s) recorded}")
   }
   
-  cat("\n")
+  cli::cli_text("") # Linha em branco para respiro
   
-  # Print data
+  # Print dos Dados
   if (nrow(x) > n) {
-    cat("# Showing first", n, "of", nrow(x), "rows\n")
-    print(utils::head(x, n), ...)
-    cat("# ... with", nrow(x) - n, "more rows\n")
+    cli::cli_alert_info("Showing first {n} of {nrow(x)} rows:")
+    # Usamos print.data.frame ou print.data.table explicitamente para evitar loop
+    print(utils::head(data.table::as.data.table(x), n), ...)
+    cli::cli_grey("# ... with {nrow(x) - n} more rows.")
   } else {
     NextMethod()
   }
   
   invisible(x)
 }
-
 
 #' Subsetting method for climasus_df
 #' @param x A climasus_df object

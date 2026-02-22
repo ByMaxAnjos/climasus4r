@@ -339,7 +339,7 @@ sus_data_import <- function(uf = NULL,
       stop("Invalid month provided.")
     }
     
-    # 3. Aviso se o usuário fornecer mês para sistemas que geralmente são anuais (SIM, SINASC, SINAN)
+    # 3. Aviso se o usuario fornecer mes para sistemas que geralmente são anuais (SIM, SINASC, SINAN)
     if (!system_prefix_month %in% systems_requiring_month) {
       cli::cli_alert_warning("Parameter 'month' is provided but typically not used for {system_prefix} systems.")
       cli::cli_alert_info("These systems usually aggregate data by year. The 'month' filter might be ignored by the server.")
@@ -351,6 +351,14 @@ sus_data_import <- function(uf = NULL,
       "{workers} workers requested but only {parallel::detectCores()} cores available"
     )
   }
+
+  #National system for efficient download
+  national_systems <- c(
+    "SINAN-DENGUE", "SINAN-CHIKUNGUNYA", "SINAN-ZIKA",
+    "SINAN-MALARIA", "SINAN-CHAGAS", "SINAN-LEISHMANIOSE-VISCERAL",
+    "SINAN-LEISHMANIOSE-TEGUMENTAR", "SINAN-LEPTOSPIROSE"
+  )
+
   # Setup cache directory
   if (use_cache) {   
     cache_dir <- path.expand(cache_dir)
@@ -376,34 +384,78 @@ sus_data_import <- function(uf = NULL,
       cli::cli_alert_info("Parallel processing: ENABLED ({workers} workers)")
     }
   }
+
+  #New: Is national sys
+  is_national <- system %in% national_systems
   
-  # Create a grid of all combinations
-  params <- expand.grid(
-    year = year,
-    uf = uf,
-    system = system,
-    stringsAsFactors = FALSE
-  )
-  # Add month to params if specified
-  if (!is.null(month)) {
+  if (is_national) {    
+    # Criamos params com apenas UMA combinacao (primeira UF)
+    # Mas mantemos todas as UFs para filtragem posterior
+    params <- expand.grid(
+      year = year,
+      uf = uf[1],  # Usa apenas a primeira UF para download
+      system = system,
+      stringsAsFactors = FALSE
+    )
+    
+    # Guarda todas as UFs para filtragem
+    all_ufs <- uf
+    
+  } else {
+    # Para sistemas normais, criamos grid completo
     params <- expand.grid(
       year = year,
       uf = uf,
-      month = month,
       system = system,
       stringsAsFactors = FALSE
     )
   }
+  # Create a grid of all combinations
+  # params <- expand.grid(
+  #   year = year,
+  #   uf = uf,
+  #   system = system,
+  #   stringsAsFactors = FALSE
+  # )
+  # Add month to params if specified
+  if (!is.null(month)) {
+    params <- expand.grid(
+      year = year,
+      #uf = uf,
+      uf = if (is_national) uf[1] else uf,
+      month = month,
+      system = system,
+      stringsAsFactors = FALSE
+    )
+    if (is_national) all_ufs <- uf
+  }
   
   # Function to generate cache key
-  generate_cache_key <- function(year_i, uf_i, system_i, month_i = NULL) {
+  # generate_cache_key <- function(year_i, uf_i, system_i, month_i = NULL) {
+  #   if (!is.null(month_i)) {
+  #     key_string <- paste(system_i, uf_i, year_i, month_i, sep = "_")
+  #   } else {
+  #     key_string <- paste(system_i, uf_i, year_i, sep = "_")
+  #   }
+  #   digest::digest(key_string, algo = "md5")
+  # }
+  generate_cache_key <- function(year_i, uf_i, system_i, month_i = NULL, is_national = FALSE) {
+  if (is_national) {
+    # Para sistemas nacionais, ignoramos UF na chave
+    if (!is.null(month_i)) {
+      key_string <- paste(system_i, year_i, month_i, sep = "_")
+    } else {
+      key_string <- paste(system_i, year_i, sep = "_")
+    }
+  } else {
     if (!is.null(month_i)) {
       key_string <- paste(system_i, uf_i, year_i, month_i, sep = "_")
     } else {
       key_string <- paste(system_i, uf_i, year_i, sep = "_")
     }
-    digest::digest(key_string, algo = "md5")
   }
+  digest::digest(key_string, algo = "md5")
+}
   # Function to get cache file path
   get_cache_path <- function(cache_key) {
     if (requireNamespace("arrow", quietly = TRUE)) { 
@@ -463,15 +515,20 @@ sus_data_import <- function(uf = NULL,
                            use_cache, force_redownload, cache_dir, verbose) {
     
     if (verbose && !is.null(p)) {
-      if (!is.null(month_i)) {
-        p(message = sprintf("Processing: %s - %s - %s - Month %s", system_i, uf_i, year_i, month_i))
-      } else {
-        p(message = sprintf("Processing: %s - %s - %s", system_i, uf_i, year_i))
+        if (is_national) {
+        p(message = sprintf("Processing (National-SINAN): %s - %s", system_i, year_i))
+      } else { 
+          if (!is.null(month_i)) {
+          p(message = sprintf("Processing: %s - %s - %s - Month %s", system_i, uf_i, year_i, month_i))
+        } else {
+          p(message = sprintf("Processing: %s - %s - %s", system_i, uf_i, year_i))
+        }
       }
+      
     }
     
     # Generate cache key and path
-    cache_key <- generate_cache_key(year_i, uf_i, system_i, month_i)
+    cache_key <- generate_cache_key(year_i, uf_i, system_i, month_i, is_national)
     cache_path <- get_cache_path(cache_key)
     
     # Check cache first (if enabled and not forcing re-download)
@@ -643,6 +700,17 @@ sus_data_import <- function(uf = NULL,
   }
   
   combined_data <- dplyr::bind_rows(list_of_dfs)
+
+  #NEW national system
+  # Se for sistema nacional, filtrar pelos UFs solicitados
+  if (is_national && exists("all_ufs")) {
+    
+    # Identificar coluna de UF (diferentes sistemas podem ter nomes diferentes)
+    uf_cols <- c("SG_UF", "SG_UF_NOT")
+    uf_col <- uf_cols[uf_cols %in% names(combined_data)][1]
+    combined_data <- combined_data[combined_data[[uf_col]] %in% all_ufs, ]
+  }
+
   # Add cache metadata as attribute
   if (use_cache) {
     cache_info <- list(

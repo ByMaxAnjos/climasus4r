@@ -209,7 +209,7 @@ sus_data_aggregate <- function(df,
       msg_error <- list(
         en = c(
           "{.red {cli::symbol$cross} Input is not a {.cls climasus_df} object.}",
-          "i" = "This function requires data formatted by the {.pkg CLIMASUS4r} pipeline.",
+          "i" = "This function requires data formatted by the {.pkg climasus4r} pipeline.",
           " " = "",
           "Please prepare your data first:",
           "*" = "{.strong 1. Import:} {.code df <- sus_data_import(...)} or {.code sus_data_read(...)}",
@@ -221,7 +221,7 @@ sus_data_aggregate <- function(df,
         ),
         pt = c(
           "{.red {cli::symbol$cross} A entrada como nao objeto {.cls climasus_df}.}",
-          "i" = "Esta funcao requer dados processados pelo pipeline {.pkg CLIMASUS4r}.",
+          "i" = "Esta funcao requer dados processados pelo pipeline {.pkg climasus4r}.",
           " " = "",
           "Por favor, prepare seus dados primeiro:",
           "*" = "{.strong 1. Importar:} {.code df <- sus_data_import(...)} ou {.code sus_data_read(...)}",
@@ -233,7 +233,7 @@ sus_data_aggregate <- function(df,
         ),
         es = c(
           "{.red {cli::symbol$cross} La entrada no es un objeto {.cls climasus_df}.}",
-          "i" = "Esta funcion requiere datos procesados por el pipeline {.pkg CLIMASUS4r}.",
+          "i" = "Esta funcion requiere datos procesados por el pipeline {.pkg climasus4r}.",
           " " = "",
           "Por favor, prepare sus datos primero:",
           "*" = "{.strong 1. Importar:} {.code df <- sus_data_import(...)} o {.code sus_data_read(...)}",
@@ -359,6 +359,7 @@ sus_data_aggregate <- function(df,
 
  # Get geographical columns (auto-detect municipality codes)
   get_geo_col <- c(
+    "codigo_municipio_notificacao", "codigo_municipio_notificacion", "notification_municipality_code",
     "residence_municipality_code", "municipality_code", "residence_municipality",
     "codigo_municipio_nascimento", "codigo_municipio_ocurrencia", "codigo_municipio",
     "codigo_municipio_paciente", "uf_municipio_estabelecimento", "facility_uf_municipality",
@@ -577,7 +578,7 @@ sus_data_aggregate <- function(df,
   # Register metadata
   df_agg <- climasus_meta(df_agg, add_history = history_msg)
 
-  return(dplyr::as_tibble(df_agg))
+  return(df_agg)
 }
 
 

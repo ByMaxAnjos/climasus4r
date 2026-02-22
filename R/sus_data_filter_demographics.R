@@ -195,41 +195,47 @@ sus_data_filter_demographics <- function(df,
   } else {
     
     # NOT climasus_df - ABORT execution
-    msg_error <- list(
-      en = paste0(
-        "Input is not a climasus_df object.\n",
-        "This function requires data from the CLIMASUS4r pipeline.\n\n",
-        "Please prepare your data first:\n",
-        "  1. Import: df <- sus_data_import(...) or sus_data_read(...)\n",
-        "  2. Clean: df <- sus_data_clean_encoding(df)\n",
-        "  3. Standardize: df <- sus_data_standardize(df)\n",
-        "  4. Create: df <- sus_create_variables(...)\n\n",
-        "  5. Filter demographics: df <- sus_filter_demographics(...)\n\n",
-        "If using external data, run sus_data_standardize() first to prepare it."
-      ),
-      pt = paste0(
-        "Entrada nao e um objeto climasus_df.\n",
-        "Esta funcao requer dados do pipeline CLIMASUS4r.\n\n",
-        "Por favor, prepare seus dados primeiro:\n",
-        "  1. Importar: df <- sus_data_import(...) ou sus_data_read(...)\n",
-        "  2. Limpar: df <- sus_data_clean_encoding(df)\n",
-        "  3. Padronizar: df <- sus_data_standardize(df)\n",
-        "  4. Criar: df <- sus_create_variables(...)\n\n",
-        "  5. Filtrar demografia: df <- sus_filter_demographics(...)\n\n",
-        "Se usar dados externos, execute sus_data_standardize() primeiro para prepara-los."
-      ),
-      es = paste0(
-        "La entrada no es un objeto climasus_df.\n",
-        "Esta funcion requiere datos del pipeline CLIMASUS4r.\n\n",
-        "Por favor, prepare sus datos primero:\n",
-        "  1. Importar: df <- sus_data_import(...) o sus_data_read(...)\n",
-        "  2. Limpiar: df <- sus_data_clean_encoding(df)\n",
-        "  3. Estandarizar: df <- sus_data_standardize(df)\n",
-        "  4. Criar: df <- sus_create_variables(...)\n\n",
-        "  5. Filtrar demografia: df <- sus_filter_demographics(...)\n\n",
-        "Si usa datos externos, ejecute sus_data_standardize() primero para prepararlos."
+      msg_error <- list(
+        en = c(
+          "{.red {cli::symbol$cross} Input is not a {.cls climasus_df} object.}",
+          "i" = "This function requires data formatted by the {.pkg climasus4r} pipeline.",
+          " " = "",
+          "Please prepare your data first:",
+          "*" = "{.strong 1. Import:} {.code df <- sus_data_import(...)} or {.code sus_data_read(...)}",
+          "*" = "{.strong 2. Clean:} {.code df <- sus_data_clean_encoding(df)}",
+          "*" = "{.strong 3. Standardize:} {.code df <- sus_data_standardize(df)}",
+          "*" = "{.strong 4. Create:} {.code df <- sus_create_variables(...)}",
+          "*" = "{.strong 5. Filter demo:} {.code df <- sus_data_filter_demographics(...)}",
+          " " = "",
+          "v" = "Tip: If using external data, run {.fn sus_data_standardize} first."
+        ),
+        pt = c(
+          "{.red {cli::symbol$cross} A entrada como nao objeto {.cls climasus_df}.}",
+          "i" = "Esta funcao requer dados processados pelo pipeline {.pkg climasus4r}.",
+          " " = "",
+          "Por favor, prepare seus dados primeiro:",
+          "*" = "{.strong 1. Importar:} {.code df <- sus_data_import(...)} ou {.code sus_data_read(...)}",
+          "*" = "{.strong 2. Limpar:} {.code df <- sus_data_clean_encoding(df)}",
+          "*" = "{.strong 3. Padronizar:} {.code df <- sus_data_standardize(df)}",
+          "*" = "{.strong 4. Create:} {.code df <- sus_create_variables(...)}",
+          "*" = "{.strong 5. Filtrar demo:} {.code df <- sus_data_filter_demographics(...)}",
+          " " = "",
+          "v" = "Dica: Se usar dados externos, execute {.fn sus_data_standardize} primeiro."
+        ),
+        es = c(
+          "{.red {cli::symbol$cross} La entrada no es un objeto {.cls climasus_df}.}",
+          "i" = "Esta funcion requiere datos procesados por el pipeline {.pkg climasus4r}.",
+          " " = "",
+          "Por favor, prepare sus datos primero:",
+          "*" = "{.strong 1. Importar:} {.code df <- sus_data_import(...)} o {.code sus_data_read(...)}",
+          "*" = "{.strong 2. Limpiar:} {.code df <- sus_data_clean_encoding(df)}",
+          "*" = "{.strong 3. Estandarizar:} {.code df <- sus_data_standardize(df)}",
+          "*" = "{.strong 4. Create:} {.code df <- sus_create_variables(...)}",
+          "*" = "{.strong 5. Filtrar demo:} {.code df <- sus_data_filter_demographics(...)}",,
+          " " = "",
+          "v" = "Consejo: Si usa datos externos, ejecute {.fn sus_data_standardize} primero."
+        )
       )
-    )
     
     cli::cli_abort(msg_error[[lang]])
   }
