@@ -88,7 +88,9 @@ is_stage_at_least <- function(current, required) {
 new_climasus_df <- function(x, meta = list()) {
   stopifnot(is.data.frame(x))
   stopifnot(is.list(meta))
-  
+  base <- unclass(x)
+  base <- dplyr::as_tibble(base)
+
   # Ensure meta has required structure
   meta <- utils::modifyList(
     list(
@@ -107,12 +109,12 @@ new_climasus_df <- function(x, meta = list()) {
   
   # Build class vector without duplication
   #base_classes <- setdiff(class(x), "climasus_df")
-  base_classes <- setdiff(class(x), c("climasus_df", "tbl_df", "tbl", "data.frame"))
+  #base_classes <- setdiff(class(x), c("climasus_df", "tbl_df", "tbl", "data.frame"))
   structure(
-    dplyr::as_tibble(x), #new before only 'x'.
+    base, #new before only 'x'.
     climasus_meta = meta,
-    #class = c("climasus_df", "tbl_df", "tbl", "data.frame", base_classes) #new before without "tbl_df", "tbl", "data.frame"
-    class = c("climasus_df", class(x))
+    class = c("climasus_df", "tbl_df", "tbl", "data.frame") #new before without "tbl_df", "tbl", "data.frame"
+    #class = c("climasus_df", class(x))
   )
 
 }
@@ -297,12 +299,28 @@ print_history_internal <- function(x) {
   history <- get_climasus_field_internal(x, "history")
   
   if (length(history) == 0) {
-    cat("No processing history recorded.\n")
+    cli::cli_alert_info("No processing history recorded.")
     return(invisible(NULL))
   }
   
-  cat("Processing History:\n")
-  cat(paste0("  ", seq_along(history), ". ", history, "\n"), sep = "")
+  # cat("Processing History:\n")
+  # cat(paste0("  ", seq_along(history), ". ", history, "\n"), sep = "")
+  cli::cli_h2("Processing History")
+  cli::cli_text("{.dim {length(history)} step(s) recorded}")
+  cli::cli_text("")
+  
+  cli::cli_ol()
+  
+  for (entry in history) {
+    
+    # Extrair timestamp e mensagem
+    ts <- sub("^\\[(.*?)\\].*$", "\\1", entry)
+    msg <- sub("^\\[.*?\\]\\s*", "", entry)
+    
+    cli::cli_li(
+      "{.grey [{ts}]} {.strong {msg}}"
+    )
+  }
   
   invisible(NULL)
 }
@@ -395,8 +413,9 @@ print.climasus_df <- function(x, n = 10, ...) {
   if (nrow(x) > n) {
     cli::cli_alert_info("Showing first {n} of {nrow(x)} rows:")
     # Usamos print.data.frame ou print.data.table explicitamente para evitar loop
-    print(utils::head(data.table::as.data.table(x), n), ...)
-    cli::cli_grey("# ... with {nrow(x) - n} more rows.")
+    #print(utils::head(data.table::as.data.table(x), n), ...)
+    print(utils::head(dplyr::as_tibble(x), n = n), ...)
+    cli::cli_text("# ... with {nrow(x) - n} more rows.")
   } else {
     NextMethod()
   }
