@@ -531,7 +531,7 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
   
   # Auxiliary function to download and process a single combination
   download_one <- function(year_i, uf_i, system_i, month_i = NULL, p = NULL, 
-                           use_cache, force_redownload, cache_dir, verbose, is_national) {
+                           use_cache, force_redownload, cache_dir, verbose, is_national=FALSE) {
     
     if (verbose && !is.null(p)) {
         if (is_national) {
@@ -657,7 +657,8 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
             use_cache = use_cache,
             force_redownload = force_redownload,
             cache_dir = cache_dir,
-            verbose = FALSE
+            verbose = FALSE,
+            is_national = is_national
           )
         } else {
           download_one(
@@ -668,7 +669,8 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
             use_cache = use_cache,
             force_redownload = force_redownload,
             cache_dir = cache_dir,
-            verbose = FALSE
+            verbose = FALSE,
+            is_national = is_national
           )
         }
 
@@ -698,7 +700,8 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
           use_cache = use_cache,
           force_redownload = force_redownload,
           cache_dir = cache_dir,
-          verbose = verbose
+          verbose = verbose,
+          is_national = is_national
         )
       }
     )
