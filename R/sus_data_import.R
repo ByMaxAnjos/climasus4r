@@ -757,6 +757,7 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
     # Identificar coluna de UF (diferentes sistemas podem ter nomes diferentes)
     uf_codes <- uf_to_code[all_ufs]
     uf_cols <- c("SG_UF_NOT")
+    combined_data <- data.table::as.data.table(combined_data)
     uf_col <- uf_cols[uf_cols %in% names(combined_data)][1]
     combined_data <- combined_data[as.factor(get(uf_col)) %in% uf_codes]
   }
