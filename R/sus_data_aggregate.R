@@ -202,7 +202,7 @@ sus_data_aggregate <- function(df,
     }
 
     # Update metadata
-    df <- climasus_meta(df, stage = "aggregate", type = "agg")
+    #df <- climasus_meta(df, stage = "aggregate", type = "agg")
 
   } else {
       # NOT climasus_df - ABORT execution
@@ -250,9 +250,9 @@ sus_data_aggregate <- function(df,
   
   #Detect system if not specified
   system <- climasus_meta(df, "system")
+  original_meta <- attr(df, "climasus_meta")
 
   # Detect duplicate column names
-  
   cols_to_keep <- !base::duplicated(names(df))
   if (any(!cols_to_keep)) {df <- df[, cols_to_keep, drop = FALSE]} 
   
@@ -459,46 +459,21 @@ sus_data_aggregate <- function(df,
       cli::cli_alert_info(group_msg)
     }
   }
-  df <- df_agg
-  # Update stage and type
-   if (!inherits(df_agg, "climasus_df")) {
-    # Create new climasus_df
-    meta <- list(
-      system = system,
-      stage = "aggregate",
-      type = "agg",
-      spatial = FALSE,
-      temporal = NULL,
-      created = Sys.time(),
-      modified = Sys.time(),
-      history = sprintf(
-        "[%s] Temporal Data aggregated",
-        format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-      ),
-      user = list()
-    )
-
-    base_classes <- setdiff(class(df_agg), "climasus_df")
-    df_agg <- structure(
-      df_agg,
-      climasus_meta = meta,
-      class = c("climasus_df", base_classes)
-    )
-  } else { 
-    # Update stage and type
-    df_agg <- climasus_meta(
-      df_agg,
-      system = system,
-      stage = "aggregate",
-      type = "agg",
-      temporal = list(
-        start = min(df_agg$date),
-        end = max(df_agg$date),
-        resolution = time_unit
-      )
-    )
-   }
   
+  # Update stage and type
+
+  
+  df_agg <- structure(
+  df_agg,
+  climasus_meta = original_meta,
+  class = c("climasus_df", setdiff(class(df_agg), "climasus_df"))
+  )
+  df_agg <- structure(
+    df_agg,
+    climasus_meta = original_meta,
+    class = c("climasus_df", setdiff(class(df_agg), "climasus_df"))
+  )
+    
   # Build detailed aggregation history message
   agg_details <- c()
 
