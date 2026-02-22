@@ -252,7 +252,7 @@ sus_data_aggregate <- function(df,
   system <- climasus_meta(df, "system")
 
   # Detect duplicate column names
-  data.table::setDT(df)
+  df <- data.table::as.data.table(df)
   cols_to_keep <- !base::duplicated(names(df))
   if (any(!cols_to_keep)) {df <- df[, cols_to_keep, with = FALSE]} 
   
@@ -467,7 +467,7 @@ sus_data_aggregate <- function(df,
       system = system,
       stage = "aggregate",
       type = "agg",
-      spatial = inherits(df_agg, "sf"),
+      spatial = FALSE,
       temporal = NULL,
       created = Sys.time(),
       modified = Sys.time(),

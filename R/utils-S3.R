@@ -317,9 +317,7 @@ print_history_internal <- function(x) {
     ts <- sub("^\\[(.*?)\\].*$", "\\1", entry)
     msg <- sub("^\\[.*?\\]\\s*", "", entry)
     
-    cli::cli_li(
-      "{.grey [{ts}]} {.strong {msg}}"
-    )
+    cli::cli_li("{.dim [{ts}]} {msg}")
   }
   
   invisible(NULL)
@@ -390,12 +388,19 @@ print.climasus_df <- function(x, n = 10, ...) {
   # Cabecalho Principal com Estilo de Objeto
   cli::cli_h1("{.cls climasus_df} [{nrow(x)} x {ncol(x)}]")
   
+  spatial_flag <- identical(meta$spatial, TRUE)
+
+  spatial_text <- if (spatial_flag) {
+    "{.green TRUE} {cli::symbol$tick}"
+  } else {
+    "{.red FALSE} {cli::symbol$cross}"
+  }
   # Metadata em formato de lista compacta e colorida
   cli::cli_inform(c(
     "i" = "{.strong System:}  {.val {meta$system %||% 'unknown'}}",
     " " = "{.strong Stage:}   {.emph {meta$stage %||% 'unknown'}}",
     " " = "{.strong Type:}    {meta$type %||% 'unknown'}",
-    " " = "{.strong Spatial:} {if(meta$spatial %||% FALSE) '{.green TRUE} {cli::symbol$tick}' else '{.red FALSE} {cli::symbol$cross}'}"
+    " " = "{.strong Spatial:} {spatial_text}"
   ))
   
   # Informacoes de Auditoria (Data e Historico)

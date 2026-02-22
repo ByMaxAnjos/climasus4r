@@ -247,7 +247,7 @@ sus_data_filter_demographics <- function(df,
   
   system <- climasus_meta(df, "system")
 
-  df <- data.table::setDT(df)
+  df <- data.table::as.data.table(df)
   # ========================================================================
   # FILTER BY SEX
   # ========================================================================
@@ -335,7 +335,7 @@ sus_data_filter_demographics <- function(df,
       # Espanhol
       estado_es = c("Rondonia", "Acre", "Amazonas", "Roraima", "Pará", "Amapá", "Tocantins", "Maranhão", "Piauí", "Ceará", "Rio Grande del Norte", "Paraíba", "Pernambuco", "Alagoas", "Sergipe", "Bahía", "Minas Gerais", "Espírito Santo", "Río de Janeiro", "São Paulo", "Paraná", "Santa Catarina", "Rio Grande del Sur", "Mato Grosso del Sur", "Mato Grosso", "Goiás", "Distrito Federal")
     )
-    data.table::setDT(df)    
+    df <- data.table::as.data.table(df)    
     all_target_siglas <- unique(unlist(lapply(region, translate_input)))
     
     target_codes <- df_ufs_brasil[sigla %in% all_target_siglas, codigo]
@@ -446,7 +446,7 @@ sus_data_filter_demographics <- function(df,
       system = system,
       stage = "filter_demo",
       type = "filter_demo",
-      spatial = inherits(df, "sf"),
+      spatial = FALSE,
       temporal = NULL,
       created = Sys.time(),
       modified = Sys.time(),
