@@ -531,7 +531,7 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
   
   # Auxiliary function to download and process a single combination
   download_one <- function(year_i, uf_i, system_i, month_i = NULL, p = NULL, 
-                           use_cache, force_redownload, cache_dir, verbose) {
+                           use_cache, force_redownload, cache_dir, verbose, is_national) {
     
     if (verbose && !is.null(p)) {
         if (is_national) {
@@ -594,7 +594,7 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
       
       # Save to cache if enabled
       if (use_cache && !is.null(data) && nrow(data) > 0) {
-        save_to_cache(data, cache_path, year_i, uf_i, system_i, month_i)
+        save_to_cache(data, cache_path, year_i, uf_i, system_i, month_i, is_national)
       }
       
       if (verbose && !is.null(p)) {

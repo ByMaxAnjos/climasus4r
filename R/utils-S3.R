@@ -106,13 +106,15 @@ new_climasus_df <- function(x, meta = list()) {
   )
   
   # Build class vector without duplication
-  base_classes <- setdiff(class(x), "climasus_df")
-  
+  #base_classes <- setdiff(class(x), "climasus_df")
+  base_classes <- setdiff(class(x), c("climasus_df", "tbl_df", "tbl", "data.frame"))
   structure(
     dplyr::as_tibble(x), #new before only 'x'.
     climasus_meta = meta,
-    class = c("climasus_df", "tbl_df", "tbl", "data.frame", base_classes,) #new before without "tbl_df", "tbl", "data.frame"
+    #class = c("climasus_df", "tbl_df", "tbl", "data.frame", base_classes) #new before without "tbl_df", "tbl", "data.frame"
+    class = c("climasus_df", class(x))
   )
+
 }
 
 #' Validate climasus_df object
