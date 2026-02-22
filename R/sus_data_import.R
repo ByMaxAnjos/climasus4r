@@ -746,12 +746,13 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
 
   #NEW national system
   # Se for sistema nacional, filtrar pelos UFs solicitados
-  if (is_national && exists("all_ufs") && nrow(combined_data) > 0) {
+  if (is_national && exists("all_ufs")) {
     
     # Identificar coluna de UF (diferentes sistemas podem ter nomes diferentes)
-    uf_cols <- c("SG_UF", "SG_UF_NOT", "UF", "uf", "SG_UF_NOT", "ID_UF", "CO_UF", "SIGLA_UF")
-    uf_col <- uf_cols[uf_cols %in% names(combined_data)][1]
-    combined_data <- combined_data[combined_data[[uf_col]] %in% all_ufs, ]
+    uf_cols <- c("SG_UF", "SG_UF_NOT")
+    uf_col <- uf_cols[uf_cols %in% names(combined_data)]
+    data.table::setDT(combined_data)
+    combined_data <- combined_data[get(uf_col) %in% all_ufs]
   }
 
   # Add cache metadata as attribute
@@ -800,7 +801,7 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
       )
     } else {
       # Already climasus_df - update metadata
-      combined_data <- climasus_meta(combined_data, system = system, stage = "stand", type = "stand")
+      combined_data <- climasus_meta(combined_data, system = system, stage = "import", type = "raw")
       combined_data <- climasus_meta(combined_data, add_history = "Imported datasus with climasus4r")
     }
 
