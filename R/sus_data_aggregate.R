@@ -252,9 +252,9 @@ sus_data_aggregate <- function(df,
   system <- climasus_meta(df, "system")
 
   # Detect duplicate column names
-  df <- data.table::as.data.table(df)
+  
   cols_to_keep <- !base::duplicated(names(df))
-  if (any(!cols_to_keep)) {df <- df[, cols_to_keep, with = FALSE]} 
+  if (any(!cols_to_keep)) {df <- df[, cols_to_keep, drop = FALSE]} 
   
   # Auto-detect date column if not specified
   if (is.null(date_col)) {

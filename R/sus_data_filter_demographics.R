@@ -247,7 +247,7 @@ sus_data_filter_demographics <- function(df,
   
   system <- climasus_meta(df, "system")
 
-  df <- data.table::as.data.table(df)
+  #df <- data.table::as.data.table(df)
   # ========================================================================
   # FILTER BY SEX
   # ========================================================================
@@ -260,7 +260,8 @@ sus_data_filter_demographics <- function(df,
     } else {
       # Normalize sex values (case-insensitive matching)
       sex_targets <- tools::toTitleCase(sex)
-      df <- df[get(sex_col) %in% sex_targets]
+      #df <- df[get(sex_col) %in% sex_targets]
+      df <- df[df[[sex_col]] %in% sex_targets, ]
       filters_applied <- c(filters_applied, paste0("sex: ", paste(sex_targets, collapse = ", ")))
     }
   }
@@ -276,7 +277,8 @@ sus_data_filter_demographics <- function(df,
       cli::cli_alert_warning("Race column not found. Skipping race filter.")
     } else {
       race_targets <- tools::toTitleCase(race)
-      df <- df[get(race_col) %in% race_targets]
+      #df <- df[get(race_col) %in% race_targets]
+      df <- df[df[[race_col]] %in% race_targets, ]
       filters_applied <- c(filters_applied, paste0("race: ", paste(race_targets, collapse = ", ")))
     }
   }
@@ -298,7 +300,8 @@ sus_data_filter_demographics <- function(df,
       min_age <- age_range[1]
       max_age <- age_range[2]
       
-      df <- df[data.table::between(get(age_col), min_age, max_age)]
+      #df <- df[data.table::between(get(age_col), min_age, max_age)]
+      df <- df[df[[age_col]] >= min_age & df[[age_col]] <= max_age, ]
       filters_applied <- c(filters_applied, paste0("age: ", min_age, "-", ifelse(is.infinite(max_age), "+", max_age)))
     }
   }
@@ -315,7 +318,8 @@ sus_data_filter_demographics <- function(df,
       cli::cli_alert_warning("Education column not found. Skipping education filter.")
     } else {
       education_targets <- tools::toTitleCase(education)
-      df <- df[get(edu_col) %in% education_targets]
+      #df <- df[get(edu_col) %in% education_targets]
+      df <- df[df[[edu_col]] %in% education_targets, ]
       filters_applied <- c(filters_applied, paste0("education: ", paste(education_targets, collapse = ", ")))
     }
   }
@@ -349,7 +353,8 @@ sus_data_filter_demographics <- function(df,
                               "es" = "estado_es",
                               "estado_pt")
       
-      names_log <- df_ufs_brasil[codigo %in% target_codes, get(col_name)]
+      #names_log <- df_ufs_brasil[codigo %in% target_codes, get(col_name)]
+      names_log <- df_ufs_brasil[df_ufs_brasil$codigo %in% target_codes, col_name]
       filters_applied <- c(filters_applied, paste0("States: ", paste(names_log, collapse = ", ")))
       
       cli::cli_alert_success("Filtered by {length(target_codes)} states based on: {paste(region, collapse = ', ')}")
@@ -378,7 +383,8 @@ sus_data_filter_demographics <- function(df,
       municipality_code <- as.character(municipality_code)
       df[[muni_col]] <- as.character(df[[muni_col]])
       
-      df <- df[get(muni_col) %in% municipality_code]
+      #df <- df[get(muni_col) %in% municipality_code]
+      df <- df[df[[muni_col]] %in% municipality_code, ]
       filters_applied <- c(filters_applied, 
                           paste0("municipality: ", length(municipality_code), " codes"))
     }
