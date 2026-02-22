@@ -418,18 +418,39 @@ sus_data_import <- function(uf = NULL,
   #   stringsAsFactors = FALSE
   # )
   # Add month to params if specified
+  # if (!is.null(month)) {
+  #   params <- expand.grid(
+  #     year = year,
+  #     #uf = uf,
+  #     uf = if (is_national) uf[1] else uf,
+  #     month = month,
+  #     system = system,
+  #     stringsAsFactors = FALSE
+  #   )
+  #   if (is_national) all_ufs <- uf
+  # }
   if (!is.null(month)) {
-    params <- expand.grid(
-      year = year,
-      #uf = uf,
-      uf = if (is_national) uf[1] else uf,
-      month = month,
-      system = system,
-      stringsAsFactors = FALSE
-    )
-    if (is_national) all_ufs <- uf
+    if (is_national) {
+      # Para sistemas nacionais com mês, criar grid com apenas uma UF
+      params <- expand.grid(
+        year = year,
+        uf = uf[1],  # Apenas a primeira UF
+        month = month,
+        system = system,
+        stringsAsFactors = FALSE
+      )
+      all_ufs <- uf  # Guardar todas para filtragem
+    } else {
+      # Para sistemas normais, criar grid completo
+      params <- expand.grid(
+        year = year,
+        uf = uf,
+        month = month,
+        system = system,
+        stringsAsFactors = FALSE
+      )
+    }
   }
-  
   # Function to generate cache key
   # generate_cache_key <- function(year_i, uf_i, system_i, month_i = NULL) {
   #   if (!is.null(month_i)) {
@@ -560,7 +581,7 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
         }
       }
       tryCatch({
-        return(load_from_cache(cache_path, year_i, uf_i, system_i, month_i))
+        return(load_from_cache(cache_path, year_i, uf_i, system_i, month_i, is_national))
       }, error = function(e) {
         if (verbose) {
           cli::cli_alert_warning("Cache corrupted, re-downloading: {system_i} - {uf_i} - {year_i}")
@@ -725,10 +746,10 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
 
   #NEW national system
   # Se for sistema nacional, filtrar pelos UFs solicitados
-  if (is_national && exists("all_ufs")) {
+  if (is_national && exists("all_ufs") && nrow(combined_data) > 0) {
     
     # Identificar coluna de UF (diferentes sistemas podem ter nomes diferentes)
-    uf_cols <- c("SG_UF", "SG_UF_NOT")
+    uf_cols <- c("SG_UF", "SG_UF_NOT", "UF", "uf", "SG_UF_NOT", "ID_UF", "CO_UF", "SIGLA_UF")
     uf_col <- uf_cols[uf_cols %in% names(combined_data)][1]
     combined_data <- combined_data[combined_data[[uf_col]] %in% all_ufs, ]
   }
