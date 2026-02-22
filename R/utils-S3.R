@@ -380,11 +380,11 @@ print.climasus_df <- function(x, n = 10, ...) {
   
   # Informacoes de Auditoria (Data e Historico)
   if (!is.null(meta$created)) {
-    cli::cli_bullet("{.strong Created:} {format(meta$created, '%Y-%m-%d %H:%M:%S')}")
+    cli::cli_inform("{.strong Created:} {format(meta$created, '%Y-%m-%d %H:%M:%S')}")
   }
   
   if (length(meta$history) > 0) {
-    cli::cli_bullet("{.strong History:} {.info {length(meta$history)} step(s) recorded}")
+    cli::cli_inform("{.strong History:} {.info {length(meta$history)} step(s) recorded}")
   }
   
   cli::cli_text("") # Linha em branco para respiro

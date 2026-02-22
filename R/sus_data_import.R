@@ -476,38 +476,57 @@ sus_data_import <- function(uf = NULL,
   }
   
   # Load data from cache
-  load_from_cache <- function(cache_path, year_i, uf_i, system_i, month_i = NULL) {
-    if (verbose) {
+  # Load data from cache
+load_from_cache <- function(cache_path, year_i, uf_i, system_i, month_i = NULL, is_national = FALSE) {
+  if (verbose) {
+    if (is_national) {
+      if (!is.null(month_i)) {
+        cli::cli_alert_success("Loading from cache (national): {system_i} - {year_i} - Month {month_i}")
+      } else {
+        cli::cli_alert_success("Loading from cache (national): {system_i} - {year_i}")
+      }
+    } else {
       if (!is.null(month_i)) {
         cli::cli_alert_success("Loading from cache: {system_i} - {uf_i} - {year_i} - Month {month_i}")
       } else {
         cli::cli_alert_success("Loading from cache: {system_i} - {uf_i} - {year_i}")
       }
     }
-    if (requireNamespace("arrow", quietly = TRUE)) {
-      return(arrow::read_parquet(cache_path)) 
-    } else {
-      return(readRDS(cache_path))
-    }
-   
   }
-  # Save data to cache
-  save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NULL) {
-    if (verbose) {
+  
+  if (requireNamespace("arrow", quietly = TRUE)) {
+    return(arrow::read_parquet(cache_path)) 
+  } else {
+    return(readRDS(cache_path))
+  }
+}
+
+# Save data to cache
+save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NULL, is_national = FALSE) {
+  if (verbose) {
+    if (is_national) {
+      if (!is.null(month_i)) {
+        cli::cli_alert_info("Saving to cache (national): {system_i} - {year_i} - Month {month_i}")
+      } else {
+        cli::cli_alert_info("Saving to cache (national): {system_i} - {year_i}")
+      }
+    } else {
       if (!is.null(month_i)) {
         cli::cli_alert_info("Saving to cache: {system_i} - {uf_i} - {year_i} - Month {month_i}")
       } else {
         cli::cli_alert_info("Saving to cache: {system_i} - {uf_i} - {year_i}")
       }
     }
-     if (requireNamespace("arrow", quietly = TRUE)) {
-        arrow::write_parquet(data, cache_path)
-     } else { 
-       saveRDS(data, cache_path)
-     }
-    
-    return(data)
   }
+  
+  if (requireNamespace("arrow", quietly = TRUE)) {
+    arrow::write_parquet(data, cache_path)
+  } else { 
+    saveRDS(data, cache_path)
+  }
+  
+  return(data)
+}
 
   
   # Auxiliary function to download and process a single combination
