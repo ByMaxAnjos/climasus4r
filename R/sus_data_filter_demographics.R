@@ -21,6 +21,9 @@
 #' @param municipality_code Character or numeric vector specifying municipality
 #'   codes (IBGE 6 or 7-digit codes) to include. If `NULL` (default), includes
 #'   all municipalities.
+#' @param drop_ignored Logical. If `TRUE`, explicitly removes rows where demographic 
+#'   variables (sex, race and education) contain missing values (`NA`) or DATASUS ignored codes (e.g., "9", "Ignorado").
+#'   Default is `FALSE`.
 #' @param lang Character string specifying the language for messages. Options:
 #'   `"en"` (English), `"pt"` (Portuguese, default), `"es"` (Spanish).
 #' @param verbose Logical. If `TRUE` (default), prints filtering summary.
@@ -118,6 +121,7 @@ sus_data_filter_demographics <- function(df,
                                           education = NULL,
                                           region = NULL,
                                           municipality_code = NULL,
+                                          drop_ignored = FALSE,
                                           lang = "pt",
                                           verbose = TRUE) {
   
@@ -247,7 +251,9 @@ sus_data_filter_demographics <- function(df,
   
   system <- climasus_meta(df, "system")
 
-  #df <- data.table::as.data.table(df)
+  ignored_codes <- c("ignorado", "ignorada", "unknown", "desconocido", "i", 
+                     "9", "99", "999", "9999", "000000", "-", "", " ")
+  
   # ========================================================================
   # FILTER BY SEX
   # ========================================================================
@@ -255,6 +261,12 @@ sus_data_filter_demographics <- function(df,
   if (!is.null(sex)) {
     sex_col <- find_column(df, c("sex", "sexo", "SEXO"))
     sex_col <- tolower(sex_col)
+    
+    if (drop_ignored) {
+      res <- clean_ignored_internal(df, sex_col, "Sex/Sexo", ignored_codes, lang, verbose)
+      df <- res$df
+    }
+
     if (is.null(sex_col)) {
       cli::cli_alert_warning("Sex column not found. Skipping sex filter.")
     } else {
@@ -273,6 +285,12 @@ sus_data_filter_demographics <- function(df,
   if (!is.null(race)) {
     race_col <- find_column(df, c("race", "raca", "raza", "RACACOR", "RACA_COR"))
     race_col <- tolower(race_col)
+
+    if (drop_ignored) {
+      res <- clean_ignored_internal(df, race_col, "Race/Raca", ignored_codes, lang, verbose)
+      df <- res$df
+    }
+
     if (is.null(race_col)) {
       cli::cli_alert_warning("Race column not found. Skipping race filter.")
     } else {
@@ -314,6 +332,11 @@ sus_data_filter_demographics <- function(df,
     edu_col <- find_column(df, c("education", "escolaridade", "escolaridad", 
                                   "ESC", "ESC2010"))
     edu_col <- tolower(edu_col)
+
+    if (drop_ignored) {
+      res <- clean_ignored_internal(df, edu_col, "Education/Escolaridade", ignored_codes, lang, verbose)
+      df <- res$df
+    }
     if (is.null(edu_col)) {
       cli::cli_alert_warning("Education column not found. Skipping education filter.")
     } else {
@@ -339,14 +362,14 @@ sus_data_filter_demographics <- function(df,
       # Espanhol
       estado_es = c("Rondonia", "Acre", "Amazonas", "Roraima", "Pará", "Amapá", "Tocantins", "Maranhão", "Piauí", "Ceará", "Rio Grande del Norte", "Paraíba", "Pernambuco", "Alagoas", "Sergipe", "Bahía", "Minas Gerais", "Espírito Santo", "Río de Janeiro", "São Paulo", "Paraná", "Santa Catarina", "Rio Grande del Sur", "Mato Grosso del Sur", "Mato Grosso", "Goiás", "Distrito Federal")
     )
-    df <- data.table::as.data.table(df)    
     all_target_siglas <- unique(unlist(lapply(region, translate_input)))
     
     target_codes <- df_ufs_brasil[sigla %in% all_target_siglas, codigo]
-    
+    #target_codes <- df_ufs_brasil$codigo[df_ufs_brasil$sigla %in% all_target_siglas]
     if (length(target_codes) > 0) {
       uf_col <- find_column(df, c("manager_uf", "UF_ZI", "uf_gestor", "notification_uf"))
-      df <- df[as.numeric(get(uf_col)) %in% target_codes]
+      uf_values <- as.numeric(df[[uf_col]])
+      df <- df[uf_values %in% target_codes, ]
       col_name <- base::switch(lang,
                               "pt" = "estado_pt",
                               "en" = "state_en",
@@ -354,7 +377,7 @@ sus_data_filter_demographics <- function(df,
                               "estado_pt")
       
       #names_log <- df_ufs_brasil[codigo %in% target_codes, get(col_name)]
-      names_log <- df_ufs_brasil[df_ufs_brasil$codigo %in% target_codes, col_name]
+      names_log <- df_ufs_brasil[codigo %in% target_codes, col_name, with = FALSE]
       filters_applied <- c(filters_applied, paste0("States: ", paste(names_log, collapse = ", ")))
       
       cli::cli_alert_success("Filtered by {length(target_codes)} states based on: {paste(region, collapse = ', ')}")
@@ -560,8 +583,33 @@ sus_data_filter_demographics <- function(df,
 # ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
-
+# Ignored stats
+#' @noRd
+clean_ignored_internal <- function(df, col_name, var_label, ignored_codes, lang, verbose) {
+  if (is.null(col_name) || !col_name %in% names(df)) return(list(df = df, dropped = 0))
+  
+  n_before <- nrow(df)
+  
+  df <- df[!is.na(df[[col_name]]), ]
+  
+  df <- df[!(trimws(tolower(as.character(df[[col_name]]))) %in% ignored_codes), ]
+  
+  dropped <- n_before - nrow(df)
+  
+  if (dropped > 0 && verbose) {
+  
+    msg <- list(
+      en = paste0("Dropped ", format(dropped, big.mark = ","), " rows with missing/ignored '", var_label, "'."),
+      pt = paste0("Removidos ", format(dropped, big.mark = ","), " registros com '", var_label, "' ignorado/NA."),
+      es = paste0("Eliminados ", format(dropped, big.mark = ","), " registros con '", var_label, "' ignorado/NA.")
+    )
+    cli::cli_alert_info(msg[[lang]] %||% msg[["en"]])
+  }
+  
+  return(list(df = df, dropped = dropped))
+}
 # Find column by patterns (same as in other functions)
+#' @noRd
 find_column <- function(df, patterns) {
   for (pattern in patterns) {
     if (pattern %in% names(df)) {
