@@ -719,7 +719,7 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
           "microdatasus",
           "dplyr",
           "arrow",
-          "data.tbale"
+          "data.table"
         ), globals = c(
           "download_one",
           "generate_cache_key",
