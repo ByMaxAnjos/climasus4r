@@ -677,9 +677,11 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
     if (.Platform$OS.type == "windows") {
     # Windows: usar multisession (cria processos R separados)
       future::plan(future::multisession, workers = workers)
+      plan_type <- "multisession"
     } else {
       # Unix/Mac: usar multicore (fork) - mais eficiente
       future::plan(future::multicore, workers = workers)
+      plan_type <- "multicore"
     }
     
     if (verbose) {
@@ -688,99 +690,86 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
     if (verbose) {cli::cli_alert_info("Parallel processing enabled ({workers} workers)")}
     # Criar uma funcao wrapper que captura o ambiente corretamente
     download_wrapper <- function(i) {
-      # Garantir que todas as variaveis necessarias estao disponiveis
-      local_verbose <- verbose  # Capturar verbose do escopo externo
-      local_is_national <- is_national
-      local_use_cache <- use_cache
-      local_force_redownload <- force_redownload
-      local_cache_dir <- cache_dir
-      
-      if (!is.null(month)) {
-        download_one(
-          year_i = params$year[i],
-          uf_i = params$uf[i],
-          system_i = params$system[i],
-          month_i = params$month[i],
-          use_cache = local_use_cache,
-          force_redownload = local_force_redownload,
-          cache_dir = local_cache_dir,
-          verbose = FALSE,  # Desabilitar verbose nos workers para evitar conflitos
-          is_national = local_is_national,
-          p = NULL  # Não usar progresso no modo paralelo
-        )
-      } else {
-        download_one(
-          year_i = params$year[i],
-          uf_i = params$uf[i],
-          system_i = params$system[i],
-          month_i = NULL,
-          use_cache = local_use_cache,
-          force_redownload = local_force_redownload,
-          cache_dir = local_cache_dir,
-          verbose = FALSE,
-          is_national = local_is_national,
-          p = NULL
-        )
-      }
+    # Extrair parametros
+    year_i <- params$year[i]
+    uf_i <- params$uf[i]
+    system_i <- params$system[i]
+    month_i <- if (!is.null(month)) params$month[i] else NULL
+    
+    # Chamar download_one com todos os parametros necessarios
+    download_one(
+      year_i = year_i,
+      uf_i = uf_i,
+      system_i = system_i,
+      month_i = month_i,
+      use_cache = use_cache,
+      force_redownload = force_redownload,
+      cache_dir = cache_dir,
+      verbose = FALSE,  # Desabilitar verbose nos workers
+      is_national = is_national,
+      p = NULL  # Sem barra de progresso no modo paralelo
+    )
     }
      
   # Executar em paralelo com tratamento de erros
-  list_of_dfs <- furrr::future_map(
-    seq_len(nrow(params)),
-    download_wrapper,
-    .options = furrr::furrr_options(
-      seed = TRUE,
-      packages = c(
-        "cli",
-        "fs", 
-        "digest",
-        "microdatasus",
-        "dplyr",
-        "arrow",
-        "purrr"
+    list_of_dfs <- furrr::future_map(
+      seq_len(nrow(params)),
+      download_wrapper,
+      .options = furrr::furrr_options(
+        seed = TRUE,
+        packages = c(
+          "cli",
+          "fs", 
+          "digest",
+          "microdatasus",
+          "dplyr",
+          "arrow",
+          "purrr",
+          "data.table"
+        ),
+        globals = c(
+          "download_one",
+          "generate_cache_key",
+          "get_cache_path",
+          "is_cache_valid", 
+          "load_from_cache",
+          "save_to_cache",
+          "use_cache",
+          "force_redownload",
+          "cache_dir",
+          "is_national",
+          "month",
+          "params"
+        ),
+        lazy = FALSE  # Garantir avaliação imediata
       ),
-      globals = c(
-        "download_one",
-        "generate_cache_key",
-        "get_cache_path",
-        "is_cache_valid", 
-        "load_from_cache",
-        "save_to_cache",
-        "verbose",
-        "is_national",
-        "use_cache",
-        "force_redownload",
-        "cache_dir",
-        "month",
-        "params"
-      )
-    ),
-    .progress = verbose  # Barra de progresso do furrr
-  )
+      .progress = verbose  # Barra de progresso do furrr
+    )
+    
+    # Limpar o plano futuro (opcional)
+    future::plan(future::sequential)
+    
+  } else {
+    # Processamento sequencial (código existente)
+    list_of_dfs <- purrr::map(
+      seq_len(nrow(params)),
+      function(i) {
+        download_one(
+          year_i = params$year[i],
+          uf_i = params$uf[i],
+          system_i = params$system[i],
+          month_i = if (!is.null(month)) params$month[i] else NULL,
+          use_cache = use_cache,
+          force_redownload = force_redownload,
+          cache_dir = cache_dir,
+          verbose = verbose,
+          is_national = is_national,
+          p = NULL
+        )
+      }
+    )
+  }
   
-  # Limpar o plano futuro (opcional)
-  future::plan(future::sequential)
-  
-} else {
-  # Processamento sequencial (código existente)
-  list_of_dfs <- purrr::map(
-    seq_len(nrow(params)),
-    function(i) {
-      download_one(
-        year_i = params$year[i],
-        uf_i = params$uf[i],
-        system_i = params$system[i],
-        month_i = if (!is.null(month)) params$month[i] else NULL,
-        use_cache = use_cache,
-        force_redownload = force_redownload,
-        cache_dir = cache_dir,
-        verbose = verbose,
-        is_national = is_national,
-        p = NULL
-      )
-    }
-  )
-}
   
   # Remove any NULL results from failed downloads
   list_of_dfs <- list_of_dfs[!sapply(list_of_dfs, is.null)]
