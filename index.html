@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>climasus4r | Climate & Sustainability for R</title>
+    <meta name="description" content="climasus4r: A professional multilingual R package landing page for climate and sustainability analytics in public health.">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        /* Navigation */
+        nav {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+        
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            text-decoration: none;
+        }
+        
+        .logo span {
+            color: #10b981;
+        }
+        
+        .nav-links {
+            display: none;
+        }
+        
+        @media (min-width: 768px) {
+            .nav-links {
+                display: flex;
+                gap: 2rem;
+            }
+        }
+        
+        .nav-link {
+            color: #64748b;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        
+        .nav-link:hover {
+            color: #10b981;
+        }
+        
+        /* Hero Section */
+        .hero {
+            padding-top: 120px;
+            padding-bottom: 80px;
+            text-align: center;
+        }
+        
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #dcfce7;
+            color: #166534;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 2rem;
+        }
+        
+        .hero-title {
+            font-size: 3rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        @media (min-width: 768px) {
+            .hero-title {
+                font-size: 4rem;
+            }
+        }
+        
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: #64748b;
+            max-width: 800px;
+            margin: 0 auto 3rem;
+        }
+        
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: #1e293b;
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid #e2e8f0;
+            transition: border-color 0.2s;
+        }
+        
+        .btn-secondary:hover {
+            border-color: #10b981;
+            color: #10b981;
+        }
+        
+        /* Sections */
+        section {
+            padding: 5rem 0;
+        }
+        
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 1rem;
+            color: #1e293b;
+        }
+        
+        .section-subtitle {
+            font-size: 1.125rem;
+            color: #64748b;
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto 3rem;
+        }
+        
+        /* Features */
+        .features-grid {
+            display: grid;
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        @media (min-width: 768px) {
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (min-width: 1024px) {
+            .features-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        .feature-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            padding: 2rem;
+            transition: all 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: #10b981;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .feature-icon {
+            width: 3rem;
+            height: 3rem;
+            background: #dcfce7;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            color: #10b981;
+        }
+        
+        .feature-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: #1e293b;
+        }
+        
+        .feature-desc {
+            color: #64748b;
+            line-height: 1.6;
+        }
+        
+        /* Team */
+        .team-grid {
+            display: grid;
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        @media (min-width: 768px) {
+            .team-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (min-width: 1024px) {
+            .team-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        .team-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .team-card:hover {
+            border-color: #10b981;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .team-avatar {
+            width: 5rem;
+            height: 5rem;
+            background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .team-name {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            color: #1e293b;
+        }
+        
+        .team-role {
+            color: #10b981;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .team-org {
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+        
+        /* Funding */
+        .funding-content {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            padding: 3rem;
+            margin-top: 3rem;
+            text-align: center;
+        }
+        
+        .funding-text {
+            color: #64748b;
+            line-height: 1.8;
+            font-size: 1.125rem;
+            margin-bottom: 2rem;
+        }
+        
+        .funding-logos {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .funding-logo {
+            height: 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 2rem;
+            background: #f8fafc;
+            border-radius: 0.5rem;
+            color: #1e293b;
+            font-weight: 600;
+        }
+        
+        /* Footer */
+        footer {
+            background: white;
+            border-top: 1px solid #e2e8f0;
+            padding: 3rem 0;
+            margin-top: 5rem;
+        }
+        
+        .footer-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 2rem;
+        }
+        
+        @media (min-width: 768px) {
+            .footer-container {
+                flex-direction: row;
+                justify-content: space-between;
+                text-align: left;
+            }
+        }
+        
+        .footer-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        
+        .footer-logo span {
+            color: #10b981;
+        }
+        
+        .footer-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+        
+        .footer-link {
+            color: #64748b;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        
+        .footer-link:hover {
+            color: #10b981;
+        }
+        
+        .footer-copyright {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-top: 1rem;
+        }
+        
+        /* Language Switcher */
+        .lang-switcher {
+            display: flex;
+            background: #f1f5f9;
+            padding: 0.25rem;
+            border-radius: 9999px;
+            gap: 0.25rem;
+        }
+        
+        .lang-btn {
+            padding: 0.375rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .lang-btn.active {
+            background: #10b981;
+            color: white;
+        }
+        
+        /* Code Block */
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 2rem;
+            margin: 3rem auto;
+            max-width: 800px;
+            overflow-x: auto;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 0.875rem;
+        }
+        
+        .code-line {
+            margin-bottom: 0.5rem;
+        }
+        
+        .code-comment {
+            color: #94a3b8;
+        }
+        
+        .code-function {
+            color: #60a5fa;
+        }
+        
+        .code-string {
+            color: #4ade80;
+        }
+        
+        .code-operator {
+            color: #f472b6;
+        }
+        
+        .code-dots {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .code-dot {
+            width: 0.75rem;
+            height: 0.75rem;
+            border-radius: 9999px;
+        }
+        
+        .code-dot.red {
+            background: #f87171;
+        }
+        
+        .code-dot.yellow {
+            background: #fbbf24;
+        }
+        
+        .code-dot.green {
+            background: #4ade80;
+        }
+        
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #10b981;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #64748b;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .team-avatar {
+            width: 96px;
+            height: 96px;
+            border-radius: 9999px;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1.5rem;
+            overflow: hidden;
+            margin: 0 auto 1rem auto;
+        }
+
+        .team-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .team-links {
+            margin-top: 0.75rem;
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+        }
+
+        .team-links a {
+            text-decoration: none;
+            font-size: 1.2rem;
+            transition: transform 0.2s ease;
+        }
+
+        .team-links a:hover {
+            transform: scale(1.15);
+        }
+        /* About / Long-form scientific text */
+        .about-container {
+            max-width: 1100px;     /* mais largo que container padrão */
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .about-text {
+            text-align: left;      /* NÃO centralizar */
+            font-size: 1.125rem;
+            line-height: 1.9;
+            color: #334155;
+            white-space: normal;  /* garante quebra natural */
+        }
+        /* Estilo para o link do Lattes */
+        a[aria-label="Currículo Lattes"] {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        /* Para SVGs com currentColor - isso permite mudar a cor via CSS */
+        a[aria-label="Currículo Lattes"] svg {
+            color: #0066CC; /* Azul oficial do Lattes */
+            transition: color 0.2s ease;
+        }
+
+        a[aria-label="Currículo Lattes"]:hover svg {
+            color: #004d99; /* Azul mais escuro no hover */
+        }
+
+        /* Se você quiser um efeito de fundo no hover */
+        a[aria-label="Currículo Lattes"]:hover {
+            background-color: rgba(0, 102, 204, 0.1);
+        }
+
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="#" class="logo">climasus<span>4r</span></a>
+            
+            <div class="nav-links">
+                <a href="#features" class="nav-link" data-translate="nav.features">Recursos</a>
+                <a href="#team" class="nav-link" data-translate="nav.team">Equipe</a>
+                <a href="#funding" class="nav-link" data-translate="nav.funding">Fomento</a>
+                <a href="#" class="nav-link" data-translate="nav.docs">Docs</a>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="lang-switcher" id="langSwitcher">
+                    <button class="lang-btn active" data-lang="pt">🇧🇷 PT</button>
+                    <button class="lang-btn" data-lang="en">🇺🇸 EN</button>
+                    <button class="lang-btn" data-lang="es">🇪🇸 ES</button>
+                </div>
+                
+                <a href="https://github.com/ByMaxAnjos/climasus4r" target="_blank" class="btn-secondary">
+                    <span id="github-icon"></span>
+                    <span data-translate="hero.secondaryCta">Ver no GitHub</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="badge" id="heroBadge">
+                <span data-translate="hero.badge">Versão 0.0.0.9000 Disponível</span>
+            </div>
+            
+            <h1 class="hero-title" data-translate="hero.title">Ciência Climática Integrada ao SUS</h1>
+            
+            <p class="hero-subtitle" data-translate="hero.subtitle">
+                Uma ferramenta poderosa em R para análise espaço-temporal de dados climáticos e ambiental voltada à saúde pública brasileira.
+            </p>
+            
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <a href="https://bymaxanjos.github.io/climasus4r/pt/index.html" id="cta-button" class="btn-primary" data-translate="hero.cta">
+                    Começar Agora
+                    <span id="arrow-icon"></span>
+                </a>
+                <a href="https://climasus4r.manus.space/" target="_blank" class="btn-secondary">
+                    <span id="terminal-icon"></span>
+                    AI Assistant
+                </a>
+            </div>
+            
+            <!-- Code Block -->
+            <div class="code-block">
+            <div class="code-dots">
+                <div class="code-dot red"></div>
+                <div class="code-dot yellow"></div>
+                <div class="code-dot green"></div>
+            </div>
+            <div class="code-line code-comment"># Install CLIMASUS4r from GitHub</div>
+            <div class="code-line"><span class="code-function">remotes::install_github</span>(<span class="code-string">"ByMaxAnjos/climasus4r"</span>)</div>
+            <div class="code-line"></div>
+            <div class="code-line code-comment"># Load the package</div>
+            <div class="code-line"><span class="code-function">library</span>(climasus4r)</div>
+            <div class="code-line"></div>
+            <div class="code-line code-comment"># Example pipeline: Import, clean, and analyze SUS data</div>
+            <div class="code-line">df_analise <span class="code-operator"><-</span> <span class="code-function">sus_data_import</span>(uf = <span class="code-string">"SP"</span>, year = <span class="code-number">2023</span>, system = <span class="code-string">"SIM-DO"</span>) <span class="code-operator">|></span></div>
+            <div class="code-line">&nbsp;&nbsp;<span class="code-function">sus_data_clean_encoding</span>(lang = <span class="code-string">"pt"</span>) <span class="code-operator">|></span></div>
+            <div class="code-line">&nbsp;&nbsp;<span class="code-function">sus_data_standardize</span>(lang = <span class="code-string">"pt"</span>) <span class="code-operator">|></span></div>
+            <div class="code-line">&nbsp;&nbsp;<span class="code-function">sus_data_filter_cid</span>(disease_group = <span class="code-string">"respiratory"</span>, lang = <span class="code-string">"pt"</span>)
+            </div>
+        </div>
+        </div>
+    </section>
+    <!-- About Section -->
+    <section id="about">
+        <div class="about-container">
+            <h2 class="section-title" data-translate="description.title"></h2>
+
+            <div class="about-text" data-translate="description.text"></div>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number">5,570+</div>
+                    <div class="stat-label">Municípios</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">30+</div>
+                    <div class="stat-label">Anos de Dados</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">15+</div>
+                    <div class="stat-label">Funcionalidades</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" style="background: #f8fafc;">
+        <div class="container">
+            <h2 class="section-title">Recursos Principais</h2>
+            <p class="section-subtitle">Ferramentas poderosas para análise climática integrada ao SUS</p>
+            
+            <div class="features-grid" id="featuresGrid">
+                <!-- Features will be populated by JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Team Section -->
+    <section id="team">
+        <div class="container">
+            <h2 class="section-title" data-translate="people.title">Quem Somos</h2>
+            <p class="section-subtitle" data-translate="people.subtitle">
+                Desenvolvido por especialistas dedicados à interseção entre clima e saúde.
+            </p>
+            
+            <div class="team-grid" id="teamGrid">
+                <!-- Team members will be populated by JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Funding Section -->
+    <section id="funding" style="background: #f8fafc;">
+        <div class="container">
+            <h2 class="section-title" data-translate="funding.title">Apoio e Financiamento</h2>
+            
+            <div class="funding-content">
+                <p class="funding-text" data-translate="funding.text">
+                    O projeto climasus4r é financiado pelo Ministério da Saúde e pela Fundação Oswaldo Cruz Rondônia...
+                </p>
+                
+                <div class="funding-logos">
+                    <div class="funding-logo">FIOCRUZ</div>
+                    <div class="funding-logo">Ministério da Saúde</div>
+                    <div class="funding-logo">INCT-CONEXÃO</div>
+                    <div class="funding-logo">UNIR</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-container">
+                <div>
+                    <div class="footer-logo">climasus<span>4r</span></div>
+                    <p class="footer-copyright" data-translate="footer.text">© 2024 climasus4r. Licença MIT.</p>
+                </div>
+                
+                <div class="footer-links">
+                    <a href="#" class="footer-link" data-translate="nav.docs">Documentação</a>
+                    <a href="https://github.com/ByMaxAnjos/climasus4r" target="_blank" class="footer-link">GitHub</a>
+                    <a href="https://climasus4r.manus.space/" target="_blank" class="footer-link">AI Assistant</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- GitHub Star Button -->
+    <a href="https://github.com/ByMaxAnjos/climasus4r" target="_blank" 
+       style="position: fixed; bottom: 2rem; right: 2rem; z-index: 1000;"
+       class="btn-primary">
+        ⭐ Star no GitHub
+    </a>
+
+    <script>
+        // Configuration from YAML
+        const translations = {
+  "pt": {
+    "nav": {
+      "features": "Recursos",
+      "team": "Equipe",
+      "funding": "Fomento"
+    },
+    "hero": {
+      "badge": "Versão 1.0.0 Disponível",
+      "title": "Ciência Climática Integrada ao SUS",
+      "subtitle": "Um pacote em R para obtenção de dados, diagnóstico, previsão e análise espaço-temporal de dados climáticos, ambientais e de saúde, com foco na saúde pública brasileira.",
+      "cta": "Começar Agora",
+      "secondaryCta": "Ver no GitHub"
+    },
+    "description": {
+      "title": "Sobre o climasus4r",
+      "text": "climasus4r é uma plataforma científica em R para obtenção, integração, padronização e análise de dados de saúde, clima e ambiente no Brasil, com foco na previsão bioclimática (bioprognose). Desenvolvido no âmbito do INCT Conexão e do Centro de Clima e Saúde de Rondônia (CCSRO–Fiocruz), o pacote automatiza todo o fluxo de trabalho epidemiológico — desde a aquisição de dados do DATASUS até a geração de séries temporais prontas para modelagem climática, vigilância em saúde e avaliação de riscos ambientais, previsão de impactos, eventos extremos e projeções climáticas de médio e longo prazo. Com suporte aos seis principais sistemas do SUS (SIM, SINAN, SIH, SIA, CNES e SINASC), processamento paralelo, padronização multilíngue (PT, EN, ES) e mais de 50 grupos de doenças sensíveis ao clima, o climasus4r transforma grandes volumes de microdados em informação científica reprodutível, escalável e orientada à tomada de decisão em saúde pública."
+    },
+    "features": [
+      {
+        "title": "Fase 1 — Infraestrutura de Dados",
+        "desc": "Aquisição paralela, limpeza, padronização multilíngue, filtragem por CID-10, criação de variáveis epidemiológicas, agregação temporal flexível, relatórios de qualidade e exportação com metadados prontos para análise científica.",
+        "icon": "Database",
+        "link": "pt/index.html"
+      },
+      {
+        "title": "Fase 2 — Integração Socioeconômica",
+        "desc": "Vinculação espacial de limites geográficos, integração de dados do IBGE (população, PIB, IDH), correspondência de setores censitários e operações espaciais ponderadas pela população para análise de desigualdades em saúde.",
+        "icon": "Users",
+        "link": "pt/index.html"
+      },
+      {
+        "title": "Fase 3 — Integração Ambiental",
+        "desc": "Importação de dados meteorológicos (INMET, FIORES, INCT-CONEXÃO), qualidade do ar (INPE, CETESB), dados de satélite (MODIS, Sentinel) e algoritmos de correspondência de exposição climática.",
+        "icon": "CloudRain",
+        "link": "pt/index.html"
+      },
+      {
+        "title": "Fase 4 — Análise Espacial Avançada",
+        "desc": "Modelos espaciais bayesianos, detecção de clusters (SaTScan, Kulldorff), indicadores locais de autocorrelação (LISA), regressões espaciais e modelos de risco relativo para internações e mortalidade associados ao clima.",
+        "icon": "Map",
+        "link": "pt/index.html"
+      },
+      {
+        "title": "Fase 5 — Análise Temporal e Preditiva",
+        "desc": "Modelos de defasagem distribuída não linear (DLNM), fração atribuível, decomposição de séries temporais, aprendizado de máquina e bioprognose climática baseada em previsões meteorológicas e cenários climáticos de curto, médio e longo prazo.",
+        "icon": "TrendingUp",
+        "link": "pt/index.html"
+      }
+    ],
+    "people": {
+      "title": "Quem Somos",
+      "subtitle": "Desenvolvido por especialistas dedicados à interseção entre clima e saúde.",
+      "members": [
+        {
+          "name": "Dr. Max Anjos",
+          "role": "Mentor e Desenvolvedor R",
+          "org": "Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO)",
+          "email": "max.anjos@campus.ul.pt",
+          "photo": "https://avatars.githubusercontent.com/ByMaxAnjos",
+          "github": "ByMaxAnjos",
+          "linkedin": "maxanjos"
+        },
+        {
+          "name": "Thauã Menezes",
+          "role": "Autor e Contribuidor R",
+          "org": "Universidade Estadual Paulista (UNESP)/ Univesidade Federal de Rondonia (UNIR)",
+          "email": "thaua.menezes@unesp.br",
+          "photo": "https://avatars.githubusercontent.com/thauamenezez",
+          "github": "thauamenezez",
+          "linkedin": "thauã-menezes-8172691b1"
+        },
+        {
+          "name": "João Paulo Assis Gobo",
+          "role": "Contribuidor Científico",
+          "org": "Universidade Federal de Rondônia (UNIR) / Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO)",
+          "email": "joao.gobo@unir.br",
+          "photo": "http://servicosweb.cnpq.br/wspessoa/servletrecuperafoto?tipo=1&id=K4218505T9"
+        },
+        {
+          "name": "Andreimar Martins Soares",
+          "role": "Contribuidor Científico",
+          "org": "Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO)",
+          "email": "andreimar.soares@fiocruz.br",
+          "photo": "http://servicosweb.cnpq.br/wspessoa/servletrecuperafoto?tipo=1&id=K4792564Y7",
+          "linkedin": "andreimar-soares"
+        }
+      ]
+    },
+    "funding": {
+      "title": "Apoio e Financiamento",
+      "text": "O projeto climasus4r é financiado pelo Ministério da Saúde e pela Fundação Oswaldo Cruz Rondônia (Fiocruz-RO), por meio do Centro de Clima e Saúde de Rondônia (CCSRO), no âmbito do Instituto Nacional de Ciência e Tecnologia de Pesquisa e Conhecimento de Excelência da Amazônia Ocidental – INCT-CONEXAO, processo CNPq nº 408474/2024-6. O fomento contempla o Núcleo Permanente de Climatologia (NPC) na Universidade Federal de Rondônia (UNIR) e o Núcleo Avançado de Climatologia (NAC) no CCSRO-FIOCRUZ."
+    },
+    "footer": {
+      "text": "© 2026 climasus4r team. Licença MIT."
+    }
+  },
+  "en": {
+    "nav": {
+      "docs": "Docs",
+      "features": "Features",
+      "team": "Team",
+      "funding": "Funding"
+    },
+    "hero": {
+      "badge": "Version 1.0.0 Out Now",
+      "title": "Climate Science for Public Health",
+      "subtitle": "An R package for data acquisition, diagnostics, forecasting, and spatio-temporal analysis of climate, environmental, and health data, with a focus on Brazilian public health.",
+      "cta": "Get Started",
+      "secondaryCta": "View on GitHub"
+    },
+    "description": {
+      "title": "About climasus4r",
+      "text": "climasus4r is a scientific R-based platform designed to acquire, integrate, standardize, and analyze health, climate, and environmental data in Brazil, with a focus on bioclimatic forecasting (bioprognosis). Developed within the framework of the INCT Conexão and the Rondônia Climate and Health Center (CCSRO–Fiocruz), the package automates the entire epidemiological workflow — from data acquisition from DATASUS to the generation of time series ready for climate modeling, health surveillance, environmental risk assessment, impact forecasting, extreme event analysis, and medium- to long-term climate projections. Supporting the six main Brazilian Unified Health System (SUS) databases (SIM, SINAN, SIH, SIA, CNES, and SINASC), parallel processing, multilingual standardization (PT, EN, ES), and more than 50 climate-sensitive disease groups, climasus4r transforms large volumes of health microdata into reproducible, scalable scientific information suitable for evidence-based public health decision-making."
+    },
+    "features": [
+      {
+        "title": "Phase 1 — Data Infrastructure",
+        "desc": "Parallel data acquisition, encoding correction, multilingual standardization, ICD-10 filtering, epidemiological variable creation, flexible temporal aggregation, quality reports and metadata-ready exports for scientific analysis.",
+        "icon": "Database",
+        "link": "en/index.html"
+      },
+      {
+        "title": "Phase 2 — Socioeconomic Integration",
+        "desc": "Spatial linkage of geographic boundaries, integration of IBGE socioeconomic data (population, GDP, HDI), census tract matching and population-weighted spatial operations to analyze health inequalities.",
+        "icon": "Users",
+        "link": "en/index.html"
+      },
+      {
+        "title": "Phase 3 — Environmental Integration",
+        "desc": "Import of meteorological data (INMET, FIORES, INCT-CONEXÃO), air quality data (INPE, CETESB), satellite data (MODIS, Sentinel) and exposure-matching algorithms for climate-health analysis.",
+        "icon": "CloudRain",
+        "link": "en/index.html"
+      },
+      {
+        "title": "Phase 4 — Advanced Spatial Analysis",
+        "desc": "Bayesian spatial smoothing, cluster detection (SaTScan, Kulldorff), local indicators of spatial association (LISA), spatial regression models and relative risk models for climate-related hospitalizations and mortality.",
+        "icon": "Map",
+        "link": "en/index.html"
+      },
+      {
+        "title": "Phase 5 — Temporal and Predictive Modeling",
+        "desc": "Non-linear distributed lag models (DLNM), attributable fraction, time-series decomposition, machine learning forecasting and climate-based bioprognosis using short-, medium- and long-term climate scenarios.",
+        "icon": "TrendingUp",
+        "link": "en/index.html"
+      }
+    ],
+    "people": {
+      "title": "Our People",
+      "subtitle": "Developed by experts dedicated to the intersection of climate and health.",
+      "members": [
+        {
+          "name": "Dr. Max Anjos",
+          "role": "Mentor and R Developer",
+          "org": "Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO)",
+          "email": "max.anjos@campus.ul.pt",
+          "photo": "https://avatars.githubusercontent.com/ByMaxAnjos",
+          "github": "ByMaxAnjos",
+          "linkedin": "maxanjos"
+        },
+        {
+          "name": "Thauã Menezes",
+          "role": "Author and R Contributor",
+          "org": "Universidade Estadual Paulista (UNESP)/ Univesidade Federal de Rondonia (UNIR)",
+          "email": "thaua.menezes@unesp.br",
+          "photo": "https://avatars.githubusercontent.com/thauamenezez",
+          "github": "thauamenezez",
+          "linkedin": "thauã-menezes-8172691b1"
+        },
+        {
+          "name": "João Paulo Assis Gobo",
+          "role": "Scientific Contributor",
+          "org": "Universidade Federal de Rondônia (UNIR) / Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO)",
+          "email": "joao.gobo@unir.br",
+          "photo": "http://servicosweb.cnpq.br/wspessoa/servletrecuperafoto?tipo=1&id=K4218505T9"
+        },
+        {
+          "name": "Andreimar Martins Soares",
+          "role": "Scientific Contributor",
+          "org": "Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO)",
+          "email": "andreimar.soares@fiocruz.br",
+          "photo": "http://servicosweb.cnpq.br/wspessoa/servletrecuperafoto?tipo=1&id=K4792564Y7",
+          "linkedin": "andreimar-soares"
+        }
+      ]
+    },
+    "funding": {
+      "title": "Support and Funding",
+      "text": "The climasus4r project is funded by the Brazilian Ministry of Health and the Oswaldo Cruz Foundation of Rondônia (Fiocruz-RO), through the Rondônia Climate and Health Center (CCSRO), within the framework of the National Institute of Science and Technology for Research and Knowledge of Excellence of the Western Amazon – INCT-CONEXAO, CNPq grant no. 408474/2024-6. The funding supports the Permanent Climatology Center (NPC) at the Federal University of Rondônia (UNIR) and the Advanced Climatology Center (NAC) at CCSRO-FIOCRUZ."
+    },
+    "footer": {
+      "text": "© 2026 climasus4r team. MIT License."
+    }
+  },
+  "es": {
+    "nav": {
+      "docs": "Docs",
+      "features": "Recursos",
+      "team": "Equipo",
+      "funding": "Financiamiento"
+    },
+    "hero": {
+      "badge": "Versión 1.0.0 Disponible",
+      "title": "Ciencia Climática para la Salud",
+      "subtitle": "Un paquete en R para la obtención de datos, diagnóstico, predicción y análisis espacio-temporal de datos climáticos, ambientales y de salud, con enfoque en la salud pública brasileña.",
+      "cta": "Empezar",
+      "secondaryCta": "Ver en GitHub"
+    },
+    "description": {
+      "title": "Sobre climasus4r",
+      "text": "climasus4r es una plataforma científica en R para la obtención, integración, estandarización y análisis de datos de salud, clima y ambiente en Brasil, con énfasis en la predicción bioclimática (bioprognosis). Desarrollado en el marco del INCT Conexão y del Centro de Clima y Salud de Rondônia (CCSRO–Fiocruz), el paquete automatiza todo el flujo de trabajo epidemiológico — desde la adquisición de datos del DATASUS hasta la generación de series temporales listas para la modelización climática, la vigilancia en salud, la evaluación de riesgos ambientales, la predicción de impactos, el análisis de eventos extremos y las proyecciones climáticas de mediano y largo plazo. Con soporte para los seis principales sistemas del Sistema Único de Salud (SUS) de Brasil (SIM, SINAN, SIH, SIA, CNES y SINASC), procesamiento paralelo, estandarización multilingüe (PT–EN–ES) y más de 50 grupos de enfermedades sensibles al clima, climasus4r transforma grandes volúmenes de microdatos en información científica reproducible, escalable y orientada a la toma de decisiones en salud pública."
+    },
+    "features": [
+      {
+        "title": "Phase 1 — Data Infrastructure",
+        "desc": "Parallel data acquisition, encoding correction, multilingual standardization, ICD-10 filtering, epidemiological variable creation, flexible temporal aggregation, quality reports and metadata-ready exports for scientific analysis.",
+        "icon": "Database",
+        "link": "en/index.html"
+      },
+      {
+        "title": "Phase 2 — Socioeconomic Integration",
+        "desc": "Spatial linkage of geographic boundaries, integration of IBGE socioeconomic data (population, GDP, HDI), census tract matching and population-weighted spatial operations to analyze health inequalities.",
+        "icon": "Users",
+        "link": "en/index.html"
+      },
+      {
+        "title": "Phase 3 — Environmental Integration",
+        "desc": "Import of meteorological data (INMET, FIORES, INCT-CONEXÃO), air quality data (INPE, CETESB), satellite data (MODIS, Sentinel) and exposure-matching algorithms for climate-health analysis.",
+        "icon": "CloudRain",
+        "link": "en/index.html"
+      },
+      {
+        "title": "Phase 4 — Advanced Spatial Analysis",
+        "desc": "Bayesian spatial smoothing, cluster detection (SaTScan, Kulldorff), local indicators of spatial association (LISA), spatial regression models and relative risk models for climate-related hospitalizations and mortality.",
+        "icon": "Map",
+        "link": "en/index.html"
+      },
+      {
+        "title": "Phase 5 — Temporal and Predictive Modeling",
+        "desc": "Non-linear distributed lag models (DLNM), attributable fraction, time-series decomposition, machine learning forecasting and climate-based bioprognosis using short-, medium- and long-term climate scenarios.",
+        "icon": "TrendingUp",
+        "link": "en/index.html"
+      }
+    ],
+    "people": {
+      "title": "Nuestro Equipo",
+      "subtitle": "Desenvolvido por expertos dedicados a la intersección entre clima e salud.",
+      "members": [
+        {
+          "name": "Dr. Max Anjos",
+          "role": "Mentor y Desarrollador R",
+          "org": "Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO)",
+          "email": "max.anjos@campus.ul.pt",
+          "photo": "https://avatars.githubusercontent.com/ByMaxAnjos",
+          "github": "ByMaxAnjos",
+          "linkedin": "maxanjos"
+        },
+        {
+          "name": "Thauã Menezes",
+          "role": "Autor y Contribuidor R",
+          "org": "Universidade Estadual Paulista (UNESP)/ Univesidade Federal de Rondonia (UNIR)",
+          "email": "thaua.menezes@unesp.br",
+          "photo": "https://avatars.githubusercontent.com/thauamenezez",
+          "github": "thauamenezez",
+          "linkedin": "thauã-menezes-8172691b1"
+        },
+        {
+          "name": "João Paulo Assis Gobo",
+          "role": "Contribuidor Científico",
+          "org": "Universidade Federal de Rondônia (UNIR) / Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO)",
+          "email": "joao.gobo@unir.br",
+          "photo": "http://servicosweb.cnpq.br/wspessoa/servletrecuperafoto?tipo=1&id=K4218505T9"
+        },
+        {
+          "name": "Andreimar Martins Soares",
+          "role": "Contribuidor Científico",
+          "org": "Fundação Oswaldo Cruz Rondônia (FIOCRUZ-RO / CCSRO)",
+          "email": "andreimar.soares@fiocruz.br",
+          "photo": "http://servicosweb.cnpq.br/wspessoa/servletrecuperafoto?tipo=1&id=K4792564Y7",
+          "linkedin": "andreimar-soares"
+        }
+      ]
+    },
+    "funding": {
+      "title": "Apoyo y Financiación",
+      "text": "El proyecto climasus4r está financiado por el Ministerio de Salud de Brasil y por la Fundación Oswaldo Cruz de Rondônia (Fiocruz-RO), a través del Centro de Clima y Salud de Rondônia (CCSRO), en el marco del Instituto Nacional de Ciencia y Tecnología de Investigación y Conocimiento de Excelencia de la Amazonía Occidental – INCT-CONEXAO, proceso CNPq n.º 408474/2024-6. El financiamiento contempla el Núcleo Permanente de Climatología (NPC) en la Universidad Federal de Rondônia (UNIR) y el Núcleo Avanzado de Climatología (NAC) en el CCSRO-FIOCRUZ."
+    },
+    "footer": {
+      "text": "© 2026 climasus4r team. Licença MIT."
+    }
+  }
+};
+        
+        // CTA links for each language
+        const ctaLinks = {
+            'pt': 'https://bymaxanjos.github.io/climasus4r/pt/index.html',
+            'en': 'https://bymaxanjos.github.io/climasus4r/en/index.html',
+            'es': 'https://bymaxanjos.github.io/climasus4r/es/index.html'
+        };
+        
+        // Current language
+        let currentLang = 'pt';
+        
+        // Icon mapping
+        const icons = {
+            'Terminal': `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>`,
+            'Heart': `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"></path></svg>`,
+            'CloudRain': `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="19" x2="8" y2="21"></line><line x1="8" y1="13" x2="8" y2="15"></line><line x1="16" y1="19" x2="16" y2="21"></line><line x1="16" y1="13" x2="16" y2="15"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="12" y1="15" x2="12" y2="17"></line><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path></svg>`,
+            'Database': `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>`,
+            'ArrowRight': `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`,
+            'Github': `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>`
+        };
+        
+        // Initialize Lucide icons
+        lucide.createIcons();
+        
+        // Set icons
+        document.getElementById('github-icon').innerHTML = icons.Github;
+        document.getElementById('arrow-icon').innerHTML = icons.ArrowRight;
+        document.getElementById('terminal-icon').innerHTML = icons.Terminal;
+        
+        // Function to get initials from name
+        function getInitials(name) {
+            return name.split(' ').map(n => n[0]).join('').toUpperCase();
+        }
+        
+        // Function to update CTA button link
+        function updateCTALink() {
+            const ctaButton = document.getElementById('cta-button');
+            if (ctaButton && ctaLinks[currentLang]) {
+                ctaButton.href = ctaLinks[currentLang];
+                console.log('CTA link updated to:', ctaLinks[currentLang]);
+            }
+        }
+        
+        // Function to render features
+        function renderFeatures() {
+            const featuresGrid = document.getElementById('featuresGrid');
+            const features = translations[currentLang].features || [];
+            
+            featuresGrid.innerHTML = features.map(feature => `
+                <a href="${feature.link}" target="${feature.link.startsWith('http') ? '_blank' : '_self'}" class="feature-card">
+                    <div class="feature-icon">
+                        ${icons[feature.icon] || icons.Terminal}
+                    </div>
+                    <h3 class="feature-title">${feature.title}</h3>
+                    <p class="feature-desc">${feature.desc}</p>
+                </a>
+            `).join('');
+        }
+        
+        // Function to render team
+        function renderTeam() {
+            const teamGrid = document.getElementById('teamGrid');
+            const members = translations[currentLang].people?.members || [];
+
+            teamGrid.innerHTML = members.map(member => `
+                <div class="team-card">
+                    <div class="team-avatar">
+                        ${
+                            member.photo
+                            ? `<img src="${member.photo}" alt="${member.name}" />`
+                            : getInitials(member.name)
+                        }
+                    </div>
+
+                    <h3 class="team-name">${member.name}</h3>
+                    <p class="team-role">${member.role}</p>
+                    <p class="team-org">${member.org}</p>
+
+                    <div class="team-links">
+                        ${member.email ? `
+                            <a href="mailto:${member.email}" title="Email">
+                                ✉️
+                            </a>` : ''}
+
+                        ${member.github ? `
+                            <a href="https://github.com/${member.github}" target="_blank" title="GitHub" aria-label="GitHub">
+                                <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                                    <path d="M12 0.5C5.73 0.5.5 5.74.5 12.02c0 5.1 3.29 9.43 7.86 10.96.57.1.78-.25.78-.55
+                                    0-.27-.01-1-.02-1.96-3.2.7-3.88-1.55-3.88-1.55-.53-1.35-1.3-1.71-1.3-1.71
+                                    -1.06-.73.08-.72.08-.72 1.17.08 1.78 1.2 1.78 1.2
+                                    1.04 1.79 2.73 1.27 3.4.97.1-.76.4-1.27.73-1.56
+                                    -2.55-.29-5.23-1.28-5.23-5.7
+                                    0-1.26.45-2.29 1.19-3.1
+                                    -.12-.29-.52-1.45.11-3.02
+                                    0 0 .97-.31 3.18 1.18
+                                    .92-.26 1.9-.39 2.88-.39
+                                    .98 0 1.96.13 2.88.39
+                                    2.2-1.49 3.18-1.18 3.18-1.18
+                                    .63 1.57.23 2.73.11 3.02
+                                    .74.81 1.19 1.84 1.19 3.1
+                                    0 4.43-2.69 5.4-5.25 5.68
+                                    .41.35.78 1.04.78 2.1
+                                    0 1.52-.01 2.74-.01 3.11
+                                    0 .3.2.66.79.55
+                                    4.56-1.53 7.84-5.86 7.84-10.96
+                                    C23.5 5.74 18.27.5 12 .5z"/>
+                                </svg>
+                            </a>` : ''}
+                         ${member.lattes ? `
+                            <a href="http://lattes.cnpq.br/${member.lattes}" target="_blank" title="Currículo Lattes" aria-label="Currículo Lattes">
+                                <svg width="22" height="22" viewBox="0 0 24 24">
+                                    <rect width="24" height="24" rx="4" fill="#0066CC"/>
+                                    <path d="M7 12L10 15L17 8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <text x="6" y="17" font-family="Arial" font-size="10" font-weight="bold" fill="white">L</text>
+                                </svg>
+                            </a>` : ''}
+
+                        ${member.linkedin ? `
+                            <a href="https://www.linkedin.com/in/${member.linkedin}" target="_blank" title="LinkedIn" aria-label="LinkedIn">
+                                <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                                    <path d="M4.98 3.5C4.98 4.88 3.86 6 2.48 6
+                                    1.1 6 0 4.88 0 3.5
+                                    0 2.12 1.1 1 2.48 1
+                                    3.86 1 4.98 2.12 4.98 3.5zM.5 23.5h4V7.98h-4V23.5z
+                                    M8.5 7.98h3.83v2.12h.05
+                                    c.53-1 1.83-2.12 3.77-2.12
+                                    4.03 0 4.77 2.65 4.77 6.09
+                                    v7.43h-4v-6.59
+                                    c0-1.57-.03-3.6-2.2-3.6
+                                    -2.2 0-2.54 1.72-2.54 3.49
+                                    v6.7h-4V7.98z"/>
+                                </svg>
+                            </a>` : ''}
+
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Function to update all translatable elements
+        function updateLanguage() {
+            const t = translations[currentLang];
+            
+            // Update all elements with data-translate attribute
+            document.querySelectorAll('[data-translate]').forEach(element => {
+                const keys = element.getAttribute('data-translate').split('.');
+                let value = t;
+                
+                for (const key of keys) {
+                    if (value && value[key]) {
+                        value = value[key];
+                    } else {
+                        value = null;
+                        break;
+                    }
+                }
+                
+                if (value && element.tagName !== 'INPUT' && element.tagName !== 'TEXTAREA') {
+                    element.textContent = value;
+                } else if (value && (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA')) {
+                    element.value = value;
+                }
+            });
+            
+            // Update language switcher
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                if (btn.dataset.lang === currentLang) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            // Update CTA button link
+            updateCTALink();
+            
+            // Render dynamic content
+            renderFeatures();
+            renderTeam();
+        }
+        
+        // Initialize language switcher
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentLang = btn.dataset.lang;
+                console.log('Language changed to:', currentLang);
+                updateLanguage();
+            });
+        });
+        
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+        
+        // Initialize
+        updateLanguage();
+        
+        // Make translations accessible
+        window.climasus4r = {
+            translations,
+            setLanguage: function(lang) {
+                if (translations[lang]) {
+                    currentLang = lang;
+                    updateLanguage();
+                }
+            },
+            getCurrentLanguage: function() {
+                return currentLang;
+            }
+        };
+        
+        // Log for debugging
+        console.log('climasus4r initialized. Current language:', currentLang);
+        console.log('CTA links:', ctaLinks);
+    </script>
+</body>
+</html>
