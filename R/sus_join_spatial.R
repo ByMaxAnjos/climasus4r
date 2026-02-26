@@ -530,33 +530,30 @@ sus_join_spatial <- function(
     )
 
     # Ensure code column is character
-    spatial_df[[code_col_spatial]] <- as.character(spatial_df[[
-      code_col_spatial
-    ]])
+    spatial_df[[code_col_spatial]] <- as.character(spatial_df[[code_col_spatial]])
+    spatial_df <- dplyr::mutate(spatial_df, code_muni = substr(as.character(code_muni), 1, 6))
 
     # ============================================================================
     # 7. PERFORM SPATIAL JOIN
     # ============================================================================
 
-    if (verbose) {
-      cli::cli_alert_info(msg$joining_data)
-    }
+    if (verbose) {cli::cli_alert_info(msg$joining_data)}
 
-    if (nchar(df[[join_col]][1]) == 6) {
-      cli::cli_alert_info(
-        switch(
-          lang,
-          "pt" = "Convertendo codigos de municipio (6 to 7 digitos - IBGE)",
-          "en" = "Converting municipality codes (6 to 7 digits - IBGE)",
-          "es" = "Convirtiendo codigos municipales (6 to 7 digitos - IBGE)"
-        )
-      )
+    # if (nchar(df[[join_col]][1]) == 6) {
+    #   cli::cli_alert_info(
+    #     switch(
+    #       lang,
+    #       "pt" = "Convertendo codigos de municipio (6 to 7 digitos - IBGE)",
+    #       "en" = "Converting municipality codes (6 to 7 digits - IBGE)",
+    #       "es" = "Convirtiendo codigos municipales (6 to 7 digitos - IBGE)"
+    #     )
+    #   )
 
-      df[[join_col]] <- .convert_muni_6_to_7(
-        muni_code_6 = df[[join_col]],
-        spatial_df = spatial_df
-      )
-    }
+    #   df[[join_col]] <- .convert_muni_6_to_7(
+    #     muni_code_6 = df[[join_col]],
+    #     spatial_df = spatial_df
+    #   )
+    # }
 
     df <- df %>% dplyr::arrange(.data[[join_col]])
     spatial_df <- spatial_df %>% dplyr::arrange(.data[[code_col_spatial]])
@@ -1067,6 +1064,10 @@ get_spatial_data_with_cache <- function(
 
   spatial_df <- switch(
     level,
+     "state" = geobr::read_state(
+      cache = FALSE,
+      showProgress = verbose
+    ),
     "school" = geobr::read_schools(
       cache = FALSE,
       showProgress = verbose
