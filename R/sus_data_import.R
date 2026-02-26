@@ -704,7 +704,7 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
             use_cache = use_cache,
             force_redownload = force_redownload,
             cache_dir = cache_dir,
-            verbose = FALSE,
+            verbose = verbose,
             is_national = is_national
           )
         }
