@@ -16,7 +16,7 @@
 #'   }
 #' @param year Integer specifying census year. Options: `2010` (default) or `2000`.
 #'   Note: Dataset availability varies by year.
-#' @param vars Character vector specifying census variables to add. Use `sus_census_explore()` to select available variables.
+#' @param census_vars Character vector specifying census variables to add. Use `sus_census_explore()` to select available variables.
 #'   If `NULL`, returns all available variables (not recommended for large datasets).
 #' @param aggregation_fun Character. Method to aggregate microdata to municipality level:
 #'   \itemize{
@@ -89,7 +89,7 @@
 #' sf_enriched <- sus_socio_add_census(
 #'   df = sf_sim,
 #'   dataset = "population",
-#'   vars = c("V0001", "V0002"),
+#'   census_vars = c("V0001", "V0002"),
 #'   year = 2010,
 #'   lang = "pt"
 #' )
@@ -101,7 +101,7 @@ sus_socio_add_census <- function(
   df,
   dataset = "population",
   year = 2010,
-  vars = NULL,
+  census_vars = NULL,
   aggregation_fun = "sum",
   join_muni_col = NULL,
   use_cache = TRUE,
@@ -114,17 +114,18 @@ sus_socio_add_census <- function(
   # ==========================================================================
   # 1. MULTILINGUAL MESSAGES & VALIDATION
   # ==========================================================================
+  cli::cli_h1("climasus4r - Add Census Socioeconomic Variables")
+
   if (!lang %in% c("pt", "en", "es")) {
-  cli::cli_abort("lang must be one of: 'pt', 'en', 'es'")
+  cli::cli_alert_warning("lang must be one of: 'pt', 'en', 'es'")
+    lang <- "pt"
   }
   check_spatial(lang)
   
   msg <- get_census_messages(lang)
 
   # Input validation
-  if (!is.data.frame(df)) {
-    cli::cli_abort(msg$error_df_type)
-  }
+  if (!is.data.frame(df)) {cli::cli_abort(msg$error_df_type)}
 
   valid_datasets <- c(
     "population",
@@ -159,10 +160,104 @@ sus_socio_add_census <- function(
       valid = paste(valid_funs, collapse = ", ")
     ))
   }
+  # Check if data is climasus_df
+  if (inherits(df, "climasus_df")) {
 
-  if (!lang %in% c("en", "pt", "es")) {
-    cli::cli_abort("Argument 'lang' must be 'en', 'pt', or 'es'")
+    # Minimum required stage
+    required_stage <- "spatial"
+    current_stage  <- climasus_meta(df, "stage")
+
+    if (!is_stage_at_least(current_stage, required_stage)) {
+
+      msg_error <- list(
+        en = paste0(
+          "Data must be spatialized before spatial aggregation\n",
+          "Current stage: ", current_stage %||% "unknown", "\n",
+          "Required stage: ", required_stage, "\n\n",
+          "Please run:\n",
+          "  df <- sus_join_spatial(df)"
+        ),
+        pt = paste0(
+          "Dados devem ser espacializados antes de agregar espacialmente.\n",
+          "Estagio atual: ", current_stage %||% "desconhecido", "\n",
+          "Estagio requerido: ", required_stage, "\n\n",
+          "Por favor, execute:\n",
+          "  df <- sus_join_spatial(df)"
+        ),
+        es = paste0(
+          "Los datos deben estar espacializado antes de agregar espacialmente.\n",
+          "Etapa actual: ", current_stage %||% "desconocida", "\n",
+          "Etapa requerida: ", required_stage, "\n\n",
+          "Por favor, ejecute:\n",
+          "  df <- sus_join_spatial(df)"
+        )
+      )
+
+      cli::cli_abort(msg_error[[lang]] %||% msg_error[["en"]])
+    }
+
+    # Stage validated
+    if (verbose) {
+      msg_stage_ok <- list(
+        en = "Data stage validated",
+        pt = "Estagio de dados validado",
+        es = "Etapa de datos validada"
+      )
+
+      cli::cli_alert_success(msg_stage_ok[[lang]] %||% msg_stage_ok[["en"]])
+    }
+
+    # Update metadata
+    df <- climasus_meta(df, stage = "spatial", type = dataset)
+  } else {
+    
+    # NOT climasus_df - ABORT execution
+    msg_error <- list(
+        en = c(
+          "{.red {cli::symbol$cross} Input is not a {.cls climasus_df} object.}",
+          "i" = "This function requires data formatted by the {.pkg climasus4r} pipeline.",
+          " " = "",
+          "Please prepare your data first:",
+          "*" = "{.strong 1. Import:} {.code df <- sus_data_import(...)} or {.code sus_data_read(...)}",
+          "*" = "{.strong 2. Clean:} {.code df <- sus_data_clean_encoding(df)}",
+          "*" = "{.strong 3. Standardize:} {.code df <- sus_data_standardize(df)}",
+          "*" = "{.strong 4. Aggregate:} {.code df <- sus_data_aggregate(...)}",
+          "*" = "{.strong 5. spatial:} {.code df <- sus_join_spatial(...)}",
+          " " = "",
+          "v" = "Tip: If using external data, run {.fn sus_data_standardize} first."
+        ),
+        pt = c(
+          "{.red {cli::symbol$cross} A entrada como nao objeto {.cls climasus_df}.}",
+          "i" = "Esta funcao requer dados processados pelo pipeline {.pkg climasus4r}.",
+          " " = "",
+          "Por favor, prepare seus dados primeiro:",
+          "*" = "{.strong 1. Importar:} {.code df <- sus_data_import(...)} ou {.code sus_data_read(...)}",
+          "*" = "{.strong 2. Limpar:} {.code df <- sus_data_clean_encoding(df)}",
+          "*" = "{.strong 3. Padronizar:} {.code df <- sus_data_standardize(df)}",
+          "*" = "{.strong 4. Agregar:} {.code df <- sus_data_aggregate(...)}",
+          "*" = "{.strong 5. spatial:} {.code df <- sus_join_spatial(...)}",
+          " " = "",
+          "v" = "Dica: Se usar dados externos, execute {.fn sus_data_standardize} primeiro."
+        ),
+        es = c(
+          "{.red {cli::symbol$cross} La entrada no es un objeto {.cls climasus_df}.}",
+          "i" = "Esta funcion requiere datos procesados por el pipeline {.pkg climasus4r}.",
+          " " = "",
+          "Por favor, prepare sus datos primero:",
+          "*" = "{.strong 1. Importar:} {.code df <- sus_data_import(...)} o {.code sus_data_read(...)}",
+          "*" = "{.strong 2. Limpiar:} {.code df <- sus_data_clean_encoding(df)}",
+          "*" = "{.strong 3. Estandarizar:} {.code df <- sus_data_standardize(df)}",
+          "*" = "{.strong 4. Agregar:} {.code df <- sus_data_aggregate(...)}",
+          "*" = "{.strong 5. spatial:} {.code df <- sus_join_spatial(...)}",
+          " " = "",
+          "v" = "Consejo: Si usa datos externos, ejecute {.fn sus_data_standardize} primero."
+        )
+      )
+    
+    cli::cli_abort(msg_error[[lang]])
   }
+
+  system <- climasus_meta(df, "system")
 
   # Check if df is spatial
   is_spatial <- inherits(df, "sf")
@@ -189,76 +284,77 @@ sus_socio_add_census <- function(
   # 3. IDENTIFY GEOGRAPHIC COLUMN
   # ==========================================================================
 
-  if (is.null(join_muni_col)) {
-    # Standard geographic columns from geobr/censobr
-    geo_cols_standard <- c(
-      "code_muni",
-      "code_state",
-      "abbrev_state",
-      "name_state",
-      "code_region",
-      "name_region",
-      "code_weighting"
-    )
+  # if (is.null(join_muni_col)) {
+  #   # Standard geographic columns from geobr/censobr
+  #   geo_cols_standard <- c(
+  #     "code_muni",
+  #     "code_state",
+  #     "abbrev_state",
+  #     "name_state",
+  #     "code_region",
+  #     "name_region",
+  #     "code_weighting"
+  #   )
 
-    # Find which geo columns exist in df
-    geo_cols_in_df <- intersect(names(df), geo_cols_standard)
+  #   # Find which geo columns exist in df
+  #   geo_cols_in_df <- intersect(names(df), geo_cols_standard)
 
-    # If no standard columns found, try to detect municipality column
-    if (length(geo_cols_in_df) == 0) {
-      if (verbose) {
-        cli::cli_alert_info(msg$detecting_geo_col)
-      }
+  #   # If no standard columns found, try to detect municipality column
+  #   if (length(geo_cols_in_df) == 0) {
+  #     if (verbose) {
+  #       cli::cli_alert_info(msg$detecting_geo_col)
+  #     }
 
-      # Priority order for municipality columns
-      priority_order <- c(
-        "code_muni",
-        "codigo_municipio_residencia",
-        "residence_municipality_code",
-        "codigo_municipio_ocorrencia",
-        "codigo_municipio_ocurrencia",
-        "occurrence_municipality_code",
-        "codigo_municipio",
-        "municipality_code",
-        "CODMUNRES"
-      )
+  #     # Priority order for municipality columns
+  #     priority_order <- c(
+  #       "code_muni_7",
+  #       "codigo_municipio_residencia",
+  #       "residence_municipality_code",
+  #       "codigo_municipio_ocorrencia",
+  #       "codigo_municipio_ocurrencia",
+  #       "occurrence_municipality_code",
+  #       "codigo_municipio",
+  #       "municipality_code",
+  #       "CODMUNRES"
+  #     )
 
-      join_col <- priority_order[priority_order %in% names(df)][1]
+  #     join_col <- priority_order[priority_order %in% names(df)][1]
 
-      if (is.na(join_col)) {
-        cli::cli_abort(msg$no_geo_cols)
-      }
-      # Rename to code_muni
-      if (join_col != "code_muni") {
-        df <- df %>% dplyr::rename(code_muni = dplyr::any_of(join_col))
-      }
-      geo_cols_in_df <- "code_muni"
-    }
+  #     if (is.na(join_col)) {
+  #       cli::cli_abort(msg$no_geo_cols)
+  #     }
+  #     # Rename to code_muni
+  #     if (join_col != "code_muni") {
+  #       df <- df %>% dplyr::rename(code_muni = dplyr::any_of(join_col))
+  #     }
+  #     geo_cols_in_df <- "code_muni"
+  #   }
 
-    if (verbose) {
-      cli::cli_alert_success(glue::glue(
-        msg$geo_cols_found,
-        cols = paste(geo_cols_in_df, collapse = ", ")
-      ))
-    }
-  } else {
-    # Validate user-provided join_col
-    if (!join_muni_col %in% names(df)) {
-      cli::cli_abort(paste0(msg$column_not_found, join_muni_col))
-    }
-    # Normalize to code_muni
-    if (join_muni_col != "code_muni") {
-      df <- df %>% dplyr::rename(code_muni = dplyr::any_of(join_muni_col))
-    }
-  }
+  #   if (verbose) {
+  #     cli::cli_alert_success(glue::glue(
+  #       msg$geo_cols_found,
+  #       cols = paste(geo_cols_in_df, collapse = ", ")
+  #     ))
+  #   }
+  # } else {
+  #   # Validate user-provided join_col
+  #   if (!join_muni_col %in% names(df)) {
+  #     cli::cli_abort(paste0(msg$column_not_found, join_muni_col))
+  #   }
+  #   # Normalize to code_muni
+  #   if (join_muni_col != "code_muni") {
+  #     df <- df %>% dplyr::rename(code_muni = dplyr::any_of(join_muni_col))
+  #   }
+  # }
   # Ensure 7 digits (convert 6 to 7 if needed)
-  df$code_muni <- as.character(df$code_muni)
-  if (any(nchar(df$code_muni) == 6)) {
-    if (verbose) {
-      cli::cli_alert_info(msg$converting_6_to_7)
-    }
-    df$code_muni <- .convert_muni_6_to_7_fast(df$code_muni, cache_dir)
-  }
+
+  # df$code_muni <- as.character(df$code_muni)
+  # if (any(nchar(df$code_muni) == 6)) {
+  #   if (verbose) {
+  #     cli::cli_alert_info(msg$converting_6_to_7)
+  #   }
+  #   df$code_muni <- .convert_muni_6_to_7_fast(df$code_muni, cache_dir)
+  # }
 
   # ==========================================================================
   # 4. FETCH & FILTER CENSUS DATA
@@ -289,8 +385,8 @@ sus_socio_add_census <- function(
     verbose = FALSE
   )
 
-  # Filter municipalities BEFORE loading to RAM (Performance optimization)
-  unique_munis <- unique(as.character(df$code_muni))
+#  # Filter municipalities BEFORE loading to RAM (Performance optimization)
+  unique_munis <- unique(as.integer(df$code_muni_7))
   unique_munis <- unique_munis[!is.na(unique_munis)]
 
   if (verbose) {
@@ -299,59 +395,35 @@ sus_socio_add_census <- function(
       n = format(length(unique_munis), big.mark = ",")
     ))
   }
-
-  census_data_filtered <- census_data %>%
-    dplyr::filter(.data$code_muni %in% !!as.integer(unique_munis))
-
-  cols_to_select <- setdiff(
-    names(census_data_filtered),
-    c(
-      "code_state",
-      "abbrev_state",
-      "name_state",
-      "code_region",
-      "name_region",
-      "code_weighting"
-    )
-  )
-
-  # Select variables
-  if (!is.null(vars)) {
-    # Ensure code_muni is always selected
-    cols_to_select <- unique(c("code_muni", vars))
-    available_cols <- names(census_data_filtered)
-    cols_to_select <- intersect(cols_to_select, available_cols)
-
-    missing_vars <- setdiff(vars, available_cols)
-    if (length(missing_vars) > 0 && verbose) {
-      cli::cli_alert_warning(glue::glue(
-        msg$vars_not_found,
-        vars = paste(missing_vars, collapse = ", ")
-      ))
-    }
-
-    census_data_filtered <- census_data_filtered %>%
-      dplyr::select(dplyr::all_of(cols_to_select))
-  }
-
+  
   # ==========================================================================
-  # 5. STRATIFIED AGGREGATION
+  # 5. AGGREGATION
   # ==========================================================================
   if (verbose) {
     cli::cli_alert_info(glue::glue(msg$aggregating, mode = aggregation_fun))
   }
+  census_data_filtered <- census_data %>%
+  dplyr::filter(.data$code_muni %in% !!unique_munis)
 
-  # Identify grouping variables (code_muni + any categorical variable in vars)
-  # We use a character-based approach for grouping to preserve stratifications
+  available_cols <- names(census_data)
+
+  if (!is.null(census_vars)) {
+    cols_to_select <- unique(c("code_muni", census_vars))
+    cols_to_select <- intersect(cols_to_select, available_cols)
+  } else {
+    cols_to_select <- setdiff(available_cols, c("code_state", "abbrev_state", "name_state", "code_region", "name_region", "code_weighting"))
+  }
+
+  census_data_filtered <- census_data %>% dplyr::select(dplyr::all_of(cols_to_select))
+
+# Grouping variables
   group_vars <- census_data_filtered %>%
-    dplyr::select(dplyr::all_of(cols_to_select)) %>%
     dplyr::select(dplyr::where(is.character), dplyr::where(is.factor)) %>%
     names()
-  # Ensure code_muni is always in group_vars
   group_vars <- unique(c("code_muni", group_vars))
 
   # Map aggregation function to native R functions for speed
-  agg_fn <- function(fun_type, values) {
+  agg_fn_internal <- function(fun_type, values) {
     switch(
       fun_type,
       "sum" = sum(values, na.rm = TRUE),
@@ -368,58 +440,91 @@ sus_socio_add_census <- function(
     )
   }
 
+
   census_agg <- census_data_filtered %>%
-    dplyr::group_by(dplyr::across(dplyr::all_of(group_vars))) %>%
+    dplyr::filter(.data$code_muni %in% !!unique_munis) %>%
+    dplyr::group_by(.data$code_muni) %>%
     dplyr::summarise(
       dplyr::across(
         .cols = dplyr::where(is.numeric),
-        .fns = ~ agg_fn(fun_type = aggregation_fun, values = .x)
+        .fns = ~ agg_fn_internal(fun_type = aggregation_fun, values = .x)
       ),
       .groups = "drop"
     ) %>%
-    dplyr::collect() %>%
-    dplyr::mutate(dplyr::across(dplyr::where(is.list), ~ as.numeric(unlist(.x)))) %>%
-    dplyr::mutate(code_muni = as.character(.data$code_muni))
+    dplyr::collect() 
+    # dplyr::mutate(dplyr::across(dplyr::where(is.list), ~ as.numeric(unlist(.x)))) %>%
+    # dplyr::mutate(code_muni = as.character(.data$code_muni))
 
+  
   # ==========================================================================
   # 6. STANDARDIZATION & JOIN
   # ==========================================================================
 
   if (translate_columns || standardize_values) {
     census_agg <- .census_data_standardize_optimized(
-      census_agg,
-      dataset,
-      lang,
-      translate_columns,
-      standardize_values
+      census_agg, dataset, lang, translate_columns, standardize_values
     )
     # Add suffix to numeric columns to indicate aggregation
+   census_agg$code_muni <- as.character(census_agg$code_muni)
     census_agg <- census_agg %>%
       dplyr::rename_with(
         ~ paste0(.x, "_", aggregation_fun),
+        #.cols = dplyr::where(~ {is.numeric(.x)})
         .cols = dplyr::where(is.numeric)
       )
   }
+  
+  #New = convert IBGE code_muni
+  census_agg <- census_agg %>%
+    dplyr::mutate(code_muni_7 = as.character(code_muni)) %>%
+    dplyr::select(-code_muni)
 
-  if (verbose) {
-    cli::cli_alert_info(msg$joining)
-  }
+  if (verbose) {cli::cli_alert_info(msg$joining)}
 
   df_enriched <- dplyr::left_join(
-    df,
-    census_agg,
-    by = "code_muni",
-    relationship = "many-to-many"
-  )
+    df, census_agg, 
+    by = "code_muni_7")
 
   # ==========================================================================
   # 7. FINALIZATION
   # ==========================================================================
 
-  if (is_spatial) {
-    df_enriched <- sf::st_as_sf(df_enriched)
-  }
+  if (is_spatial) {df_enriched <- sf::st_as_sf(df_enriched)}
+  
+  # Preserve climasus metadata
+  if (!inherits(df_enriched, "climasus_df")) {
+    # Create new climasus_df
+    meta <- list(
+      system = system,
+      stage = "census",
+      type = dataset,
+      spatial = inherits(df_enriched, "sf"),
+      temporal = NULL,
+      created = Sys.time(),
+      modified = Sys.time(),
+      history = sprintf(
+        "[%s] Added census data",
+        format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+      ),
+      user = list()
+    )
 
+    base_classes <- setdiff(class(df_enriched), "climasus_df")
+    df_enriched <- structure(
+      df_enriched,
+      climasus_meta = meta,
+      class = c("climasus_df", base_classes)
+    )
+  } else { 
+    df_enriched <- climasus_meta(
+    df_enriched,
+    system = system,  # Preserve original system
+    stage = "census",
+    type = dataset,
+    add_history = "[%s] Added census data"
+  )     
+  }
+  
   if (verbose) {
     cli::cli_alert_success(msg$success)
     cli::cli_alert_info(glue::glue(
@@ -433,40 +538,12 @@ sus_socio_add_census <- function(
     ))
   }
 
-  return(if (is_spatial) df_enriched else dplyr::as_tibble(df_enriched))
+  return(df_enriched)
 }
 
 # ==========================================================================
 # INTERNAL HELPER FUNCTIONS
 # ==========================================================================
-
-#' Fast 6 to 7 digit municipality code conversion
-#' @noRd
-.convert_muni_6_to_7_fast <- function(muni_code_6, cache_dir) {
-  # Use a static lookup table or a very fast join
-  # For now, we'll use a simplified version of the original logic but optimized
-  muni_code_6 <- as.character(muni_code_6)
-
-  lookup <- get_spatial_muni_with_cache(spatial_cache_dir = cache_dir)
-
-  if (is.null(lookup)) {
-    lookup <- geobr::read_municipality(
-    code_muni = "all",
-    as_sf = FALSE,
-    showProgress = FALSE) 
-  }
-  # Load only the codes from geobr (much faster than full shapes)
-   lookup <- lookup %>%
-    sf::st_drop_geometry() %>%
-    dplyr::transmute(
-      code_muni_6 = substr(as.character(.data$code_muni), 1, 6),
-      code_muni_7 = as.character(.data$code_muni)
-    ) %>%
-    dplyr::distinct()
-    
-  lookup$code_muni_7[match(muni_code_6, lookup$code_muni_6)]
-}
-
 #' Optimized Census Standardization
 #' @noRd
 .census_data_standardize_optimized <- function(df, dataset, lang, translate_cols, std_values) {
@@ -481,7 +558,17 @@ sus_socio_add_census <- function(
 
   # 1. Translate Columns
   if (translate_cols && !is.null(translations$columns)) {
-    df <- df %>% dplyr::rename_with(~ as.character(translations$columns[.x]), .cols = dplyr::any_of(names(translations$columns)))
+    df <- df %>% 
+      dplyr::rename_with(~ as.character(translations$columns[.x]), 
+    .cols = dplyr::any_of(names(translations$columns)))
+    
+    # cols_to_rename <- intersect(names(df), names(translations$columns))
+    # if (length(cols_to_rename) > 0) {
+    #   df <- df %>% dplyr::rename_with(
+    #     ~ unname(translations$columns[.x]),
+    #     .cols = dplyr::all_of(cols_to_rename)
+    #   )
+    # }
   }
 
   # 2. Standardize Values
@@ -560,48 +647,4 @@ get_census_messages <- function(lang) {
       vars_added = "{n} variables agregadas."
     )
   )[[lang]]
-}
-
-#' Get Spatial Data with Caching
-#'
-#' Retrieves spatial data from IBGE with intelligent caching to improve performance.
-#' Spatial data is cached as Parquet files for fast reloading.
-#' @param spatial_cache_dir Cache directory path
-#' @return sf object with spatial data
-#' @keywords internal
-#' @noRd
-get_spatial_muni_with_cache <- function(spatial_cache_dir) {
-  # Ensure the directory exists
-  if (!dir.exists(spatial_cache_dir)) {
-    dir.create(spatial_cache_dir, recursive = TRUE)
-  }
-
-  if ((requireNamespace("sfarrow", quietly = TRUE))) {
-    cache_file <- file.path(spatial_cache_dir, "sf_municipality_2010.parquet")
-  } else {
-    cache_file <- file.path(spatial_cache_dir, "sf_municipality_2010.gpkg")
-  }
-  
-
-  if (file.exists(cache_file)) {
-    
-    if ((requireNamespace("sfarrow", quietly = TRUE))) { 
-      return(sfarrow::st_read_parquet(cache_file))
-    } else {
-      return(sf::st_read(cache_file))
-    }
-    
-  } else {
-    
-    spatial_df <- geobr::read_municipality(code_muni = "all", simplified = TRUE, showProgress = FALSE)
-    
-    if ((requireNamespace("sfarrow", quietly = TRUE))) { 
-      # Corrected: Write to the full file path
-      sfarrow::st_write_parquet(obj = spatial_df, dsn = cache_file)
-    } else { 
-      sf::st_write(obj = spatial_df, dsn = cache_file, append = TRUE)
-    }
-    
-    return(spatial_df)
-  }
 }

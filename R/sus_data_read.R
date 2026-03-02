@@ -1,12 +1,12 @@
 #' Read Processed Health Data with Batch and Parallel Support
 #'
-#' Intelligently reads one or multiple health data files exported by `sus_data_export()`.
+#' Smartly reads one or multiple health data files exported by `sus_data_export()`.
 #' Supports automatic format detection, batch processing, parallel execution, spatial data,
 #' metadata loading, and data validation.
 #'
 #' @param path Character vector of file paths, or a single directory path.
 #'   If a directory is provided, all matching files will be read.
-#' @param format Character string specifying the input format. Options: `"dbf"`,
+#' @param format Character string specifying the input format. Options: `"dbf"`, `"dbc"`,
 #'   `"rds"`, `"parquet"`, `"geoparquet"`, `"shapefile"`, `"gpkg"`, `"geojson"`, `"csv"`.
 #'   If `NULL` (default), automatically detects format from file extension.
 #' @param read_metadata Logical. If `TRUE` (default), loads companion metadata files
@@ -79,7 +79,6 @@ sus_data_read <- function(path,
   # ==========================================================================
   # 1. INPUT VALIDATION
   # ==========================================================================
-  
   if (missing(path) || is.null(path) || length(path) == 0) {
     cli::cli_abort(c(
       "x" = "{.arg path} must be specified",
@@ -197,6 +196,8 @@ sus_data_read <- function(path,
         "parquet" = "parquet",
         "bdf" = "dbf",
         "dbf" = "dbf",
+        "dbc" = "dbc",
+        "dcb" = "dbc",
         "shp" = "shapefile",
         "gpkg" = "gpkg",
         "pgkg" = "gpkg",
@@ -246,13 +247,16 @@ sus_data_read <- function(path,
     # ------------------------------------------------------------------------
     # 4.3. Read data based on format
     # ------------------------------------------------------------------------
-    
     start_time <- Sys.time()
     
     df <- tryCatch({
       
       if (detected_format == "rds") {
         readRDS(file_path) 
+        
+      } else if (detected_format == "dbc") {
+
+        read.dbc::read.dbc(file_path)
         
       } else if (detected_format == "parquet") {
 

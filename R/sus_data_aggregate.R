@@ -121,6 +121,8 @@ sus_data_aggregate <- function(df,
                                verbose = TRUE) {
   
   # Validate inputs
+  cli::cli_h1("climaus4r - Temporal Data Aggregate")
+
   if (!is.data.frame(df)) {
     stop("df must be a data frame")
   }
@@ -130,7 +132,8 @@ sus_data_aggregate <- function(df,
   }
   
   if (!lang %in% c("en", "pt", "es")) {
-    stop("lang must be one of: 'en', 'pt', 'es'")
+    cli::cli_alert_warning("Language '{lang}' not supported. Using Portuguese (pt).")
+    lang <- "pt"
   }
   
   # Validate fun parameter
@@ -202,7 +205,7 @@ sus_data_aggregate <- function(df,
     }
 
     # Update metadata
-    #df <- climasus_meta(df, stage = "aggregate", type = "agg")
+    df <- climasus_meta(df, stage = "aggregate", type = "agg")
 
   } else {
       # NOT climasus_df - ABORT execution
@@ -461,18 +464,38 @@ sus_data_aggregate <- function(df,
   }
   
   # Update stage and type
+ # Update stage and type
+   if (!inherits(df_agg, "climasus_df")) {
+    # Create new climasus_df
+    meta <- list(
+      system = system,
+      stage = "aggregate",
+      type = "agg",
+      spatial = FALSE,
+      temporal = NULL,
+      created = Sys.time(),
+      modified = Sys.time(),
+      history = sprintf(
+        "[%s] Temporal Data aggregated",
+        format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+      ),
+      user = list()
+    )
 
-  
-  df_agg <- structure(
-  df_agg,
-  climasus_meta = original_meta,
-  class = c("climasus_df", setdiff(class(df_agg), "climasus_df"))
-  )
-  df_agg <- structure(
+    base_classes <- setdiff(class(df_agg), "climasus_df")
+    df_agg <- structure(
+      df_agg,
+      climasus_meta = meta,
+      class = c("climasus_df", base_classes)
+    )
+  } else { 
+    df_agg <- climasus_meta(
     df_agg,
-    climasus_meta = original_meta,
-    class = c("climasus_df", setdiff(class(df_agg), "climasus_df"))
-  )
+    system = system,  # Preserve original system
+    stage = "aggregate",
+    type = "agg"
+  )     
+  }
     
   # Build detailed aggregation history message
   agg_details <- c()

@@ -24,7 +24,7 @@
 #' @noRd
 .climasus_stages <- c(
   "import", "clean", "stand", "filter_cid", "filter_demo",
-  "derive", "aggregate", "spatial", "climate"
+  "derive", "aggregate", "spatial", "climate", "census"
 )
 
 #' Valid data types
@@ -40,10 +40,13 @@
   #climate
   "inmet", "filled",
   #spatial
-  "munic", "cep", "school","health_region","amazon",
+  "munic", "cep", "schools","health_region","amazon",
   "semiarid", "biomes", "conservation_units", "disaster_risk_area", 
   "indigenous_land", "urban_area", "metro_area", "urban_concentrations",
-  "pop_arrangements", "health_facilities", "neighborhood" 
+  "pop_arrangements", "health_facilities", "neighborhood",
+  
+  #census
+  "population", "households", "families", "mortality", "emigration", "tracts"
     
 )
 
@@ -66,7 +69,8 @@
   "derive",
   "aggregate",
   "spatial",
-  "climate"
+  "climate",
+  "census"
 )
 #' Funcao hierarquia oficial de estagios
 #' @keywords internal

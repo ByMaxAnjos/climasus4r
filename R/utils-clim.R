@@ -892,7 +892,7 @@ utils::globalVariables(c(
   verbose = FALSE
 ){  
   # ----------------------------------------------------------------------------
-  # 1. VALIDAÇÕES INICIAIS
+  # 1. VALIDACOES INICIAIS
   # ----------------------------------------------------------------------------
   required_cols <- c("station_name", "station_code", "latitude", "longitude", "lat", "long")
   if (!all(required_cols %in% names(df))) {
@@ -908,7 +908,7 @@ utils::globalVariables(c(
   }
   
   # ----------------------------------------------------------------------------
-  # 2. PREPARAR ESTAÇÕES E MUNICÍPIOS
+  # 2. PREPARAR ESTACOES E MUNICIPIOS
   # ----------------------------------------------------------------------------
   stations <- df %>%
     dplyr::distinct(.data$station_code, .data$station_name, .data$latitude, .data$longitude) %>%
@@ -918,8 +918,8 @@ utils::globalVariables(c(
     spatial_obj <- sf::st_transform(spatial_obj, sf::st_crs(stations))
   }
   
-  # Usar Point on Surface (sempre dentro do polígono) em vez de Centróide
-  # Caso falhe (geometria inválida), tenta centróide como fallback
+  # Usar Point on Surface (sempre dentro do poligono) em vez de Centroide
+  # Caso falhe (geometria invalida), tenta centroide como fallback
   spatial_points <- tryCatch({
     suppressWarnings(sf::st_point_on_surface(spatial_obj))
   }, error = function(e) {
@@ -928,15 +928,15 @@ utils::globalVariables(c(
   })
   
   # ----------------------------------------------------------------------------
-  # 3. CÁLCULO DE PROXIMIDADE (JOIN ESPACIAL OTIMIZADO)
+  # 3. CALCULO DE PROXIMIDADE (JOIN ESPACIAL OTIMIZADO)
   # ----------------------------------------------------------------------------
-  # Encontrar índice da estação mais próxima
+  # Encontrar Indice da estacao mais proxima
   nearest_indices <- sf::st_nearest_feature(spatial_points, stations)
   
-  # Calcular distâncias exatas (by element)
+  # Calcular distancias exatas (by element)
   distances <- sf::st_distance(spatial_points, stations[nearest_indices, ], by_element = TRUE)
   
-  # Criar mapa de relacionamento (Município -> Estação)
+  # Criar mapa de relacionamento (Municipio -> Estacao)
   mun_station_map <- data.frame(
     code_muni = spatial_obj$code_muni,
     name_muni = spatial_obj$name_muni %||% NA_character_,
@@ -946,17 +946,13 @@ utils::globalVariables(c(
   )
   
   # ----------------------------------------------------------------------------
-  # 4. JOIN EFICIENTE DOS DADOS CLIMÁTICOS
+  # 4. JOIN EFICIENTE DOS DADOS CLIMATICOS
   # ----------------------------------------------------------------------------
-  # Substituímos o loop 'for' por um inner_join para performance máxima
-  matched_data <- df %>%
-    dplyr::inner_join(
-      mun_station_map, 
-      by = "station_code", 
-      relationship = "many-to-many"
-    )
+  # Substituimos o loop 'for' por um inner_join para performance maxima
+  matched_data <- df %>% 
+    dplyr::inner_join(mun_station_map, by = "station_code", relationship = "many-to-many")
   
-  # Organização final de colunas
+  # Organizacao final de colunas
   id_cols <- c("code_muni", "name_muni", "station_code", "station_name", "distance_km")
   other_cols <- setdiff(names(matched_data), id_cols)
   matched_data <- matched_data %>% 
@@ -1449,7 +1445,7 @@ utils::globalVariables(c(
 # TEMPORAL MACHTING
 # ============================================================================
 
-#' Integracao Temporal: Matching por Combinacao Exata
+#' Integracao Temporal: Matching dates by exact combination
 #' @keywords internal
 #' @noRd
 .join_exact <- function(health_data, climate_data, target_vars = NULL) {
@@ -1469,11 +1465,7 @@ utils::globalVariables(c(
       #suffix = c("_health", "_climate")
     )
   
-  result <- result %>%
-    dplyr::relocate(
-      date, code_muni,
-      .after = date
-    )
+  result <- result %>% dplyr::relocate(date, code_muni, .after = date)
   
   return(result)
 }

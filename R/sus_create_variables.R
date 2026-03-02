@@ -206,6 +206,7 @@ sus_create_variables <- function(
   lang = "pt",
   verbose = TRUE
 ) {
+  cli::cli_h1("climasus4r - Create Derived Variables")
   # Validate inputs
   if (!is.data.frame(df)) {
     stop("df must be a data frame")

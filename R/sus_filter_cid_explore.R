@@ -56,6 +56,7 @@ sus_filter_cid_explore <- function(lang = "pt",
   # ==========================================================================
   # 1. VALIDATION
   # ==========================================================================
+  cli::cli_h1("Interactive Disease Groups Explorer")
   
   valid_langs <- c("pt", "en", "es")
   if (!lang %in% valid_langs) {

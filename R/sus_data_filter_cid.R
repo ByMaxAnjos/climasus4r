@@ -176,7 +176,7 @@ sus_data_filter_cid <- function(df,
   # ============================================================================
   # Input Validation
   # ============================================================================
-  
+  cli::cli_h1("climasus4r - Filter Data ICD-10")
   if (!is.data.frame(df)) {
     cli::cli_alert_danger("Input 'df' must be a data.frame.")
     stop("Invalid input type.")

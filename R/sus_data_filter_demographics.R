@@ -125,6 +125,7 @@ sus_data_filter_demographics <- function(df,
                                           lang = "pt",
                                           verbose = TRUE) {
   
+  cli::cli_h1("climasus4r - Filter Data Demographics")
   # Validate inputs
   if (!is.data.frame(df)) {
     cli::cli_abort("df must be a data frame")
@@ -495,7 +496,7 @@ sus_data_filter_demographics <- function(df,
   } else { 
     df <- climasus_meta(
     df,
-    system = climasus_meta(df, "system"),  # Preserve original system
+    system = system,  # Preserve original system
     stage = "filter_demo",
     type = "filter_demo"
   )     

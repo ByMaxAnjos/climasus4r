@@ -69,6 +69,7 @@ sus_data_clean_encoding <- function(df, lang = "pt", verbose = TRUE) {
   # 1. Identify text columns (character type)
   text_cols <- names(dplyr::select_if(df, is.character))
   
+  
   if (length(text_cols) == 0) {
     if (verbose) {
       no_text_msg <- list(

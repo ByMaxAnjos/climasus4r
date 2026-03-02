@@ -129,7 +129,6 @@ sus_data_export <- function(df,
   # ========================================================================
   # 1. INPUT VALIDATION
   # ========================================================================
-  
   if (!is.data.frame(df)) {
     stop("df must be a data frame or sf object")
   }

@@ -78,6 +78,7 @@ climasus_meta <- function(x = NULL,
                           valid_values = NULL,
                           ...) {
   
+  
   # Operation 1: Get valid values (no x needed)
   if (!is.null(valid_values)) {
     return(get_valid_values_internal(valid_values))

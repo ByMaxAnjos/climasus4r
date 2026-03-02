@@ -10,7 +10,7 @@
 #'   Options: 
 #'   \itemize{
 #'     \item \strong{Administrative:} "munic" (municipality). Default. 
-#'     \item \strong{Health:} "health_region", "health_facilities", "schools"
+#'     \item \strong{Health:} "health_region", "health_facilities", "school"
 #'     \item \strong{Environmental:} "amazon", "biomes", "conservation_units", 
 #'           "disaster_risk_area", "semiarid", "indigenous_land"
 #'     \item \strong{Urban:} "neighborhood", "urban_area", "metro_area", 
@@ -84,7 +84,7 @@
 #' # Example 4: Census tract level analysis
 #' sf_census <- sus_join_spatial(
 #'   df = df_sim,
-#'   level = "school",
+#'   level = "schools",
 #'   lang = "pt"
 #' )
 #' }
@@ -115,21 +115,22 @@ sus_join_spatial <- function(
 
   # Validate language
   if (!lang %in% c("en", "pt", "es")) {
-    cli::cli_abort("lang must be one of: 'en', 'pt', 'es'")
+    cli::cli_alert_warning("lang must be one of: 'en', 'pt', 'es'")
+    lang <- "pt"
   }
   check_spatial(lang)
   # Get multilingual messages
   msg <- get_spatial_messages(lang)
 
   # Validate level
-  valid_levels <- c("munic", "cep", "school","health_region","amazon",
+  valid_levels <- c("munic", "cep", "schools","health_region","amazon",
     "semiarid", "biomes", "conservation_units", "disaster_risk_area", 
     "indigenous_land", "urban_area", "metro_area", "urban_concentrations",
     "pop_arrangements", "health_facilities", "neighborhood" 
     )
   if (!level %in% valid_levels) {
     cli::cli_alert_danger(msg$invalid_level)
-    cli::cli_alert_info(msg$valid_levels)
+    cli::cli_alert_info("Valid levels: {.val {valid_levels}}")
     cli::cli_abort(paste0("Invalid level: '", level, "'"))
   }
 
@@ -228,6 +229,8 @@ sus_join_spatial <- function(
   }
 
   system <- climasus_meta(df, "system")
+  original_meta <- attr(df, "climasus_meta")
+
   # ============================================================================
   # 2. SYSTEM-AWARE VALIDATION (CEP restriction)
   # ============================================================================
@@ -259,38 +262,19 @@ sus_join_spatial <- function(
     # Define column candidates based on level
     common_cols <- switch(
       level,
-      "munic" = c(
-        "codigo_municipio_residencia",
-        "residence_municipality_code",
-
-        "codigo_municipio_ocorrencia",
-        "codigo_municipio_ocurrencia",
-        "occurrence_municipality_code",
-
-        "codigo_municipio",
-        "municipality_code",
-
-        "codigo_municipio_nascimento",
-        "codigo_municipio_nacimiento",
-        "birth_municipality_code",
-
-        "codigo_municipio_paciente",
-        "patient_municipality_code",
-
-        "uf_municipio_estabelecimento",
-        "facility_uf_municipality",
-        "uf_municipio_establecimiento",
-
-        "CODMUNRES"
-      ),
       "state" = c("SG_UF", "UF", "UF_ZI", "state_code", "codigo_uf"),
-      "cep" = c(
-        "cep",
-        "cep_paciente",
-        "codigo_postal",
-        "codigo_postal_paciente",
-        "zip_code",
-        "patient_zip_code"
+      "cep" = c("cep", "cep_paciente", "codigo_postal", "codigo_postal_paciente", "zip_code", "patient_zip_code"),
+      
+      # Para 'munic' E TODOS OS OUTROS NiVEIS (schools, amazon, biomes, etc), 
+      # procure pelas colunas de municipio.
+      c(
+        "codigo_municipio_ocorrencia", "codigo_municipio_ocurrencia", "occurrence_municipality_code",
+        "codigo_municipio_residencia", "residence_municipality_code",
+        "codigo_municipio", "municipality_code",
+        "codigo_municipio_nascimento", "codigo_municipio_nacimiento", "birth_municipality_code",
+        "codigo_municipio_paciente", "patient_municipality_code",
+        "uf_municipio_estabelecimento", "facility_uf_municipality", "uf_municipio_establecimiento",
+        "CODMUNRES"
       )
     )
 
@@ -299,12 +283,12 @@ sus_join_spatial <- function(
       existent_cols <- names(df)[names(df) %in% common_cols]
 
       priority_order <- c(
-        "codigo_municipio_residencia",
-        "residence_municipality_code",
-
         "codigo_municipio_ocorrencia",
         "codigo_municipio_ocurrencia",
         "occurrence_municipality_code",
+
+        "codigo_municipio_residencia",
+        "residence_municipality_code",
 
         "codigo_municipio",
         "municipality_code",
@@ -358,15 +342,15 @@ sus_join_spatial <- function(
   df[[join_col]] <- as.character(df[[join_col]])
 
   # Normalize municipality codes (remove verification digit if 7 digits)
-  if (level == "munic") {
-    df <- df %>%
-      dplyr::mutate(
-        dplyr::across(
-          dplyr::all_of(join_col),
-          ~ ifelse(nchar(.x) == 7, substr(.x, 1, 6), .x)
-        )
-      )
-  }
+  # if (level == "munic") {
+  #   df <- df %>%
+  #     dplyr::mutate(
+  #       dplyr::across(
+  #         dplyr::all_of(join_col),
+  #         ~ ifelse(nchar(.x) == 7, substr(.x, 1, 6), .x)
+  #       )
+  #     )
+  # }
 
   # Normalize CEP (zero-pad to 8 characters)
   if (level == "cep") {
@@ -395,7 +379,7 @@ sus_join_spatial <- function(
   # 6. SPATIAL DATA RETRIEVAL
   # ============================================================================
 
-  if (level %in% c("munic")) {
+  if (level == "munic") {
     # Use cache-enabled retrieval for polygon-based levels
     spatial_df <- get_spatial_munic_cache(
       level = "munic",
@@ -413,6 +397,10 @@ sus_join_spatial <- function(
 
     # Ensure code column is character
     spatial_df[[code_col_spatial]] <- as.character(spatial_df[[code_col_spatial]])
+    #Create code_muni with 7 digits for census integration
+    spatial_df <- dplyr::mutate(spatial_df, code_muni_7 = code_muni)
+    #Convert code_muni to 6 digits
+    spatial_df <- dplyr::mutate(spatial_df, code_muni = substr(as.character(code_muni), 1, 6))
 
     # ============================================================================
     # 7. PERFORM SPATIAL JOIN
@@ -422,21 +410,21 @@ sus_join_spatial <- function(
       cli::cli_alert_info(msg$joining_data)
     }
 
-    if (nchar(df[[join_col]][1]) == 6) {
-      cli::cli_alert_info(
-        switch(
-          lang,
-          "pt" = "Convertendo codigos de municipio (6 to 7 digitos - IBGE)",
-          "en" = "Converting municipality codes (6 to 7 digits - IBGE)",
-          "es" = "Convirtiendo codigos municipales (6 to 7 digitos - IBGE)"
-        )
-      )
+    # if (nchar(df[[join_col]][1]) == 6) {
+    #   cli::cli_alert_info(
+    #     switch(
+    #       lang,
+    #       "pt" = "Convertendo codigos de municipio (6 to 7 digitos - IBGE)",
+    #       "en" = "Converting municipality codes (6 to 7 digits - IBGE)",
+    #       "es" = "Convirtiendo codigos municipales (6 to 7 digitos - IBGE)"
+    #     )
+    #   )
 
-      df[[join_col]] <- .convert_muni_6_to_7(
-        muni_code_6 = df[[join_col]],
-        spatial_df = spatial_df
-      )
-    }
+    #   df[[join_col]] <- .convert_muni_6_to_7(
+    #     muni_code_6 = df[[join_col]],
+    #     spatial_df = spatial_df
+    #   )
+    # }
 
     df <- df %>% dplyr::arrange(.data[[join_col]])
     spatial_df <- spatial_df %>% dplyr::arrange(.data[[code_col_spatial]])
@@ -513,7 +501,7 @@ sus_join_spatial <- function(
   # 9. CHECK OTHER LEVEL 
   # ============================================================================
   
-  if (!level %in% any("muni", "cep")) {
+  if (!level %in% c("munic", "cep")) {
   # Use cache-enabled retrieval for polygon-based levels
     spatial_df <- get_spatial_munic_cache(
       level = "munic",
@@ -571,20 +559,22 @@ sus_join_spatial <- function(
 
   }
   
-  if (level %in% c("school")) { 
+ # ============================================================================
+  # 9. CHECK OTHER LEVEL
+  # ============================================================================
+
+  if (level == "schools") { 
 
     spatial_var <- get_spatial_data_with_cache(
-      level = "school",
-      cache_dir = cache_dir,
-      use_cache = use_cache,
-      lang = lang,
-      verbose = verbose
+      level = "schools", cache_dir = cache_dir, use_cache = use_cache, lang = lang, verbose = verbose
     )
-    spatial_var <- sf::st_make_valid(spatial_var)
     
+    # Previne geom.x/geom.y
+    df_temp <- sf::st_drop_geometry(result_sf) %>% dplyr::select(-dplyr::any_of(c("geom", "geometry")))
+
     result_sf <- dplyr::inner_join(
-      result_sf,
-      spatial_var,
+      spatial_var, # Spatial sempre na esquerda
+      df_temp,
       by = c("name_muni", "abbrev_state"),
       relationship = "many-to-many"
      )
@@ -593,269 +583,229 @@ sus_join_spatial <- function(
   if (level == "health_region") {
      
     spatial_var <- get_spatial_data_with_cache(
-      level = "health_region",
-      cache_dir = cache_dir,
-      use_cache = use_cache,
-      lang = lang,
-      verbose = verbose
+      level = "health_region", cache_dir = cache_dir, use_cache = use_cache, lang = lang, verbose = verbose
     )
+    spatial_var <- sf::st_as_sf(spatial_var)
     spatial_var <- sf::st_make_valid(spatial_var)
-    result_sf$geom <- NULL
-
-    result_sf <- dplyr::inner_join(
-      result_sf,
-      spatial_var,
-      by = c("abbrev_state", "code_state", "name_state"),
-      relationship = "many-to-many"
-     )
+    
+    # ATENcaO: Regiao de Saude nao tem 'code_muni' no geobr. Cruzar so por Estado multiplica as linhas.
+    # Solucao: st_join otimizado usando os municipios unicos
+    unique_places <- suppressWarnings(sf::st_centroid(sf::st_make_valid(dplyr::distinct(result_sf, code_muni, .keep_all = TRUE))))
+    places_with_level <- sf::st_join(unique_places, spatial_var, left = FALSE) %>%
+      sf::st_drop_geometry() %>%
+      dplyr::select(code_muni, dplyr::any_of(names(spatial_var))) %>%
+      dplyr::distinct(code_muni, .keep_all = TRUE)
+      
+    df_temp <- sf::st_drop_geometry(result_sf) %>%
+      dplyr::select(-dplyr::any_of(c("geom", "geometry"))) %>%
+      dplyr::inner_join(places_with_level, by = "code_muni")
+      
+    join_keys <- setdiff(intersect(names(spatial_var), names(df_temp)), attr(spatial_var, "sf_column"))
+    result_sf <- dplyr::inner_join(spatial_var, df_temp, by = join_keys, relationship = "many-to-many")
   }
 
   if (level == "amazon") {
      
     spatial_var <- get_spatial_data_with_cache(
-      level = "amazon",
-      cache_dir = cache_dir,
-      use_cache = use_cache,
-      lang = lang,
-      verbose = verbose
+      level = "amazon", cache_dir = cache_dir, use_cache = use_cache, lang = lang, verbose = verbose
     )
+    spatial_var <- sf::st_as_sf(spatial_var)
     spatial_var <- sf::st_make_valid(spatial_var)
 
-    result_sf <- result_sf %>% sf::st_as_sf()
-
-    result_sf <- sf::st_join(result_sf, spatial_var)
+    unique_places <- suppressWarnings(sf::st_centroid(sf::st_make_valid(dplyr::distinct(result_sf, code_muni, .keep_all = TRUE))))
+    places_with_level <- sf::st_join(unique_places, spatial_var, left = FALSE) %>% sf::st_drop_geometry() %>% dplyr::select(code_muni, dplyr::any_of(names(spatial_var))) %>% dplyr::distinct(code_muni, .keep_all = TRUE)
+    df_temp <- sf::st_drop_geometry(result_sf) %>% dplyr::select(-dplyr::any_of(c("geom", "geometry"))) %>% dplyr::inner_join(places_with_level, by = "code_muni")
+    join_keys <- setdiff(intersect(names(spatial_var), names(df_temp)), attr(spatial_var, "sf_column"))
+    result_sf <- dplyr::inner_join(spatial_var, df_temp, by = join_keys, relationship = "many-to-many")
   }
 
   if (level == "semiarid") {
      
     spatial_var <- get_spatial_data_with_cache(
-      level = "semiarid",
-      cache_dir = cache_dir,
-      use_cache = use_cache,
-      lang = lang,
-      verbose = verbose
+      level = "semiarid", cache_dir = cache_dir, use_cache = use_cache, lang = lang, verbose = verbose
     )
+    spatial_var <- sf::st_as_sf(spatial_var)
     spatial_var <- sf::st_make_valid(spatial_var)
     spatial_var$name_muni <- NULL
     spatial_var$code_state <- NULL
-
+    
+    # Ajuste de 7 para 6 dígitos do IBGE
+    spatial_var$code_muni <- substr(as.character(spatial_var$code_muni), 1, 6)
+    result_sf$code_muni <- as.character(result_sf$code_muni)
+    
+    df_temp <- sf::st_drop_geometry(result_sf) %>% dplyr::select(-dplyr::any_of(c("geom", "geometry")))
     result_sf <- dplyr::inner_join(
-      result_sf,
-      spatial_var,
-      by = c("code_muni", "abbrev_state"),
-      relationship = "many-to-many"
+      spatial_var, df_temp, by = c("code_muni", "abbrev_state"), relationship = "many-to-many"
      )
   }
 
   if (level == "biomes") { 
 
     spatial_var <- get_spatial_data_with_cache(
-      level = "biomes",
-      cache_dir = cache_dir,
-      use_cache = use_cache,
-      lang = lang,
-      verbose = verbose
+      level = "biomes", cache_dir = cache_dir, use_cache = use_cache, lang = lang, verbose = verbose
     )
+    spatial_var <- sf::st_as_sf(spatial_var)
     spatial_var <- sf::st_make_valid(spatial_var)
 
-    result_sf <- result_sf %>% sf::st_as_sf()
-
-    result_sf <- sf::st_join(result_sf, spatial_var)
+    unique_places <- suppressWarnings(sf::st_centroid(sf::st_make_valid(dplyr::distinct(result_sf, code_muni, .keep_all = TRUE))))
+    places_with_level <- sf::st_join(unique_places, spatial_var, left = FALSE) %>% sf::st_drop_geometry() %>% dplyr::select(code_muni, dplyr::any_of(names(spatial_var))) %>% dplyr::distinct(code_muni, .keep_all = TRUE)
+    df_temp <- sf::st_drop_geometry(result_sf) %>% dplyr::select(-dplyr::any_of(c("geom", "geometry"))) %>% dplyr::inner_join(places_with_level, by = "code_muni")
+    join_keys <- setdiff(intersect(names(spatial_var), names(df_temp)), attr(spatial_var, "sf_column"))
+    result_sf <- dplyr::inner_join(spatial_var, df_temp, by = join_keys, relationship = "many-to-many")
   }
 
   if (level == "conservation_units") { 
 
     spatial_var <- get_spatial_data_with_cache(
-      level = "conservation_units",
-      cache_dir = cache_dir,
-      use_cache = use_cache,
-      lang = lang,
-      verbose = verbose
+      level = "conservation_units", cache_dir = cache_dir, use_cache = use_cache, lang = lang, verbose = verbose
     )
-    result_sf <- result_sf %>% sf::st_as_sf()
     spatial_var$date <- NULL
+    spatial_var <- sf::st_as_sf(spatial_var)
     spatial_var <- sf::st_make_valid(spatial_var)
-    result_sf <- sf::st_make_valid(result_sf)
-    #Join
-    result_sf <- sf::st_join(result_sf, spatial_var)
+    unique_places <- suppressWarnings(sf::st_centroid(sf::st_make_valid(dplyr::distinct(result_sf, code_muni, .keep_all = TRUE))))
+    places_with_level <- sf::st_join(unique_places, spatial_var, left = FALSE) %>% sf::st_drop_geometry() %>% dplyr::select(code_muni, dplyr::any_of(names(spatial_var))) %>% dplyr::distinct(code_muni, .keep_all = TRUE)
+    df_temp <- sf::st_drop_geometry(result_sf) %>% dplyr::select(-dplyr::any_of(c("geom", "geometry"))) %>% dplyr::inner_join(places_with_level, by = "code_muni")
+    join_keys <- setdiff(intersect(names(spatial_var), names(df_temp)), attr(spatial_var, "sf_column"))
+    result_sf <- dplyr::inner_join(spatial_var, df_temp, by = join_keys, relationship = "many-to-many")
   }
 
   if (level == "disaster_risk_area") { 
 
     spatial_var <- get_spatial_data_with_cache(
-      level = "disaster_risk_area",
-      cache_dir = cache_dir,
-      use_cache = use_cache,
-      lang = lang,
-      verbose = verbose
+      level = "disaster_risk_area", cache_dir = cache_dir, use_cache = use_cache, lang = lang, verbose = verbose
     )
-
     spatial_var <- sf::st_make_valid(spatial_var)
-
-    result_sf$geom <- NULL
-    result_sf$code_state <- NULL
     spatial_var$name_muni <- NULL
-    #Join
-    result_sf <- dplyr::inner_join(
-      result_sf,
-      spatial_var,
-      by = c("code_muni", "abbrev_state"),
-      relationship = "many-to-many"
-     )
     
+    spatial_var$code_muni <- substr(as.character(spatial_var$code_muni), 1, 6)
+    result_sf$code_muni <- as.character(result_sf$code_muni)
+    
+    df_temp <- sf::st_drop_geometry(result_sf) %>% dplyr::select(-dplyr::any_of(c("geom", "geometry", "code_state")))
+
+    result_sf <- dplyr::inner_join(
+      spatial_var, df_temp, by = c("code_muni", "abbrev_state"), relationship = "many-to-many"
+     )
   }
 
   if (level == "indigenous_land") { 
 
     spatial_var <- get_spatial_data_with_cache(
-      level = "indigenous_land",
-      cache_dir = cache_dir,
-      use_cache = use_cache,
-      lang = lang,
-      verbose = verbose
+      level = "indigenous_land", cache_dir = cache_dir, use_cache = use_cache, lang = lang, verbose = verbose
     )
-    spatial_var <- sf::st_make_valid(spatial_var)
-
-    result_sf$code_state <- NULL
     spatial_var$date <- NULL
-    #Join
-    result_sf <- dplyr::inner_join(
-      result_sf,
-      spatial_var,
-      by = c("name_muni", "abbrev_state"),
-      relationship = "many-to-many"
-     )
+    spatial_var <- sf::st_make_valid(spatial_var)
+    df_temp <- sf::st_drop_geometry(result_sf) %>% dplyr::select(-dplyr::any_of(c("geom", "geometry", "code_state")))
     
+    result_sf <- dplyr::inner_join(
+      spatial_var, df_temp, by = c("name_muni", "abbrev_state"), relationship = "many-to-many"
+     )
   }
 
   if (level == "urban_area") {
      
     spatial_var <- get_spatial_data_with_cache(
-      level = "urban_area",
-      cache_dir = cache_dir,
-      use_cache = use_cache,
-      lang = lang,
-      verbose = verbose
+      level = "urban_area", cache_dir = cache_dir, use_cache = use_cache, lang = lang, verbose = verbose
     )
-    spatial_var <- sf::st_make_valid(spatial_var)
     spatial_var$name_muni <- NULL
     spatial_var$code_state <- NULL
     spatial_var$name_state <- NULL
-   
+    
+    spatial_var$code_muni <- substr(as.character(spatial_var$code_muni), 1, 6)
+    result_sf$code_muni <- as.character(result_sf$code_muni)
+    
+    df_temp <- sf::st_drop_geometry(result_sf) %>% dplyr::select(-dplyr::any_of(c("geom", "geometry")))
+
     result_sf <- dplyr::inner_join(
-      result_sf,
-      spatial_var,
-      by = c("code_muni", "abbrev_state"),
-      relationship = "many-to-many"
+      spatial_var, df_temp, by = c("code_muni", "abbrev_state"), relationship = "many-to-many"
      )
   }
 
   if (level == "metro_area") {
      
     spatial_var <- get_spatial_data_with_cache(
-      level = "metro_area",
-      cache_dir = cache_dir,
-      use_cache = use_cache,
-      lang = lang,
-      verbose = verbose
+      level = "metro_area", cache_dir = cache_dir, use_cache = use_cache, lang = lang, verbose = verbose
     )
-    spatial_var <- sf::st_make_valid(spatial_var)
     spatial_var$name_muni <- NULL
     spatial_var$code_state <- NULL
-   
+    
+    spatial_var$code_muni <- substr(as.character(spatial_var$code_muni), 1, 6)
+    result_sf$code_muni <- as.character(result_sf$code_muni)
+    
+    df_temp <- sf::st_drop_geometry(result_sf) %>% dplyr::select(-dplyr::any_of(c("geom", "geometry")))
+
     result_sf <- dplyr::inner_join(
-      result_sf,
-      spatial_var,
-      by = c("code_muni", "abbrev_state"),
-      relationship = "many-to-many"
+      spatial_var, df_temp, by = c("code_muni", "abbrev_state"), relationship = "many-to-many"
      )
   }
 
   if (level == "urban_concentrations") {
      
     spatial_var <- get_spatial_data_with_cache(
-      level = "urban_concentrations",
-      cache_dir = cache_dir,
-      use_cache = use_cache,
-      lang = lang,
-      verbose = verbose
+      level = "urban_concentrations", cache_dir = cache_dir, use_cache = use_cache, lang = lang, verbose = verbose
     )
     spatial_var <- sf::st_make_valid(spatial_var)
     spatial_var$name_muni <- NULL
     spatial_var$code_state <- NULL
     spatial_var$name_state <- NULL
-   
+    
+    spatial_var$code_muni <- substr(as.character(spatial_var$code_muni), 1, 6)
+    result_sf$code_muni <- as.character(result_sf$code_muni)
+    
+    df_temp <- sf::st_drop_geometry(result_sf) %>% dplyr::select(-dplyr::any_of(c("geom", "geometry")))
+
     result_sf <- dplyr::inner_join(
-      result_sf,
-      spatial_var,
-      by = c("code_muni", "abbrev_state"),
-      relationship = "many-to-many"
+      spatial_var, df_temp, by = c("code_muni", "abbrev_state"), relationship = "many-to-many"
      )
   }
 
-   if (level == "pop_arrangements") {
+  if (level == "pop_arrangements") {
      
     spatial_var <- get_spatial_data_with_cache(
-      level = "pop_arrangements",
-      cache_dir = cache_dir,
-      use_cache = use_cache,
-      lang = lang,
-      verbose = verbose
+      level = "pop_arrangements", cache_dir = cache_dir, use_cache = use_cache, lang = lang, verbose = verbose
     )
-    spatial_var <- sf::st_make_valid(spatial_var)
     spatial_var$name_muni <- NULL
     spatial_var$code_state <- NULL
     spatial_var$name_state <- NULL
-   
+    
+    spatial_var$code_muni <- substr(as.character(spatial_var$code_muni), 1, 6)
+    result_sf$code_muni <- as.character(result_sf$code_muni)
+    
+    df_temp <- sf::st_drop_geometry(result_sf) %>% dplyr::select(-dplyr::any_of(c("geom", "geometry")))
+    
     result_sf <- dplyr::inner_join(
-      result_sf,
-      spatial_var,
-      by = c("code_muni", "abbrev_state"),
-      relationship = "many-to-many"
+      spatial_var, df_temp, by = c("code_muni", "abbrev_state"), relationship = "many-to-many"
      )
   }
-  
   
   if (level == "health_facilities" && !system == "CNES") {
     if (verbose) {cli::cli_abort("The level {.val health_facilities} is only available for the {.code CNES} system.")}
   }
   if (level == "health_facilities") {
     spatial_var <- get_spatial_data_with_cache(
-      level = "health_facilities",
-      cache_dir = cache_dir,
-      use_cache = use_cache,
-      lang = lang,
-      verbose = verbose
+      level = "health_facilities", cache_dir = cache_dir, use_cache = use_cache, lang = lang, verbose = verbose
     )
-    # Join geocoded points back to original data
+    
+    df_temp <- sf::st_drop_geometry(df) %>% dplyr::select(-dplyr::any_of(c("geom", "geometry")))
+    
     result_sf <- dplyr::inner_join(
-      df,
-      spatial_var,
-      by = stats::setNames("code_cnes", "cnes"),
-      relationship = "many-to-many"
+      spatial_var, df_temp, by = stats::setNames("code_cnes", "cnes"), relationship = "many-to-many"
     )
   }
 
   if (level == "neighborhood" && !system %in% c("CNES", "SIH")) {
     if (verbose) {cli::cli_abort("The level {.val neighborhood} is only available for the {.code CNES} system.")}
   }
-
   if (level == "neighborhood") { 
 
     spatial_var <- get_spatial_data_with_cache(
-      level = "neighborhood",
-      cache_dir = cache_dir,
-      use_cache = use_cache,
-      lang = lang,
-      verbose = verbose
+      level = "neighborhood", cache_dir = cache_dir, use_cache = use_cache, lang = lang, verbose = verbose
     )
     spatial_var <- sf::st_make_valid(spatial_var)
 
-    # Join geocoded points back to original data
+    # Join espacial nativo (assumindo que result_sf já possui os pontos geocodificados dos CEPs)
     result_sf <- sf::st_join(result_sf, spatial_var)
-    
   }
-    
+
   # ============================================================================
   # 10. FINAL VALIDATION AND SUCCESS MESSAGE
   # ============================================================================
@@ -864,17 +814,40 @@ sus_join_spatial <- function(
     result_sf <- result_sf %>% sf::st_as_sf()
   }
   # Remove rows with missing geometries
-  result_sf <- result_sf %>% dplyr::filter(!is.na(sf::st_dimension(.data$geom)))
+  #result_sf <- result_sf %>% dplyr::filter(!is.na(sf::st_dimension(.data$geom)))
+  if (!inherits(result_sf, "climasus_df")) {
+    # Create new climasus_df
+    meta <- list(
+      system = system,
+      stage = "spatial",
+      type = level,
+      spatial = inherits(result_sf, "sf"),
+      temporal = NULL,
+      created = Sys.time(),
+      modified = Sys.time(),
+      history = sprintf(
+        "[%s] Spatial Data Aggregation",
+        format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+      ),
+      user = list()
+    )
 
-  # Update stage and type
-  result_sf <- climasus_meta(
+    base_classes <- setdiff(class(result_sf), "climasus_df")
+    result_sf <- structure(
+      result_sf,
+      climasus_meta = meta,
+      class = c("climasus_df", base_classes)
+    )
+  } else { 
+    result_sf <- climasus_meta(
     result_sf,
-    system = climasus_meta(result_sf, "system"),  # Preserve original system
+    system = system,  # Preserve original system
     stage = "spatial",
     type = level,
-    temporal = NULL,
-    add_history = "Spatial join"
-  )
+    spatial = inherits(result_sf, "sf"),
+    add_history = "Spatial Data aggregated [%s]"
+  )     
+  }
 
   if (verbose) {
     cli::cli_alert_success(msg$join_success)
@@ -1068,7 +1041,7 @@ get_spatial_data_with_cache <- function(
       cache = FALSE,
       showProgress = verbose
     ),
-    "school" = geobr::read_schools(
+    "schools" = geobr::read_schools(
       cache = FALSE,
       showProgress = verbose
     ),
@@ -1279,15 +1252,15 @@ get_spatial_messages <- function(lang) {
 #     dplyr::pull(.data$code_muni)
 # }
 
-.convert_muni_6_to_7 <- function(muni_code_6, spatial_df) {
-  muni_code_6 <- as.character(muni_code_6)
+# .convert_muni_6_to_7 <- function(muni_code_6, spatial_df) {
+#   muni_code_6 <- as.character(muni_code_6)
 
-  lookup <- spatial_df %>%
-    dplyr::transmute(
-      code_muni_6 = substr(.data$code_muni, 1, 6),
-      code_muni_7 = .data$code_muni
-    ) %>%
-    dplyr::distinct()
+#   lookup <- spatial_df %>%
+#     dplyr::transmute(
+#       code_muni_6 = substr(.data$code_muni, 1, 6),
+#       code_muni_7 = .data$code_muni
+#     ) %>%
+#     dplyr::distinct()
 
-  lookup$code_muni_7[match(muni_code_6, lookup$code_muni_6)]
-}
+#   lookup$code_muni_7[match(muni_code_6, lookup$code_muni_6)]
+# }
