@@ -5,7 +5,7 @@ author:
     affiliation: "climasus4r Package · https://github.com/ByMaxAnjos/climasus4r"
 date: "`r format(Sys.Date(), '%d de %B de %Y')`"
 output:
-  bookdown::html_document2:
+  html_document:
     toc: true
     toc_depth: 4
     toc_float:
