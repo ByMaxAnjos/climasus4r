@@ -25,6 +25,8 @@ navbar:
       href: articles/about.html
     - text: "Tutoriais"
       href: articles/tutorials.html
+      href: articles/tutorial_introducao.html
+      href: articles/tutorial_estudos_casos.html
     - text: "Estudos de Caso"
       href: articles/case-studies.html
     - text: "Comunidade"
