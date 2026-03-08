@@ -125,7 +125,7 @@ remotes::install_github("ByMaxAnjos/climasus4r", upgrade = "never")
 Após a instalação (e sempre que iniciar uma nova sessão), carregue o
 pacote para começar a usá-lo:
 
-```{r library}
+```{r library, eval = FALSE}
 library(climasus4r)
 ```
 
