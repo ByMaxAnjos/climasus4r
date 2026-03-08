@@ -2,7 +2,6 @@
 title: "Uma gentil Introdução"
 author:
   - name: "Max Anjos"
-    affiliation: "climasus4r Package · https://github.com/ByMaxAnjos/climasus4r"
 date: "`r format(Sys.Date(), '%d de %B de %Y')`"
 output:
   html_document:

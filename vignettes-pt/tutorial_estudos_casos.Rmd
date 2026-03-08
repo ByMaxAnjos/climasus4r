@@ -2,7 +2,6 @@
 title: "Pipelines Analíticos Reprodutíveis (RAPs)"
 author:
   - name: "Max Anjos"
-    affiliation: "climasus4r Package · https://github.com/ByMaxAnjos/climasus4r"
 date: "`r format(Sys.Date(), '%d de %B de %Y')`"
 output:
   html_document:
@@ -61,11 +60,11 @@ knitr::opts_chunk$set(
 
 # 1. Operador Pipe: Conceito e Uso
 
-Antes de apresentarmos os pipelines, é fundamental entender o **operador pipe** (`|>` ou `%>%)` , que é a espinha dorsal de todo o código que você verá neste tutorial. O pipe é uma forma elegante de encadear operações em R, tornando o código mais legível, intuitivo e fácil de manter.
+Antes de apresentarmos os pipelines, é fundamental entender o **operador pipe** (`%>%)` , que é a espinha dorsal de todo o código que você verá neste tutorial. O pipe é uma forma elegante de encadear operações em R, tornando o código mais legível, intuitivo e fácil de manter.
 
 ## 1.1. O Que É o Pipe?
 
-O operador pipe (`|>`) é um recurso do R base (disponível desde a versão 4.1) que permite passar o resultado de uma expressão como argumento para a próxima expressão. Em português, podemos ler o pipe como "então" ou "e então".
+O operador pipe (`%>%`), do pacote **magrittr**, é um recurso do R base que permite passar o resultado de uma expressão como argumento para a próxima expressão. Em português, podemos ler o pipe como "então" ou "e então".
 
 ### Exemplo Prático
 
@@ -90,10 +89,10 @@ resultado <- aggregate(
 
 ``` r
 # Forma com pipe - fácil de seguir
-resultado <- dados |>
-  clean_encoding() |>
-  standardize() |>
-  filter(idade > 18) |>
+resultado <- dados %>%
+  clean_encoding() %>%
+  standardize() %>%
+  filter(idade > 18) %>%
   aggregate(by = "mes")
 ```
 
@@ -101,33 +100,6 @@ resultado <- dados |>
 **Dica de Leitura:** Leia o código com pipe como uma frase: "Pegue os dados, **então** limpe a codificação, **então** padronize, **então** filtre por idade, **então** agregue por mês."
 :::
 
-## 1.2. Pipe do magrittr: `%>%`
-
-Além do pipe nativo do R (`|>`), existe o `%>%` do pacote **magrittr** (parte do tidyverse), que foi a inspiração para o pipe nativo e ainda é amplamente utilizado.
-
-| Característica | `|>` (R base 4.1+) | `%>%` (magrittr/tidyverse) |
-|------------------|-----------------------|-------------------------------|
-| **Pacote necessário** | Nenhum (já vem no R) | `library(magrittr)` ou `library(tidyverse)` |
-| **Disponibilidade** | R \>= 4.1 | Qualquer versão do R |
-| **Recursos avançados** | Limitados | Placeholder `.`, atribuição, debug |
-
-### Exemplo Equivalente
-
-``` r
-# Usando |> (R nativo)
-dados |> 
-  sus_data_clean_encoding(lang = "pt") |>
-  sus_data_standardize(lang = "pt")
-
-# Usando %>% (magrittr)
-dados %>% 
-  sus_data_clean_encoding(lang = "pt") %>%
-  sus_data_standardize(lang = "pt")
-```
-
-::: callout-tip
-**Nota:** O `climasus4r` foi desenhado para funcionar com ambos os operadores. Os exemplos deste tutorial usam o `|>` por ser nativo do R e não requerer pacotes adicionais.
-:::
 
 ## 1.3. Por Que Usar Pipes?
 
@@ -162,10 +134,10 @@ df <- sus_data_aggregate(df, time_unit = "month")
 Agora, com pipes:
 
 ```{r pipe-example-piped, eval=FALSE}
-df <- sus_data_import(uf = "SP", year = 2020, system = "SIM-DO") |>
-  sus_data_clean_encoding(lang = "pt") |>
-  sus_data_standardize(lang = "pt") |>
-  sus_data_filter_cid(disease_group = "cardiovascular") |>
+df <- sus_data_import(uf = "SP", year = 2020, system = "SIM-DO") %>%
+  sus_data_clean_encoding(lang = "pt") %>%
+  sus_data_standardize(lang = "pt") %>%
+  sus_data_filter_cid(disease_group = "cardiovascular") %>%
   sus_data_aggregate(time_unit = "month")
 ```
 
@@ -226,11 +198,11 @@ Cada etapa do pipeline deve ser compreensível:
 ``` r
 # --- Pipeline de Mortalidade Cardiovascular ---
 # 1. Importar dados de mortalidade do DATASUS
-df <- sus_data_import(...) |>
+df <- sus_data_import(...) %>%
   # 2. Limpar encoding (corrigir caracteres especiais)
-  sus_data_clean_encoding(...) |>
+  sus_data_clean_encoding(...) %>%
   # 3. Padronizar nomes de colunas para inglês
-  sus_data_standardize(...) |>
+  sus_data_standardize(...) %>%
   # 4. Filtrar por causas cardiovasculares (CID-10)
   sus_data_filter_cid(...)
 ```
@@ -290,20 +262,20 @@ df_resp_ped <- sus_data_import(
   system = "SIM-DO",
   parallel = TRUE,  # Acelerar download
   lang = "pt"
-) |>
-  sus_data_clean_encoding(lang = "pt") |>
-  sus_data_standardize(lang = "pt") |>
-  sus_data_filter_cid(disease_group = "respiratory", lang = "pt") |>
+) %>%
+  sus_data_clean_encoding(lang = "pt") %>%
+  sus_data_standardize(lang = "pt") %>%
+  sus_data_filter_cid(disease_group = "respiratory", lang = "pt") %>%
   sus_create_variables(
     create_age_groups = TRUE,
     age_breaks = c(0, 1, 5, Inf), # <1, 1-4, 5+
     age_labels = c("< 1 ano", "1-4 anos", "5+ anos"),
     lang = "pt"
-  ) |>
+  ) %>%
   sus_data_filter_demographics(
     age_range = c(0, 5), # Apenas crianças < 5 anos
     lang = "pt"
-  ) |>
+  ) %>%
   sus_data_aggregate(
     time_unit = "month",
     group_by = "age_group", # Agrupar por faixa etária
@@ -357,13 +329,13 @@ df_dengue <- sus_data_import(
   system = "SINAN-DENGUE",
   parallel = TRUE,
   lang = "pt"
-) |>
-  sus_data_clean_encoding(lang = "pt") |>
-  sus_data_standardize(lang = "pt") |>
+) %>%
+  sus_data_clean_encoding(lang = "pt") %>%
+  sus_data_standardize(lang = "pt") %>%
   sus_create_variables(
     create_calendar_vars = TRUE, # Essencial para criar a variável "estacao"
     lang = "pt"
-  ) |>
+  ) %>%
   sus_data_aggregate(
     time_unit = "season",  # Agregação por estação do ano
     lang = "pt"
@@ -413,20 +385,20 @@ df_cardio_idosos <- sus_data_import(
   year = 2020:2023,
   system = "SIM-DO",
   lang = "pt"
-) |>
-  sus_data_clean_encoding(lang = "pt") |>
-  sus_data_standardize(lang = "pt") |>
-  sus_data_filter_cid(disease_group = "cardiovascular", lang = "pt") |>
+) %>%
+  sus_data_clean_encoding(lang = "pt") %>%
+  sus_data_standardize(lang = "pt") %>%
+  sus_data_filter_cid(disease_group = "cardiovascular", lang = "pt") %>%
   sus_create_variables(
     create_age_groups = TRUE,
     age_breaks = c(0, 65, 75, 85, Inf),
     age_labels = c("< 65", "65-74", "75-84", "85+"),
     lang = "pt"
-  ) |>
+  ) %>%
   sus_data_filter_demographics(
     age_range = c(65, Inf),  # Apenas idosos
     lang = "pt"
-  ) |>
+  ) %>%
   sus_data_aggregate(
     time_unit = "week",
     group_by = "age_group",
@@ -476,14 +448,14 @@ df_calor <- sus_data_import(
   system = "SIM-DO",
   parallel = TRUE,
   lang = "pt"
-) |>
-  sus_data_clean_encoding(lang = "pt") |>
-  sus_data_standardize(lang = "pt") |>
-  sus_data_filter_cid(disease_group = "heat_related", lang = "pt") |>
+) %>%
+  sus_data_clean_encoding(lang = "pt") %>%
+  sus_data_standardize(lang = "pt") %>%
+  sus_data_filter_cid(disease_group = "heat_related", lang = "pt") %>%
   sus_create_variables(
     create_age_groups = TRUE,
     lang = "pt"
-  ) |>
+  ) %>%
   sus_data_aggregate(
     time_unit = "5 days",  # Agregação em Pentads (intervalos de 5 dias)
     lang = "pt"
