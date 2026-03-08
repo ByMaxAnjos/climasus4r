@@ -1,5 +1,5 @@
 ---
-title: "climasus4r:Uma gentil Introdução"
+title: "Uma gentil Introdução"
 author:
   - name: "Max Anjos"
     affiliation: "climasus4r Package · https://github.com/ByMaxAnjos/climasus4r"
@@ -174,8 +174,8 @@ df_raw <- sus_data_import(
 )
 ```
 
-```{r load_sample, echo=FALSE}
-df_raw <- readRDS("data_sample.rds")
+```{r, echo=FALSE}
+df_raw <- readRDS("tutorial_sample_raw.rds")
 ```
 
 ```{r view_data}
@@ -271,13 +271,21 @@ encontrar problemas como:
 A função `sus_data_clean_encoding()` resolve isso, convertendo todas as
 colunas de texto para o padrão UTF-8.
 
-```{r clean}
+```{r clean, eval=FALSE}
 # Corrigir a codificação de caracteres
 df_clean <- sus_data_clean_encoding(df_raw, lang = "pt")
 
+```
+
+```{r, echo=FALSE}
+df_clean <- readRDS("tutorial_sample_clean.rds")
+```
+
+```{r}
 # Verificar uma coluna de exemplo (nomes de municípios)
 head(df_clean)
 ```
+
 
 ::: callout-tip
 **Nota:** Em dados reais, a diferença entre o texto original e o texto
@@ -301,13 +309,20 @@ Esta é uma das etapas mais importantes do fluxo de trabalho. A função
 -   **Cria** novas variáveis úteis, como faixas etárias e categorias de
     raça/cor
 
-```{r standardize}
+```{r standardize, eval=FALSE}
 # Padronizar os dados
 df_std <- sus_data_standardize(df_clean, lang = "pt")
+```
 
-# Ver as novas colunas e a estrutura padronizada
+```{r, echo=FALSE}
+df_std <- readRDS("tutorial_sample_stand.rds")
+```
+
+```{r}
+# Verificar uma coluna de exemplo (nomes de municípios)
 head(df_std)
 ```
+
 
 ::: callout-tip
 **Objeto `climasus_df`:** A partir deste ponto, nosso `data.frame`
@@ -332,7 +347,7 @@ derivadas que não vêm nos dados originais. A função
 Vamos criar faixas etárias quinquenais (padrão IBGE) e variáveis de
 calendário:
 
-```{r create-vars}
+```{r create-vars, eval=FALSE}
 # Criar novas variáveis
 df_vars <- sus_create_variables(
   df_std,
@@ -340,10 +355,18 @@ df_vars <- sus_create_variables(
   create_calendar_vars = TRUE,
   lang = "pt"
 )
+```
 
-# Ver as novas variáveis criadas
+
+```{r, echo=FALSE}
+df_vars <- readRDS("tutorial_sample_vars.rds")
+```
+
+```{r}
+# Verificar uma coluna de exemplo (nomes de municípios)
 head(df_vars)
 ```
+
 
 ::: callout-box
 **Novas Colunas Criadas:** Observe as novas colunas como: -
@@ -364,15 +387,21 @@ Com os dados enriquecidos, podemos começar a responder perguntas
 epidemiológicas. Vamos filtrar os dados para selecionar apenas os óbitos
 por **doenças respiratórias** e **doenças cardiovasculares**.
 
-```{r filter-cid}
+```{r filter-cid, eval=FALSE}
 # Filtrar por grupos de doenças (CID-10)
 df_cid <- sus_data_filter_cid(
   df_vars,
   disease_group = c("respiratory", "cardiovascular"),
   lang = "pt"
 )
+```
 
-# Ver o resultado do filtro
+```{r, echo=FALSE}
+df_cid <- readRDS("tutorial_sample_cid.rds")
+```
+
+```{r}
+# Verificar uma coluna de exemplo (nomes de municípios)
 head(df_cid)
 ```
 
@@ -414,7 +443,7 @@ demográfico específico. Vamos focar em:
 -   **Idade**: Entre 20 e 59 anos
 -   **Raça/Cor**: Preta ou Parda
 
-```{r filter-demo}
+```{r filter-demo, eval=FALSE}
 # Filtrar por variáveis demográficas
 df_demo <- sus_data_filter_demographics(
   df_cid,
@@ -423,10 +452,17 @@ df_demo <- sus_data_filter_demographics(
   race = c("Preta", "Parda"),
   lang = "pt"
 )
+```
 
-# Ver o resultado do filtro demográfico
+```{r, echo=FALSE}
+df_demo <- readRDS("tutorial_sample_demo.rds")
+```
+
+```{r}
+# Verificar uma coluna de exemplo
 head(df_demo)
 ```
+
 
 ::: callout-tip
 **Nota Importante sobre o Idioma:** O argumento `lang` deve ser
@@ -448,29 +484,44 @@ Vamos criar duas agregações: mensal e diária.
 
 ### Agregação Mensal
 
-```{r aggregate-monthly}
+```{r aggregate-monthly, eval=FALSE}
 # Agregar os dados por mês
 df_monthly <- sus_data_aggregate(
   df_demo,
   time_unit = "month",
   lang = "pt"
 )
+```
 
-# Ver a série temporal mensal
+
+```{r, echo=FALSE}
+df_monthly <- readRDS("tutorial_sample_month.rds")
+```
+
+```{r}
+# Verificar uma coluna de exemplo 
 head(df_monthly)
 ```
 
+
 ### Agregação Diária
 
-```{r aggregate-daily}
+```{r aggregate-daily, eval=FALSE}
 # Agregar os dados por dia
 df_daily <- sus_data_aggregate(
   df_demo,
   time_unit = "day",
   lang = "pt"
 )
+```
 
-# Ver a série temporal diária
+
+```{r, echo=FALSE}
+df_daily <- readRDS("tutorial_sample_day.rds")
+```
+
+```{r}
+# Verificar uma coluna de exemplo
 head(df_daily)
 ```
 
@@ -502,7 +553,7 @@ Vamos exportar nossa série temporal mensal em diferentes formatos:
 
 ### Exportando em CSV
 
-```{r export-csv}
+```{r export-csv, eval=FALSE}
 # Exportar os dados em formato CSV
 sus_data_export(
   df_monthly,
@@ -578,7 +629,7 @@ Agora que você aprendeu a exportar dados, vamos aprender a importá-los de volt
 
 Vamos ler o arquivo CSV que exportamos anteriormente:
 
-```{r read-single}
+```{r read-single, eval=FALSE}
 # Ler um arquivo CSV
 df_lido <- sus_data_read(
   path = "obitos_mensais_resumo_cardio.csv",
@@ -591,12 +642,11 @@ df_lido <- sus_data_read(
 head(df_lido)
 
 # Acessar os metadados
-metadados <- attr(df_lido, "metadata")
-print(metadados)
+climasus_meta(df_lido, print_history = TRUE)
 ```
 
 ::: callout-tip
-**Nota:** Os metadados são automaticamente detectados e carregados quando você usa `read_metadata = TRUE`. Isso é extremamente útil para entender a origem e o processamento dos dados!
+**Nota:** Os metadados são automaticamente detectados e carregados quando você usa `climasus_meta()`. Isso é extremamente útil para entender a origem e o processamento dos dados!
 :::
 
 ## Leitura em Lote (Múltiplos Arquivos)
@@ -705,8 +755,6 @@ df_restaurado <- sus_data_read(
   lang = "pt"
 )
 
-# 3. Verificar metadados
-print(attr(df_restaurado, "metadata"))
 ```
 
 ------------------------------------------------------------------------
@@ -746,7 +794,7 @@ Este tutorial cobriu apenas a superfície do que o `climasus4r` pode fazer. O pa
 Você tem alguma ideia de melhoria ou encontrou algum erro? Clique no botão abaixo para abrir uma nova *issue* no GitHub e compartilhar suas sugestões diretamente conosco.
 
 <a href='https://github.com/ByMaxAnjos/climasus4r/issues/new'>
-  <button type="button" class="btn" style="background-color: #1b4332; color: white; padding: 10px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s;">
+  <button type="button" class="btn" style="background-color: #3BB273; color: white; padding: 10px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s;">
     Abrir uma issue no GitHub
   </button>
 </a>

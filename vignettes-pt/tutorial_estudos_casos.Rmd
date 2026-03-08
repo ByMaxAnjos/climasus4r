@@ -1,5 +1,5 @@
 ---
-title: "climasus4r: Pipelines Analíticos Reprodutíveis (RAPs)"
+title: "Pipelines Analíticos Reprodutíveis (RAPs)"
 author:
   - name: "Max Anjos"
     affiliation: "climasus4r Package · https://github.com/ByMaxAnjos/climasus4r"
@@ -532,7 +532,7 @@ Os conceitos de **Pipelines Analíticos Reprodutíveis (RAPs)** são a base filo
 Você tem alguma ideia de melhoria ou encontrou algum erro? Clique no botão abaixo para abrir uma nova *issue* no GitHub e compartilhar suas sugestões diretamente conosco.
 
 <a href='https://github.com/ByMaxAnjos/climasus4r/issues/new'>
-  <button type="button" class="btn" style="background-color: #1b4332; color: white; padding: 10px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s;">
+  <button type="button" class="btn" style="background-color: #3BB273; color: white; padding: 10px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s;">
     Abrir uma issue no GitHub
   </button>
 </a>
