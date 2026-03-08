@@ -25,8 +25,6 @@ navbar:
       href: articles/about.html
     - text: "Tutoriais"
       href: articles/tutorials.html
-      href: articles/tutorial_introducao.html
-      href: articles/tutorial_estudos_casos.html
     - text: "Estudos de Caso"
       href: articles/case-studies.html
     - text: "Comunidade"
@@ -50,6 +48,16 @@ navbar:
       href: ../en/index.html
     - text: "Español"
       href: ../es/index.html
+
+articles:
+  - title: "Páginas Principais"
+    contents:
+      - about
+      - tutorials            # O arquivo que contém os cards
+  - title: "Conteúdo dos Tutoriais"
+    contents:
+      - tutorial_introducao
+      - tutorial_estudos_casos
 
 logo:
   src: inst/figures/logo.png
