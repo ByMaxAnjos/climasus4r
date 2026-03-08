@@ -49,16 +49,6 @@ navbar:
     - text: "Español"
       href: ../es/index.html
 
-articles:
-  - title: "Páginas Principais"
-    contents:
-      - about
-      - tutorials            # O arquivo que contém os cards
-  - title: "Conteúdo dos Tutoriais"
-    contents:
-      - tutorial_introducao
-      - tutorial_estudos_casos
-
 logo:
   src: inst/figures/logo.png
   alt: "climasus4r logo"
@@ -126,3 +116,6 @@ articles:
   - title: "Tutoriais"
     contents:
       - tutorials
+      - tutorial_introducao
+      - tutorial_estudos_casos
+      
