@@ -194,8 +194,8 @@
 #' @importFrom rlang .data
 #' @importFrom data.table :=
 sus_climate_inmet <- function(
-    years = 2022,
-    uf = 'AM',
+    years = NULL,
+    uf = NULL,
     use_cache = TRUE,
     cache_dir = "~/.climasus4r_cache/climate",
     parallel = TRUE,
@@ -306,7 +306,11 @@ sus_climate_inmet <- function(
       stage = "climate",
       type = "inmet",
       spatial = inherits(climate_data, "sf"),
-      temporal = NULL,
+      temporal =  temporal = list(
+        start = min(climate_data$date),
+        end = max(climate_data$date),
+        resolution = "hour",
+      ),
       created = Sys.time(),
       modified = Sys.time(),
       history = sprintf(

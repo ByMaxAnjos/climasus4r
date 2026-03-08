@@ -1,0 +1,538 @@
+---
+title: "climasus4r: Pipelines Analíticos Reprodutíveis (RAPs)"
+author:
+  - name: "Max Anjos"
+    affiliation: "climasus4r Package · https://github.com/ByMaxAnjos/climasus4r"
+date: "`r format(Sys.Date(), '%d de %B de %Y')`"
+output:
+  bookdown::html_document2:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: kate
+    code_folding: show
+    fig_caption: true
+    df_print: paged
+    css: |
+      body { font-family: 'Source Serif Pro', Georgia, serif; font-size: 16px; line-height: 1.75; }
+      h1, h2, h3, h4 { font-family: 'Inter', 'Helvetica Neue', sans-serif; }
+      .callout-box { border-left: 4px solid #2EC4B6; background: #f0fafa; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
+      .callout-tip { border-left: 4px solid #3BB273; background: #f0faf4; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
+      .callout-warning { border-left: 4px solid #F4A261; background: #fff8f0; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
+      .callout-important { border-left: 4px solid #E63946; background: #fef2f2; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
+      pre { font-size: 13px; }
+---
+
+![](https://github.com/ByMaxAnjos/climasus4r/blob/master/inst/figures/logo.png?raw=true){width="199"}
+
+> **Estudos de Caso e Pipelines Analíticos Reprodutíveis (RAPs)**
+
+# Introdução
+
+::: callout-box
+**Sobre este Tutorial** --- Este documento apresenta quatro estudos de caso práticos que demonstram o poder e a flexibilidade do pacote `climasus4r` para análises epidemiológicas. Cada estudo de caso é um **pipeline completo e executável**, desde a importação dos dados até a agregação final, mostrando como responder a diferentes perguntas de pesquisa em saúde pública.
+:::
+
+Enquanto o tutorial introdutório foca em explicar cada função individualmente, este guia mostra como **combinar** essas funções em fluxos de trabalho coesos para resolver problemas do mundo real. Os exemplos foram escolhidos para cobrir diferentes sistemas de dados, agravos, escalas temporais e recortes demográficos.
+
+Neste tutorial, você aprenderá a construir os seguintes pipelines:
+
+1.  **Análise de Mortalidade por Doenças Respiratórias Pediátricas:** Foco em mortalidade infantil, múltiplos estados e filtros demográficos precisos.
+2.  **Análise de Sazonalidade da Dengue:** Uso do SINAN para investigar padrões sazonais de uma doença infecciosa.
+3.  **Análise de Mortalidade Cardiovascular em Idosos:** Foco em um grupo de risco específico, com geração de relatório de qualidade de dados.
+4.  **Análise de Ondas de Calor:** Uso de agregações temporais não convencionais (pentads) para estudos de eventos climáticos extremos.
+
+------------------------------------------------------------------------
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo       = TRUE,
+  warning    = FALSE,
+  message    = FALSE,
+  fig.align  = "center",
+  out.width  = "100%",
+  comment    = "#>"
+)
+```
+
+# 1. Operador Pipe: Conceito e Uso
+
+Antes de apresentarmos os pipelines, é fundamental entender o **operador pipe** (`|>` ou `%>%)` , que é a espinha dorsal de todo o código que você verá neste tutorial. O pipe é uma forma elegante de encadear operações em R, tornando o código mais legível, intuitivo e fácil de manter.
+
+## 1.1. O Que É o Pipe?
+
+O operador pipe (`|>`) é um recurso do R base (disponível desde a versão 4.1) que permite passar o resultado de uma expressão como argumento para a próxima expressão. Em português, podemos ler o pipe como "então" ou "e então".
+
+### Exemplo Prático
+
+Imagine que você tem uma sequência de operações para aplicar a um dataframe:
+
+**Sem pipe (forma tradicional):**
+
+``` r
+# Forma tradicional - difícil de ler
+resultado <- aggregate(
+  filter(
+    standardize(
+      clean_encoding(dados)
+    ),
+    idade > 18
+  ),
+  by = "mes"
+)
+```
+
+**Com pipe (forma legível):**
+
+``` r
+# Forma com pipe - fácil de seguir
+resultado <- dados |>
+  clean_encoding() |>
+  standardize() |>
+  filter(idade > 18) |>
+  aggregate(by = "mes")
+```
+
+::: callout-tip
+**Dica de Leitura:** Leia o código com pipe como uma frase: "Pegue os dados, **então** limpe a codificação, **então** padronize, **então** filtre por idade, **então** agregue por mês."
+:::
+
+## 1.2. Pipe do magrittr: `%>%`
+
+Além do pipe nativo do R (`|>`), existe o `%>%` do pacote **magrittr** (parte do tidyverse), que foi a inspiração para o pipe nativo e ainda é amplamente utilizado.
+
+| Característica | `|>` (R base 4.1+) | `%>%` (magrittr/tidyverse) |
+|------------------|-----------------------|-------------------------------|
+| **Pacote necessário** | Nenhum (já vem no R) | `library(magrittr)` ou `library(tidyverse)` |
+| **Disponibilidade** | R \>= 4.1 | Qualquer versão do R |
+| **Recursos avançados** | Limitados | Placeholder `.`, atribuição, debug |
+
+### Exemplo Equivalente
+
+``` r
+# Usando |> (R nativo)
+dados |> 
+  sus_data_clean_encoding(lang = "pt") |>
+  sus_data_standardize(lang = "pt")
+
+# Usando %>% (magrittr)
+dados %>% 
+  sus_data_clean_encoding(lang = "pt") %>%
+  sus_data_standardize(lang = "pt")
+```
+
+::: callout-tip
+**Nota:** O `climasus4r` foi desenhado para funcionar com ambos os operadores. Os exemplos deste tutorial usam o `|>` por ser nativo do R e não requerer pacotes adicionais.
+:::
+
+## 1.3. Por Que Usar Pipes?
+
+### Benefícios Principais
+
+1.  **Legibilidade**: O código segue o fluxo natural dos dados, de cima para baixo
+2.  **Menor risco de erros**: Evita objetos intermediários desnecessários
+3.  **Facilidade de manutenção**: É simples adicionar, remover ou reordenar etapas
+4.  **Depuração facilitada**: Você pode verificar o resultado de cada etapa facilmente
+
+### Exemplo de Evolução
+
+Vamos supor que você precise fazer uma análise em 5 etapas:
+
+```{r pipe-example, eval=FALSE}
+# Etapa 1: Importar
+df <- sus_data_import(uf = "SP", year = 2020, system = "SIM-DO")
+
+# Etapa 2: Limpar
+df <- sus_data_clean_encoding(df, lang = "pt")
+
+# Etapa 3: Padronizar
+df <- sus_data_standardize(df, lang = "pt")
+
+# Etapa 4: Filtrar
+df <- sus_data_filter_cid(df, disease_group = "cardiovascular")
+
+# Etapa 5: Agregar
+df <- sus_data_aggregate(df, time_unit = "month")
+```
+
+Agora, com pipes:
+
+```{r pipe-example-piped, eval=FALSE}
+df <- sus_data_import(uf = "SP", year = 2020, system = "SIM-DO") |>
+  sus_data_clean_encoding(lang = "pt") |>
+  sus_data_standardize(lang = "pt") |>
+  sus_data_filter_cid(disease_group = "cardiovascular") |>
+  sus_data_aggregate(time_unit = "month")
+```
+
+------------------------------------------------------------------------
+
+# 2. Pipelines Analíticos Reprodutíveis (RAPs)
+
+Agora que você entende o operador pipe, vamos discutir o conceito fundamental por trás de toda a estrutura do `climasus4r`: os **Pipelines Analíticos Reprodutíveis** (em inglês, *Reproducible Analytical Pipelines* ou **RAPs**).
+
+## 2.1. O Que São RAPs?
+
+Um **Pipeline Analítico Reprodutível** é um conjunto de processos automatizados que transformam dados brutos em informações utilizáveis, de forma que o processo completo possa ser **repetido identicamente** por qualquer pessoa, a qualquer momento, com os mesmos resultados.
+
+::: callout-box
+**Definição:** Um RAP é como uma "receita" documentada e automatizada que transforma dados crus em análises finais, onde cada passo é registrado, testável e reprodutível.
+:::
+
+## 2.2. Por Que RAPs São Importantes?
+
+### Problemas que os RAPs Resolvem
+
+Imagine a seguinte situação comum em análises de saúde pública:
+
+1.  **João** baixa os dados do DATASUS manualmente
+2.  **Maria** abre no Excel e faz algumas limpezas
+3.  **Carlos** recebe o Excel, adiciona algumas fórmulas
+4.  **Ana** recebe o arquivo de Carlos e gera um gráfico
+5.  **Resultado**: 4 versões diferentes, sem saber qual é a "certa", impossível reproduzir
+
+### Os RAPs Garantem
+
+-   **Reprodutibilidade**: Se você rodar o mesmo pipeline amanhã, com dados atualizados, obterá resultados consistentes
+-   **Transparência**: Qualquer pessoa pode entender e verificar cada passo
+-   **Eficiência**: Uma vez criado, o pipeline pode ser reutilizado e adaptado
+-   **Colaboração**: Múltiplos pesquisadores podem trabalhar no mesmo código
+-   **Versionamento**: Facilita o controle de mudanças ao longo do tempo
+
+::: callout-tip
+**RAP na Prática:** O `climasus4r` é essencialmente uma implementação de RAPs para dados do DATASUS. Cada função é um "bloco de construção" que, quando combinado com pipes, cria pipelines completos e reprodutíveis.
+:::
+
+## 2.3. Pilares de um Bom RAP
+
+Um pipeline analítico de qualidade deve seguir alguns princípios fundamentais:
+
+### Versionamento de Código
+
+``` r
+# Sempre documente a versão do seu código e das dependências
+# Exemplo de comentário:
+# climasus4r v0.1.0 | R 4.3.0 | 2024-01-15
+```
+
+### Documentação Clara
+
+Cada etapa do pipeline deve ser compreensível:
+
+``` r
+# --- Pipeline de Mortalidade Cardiovascular ---
+# 1. Importar dados de mortalidade do DATASUS
+df <- sus_data_import(...) |>
+  # 2. Limpar encoding (corrigir caracteres especiais)
+  sus_data_clean_encoding(...) |>
+  # 3. Padronizar nomes de colunas para inglês
+  sus_data_standardize(...) |>
+  # 4. Filtrar por causas cardiovasculares (CID-10)
+  sus_data_filter_cid(...)
+```
+
+### Saída com Metadados
+
+Sempre inclua informações sobre a origem e processamento:
+
+``` r
+sus_data_export(
+  df_resultado,
+  file_path = "analise.csv",
+  include_metadata = TRUE  # Inclui info sobre data, parâmetros, versão
+)
+```
+
+## 2.4. O Fluxo RAP do climasus4r
+
+O `climasus4r` foi desenhado especificamente para implementar RAPs de forma simples. Veja como cada função se encaixa no conceito:
+
+| Etapa RAP | Função climasus4r | O que faz |
+|--------------------|--------------------------------|--------------------|
+| **1. Extração** | `sus_data_import()` | Baixa dados do DATASUS |
+| **2. Transformação** | `sus_data_clean_encoding()` | Limpa caracteres |
+| **3. Transformação** | `sus_data_standardize()` | Padroniza colunas |
+| **4. Enriquecimento** | `sus_create_variables()` | Cria novas variáveis |
+| **5. Filtragem** | `sus_data_filter_cid()` | Filtra por doença |
+| **6. Filtragem** | `sus_data_filter_demographics()` | Filtra por perfil |
+| **7. Análise** | `sus_data_aggregate()` | Agrega por tempo |
+| **8. Exportação** | `sus_data_export()` | Salva com metadados |
+
+::: callout-important
+**Boa Prática:** Sempre execute o pipeline completo de uma vez, especialmente quando for salvar resultados finais. Isso garante que todo o processo foi documentado e pode ser reproduzido.
+:::
+
+------------------------------------------------------------------------
+
+# 3. Pipeline 1: Análise de Doenças Respiratórias Pediátricas
+
+::: callout-box
+**Objetivo:** Investigar a mortalidade por doenças respiratórias em crianças menores de 2 anos nos três estados mais populosos do Sudeste (SP, RJ, MG), entre 2022 e 2023, e analisar a tendência mensal por faixa etária pediátrica.
+:::
+
+Este pipeline demonstra um fluxo de trabalho completo, desde a importação de dados de múltiplos estados até a filtragem demográfica detalhada e agregação para análise de séries temporais.
+
+## 3.1. Código do Pipeline
+
+```{r pipeline1, eval=FALSE}
+# Carregar pacotes
+library(climasus4r)
+library(dplyr)
+
+# --- Pipeline Completo ---
+df_resp_ped <- sus_data_import(
+  uf = c("SP", "RJ", "MG"),
+  year = 2022:2023,
+  system = "SIM-DO",
+  parallel = TRUE,  # Acelerar download
+  lang = "pt"
+) |>
+  sus_data_clean_encoding(lang = "pt") |>
+  sus_data_standardize(lang = "pt") |>
+  sus_data_filter_cid(disease_group = "respiratory", lang = "pt") |>
+  sus_create_variables(
+    create_age_groups = TRUE,
+    age_breaks = c(0, 1, 5, Inf), # <1, 1-4, 5+
+    age_labels = c("< 1 ano", "1-4 anos", "5+ anos"),
+    lang = "pt"
+  ) |>
+  sus_data_filter_demographics(
+    age_range = c(0, 5), # Apenas crianças < 5 anos
+    lang = "pt"
+  ) |>
+  sus_data_aggregate(
+    time_unit = "month",
+    group_by = "age_group", # Agrupar por faixa etária
+    lang = "pt"
+  )
+
+# Salvar os resultados
+sus_data_export(
+  df_resp_ped,
+  file_path = "respiratorias_pediatricas_sudeste_2022_2023.csv",
+  format = "csv",
+  include_metadata = TRUE,
+  lang = "pt"
+)
+
+# Visualizar os resultados
+head(df_resp_ped)
+```
+
+## 3.2. Explicação Passo a Passo
+
+1.  **`sus_data_import`**: Baixamos dados de mortalidade (`SIM-DO`) de SP, RJ e MG para um período de 2 anos. O `parallel = TRUE` é essencial aqui para acelerar o processo.
+2.  **`sus_data_clean_encoding` e `sus_data_standardize`**: Etapas padrão de limpeza e padronização.
+3.  **`sus_data_filter_cid`**: Filtramos para manter apenas os óbitos cuja causa básica pertence ao grupo `"respiratory"`.
+4.  **`sus_create_variables`**: Criamos faixas etárias personalizadas para a pediatria: menores de 1 ano (`< 1 ano`) e de 1 a 4 anos (`1-4 anos`).
+5.  **`sus_data_filter_demographics`**: Aplicamos um segundo filtro para garantir que apenas os registros de crianças com menos de 5 anos permaneçam no dataset.
+6.  **`sus_data_aggregate`**: Agregamos os dados por mês (`time_unit = "month"`) e também por faixa etária (`group_by = "age_group"`). Isso nos dará a contagem mensal de óbitos para cada um dos nossos grupos de idade.
+7.  **`sus_data_export`**: Salvamos o resultado final em um arquivo CSV, incluindo os metadados do processamento.
+
+------------------------------------------------------------------------
+
+# 4. Pipeline 2: Análise de Sazonalidade da Dengue
+
+::: callout-box
+**Objetivo:** Analisar o padrão sazonal dos casos de dengue no estado do Amazonas entre 2015 e 2020, agregando os dados por estação do ano para identificar picos de incidência.
+:::
+
+Este pipeline foca em dados de morbidade (casos de doenças) do SINAN e utiliza a agregação por estação do ano, uma funcionalidade poderosa para estudos de clima e saúde.
+
+## 4.1. Código do Pipeline
+
+```{r pipeline2, eval=FALSE}
+# Carregar pacotes
+library(climasus4r)
+library(dplyr)
+
+# --- Pipeline Completo ---
+df_dengue <- sus_data_import(
+  uf = "AM",
+  year = 2015:2020,
+  system = "SINAN-DENGUE",
+  parallel = TRUE,
+  lang = "pt"
+) |>
+  sus_data_clean_encoding(lang = "pt") |>
+  sus_data_standardize(lang = "pt") |>
+  sus_create_variables(
+    create_calendar_vars = TRUE, # Essencial para criar a variável "estacao"
+    lang = "pt"
+  ) |>
+  sus_data_aggregate(
+    time_unit = "season",  # Agregação por estação do ano
+    lang = "pt"
+  )
+
+# Salvar os resultados
+sus_data_export(
+  df_dengue,
+  file_path = "dengue_sazonal_amazonas_2015_2020.csv",
+  format = "csv",
+  include_metadata = TRUE,
+  lang = "pt"
+)
+
+# Visualizar os resultados
+head(df_dengue)
+```
+
+## 4.2. Explicação Passo a Passo
+
+1.  **`sus_data_import`**: Baixamos dados de casos de dengue (`SINAN-DENGUE`) para o Amazonas.
+2.  **`sus_data_clean_encoding` e `sus_data_standardize`**: Etapas padrão.
+3.  **`sus_create_variables`**: O passo crucial aqui é `create_calendar_vars = TRUE`. Isso cria, entre outras, a coluna `estacao` (ex: "Verão", "Inverno"), que será usada na agregação.
+4.  **`sus_data_aggregate`**: Agregamos os dados diretamente por `time_unit = "season"`. A função automaticamente conta o número de casos para cada estação de cada ano.
+5.  **`sus_data_export`**: Salvamos a série temporal sazonal.
+
+------------------------------------------------------------------------
+
+# 5. Pipeline 3: Análise de Mortalidade Cardiovascular em Idosos
+
+::: callout-box
+**Objetivo:** Avaliar a mortalidade por doenças cardiovasculares em idosos (65+ anos) no estado de São Paulo, de 2020 a 2023, gerando um relatório de qualidade dos dados e agregando os óbitos por semana epidemiológica e faixa etária de idosos.
+:::
+
+Este pipeline introduz a função `sus_data_quality_report()`, uma ferramenta para diagnosticar a completude e a consistência dos dados antes da análise final.
+
+## 5.1. Código do Pipeline
+
+```{r pipeline3, eval=FALSE}
+# Carregar pacotes
+library(climasus4r)
+library(dplyr)
+
+# --- Pipeline Completo ---
+df_cardio_idosos <- sus_data_import(
+  uf = "SP",
+  year = 2020:2023,
+  system = "SIM-DO",
+  lang = "pt"
+) |>
+  sus_data_clean_encoding(lang = "pt") |>
+  sus_data_standardize(lang = "pt") |>
+  sus_data_filter_cid(disease_group = "cardiovascular", lang = "pt") |>
+  sus_create_variables(
+    create_age_groups = TRUE,
+    age_breaks = c(0, 65, 75, 85, Inf),
+    age_labels = c("< 65", "65-74", "75-84", "85+"),
+    lang = "pt"
+  ) |>
+  sus_data_filter_demographics(
+    age_range = c(65, Inf),  # Apenas idosos
+    lang = "pt"
+  ) |>
+  sus_data_aggregate(
+    time_unit = "week",
+    group_by = "age_group",
+    lang = "pt"
+  )
+
+# Salvar os resultados
+  sus_data_export(
+    df_cardio_idosos,
+    file_path = "cardio_idosos_sp_2020_2023.parquet",
+    format = "parquet", # Formato otimizado para grandes datasets
+    include_metadata = TRUE,
+    lang = "pt"
+  )
+
+# Visualizar os resultados
+head(df_cardio_idosos)
+```
+
+## 5.2. Explicação Passo a Passo
+
+1.  **Importação e Filtros**: O fluxo inicial é semelhante aos pipelines anteriores, focando em óbitos cardiovasculares em idosos.
+2.  **`sus_data_aggregate`**: Agregamos por semana (`time_unit = "week"`), uma unidade de tempo comum em vigilância epidemiológica, e também por faixa etária de idosos.
+3.  **`sus_data_export`**: Desta vez, salvamos em formato `.parquet`, que é altamente eficiente em termos de armazenamento e velocidade de leitura para grandes volumes de dados.
+
+------------------------------------------------------------------------
+
+# 6. Pipeline 4: Análise de Ondas de Calor
+
+::: callout-box
+**Objetivo:** Preparar dados de mortalidade por causas relacionadas ao calor nos estados do Amazonas e Rondônia para o ano de 2023, agregando os dados em "pentads" (intervalos de 5 dias) para estudos de efeitos cumulativos de ondas de calor.
+:::
+
+Este pipeline demonstra a flexibilidade da função `sus_data_aggregate()` para trabalhar com unidades de tempo personalizadas, essenciais para a análise de eventos climáticos extremos.
+
+## 6.1. Código do Pipeline
+
+```{r pipeline4, eval=FALSE}
+# Carregar pacotes
+library(climasus4r)
+library(dplyr)
+
+# --- Pipeline Completo ---
+df_calor <- sus_data_import(
+  uf = c("AM", "RO"),
+  year = 2023,
+  system = "SIM-DO",
+  parallel = TRUE,
+  lang = "pt"
+) |>
+  sus_data_clean_encoding(lang = "pt") |>
+  sus_data_standardize(lang = "pt") |>
+  sus_data_filter_cid(disease_group = "heat_related", lang = "pt") |>
+  sus_create_variables(
+    create_age_groups = TRUE,
+    lang = "pt"
+  ) |>
+  sus_data_aggregate(
+    time_unit = "5 days",  # Agregação em Pentads (intervalos de 5 dias)
+    lang = "pt"
+  )
+
+# Salvar os resultados
+sus_data_export(
+    df_calor,
+    file_path = "ondas_calor_pentads_am_ro_2023.csv",
+    format = "csv",
+    include_metadata = TRUE,
+    lang = "pt"
+  )
+
+# Visualizar os resultados
+head(df_calor)
+```
+
+## 6.2. Explicação Passo a Passo
+
+1.  **`sus_data_import` e `sus_data_filter_cid`**: Importamos dados de mortalidade e filtramos pelo grupo `"heat_related"`, que inclui causas como insolação e efeitos do calor excessivo.
+2.  **`sus_data_aggregate`**: O destaque deste pipeline é o argumento `time_unit = "5 days"`. Isso instrui a função a não usar unidades de calendário padrão (dia, mês, etc.), mas sim a criar janelas de tempo consecutivas de 5 dias e contar os óbitos dentro de cada uma. Essa abordagem é comum em estudos que buscam capturar o efeito cumulativo de exposições que duram vários dias, como ondas de calor.
+3.  **`sus_data_export`**: Salvamos a série temporal de pentads, que está pronta para ser cruzada com dados meteorológicos (ex: temperatura máxima diária) para análises de associação.
+
+------------------------------------------------------------------------
+
+# Conclusão
+
+Estes quatro pipelines demonstram como o `climasus4r` pode ser adaptado para uma ampla gama de questões de pesquisa em saúde pública e ambiental. Ao dominar a combinação dessas funções com o operador pipe, você pode construir análises complexas de forma rápida, legível e reprodutível.
+
+Os conceitos de **Pipelines Analíticos Reprodutíveis (RAPs)** são a base filosófica do `climasus4r`. Ao usar o pacote, você automaticamente está seguindo boas práticas de reprodutibilidade:
+
+-   **Documentação automática**: Cada função adiciona metadados
+-   **Fluxo explícito**: O pipe torna cada etapa visível
+-   **Rastreabilidade**: Você sabe exatamente de onde cada dado veio
+-   **Reutilização**: Os pipelines podem ser facilmente adaptados para novos contextos
+
+::: callout-tip
+**Próximos Passos:** Tente modificar estes pipelines. Mude os estados, os anos, os grupos de doenças ou as unidades de tempo. Adicione mais variáveis ao `group_by` na agregação. A melhor maneira de aprender é experimentar!
+
+**Recursos Adicionais:** - Explore a documentação de cada função com `?sus_data_import` - Visite o repositório GitHub para exemplos adicionais - Pratique usando o operador pipe em seus próprios projetos
+:::
+
+## 🌲 Tem feedback ou sugestões?
+
+Você tem alguma ideia de melhoria ou encontrou algum erro? Clique no botão abaixo para abrir uma nova *issue* no GitHub e compartilhar suas sugestões diretamente conosco.
+
+<a href='https://github.com/ByMaxAnjos/climasus4r/issues/new'>
+  <button type="button" class="btn" style="background-color: #1b4332; color: white; padding: 10px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s;">
+    Abrir uma issue no GitHub
+  </button>
+</a>

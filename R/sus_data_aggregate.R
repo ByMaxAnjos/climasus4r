@@ -16,15 +16,15 @@
 #'   `"sd"`, `"q25"` (25th percentile), `"q75"`, `"q95"`, and `"q99"`.
 #'   Can also be a named list for multiple aggregations, e.g.,
 #'   `list(mean_temp = "mean", max_temp = "max")`.
+#' @param group_by Character vector with names of columns to group by (e.g.,
+#'   `c("sex", "age_group", "race")`). If `NULL` (default), aggregates
+#'   across `"municipality_code"` records.
 #' @param value_col Character string with the name of the column to aggregate when
 #'   using functions other than `"count"`. Required for `"sum"`, `"mean"`, etc.
 #'   For example, `"temperature"`, `"precipitation"`, `"pm25"`.
 #' @param date_col Character string with the name of the date column to use for
 #'   aggregation. If `NULL` (default), the function will attempt to auto-detect
 #'   the date column based on common patterns.
-#' @param group_by Character vector with names of columns to group by (e.g.,
-#'   `c("sex", "age_group", "municipality_code", "race")`). If `NULL` (default), aggregates
-#'   across all records.
 #' @param complete_dates Logical. If `TRUE` (default), fills in missing time periods
 #'   with zero counts to create a complete time series without gaps.
 #' @param lang Character string specifying the language for messages. Options:
@@ -44,8 +44,8 @@
 #'   \item **Multiple aggregation functions**: Beyond counting, you can now calculate
 #'     mean, sum, median, percentiles, etc., useful for climate and environmental data.
 #'   \item **Smart column naming**: The aggregated column is automatically named
-#'     based on the health system (e.g., `n_deaths` for SIM-DO, `n_hospitalizations`
-#'     for SIH-RD, `n_births` for SINASC).
+#'     based on the health system (e.g., `n_deaths` for SIM, `n_hospitalizations`
+#'     for SIH-RD, `n_births` for SINASC, `n_cases` for SINAN, `n_procedures` for SIA, and `n_establishments`, for CNES).
 #' }
 #' **Epidemiological Use Cases**:
 #' \itemize{
@@ -96,15 +96,14 @@
 #' # Seasonal aggregation for dengue analysis (Brazilian seasons)
 #' df_seasonal <- sus_data_aggregate(
 #'   df,
-#'   time_unit = "season",
-#'   group_by = "state"
+#'   time_unit = "season"
 #' )
 #'
 #' # Weekly aggregation by age group and sex
 #' df_weekly <- sus_data_aggregate(
 #'   df,
 #'   time_unit = "week",
-#'   group_by = c("age_group", "sex")
+#'   group_by = c("age_group", "sex") #age_group comes from `sus_create_variables()`
 #' )
 #' }
 #' @importFrom rlang .data
@@ -113,8 +112,8 @@
 sus_data_aggregate <- function(df,
                                time_unit = "day",
                                fun = "count",
-                               value_col = NULL,
                                group_by = NULL,
+                               value_col = NULL,
                                complete_dates = TRUE,
                                date_col = NULL,
                                lang = "pt",
@@ -361,16 +360,49 @@ sus_data_aggregate <- function(df,
   #Get geographical columns
 
  # Get geographical columns (auto-detect municipality codes)
-  get_geo_col <- c(
-    "codigo_municipio_notificacao", "codigo_municipio_notificacion", "notification_municipality_code",
-    "residence_municipality_code", "municipality_code", "residence_municipality",
-    "codigo_municipio_nascimento", "codigo_municipio_ocurrencia", "codigo_municipio",
-    "codigo_municipio_paciente", "uf_municipio_estabelecimento", "facility_uf_municipality",
-    "patient_municipality_code", "uf_municipio_establecimiento",
-    "cep_paciente", "codigo_postal_paciente", "codigo_postal", "patient_zip_code", "zip_code",
-    "codigo_municipio_residencia", "CODMUNRES"
+  # get_geo_col <- c(
+  #   "codigo_municipio_notificacao", "codigo_municipio_notificacion", "notification_municipality_code",
+  #   "residence_municipality_code", "municipality_code", "residence_municipality",
+  #   "codigo_municipio_ocurrencia", "codigo_municipio_residencia", "codigo_municipio_nascimento", "codigo_municipio",
+  #   "codigo_municipio_paciente", "uf_municipio_estabelecimento", "facility_uf_municipality",
+  #   "patient_municipality_code", "uf_municipio_establecimiento",
+  #   "cep_paciente", "codigo_postal_paciente", "codigo_postal", "patient_zip_code", "zip_code",
+  #   "CODMUNRES"
+  # )
+
+  existent_cols <- names(df)[names(df) %in% common_cols]
+
+  priority_order <- c(
+    "codigo_municipio_ocorrencia",
+    "codigo_municipio_ocurrencia",
+    "occurrence_municipality_code",
+
+    "codigo_municipio_residencia",
+    "residence_municipality_code",
+
+    "codigo_municipio",
+    "municipality_code",
+
+    "codigo_municipio_nascimento",
+    "codigo_municipio_nacimiento",
+    "birth_municipality_code",
+
+    "codigo_municipio_paciente",
+    "patient_municipality_code",
+
+    "uf_municipio_estabelecimento",
+    "facility_uf_municipality",
+    "uf_municipio_establecimiento",
+    "cep_paciente",
+    "codigo_postal_paciente",
+    "codigo_postal",
+    "patient_zip_code",
+    "zip_code",
+    "CODMUNRES"
   )
-  geo_col <- names(df)[grepl(paste(get_geo_col, collapse = "|"), names(df), ignore.case = TRUE)]
+  geo_col <- priority_order[priority_order %in% existent_cols][1]
+
+  #geo_col <- names(df)[grepl(paste(get_geo_col, collapse = "|"), names(df), ignore.case = TRUE)]
   
   # Add geo columns to group_vars if not already included
   if (length(geo_col) > 0) {
@@ -472,7 +504,11 @@ sus_data_aggregate <- function(df,
       stage = "aggregate",
       type = "agg",
       spatial = FALSE,
-      temporal = NULL,
+      temporal = list(
+        start = min(df_agg$date),
+        end = max(df_agg$date),
+        resolution = time_unit,
+      ),
       created = Sys.time(),
       modified = Sys.time(),
       history = sprintf(

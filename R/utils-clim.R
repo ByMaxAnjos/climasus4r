@@ -1551,6 +1551,7 @@ utils::globalVariables(c(
       climate_var = vars,
       agg_type = dplyr::case_when(
         climate_var == "rainfall_mm" ~ "sum",
+        climate_var == "sr_kj_m2" ~ "sum",
         climate_var == "wd_degrees" ~ "mean_circular",
         TRUE ~ "mean"
       )

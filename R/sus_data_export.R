@@ -46,7 +46,7 @@
 #' \itemize{
 #'   \item **RDS** (`.rds`): Native R format. Fast, compressed, preserves all
 #'     R object attributes. Best for R-only workflows.
-#'   \item **Arrow/Parquet** (`.parquet`, `.arrow`): Columnar format. Excellent
+#'   \item **Parquet** (`.parquet`): Columnar format. Excellent
 #'     compression, fast reading, language-agnostic. Best for large datasets
 #'     and interoperability with Python, Spark, etc.
 #'   \item **GeoParquet** (`.geoparquet`, `.parquet` for sf objects): Optimized
@@ -102,7 +102,7 @@
 #' sus_data_export(
 #'   df_final,
 #'   file_path = "output/respiratory_sp_2023.parquet",
-#'   format = "arrow",
+#'   format = "parquet",
 #'   metadata = list(
 #'     source_system = "SIM-DO",
 #'     states = "SP",
@@ -184,7 +184,7 @@ sus_data_export <- function(df,
       format <- switch(ext,
         "rds" = "rds",
         "parquet" = "arrow",
-        "arrow" = "arrow",
+        "parquet" = "parquet",
         "csv" = "csv",
         "rds"  # default for non-spatial data
       )
@@ -204,7 +204,7 @@ sus_data_export <- function(df,
   # 4. VALIDATE FORMAT
   # ========================================================================
   
-  valid_formats <- c("rds", "arrow", "csv", "geoparquet", "shapefile", "gpkg", "geojson")
+  valid_formats <- c("rds", "parquet", "csv", "geoparquet", "shapefile", "gpkg", "geojson")
   
   if (!format %in% valid_formats) {
     cli::cli_abort(paste0("format must be one of: ", paste(valid_formats, collapse = ", ")))
@@ -216,7 +216,7 @@ sus_data_export <- function(df,
   }
   
   # Check if non-spatial format is used for spatial data (warn but allow)
-  if (is_spatial && format %in% c("arrow", "csv") && verbose) {
+  if (is_spatial && format %in% c("parquet", "csv") && verbose) {
     msg <- switch(lang,
       "en" = "Warning: Exporting spatial data to non-spatial format. Geometries will be converted to WKT. Consider using 'geoparquet' format instead.",
       "pt" = "Aviso: Exportando dados espaciais para formato nao-espacial. Geometrias serao convertidas para WKT. Considere usar formato 'geoparquet'.",
@@ -265,7 +265,7 @@ sus_data_export <- function(df,
     saveRDS(df, file = file_path, compress = compress, 
             version = 3, ascii = FALSE)
     
-  } else if (format == "arrow") {
+  } else if (format == "parquet") {
     # ======================================================================
     # ARROW/PARQUET FORMAT (non-spatial)
     # ======================================================================
@@ -400,7 +400,7 @@ sus_data_export <- function(df,
     # Write metadata as formatted text
     meta_lines <- c(
       "=" %s% 70,
-      "CLIMASUS4R DATA EXPORT METADATA",
+      "climasus4r - DATA EXPORT METADATA",
       "=" %s% 70,
       "",
       paste0("Export Date: ", metadata$export_date),

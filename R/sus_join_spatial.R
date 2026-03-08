@@ -815,6 +815,10 @@ sus_join_spatial <- function(
   }
   # Remove rows with missing geometries
   #result_sf <- result_sf %>% dplyr::filter(!is.na(sf::st_dimension(.data$geom)))
+
+  time_unit <- climasus_meta(result_sf, "temporal")$resolution
+  if(is.null(time_unit)){time_unit <- "day"}
+
   if (!inherits(result_sf, "climasus_df")) {
     # Create new climasus_df
     meta <- list(
@@ -822,7 +826,11 @@ sus_join_spatial <- function(
       stage = "spatial",
       type = level,
       spatial = inherits(result_sf, "sf"),
-      temporal = NULL,
+      temporal = list(
+        start = min(result_sf$date),
+        end = max(result_sf$date),
+        resolution = time_unit,
+      ),
       created = Sys.time(),
       modified = Sys.time(),
       history = sprintf(

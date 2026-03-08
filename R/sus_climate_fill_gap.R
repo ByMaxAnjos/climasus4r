@@ -394,11 +394,20 @@ sus_climate_fill_gaps <- function(
       stage = "climate",
       type = "filled",
       spatial = inherits(df_filled, "sf"),
-      temporal = NULL,
+      temporal = list(
+        start = min(df_filled$date),
+        end = max(df_filled$date),
+        source = source,
+        imputed = TRUE,
+        evaluation = evaluation,
+        target_var = target_var,
+        imputation_rate = n_imputed / n_total,
+        quality_threshold = quality_threshold
+      ),
       created = Sys.time(),
       modified = Sys.time(),
       history = sprintf(
-        "[%s] Gap-filling with dual ML model",
+        "[%s] Gap-filling with ML model",
         format(Sys.time(), "%Y-%m-%d %H:%M:%S")
       ),
       user = list()
@@ -422,7 +431,7 @@ sus_climate_fill_gaps <- function(
         end = max(df_filled$date),
         source = source,
         imputed = TRUE,
-        evaluation = FALSE,
+        evaluation = evaluation,
         target_var = target_var,
         imputation_rate = n_imputed / n_total,
         quality_threshold = quality_threshold
@@ -718,7 +727,7 @@ if (transform_type != "none") {
   
   X_train <- station_df[train_idx, temporal_features, drop = FALSE]
     
-    model <- tryCatch({
+  model <- tryCatch({
 
     # ----------------------------
     # 1. Base booster params
@@ -774,15 +783,32 @@ if (transform_type != "none") {
       label = y_train
     )
 
-    xgboost::xgb.train(
-      params = params,
-      data = dtrain,
-      nrounds = nrounds,
-      verbose = 0,
-      early_stopping_rounds = early_stopping_rounds,
-      watchlist = list(train = dtrain)  
+    # xgboost::xgb.train(
+    #   params = params,
+    #   data = dtrain,
+    #   nrounds = nrounds,
+    #   verbose = 0,
+    #   early_stopping_rounds = early_stopping_rounds,
+    #   watchlist = list(train = dtrain)  
+    # )
+    withCallingHandlers(
+      xgboost::xgb.train(
+        params = params,
+        data = dtrain,
+        nrounds = nrounds,
+        verbose = 0,
+        early_stopping_rounds = early_stopping_rounds,
+        watchlist = list(train = dtrain)
+      ),
+      warning = function(w) {
+        if (grepl(
+          "watchlist.*renamed to 'evals'",
+          conditionMessage(w)
+        )) {
+          invokeRestart("muffleWarning")
+        }
+      }
     )
-
     }, error = function(e) {
 
     if (verbose) {
