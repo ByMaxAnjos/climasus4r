@@ -35,7 +35,7 @@ editor_options:
 # Introdução
 
 ::: callout-box
-**Tutorial Introdutório** --- Este tutorial apresenta um guia prático para começar a utilizar o pacote **climasus4r**. O objetivo é demonstrar o fluxo básico de trabalho, desde a instalação do pacote até a criação de séries temporais a partir de dados de saúde do DATASUS, integrando informações de saúde, clima e meio ambiente.
+**Tutorial Introdutório** --- Este tutorial apresenta um guia prático para começar a utilizar o pacote 'climasus4r'. O objetivo é demonstrar o fluxo básico de trabalho, desde a instalação do pacote até a criação de séries temporais a partir de dados de saúde do DATASUS, integrando informações de saúde, clima e meio ambiente.
 :::
 
 O Sistema Único de Saúde (SUS) disponibiliza grandes bases de dados públicos, como:
