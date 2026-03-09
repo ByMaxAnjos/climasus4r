@@ -96,7 +96,7 @@ if (!require("remotes")) {
 }
 ```
 
-Agora, vamos instalar o pacote `climasus4r` diretamente do GitHub:
+Agora instale o `climasus4r` diretamente do GitHub:
 
 ```{r install-climasus4r, eval=FALSE}
 # Instalar o pacote climasus4r a partir do GitHub
