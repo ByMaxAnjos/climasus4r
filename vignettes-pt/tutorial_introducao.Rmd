@@ -48,7 +48,7 @@ SINAN — Sistema de Agravos de Notificação
 
 No entanto, esses dados geralmente exigem etapas de importação, limpeza, padronização e agregação antes de poderem ser utilizados em análises epidemiológicas.
 
-O pacote 'climasus4r' foi desenvolvido para automatizar e padronizar esse processo, permitindo análises reprodutíveis, rápidas e escaláveis em estudos de clima, ambiente e saúde pública.
+O pacote `climasus4r` foi desenvolvido para automatizar e padronizar esse processo, permitindo análises reprodutíveis, rápidas e escaláveis em estudos de clima, ambiente e saúde pública.
 
 Neste tutorial, você aprenderá a:
 
