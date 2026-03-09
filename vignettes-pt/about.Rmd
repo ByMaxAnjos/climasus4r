@@ -1,44 +1,268 @@
 ---
-title: "Sobre o ClimaSus4R"
-output: rmarkdown::html_vignette
+title: "Sobre o climasus4r"
+output:
+  rmarkdown::html_vignette:
+    css: null
 vignette: >
-  %\VignetteIndexEntry{Sobre o ClimaSus4R}
+  %\VignetteIndexEntry{Sobre o climasus4r}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
-)
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
+
+<style>
+/* ── Base ───────────────────────────────────────────────── */
+body { font-family: 'Inter', 'Segoe UI', sans-serif; color: #1a2332; line-height: 1.7; }
+h2 { font-size: 1.4rem; font-weight: 700; color: #2C5530; margin: 2.5rem 0 1rem; letter-spacing: -0.3px; }
+h3 { font-size: 1rem; font-weight: 600; color: #2C5530; margin-bottom: 0.25rem; }
+p  { margin: 0.4rem 0 0; font-size: 0.92rem; color: #4a5568; }
+a  { color: #4A7C59; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── Hero Banner ────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(135deg, #2C5530 0%, #4A7C59 60%, #8FB996 100%);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  color: #fff;
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+.hero::after {
+  content: "";
+  position: absolute; top: -40px; right: -40px;
+  width: 200px; height: 200px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 50%;
+}
+.hero h1 { font-size: 1.9rem; font-weight: 800; margin: 0 0 0.5rem; color: #fff; }
+.hero p  { font-size: 1rem; color: rgba(255,255,255,0.88); margin: 0; max-width: 600px; }
+.hero-badge {
+  display: inline-block;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.8rem;
+  color: #fff;
+}
+
+/* ── Stat Pills ─────────────────────────────────────────── */
+.stat-row { display: flex; gap: 1rem; flex-wrap: wrap; margin: 2rem 0; }
+.stat-pill {
+  flex: 1; min-width: 120px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(44,85,48,0.07);
+}
+.stat-pill .num { font-size: 1.6rem; font-weight: 800; color: #2C5530; }
+.stat-pill .lbl { font-size: 0.75rem; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+/* ── Feature Cards ──────────────────────────────────────── */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+.card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.2rem;
+  box-shadow: 0 2px 8px rgba(44,85,48,0.06);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(44,85,48,0.12); }
+.card .icon { font-size: 1.6rem; margin-bottom: 0.6rem; }
+.card h3 { font-size: 0.9rem; color: #2C5530; margin-bottom: 0.3rem; }
+.card p  { font-size: 0.82rem; color: #718096; margin: 0; }
+
+/* ── Team Cards ─────────────────────────────────────────── */
+.team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem; margin: 1.5rem 0; }
+.team-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.4rem;
+  box-shadow: 0 2px 10px rgba(44,85,48,0.07);
+  display: flex; gap: 1rem; align-items: flex-start;
+}
+.team-avatar {
+  width: 48px; height: 48px; min-width: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2C5530, #8FB996);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; font-weight: 700; color: #fff;
+}
+.team-info h3 { font-size: 0.92rem; color: #1a2332; margin-bottom: 2px; }
+.team-info .role { font-size: 0.78rem; font-weight: 600; color: #4A7C59; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+.team-info p  { font-size: 0.8rem; color: #718096; margin: 0; }
+
+/* ── Contributor Cards ──────────────────────────────────── */
+.contrib-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem; margin: 1.5rem 0; }
+.contrib-card {
+  border-radius: 14px;
+  padding: 1.5rem 1.4rem;
+  position: relative;
+  overflow: hidden;
+}
+.contrib-card.dev   { background: linear-gradient(135deg, #EBF4FF 0%, #DBEAFE 100%); border: 1px solid #BFDBFE; }
+.contrib-card.test  { background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%); border: 1px solid #BBF7D0; }
+.contrib-card.sci   { background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%); border: 1px solid #FED7AA; }
+.contrib-card .c-icon { font-size: 2rem; margin-bottom: 0.8rem; }
+.contrib-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem; }
+.contrib-card.dev  h3 { color: #1D4ED8; }
+.contrib-card.test h3 { color: #15803D; }
+.contrib-card.sci  h3 { color: #C2410C; }
+.contrib-card p { font-size: 0.83rem; color: #4a5568; margin: 0 0 1rem; }
+.contrib-card ul { margin: 0; padding-left: 1.1rem; }
+.contrib-card ul li { font-size: 0.8rem; color: #4a5568; margin-bottom: 3px; }
+.cta-btn {
+  display: inline-block;
+  margin-top: 0.8rem;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.contrib-card.dev  .cta-btn { background: #1D4ED8; color: #fff; }
+.contrib-card.test .cta-btn { background: #15803D; color: #fff; }
+.contrib-card.sci  .cta-btn { background: #C2410C; color: #fff; }
+
+/* ── Divider ────────────────────────────────────────────── */
+.divider { border: none; border-top: 1px solid #e2e8f0; margin: 2.5rem 0; }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════ HERO -->
+<div class="hero">
+  <div class="hero-badge">INCT Conexão – Amazônia</div>
+  <h1>climasus4r</h1>
+  <p>Integração, padronização e análise espaço-temporal de dados de saúde pública, clima e ambiente no Brasil — em R.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ STATS -->
+<div class="stat-row">
+  <div class="stat-pill"><div class="num">6+</div><div class="lbl">Sistemas DATASUS</div></div>
+  <div class="stat-pill"><div class="num">58</div><div class="lbl">Grupos CID-10</div></div>
+  <div class="stat-pill"><div class="num">3</div><div class="lbl">Idiomas</div></div>
+  <div class="stat-pill"><div class="num">100%</div><div class="lbl">Open Source</div></div>
+</div>
 
 ## O Projeto
 
-O **climasus4r** é um pacote em R desenvolvido para integrar, padronizar e automatizar análises espaço-temporais de dados de saúde pública, clima e ambiente no Brasil. Concebido no âmbito do projeto INCT Conexão – Amazônia, o pacote visa apoiar pesquisas epidemiológicas e ambientais que demandam a integração de grandes bases de dados oficiais. Ao reduzir o esforço técnico associado à aquisição, limpeza e harmonização dos dados, o climasus4r oferece um fluxo de trabalho estruturado, reprodutível e escalável, permitindo que pesquisadores concentrem-se na análise científica e na interpretação dos resultados.
+O **climasus4r** foi concebido para eliminar a barreira técnica entre os dados brutos do DATASUS e a análise científica. O pacote oferece um pipeline reprodutível — da importação à agregação temporal — que integra dados de mortalidade (SIM), hospitalizações (SIH), doenças de notificação (SINAN) e outros sistemas do SUS com variáveis climáticas e ambientais.
+
+<div class="card-grid">
+  <div class="card"><div class="icon">⚡</div><h3>Pipeline Automatizado</h3><p>Da importação à série temporal em poucas linhas de código.</p></div>
+  <div class="card"><div class="icon">🌎</div><h3>Foco no Brasil</h3><p>Integração nativa com todos os sistemas DATASUS e geobr.</p></div>
+  <div class="card"><div class="icon">🌡️</div><h3>Clima & Saúde</h3><p>58 grupos de doenças sensíveis ao clima, com códigos CID-10.</p></div>
+  <div class="card"><div class="icon">🔁</div><h3>Reprodutível</h3><p>Cache inteligente, metadados S3 e suporte a processamento paralelo.</p></div>
+</div>
+
+<hr class="divider">
 
 ## A Equipe
 
-O climasus4r é desenvolvido por uma equipe multidisciplinar vinculada a instituições de pesquisa e ensino no Brasil, reunindo especialistas em saúde pública, climatologia, epidemiologia ambiental e ciência de dados.
+<div class="team-grid">
 
-## Coordenação do Projeto
+  <div class="team-card">
+    <div class="team-avatar">MA</div>
+    <div class="team-info">
+      <h3>Dr. Max Anjos</h3>
+      <div class="role">Coordenador & Desenvolvedor Principal</div>
+      <p>Fiocruz-RO / CCSRO. Arquitetura do pacote, metodologia e integração clima-saúde.</p>
+    </div>
+  </div>
 
-**Dr. Max Anjos** - Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO / CCSRO).
-Responsável pela coordenação geral do projeto, definição da arquitetura metodológica e orientação científica, assegurando a integração entre dados climáticos, ambientais e de saúde pública.
+  <div class="team-card">
+    <div class="team-avatar">TM</div>
+    <div class="team-info">
+      <h3>Mdo. Thauã Menezes</h3>
+      <div class="role">Desenvolvedor & Testador</div>
+      <p>UNESP / UNIR. Desenvolvimento em R, testagem, validação e padronização de dados.</p>
+    </div>
+  </div>
 
-## Desenvolvedores do Pacote
+  <div class="team-card">
+    <div class="team-avatar">JG</div>
+    <div class="team-info">
+      <h3>Dr. João Paulo Gobo</h3>
+      <div class="role">Colaborador Científico</div>
+      <p>UNIR / Fiocruz-RO. Climatologia geográfica, biometeorologia e clima & saúde.</p>
+    </div>
+  </div>
 
-**Dr. Max Anjos** - Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO / CCSRO).
-Atua como mentor e desenvolvedor principal do climasus4r, sendo responsável pela arquitetura do pacote, definição metodológica, implementação em R e coordenação da integração de dados climáticos, ambientais e de saúde pública.
+  <div class="team-card">
+    <div class="team-avatar">AS</div>
+    <div class="team-info">
+      <h3>Dr. Andredimar Soares</h3>
+      <div class="role">Colaborador Científico</div>
+      <p>Fiocruz-RO. Saúde pública e biotecnologia, integração de evidências epidemiológicas.</p>
+    </div>
+  </div>
 
-**Mestrando Thauã Menezes** - Universidade Estadual Paulista (UNESP) / Universidade Federal de Rondônia (UNIR).
-Atua como autor e contribuidor em R no desenvolvimento do climasus4r, com foco na testagem e validação do código, proposição de melhorias e apoio à padronização de dados.
+</div>
 
-## Pesquisadores Colaboradores
+<hr class="divider">
 
-**Dr. João Paulo Assis Gobo** - Universidade Federal de Rondônia (UNIR) / Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO / CCSRO).
-Contribuidor cientifico com expertise em climatologia geográfica, biometeorologia humana e clima e saúde, atuando na validação científica dos métodos e na interpretação ambiental dos resultados.
+## Contribua com o climasus4r
 
-**Dr. Andredimar Martins Soares** - Fundação Oswaldo Cruz – Rondônia (Fiocruz-RO).
-Contribuidor cientifico nas áreas de saúde pública e biotecnologia, contribuindo para a integração entre evidências epidemiológicas, inovação científica e aplicações do projeto.
+O `climasus4r` é um projeto de código aberto e **sua contribuição é bem-vinda**, independentemente do seu perfil. Há um papel para cada tipo de colaborador:
+
+<div class="contrib-grid">
+
+  <div class="contrib-card dev">
+    <div class="c-icon">💻</div>
+    <h3>Desenvolvedor R</h3>
+    <p>Para quem tem experiência intermediária ou avançada em R e quer contribuir com código.</p>
+    <ul>
+      <li>Novas funções ou melhorias</li>
+      <li>Correção de bugs e otimizações</li>
+      <li>Revisão de pull requests</li>
+      <li>Documentação técnica (Roxygen2)</li>
+    </ul>
+    <a class="cta-btn" href="https://github.com/ByMaxAnjos/climasus4r/issues" target="_blank">Abrir Issue no GitHub</a>
+  </div>
+
+  <div class="contrib-card test">
+    <div class="c-icon">🧪</div>
+    <h3>Contribuidor R</h3>
+    <p>Para usuários de R que querem ajudar com testes e na divulgação do pacote.</p>
+    <ul>
+      <li>Testar funções e reportar bugs</li>
+      <li>Escrever exemplos e tutoriais</li>
+      <li>Divulgar em redes e eventos</li>
+      <li>Traduzir documentação</li>
+    </ul>
+    <a class="cta-btn" href="https://github.com/ByMaxAnjos/climasus4r/discussions" target="_blank">Participar das Discussões</a>
+  </div>
+
+  <div class="contrib-card sci">
+    <div class="c-icon">🔬</div>
+    <h3>Contribuidor Científico</h3>
+    <p>Para pesquisadores e professores de clima & saúde — sem exigência de expertise em R.</p>
+    <ul>
+      <li>Auditar métodos e resultados</li>
+      <li>Sugerir novos grupos CID-10</li>
+      <li>Validar interpretações científicas</li>
+      <li>Propor casos de uso e análises</li>
+    </ul>
+    <a class="cta-btn" href="mailto:maxanjos@cidacs.fiocruz.br">Entrar em Contato</a>
+  </div>
+
+</div>
+
+<hr class="divider">
+
+<p style="font-size:0.82rem; color:#a0aec0; text-align:center;">
+  climasus4r é desenvolvido no âmbito do <strong>INCT Conexão – Amazônia</strong> · 
+  <a href="https://github.com/ByMaxAnjos/climasus4r" target="_blank">GitHub</a> · 
+  Licença MIT
+</p>
