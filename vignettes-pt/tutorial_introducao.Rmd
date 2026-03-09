@@ -35,24 +35,20 @@ editor_options:
 # Introdução
 
 ::: callout-box
-**Sobre este Tutorial** --- Este documento é um guia prático e
-introdutório para o pacote `climasus4r`. O objetivo é demonstrar o fluxo
-de trabalho completo, desde a instalação do pacote até a análise de
-dados de saúde do DATASUS, com foco na intersecção entre saúde, clima e
-meio ambiente. Este tutorial é voltado para usuários básicos de R, sem
-necessidade de conhecimento prévio sobre os sistemas do DATASUS.
+**Tutorial Introdutório** --- Este tutorial apresenta um guia prático para começar a utilizar o pacote **climasus4r**. O objetivo é demonstrar o fluxo básico de trabalho, desde a instalação do pacote até a criação de séries temporais a partir de dados de saúde do DATASUS, integrando informações de saúde, clima e meio ambiente.
 :::
 
-O Sistema Único de Saúde (SUS) do Brasil gera um dos maiores volumes de
-dados de saúde pública do mundo. No entanto, esses dados brutos,
-provenientes de sistemas como SIM (mortalidade), SIH (hospitalizações) e
-SINAN (doenças de notificação), são complexos e exigem um tratamento
-significativo antes de poderem ser utilizados para gerar evidências
-epidemiológicas.
+O Sistema Único de Saúde (SUS) disponibiliza grandes bases de dados públicos, como:
 
-O `climasus4r` foi criado para simplificar e padronizar esse processo,
-permitindo que pesquisadores, gestores de saúde e estudantes realizem
-análises robustas e reprodutíveis de forma rápida e eficiente.
+SIM — Sistema de Informações sobre Mortalidade
+
+SIH — Sistema de Informações Hospitalares
+
+SINAN — Sistema de Agravos de Notificação
+
+No entanto, esses dados geralmente exigem etapas de importação, limpeza, padronização e agregação antes de poderem ser utilizados em análises epidemiológicas.
+
+O pacote 'climasus4r' foi desenvolvido para automatizar e padronizar esse processo, permitindo análises reprodutíveis, rápidas e escaláveis em estudos de clima, ambiente e saúde pública.
 
 Neste tutorial, você aprenderá a:
 
