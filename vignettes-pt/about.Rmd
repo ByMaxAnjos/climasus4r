@@ -176,8 +176,8 @@ a:hover { text-decoration: underline; }
     <div class="cls-stat-lbl">Sistemas DATASUS</div>
   </div>
   <div class="cls-stat-pill">
-    <div class="cls-stat-num">58</div>
-    <div class="cls-stat-lbl">Grupos CID-10</div>
+    <div class="cls-stat-num">40+</div>
+    <div class="cls-stat-lbl">Funcionalidades</div>
   </div>
   <div class="cls-stat-pill">
     <div class="cls-stat-num">3</div>
@@ -192,19 +192,19 @@ a:hover { text-decoration: underline; }
 <!-- ═══════════════════════════════════════ O PROJETO -->
 <div class="cls-section-title">O Projeto</div>
 <p class="cls-section-sub">
-  O <strong>climasus4r</strong> foi concebido para eliminar a barreira técnica entre os dados brutos do DATASUS e a análise científica. O pacote oferece um pipeline reprodutível — da importação à agregação temporal — que integra dados de mortalidade (SIM), hospitalizações (SIH), doenças de notificação (SINAN) e outros sistemas do SUS com variáveis climáticas e ambientais.
+  O <strong>climasus4r</strong> foi concebido para eliminar a barreira técnica entre os dados brutos do DATASUS e a análise científica. O pacote oferece um pipeline reprodutível — da importação à agregação temporal e espacial — que integra dados de mortalidade (SIM), hospitalizações (SIH), doenças de notificação (SINAN) e outros sistemas do SUS com variáveis climáticas e ambientais.
 </p>
 
 <div class="cls-feat-grid">
   <div class="cls-feat-card">
     <div class="cls-feat-icon">⚡</div>
-    <div class="cls-feat-title">Pipeline Automatizado</div>
-    <div class="cls-feat-desc">Da importação à série temporal em poucas linhas de código.</div>
+    <div class="cls-feat-title">Pipelines Analíticos Reprodutíveis (RAPs)</div>
+    <div class="cls-feat-desc">Da importação à análise espacio-temporal em poucas linhas de código.</div>
   </div>
   <div class="cls-feat-card">
     <div class="cls-feat-icon">🌎</div>
     <div class="cls-feat-title">Foco no Brasil</div>
-    <div class="cls-feat-desc">Integração nativa com todos os sistemas DATASUS e geobr.</div>
+    <div class="cls-feat-desc">Integração nativa com todos os sistemas DATASUS e dados climáticos e ambientais oficiais.</div>
   </div>
   <div class="cls-feat-card">
     <div class="cls-feat-icon">🌡️</div>
@@ -213,7 +213,7 @@ a:hover { text-decoration: underline; }
   </div>
   <div class="cls-feat-card">
     <div class="cls-feat-icon">🔁</div>
-    <div class="cls-feat-title">Reprodutível</div>
+    <div class="cls-feat-title">Reprodutível e rápido</div>
     <div class="cls-feat-desc">Cache inteligente, metadados S3 e processamento paralelo.</div>
   </div>
 </div>
@@ -231,16 +231,16 @@ a:hover { text-decoration: underline; }
     <div>
       <div class="cls-team-name">Dr. Max Anjos</div>
       <div class="cls-team-role">Coordenador &amp; Desenvolvedor Principal</div>
-      <div class="cls-team-desc">Fiocruz-RO / CCSRO. Arquitetura do pacote, metodologia e integração clima-saúde.</div>
+      <div class="cls-team-desc"> INCT-CONEXÃO / Fiocruz-RO. Desenvolvimento em R, arquitetura do pacote, metodologia e integração clima-saúde.</div>
     </div>
   </div>
 
   <div class="cls-team-card">
     <div class="cls-team-avatar">TM</div>
     <div>
-      <div class="cls-team-name">Mdo. Thauã Menezes</div>
-      <div class="cls-team-role">Desenvolvedor &amp; Testador</div>
-      <div class="cls-team-desc">UNESP / UNIR. Desenvolvimento em R, testagem, validação e padronização de dados.</div>
+      <div class="cls-team-name">Thauã Menezes</div>
+      <div class="cls-team-role">Contribuidor R</div>
+      <div class="cls-team-desc">UNESP / UNIR. Testagem, validação e padronização de dados.</div>
     </div>
   </div>
 
@@ -295,7 +295,7 @@ a:hover { text-decoration: underline; }
       <li>Divulgar em redes e eventos</li>
       <li>Traduzir documentação</li>
     </ul>
-    <a class="cls-cta-btn" href="https://github.com/ByMaxAnjos/climasus4r/discussions" target="_blank">Participar das Discussões</a>
+    <a class="cls-cta-btn" href="https://github.com/ByMaxAnjos/climasus4r/issues" target="_blank">Abrir Issue no GitHub</a>
   </div>
 
   <div class="cls-contrib-card sci">
@@ -308,7 +308,7 @@ a:hover { text-decoration: underline; }
       <li>Validar interpretações científicas</li>
       <li>Propor casos de uso e análises</li>
     </ul>
-    <a class="cls-cta-btn" href="mailto:maxanjos@cidacs.fiocruz.br">Entrar em Contato</a>
+    <a class="cls-cta-btn" href="mailto:maxanjos@edu.ulisboa.pt">Entrar em Contato</a>
   </div>
 
 </div>
