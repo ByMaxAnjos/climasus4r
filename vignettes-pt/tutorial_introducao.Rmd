@@ -80,8 +80,8 @@ knitr::opts_chunk$set(
 
 # 1. Instalação
 
-O `climasus4r` está disponível no GitHub e pode ser instalado usando o
-pacote `remotes` (uma alternativa mais leve ao `devtools`).
+O pacote `climasus4r`está disponível no GitHub e pode ser instalado utilizando o pacote
+pacote `remotes` (uma alternativa mais leve ao `devtools`). Caso você ainda não tenha o pacote`remotes` instalado, execute:
 
 ::: callout-tip
 **Nota:** Se você já tem o `remotes` ou `devtools` instalado, pode pular
