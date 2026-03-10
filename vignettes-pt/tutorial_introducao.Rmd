@@ -147,10 +147,7 @@ Nas próximas seções, cada etapa do fluxo será apresentada em detalhes.
 
 # 3. Importação de Dados com `sus_data_import()`
 
-A primeira etapa é importar os dados. A função `sus_data_import()`
-automatiza o download e a leitura de microdados do DATASUS. Você pode
-especificar o sistema de origem, os anos e os estados de interesse.
-
+A primeira etapa do fluxo consiste na importação dos dados. A função `sus_data_import()` automatiza o download e a leitura dos microdados do DATASUS, permitindo definir o sistema de informação, os anos e as Unidades da Federação de interesse.
 ::: callout-tip
 O DATASUS possui diversos sistemas de informação. Neste tutorial, utilizaremos o **SIM-DO** (mortalidade) como exemplo.
 :::
