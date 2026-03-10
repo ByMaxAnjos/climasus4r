@@ -139,9 +139,9 @@ O fluxo de trabalho principal é:
 `sus_data_filter_cid()` → `sus_data_filter_demographics()` →
 `sus_data_aggregate()`
 
-Cada função executa uma etapa específica do processamento, e o output de
-uma função serve como input para a próxima. Vamos percorrer cada uma
-dessas etapas em detalhes.
+Cada função executa uma etapa específica do processamento, como importação, limpeza, padronização, filtragem e agregação dos dados. Ao final desse pipeline, os dados estarão organizados e prontos para análises epidemiológicas ou construção de séries temporais.
+
+Nas próximas seções, cada etapa do fluxo será apresentada em detalhes.
 
 ------------------------------------------------------------------------
 
