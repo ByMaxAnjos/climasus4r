@@ -104,9 +104,8 @@ remotes::install_github("ByMaxAnjos/climasus4r", upgrade = "never")
 ```
 
 ::: callout-warning
-**Atualizações:** O `climasus4r` está em constante desenvolvimento. Para
-obter as melhorias mais recentes, recomendo reinstalar o pacote
-periodicamente. Você pode usar o comando:
+**Atualizações:** O `climasus4r` está em desenvolvimento ativo, novas versões podem ser disponibilizadas com frequência.
+Para atualizar o pacote, utilize o comando:
 
 ```{r update-climasus4r, eval=FALSE}
 # Remover a versão anterior e reinstalar
