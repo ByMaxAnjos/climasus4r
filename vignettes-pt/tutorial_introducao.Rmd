@@ -1,5 +1,5 @@
 ---
-title: "Primeiros passo com o Climasus4r"
+title: "Primeiros passos com o Climasus4r"
 author:
   - name: "Max Anjos"
 date: "`r format(Sys.Date(), '%d de %B de %Y')`"
