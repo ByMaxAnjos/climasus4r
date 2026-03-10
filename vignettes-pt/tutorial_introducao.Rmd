@@ -40,11 +40,11 @@ editor_options:
 
 O Sistema Único de Saúde (SUS) disponibiliza grandes bases de dados públicos, como:
 
-SIM — Sistema de Informações sobre Mortalidade
+**SIM** — Sistema de Informações sobre Mortalidade
 
-SIH — Sistema de Informações Hospitalares
+**SIH** — Sistema de Informações Hospitalares
 
-SINAN — Sistema de Agravos de Notificação
+**SINAN** — Sistema de Agravos de Notificação
 
 No entanto, esses dados geralmente exigem etapas de importação, limpeza, padronização e agregação antes de poderem ser utilizados em análises epidemiológicas.
 
