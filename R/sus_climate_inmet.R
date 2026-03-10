@@ -306,7 +306,7 @@ sus_climate_inmet <- function(
       stage = "climate",
       type = "inmet",
       spatial = inherits(climate_data, "sf"),
-      temporal =  temporal = list(
+      temporal = list(
         start = min(climate_data$date),
         end = max(climate_data$date),
         resolution = "hour",
