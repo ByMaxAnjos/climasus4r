@@ -828,8 +828,7 @@ sus_join_spatial <- function(
       spatial = inherits(result_sf, "sf"),
       temporal = list(
         start = min(result_sf$date),
-        end = max(result_sf$date),
-        resolution = time_unit,
+        end = max(result_sf$date)
       ),
       created = Sys.time(),
       modified = Sys.time(),

@@ -308,8 +308,7 @@ sus_climate_inmet <- function(
       spatial = inherits(climate_data, "sf"),
       temporal = list(
         start = min(climate_data$date),
-        end = max(climate_data$date),
-        resolution = "hour",
+        end = max(climate_data$date)
       ),
       created = Sys.time(),
       modified = Sys.time(),

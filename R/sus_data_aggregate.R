@@ -506,8 +506,7 @@ sus_data_aggregate <- function(df,
       spatial = FALSE,
       temporal = list(
         start = min(df_agg$date),
-        end = max(df_agg$date),
-        resolution = time_unit,
+        end = max(df_agg$date)
       ),
       created = Sys.time(),
       modified = Sys.time(),
