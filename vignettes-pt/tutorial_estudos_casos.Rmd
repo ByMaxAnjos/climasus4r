@@ -1,5 +1,5 @@
 ---
-title: "Pipelines Analíticos Reprodutíveis (RAPs)"
+title: "Construindo Pipelines Analíticos Reprodutíveis com o Climasus4r"
 author:
   - name: "Max Anjos"
 date: "`r format(Sys.Date(), '%d de %B de %Y')`"
