@@ -410,7 +410,7 @@ grupos de doenças, suas descrições e os códigos CID-10 correspondentes.
 
 ```{r explore-cid, eval=FALSE}
 # Abrir a interface interativa de exploração
-sus_explore_cid(lang = "pt")
+sus_filter_cid_explore(lang = "pt")
 ```
 
 ::: callout-tip

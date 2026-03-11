@@ -1,5 +1,5 @@
 ---
-title: "Pipelines Analíticos Reprodutíveis (RAPs)"
+title: "Construindo Pipelines Analíticos Reprodutíveis com o Climasus4r"
 author:
   - name: "Max Anjos"
 date: "`r format(Sys.Date(), '%d de %B de %Y')`"
@@ -33,10 +33,10 @@ output:
 # Introdução
 
 ::: callout-box
-**Sobre este Tutorial** --- Este documento apresenta quatro estudos de caso práticos que demonstram o poder e a flexibilidade do pacote `climasus4r` para análises epidemiológicas. Cada estudo de caso é um **pipeline completo e executável**, desde a importação dos dados até a agregação final, mostrando como responder a diferentes perguntas de pesquisa em saúde pública.
+**Sobre este Tutorial** --- Este tutorial apresenta quatro estudos de caso práticos que demonstram como utilizar o pacote `climasus4r` para construir pipelines analíticos reprodutíveis (RAPs) em estudos epidemiológicos. Cada estudo de caso representa um pipeline completo e executável, cobrindo todas as etapas da análise: desde a obtenção e preparação dos dados, passando pela padronização e agregação temporal, até a geração de bases prontas para análise estatística.
 :::
 
-Enquanto o tutorial introdutório foca em explicar cada função individualmente, este guia mostra como **combinar** essas funções em fluxos de trabalho coesos para resolver problemas do mundo real. Os exemplos foram escolhidos para cobrir diferentes sistemas de dados, agravos, escalas temporais e recortes demográficos.
+Enquanto o tutorial introdutório apresenta as funções do pacote de forma individual, este guia mostra como combiná-las em fluxos de trabalho integrados, semelhantes aos utilizados em pesquisas reais em saúde pública e epidemiologia ambiental.
 
 Neste tutorial, você aprenderá a construir os seguintes pipelines:
 
