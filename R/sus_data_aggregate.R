@@ -495,27 +495,27 @@ sus_data_aggregate <- function(df,
     }
   }
   
-  # Update stage and type
  # Update stage and type
    if (!inherits(df_agg, "climasus_df")) {
     # Create new climasus_df
-    meta <- list(
-      system = system,
-      stage = "aggregate",
-      type = "agg",
-      spatial = FALSE,
-      temporal = list(
-        start = min(df_agg$date),
-        end = max(df_agg$date)
-      ),
-      created = Sys.time(),
-      modified = Sys.time(),
-      history = sprintf(
-        "[%s] Temporal Data aggregated",
-        format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-      ),
-      user = list()
-    )
+    # meta <- list(
+    #   system = system,
+    #   stage = "aggregate",
+    #   type = "agg",
+    #   spatial = FALSE,
+    #   temporal = list(
+    #     start = min(df_agg$date),
+    #     end = max(df_agg$date)
+    #   ),
+    #   created = Sys.time(),
+    #   modified = Sys.time(),
+    #   history = sprintf(
+    #     "[%s] Temporal Data aggregated",
+    #     format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+    #   ),
+    #   user = list()
+    # )
+    meta <- original_meta
 
     base_classes <- setdiff(class(df_agg), "climasus_df")
     df_agg <- structure(
@@ -523,7 +523,7 @@ sus_data_aggregate <- function(df,
       climasus_meta = meta,
       class = c("climasus_df", base_classes)
     )
-  } else { 
+   } else { 
     df_agg <- climasus_meta(
     df_agg,
     system = system,  # Preserve original system
