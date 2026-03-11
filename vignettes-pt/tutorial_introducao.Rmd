@@ -484,7 +484,6 @@ df_monthly <- sus_data_aggregate(
 )
 ```
 
-
 ```{r, echo=FALSE}
 df_monthly <- readRDS("tutorial_sample_month.rds")
 ```

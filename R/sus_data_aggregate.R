@@ -360,15 +360,15 @@ sus_data_aggregate <- function(df,
   #Get geographical columns
 
  # Get geographical columns (auto-detect municipality codes)
-  # get_geo_col <- c(
-  #   "codigo_municipio_notificacao", "codigo_municipio_notificacion", "notification_municipality_code",
-  #   "residence_municipality_code", "municipality_code", "residence_municipality",
-  #   "codigo_municipio_ocurrencia", "codigo_municipio_residencia", "codigo_municipio_nascimento", "codigo_municipio",
-  #   "codigo_municipio_paciente", "uf_municipio_estabelecimento", "facility_uf_municipality",
-  #   "patient_municipality_code", "uf_municipio_establecimiento",
-  #   "cep_paciente", "codigo_postal_paciente", "codigo_postal", "patient_zip_code", "zip_code",
-  #   "CODMUNRES"
-  # )
+  common_cols <- c(
+    "codigo_municipio_notificacao", "codigo_municipio_notificacion", "notification_municipality_code",
+    "residence_municipality_code", "municipality_code", "residence_municipality",
+    "codigo_municipio_ocurrencia", "codigo_municipio_residencia", "codigo_municipio_nascimento", "codigo_municipio",
+    "codigo_municipio_paciente", "uf_municipio_estabelecimento", "facility_uf_municipality",
+    "patient_municipality_code", "uf_municipio_establecimiento",
+    "cep_paciente", "codigo_postal_paciente", "codigo_postal", "patient_zip_code", "zip_code",
+    "CODMUNRES"
+  )
 
   existent_cols <- names(df)[names(df) %in% common_cols]
 
