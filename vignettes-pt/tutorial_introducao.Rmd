@@ -122,6 +122,14 @@ pacote para começar a usá-lo:
 ```{r library, eval = FALSE}
 library(climasus4r)
 ```
+**Instalação alternativa (arquivo local .zip):** Esta opção é recomendada para ambientes com instabilidade de conexão, restrições de rede ou uso em treinamentos com múltiplos usuários.
+
+Baixar o pacote
+
+Faça o download do arquivo compactado:
+
+https://github.com/ByMaxAnjos/climasus4r/archive/refs/heads/master.zip
+
 
 ------------------------------------------------------------------------
 
