@@ -147,6 +147,11 @@ remotes::install_local(
   upgrade = "never"
 )
 ```
+Após a instalação (e sempre que iniciar uma nova sessão), carregue o pacote para começar a usá-lo:
+
+```{r library, eval = FALSE}
+library(climasus4r)
+```
 ------------------------------------------------------------------------
 
 # 2. O Fluxo de Trabalho do `climasus4r`
