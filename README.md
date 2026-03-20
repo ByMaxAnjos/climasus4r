@@ -43,10 +43,11 @@ O [**climasus4r**](https://bymaxanjos.github.io/climasus4r/) transforma como pes
 
 O pacote `climasus4r`está disponível no GitHub e pode ser instalado de duas formas. Recomendamos a **Opção 1** para a maioria dos usuários.
 
+---
 Caso você ainda não tenha o pacote `remotes` instalado, execute o código abaixo:
 
 ::: callout-tip
-**Pré-requisito::** Se você já tem o `remotes` ou `devtools` instalado, pode pular
+**Pré-requisito::** Se você já tem o   `remotes` ou `devtools` instalado, pode pular
 essa etapa.
 :::
 
@@ -65,6 +66,7 @@ remotes::install_github("ByMaxAnjos/climasus4r", upgrade = "never")
 
 ::: callout-warning
 **Atualizações:** O `climasus4r` está em desenvolvimento ativo. Para atualizar, basta executar o comando acima novamente. O R irá sobrescrever a versão antiga automaticamente. Após a atualização, recomenda-se reiniciar a sessão (Menu: Session > Restart R).
+:::
 
 ## Opção 2: Instalação via Arquivo Local (.zip)
 
@@ -88,8 +90,6 @@ Após a instalação, carregue o pacote sempre que iniciar uma nova sessão no R
 ```r
 library(climasus4r)
 ```
-:::
-
 
 ### **Sistemas Suportados**
 
