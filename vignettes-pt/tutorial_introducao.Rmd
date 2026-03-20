@@ -80,80 +80,56 @@ knitr::opts_chunk$set(
 
 # 1. Instalação
 
-O pacote `climasus4r`está disponível no GitHub e pode ser instalado utilizando o pacote
-pacote `remotes` (uma alternativa mais leve ao `devtools`). Caso você ainda não tenha o pacote`remotes` instalado, execute:
+O pacote `climasus4r`está disponível no GitHub e pode ser instalado de duas formas. Recomendamos a **Opção 1** para a maioria dos usuários.
+
+Caso você ainda não tenha o pacote `remotes` instalado, execute o código abaixo:
 
 ::: callout-tip
-**Nota:** Se você já tem o `remotes` ou `devtools` instalado, pode pular
+**Pré-requisito::** Se você já tem o `remotes` ou `devtools` instalado, pode pular
 essa etapa.
 :::
 
 ```{r install-packages, eval=FALSE}
-# Instalação das dependências necessárias
-# (Execute apenas se ainda não tiver esses pacotes instalados)
-if (!require("remotes")) {
-  install.packages("remotes")
-}
+if (!require("remotes")) { install.packages("remotes")}
 ```
 
-## Opcão 1
+## Opção 1: Instalação via GitHub (Recomendado)
 
-Agora instale o `climasus4r` diretamente do GitHub:
+Esta é a forma mais rápida de obter a versão mais recente:
 
 ```{r install-climasus4r, eval=FALSE}
-# Instalar o pacote climasus4r a partir do GitHub
+# Instalar ou atualizar o pacote diretamente do GitHub
 remotes::install_github("ByMaxAnjos/climasus4r", upgrade = "never")
 ```
 
 ::: callout-warning
-**Atualizações:** O `climasus4r` está em desenvolvimento ativo, novas versões podem ser disponibilizadas com frequência.
-Para atualizar o pacote, utilize o comando:
+**Atualizações:** O `climasus4r` está em desenvolvimento ativo. Para atualizar, basta executar o comando acima novamente. O R irá sobrescrever a versão antiga automaticamente. Após a atualização, recomenda-se reiniciar a sessão (Menu: Session > Restart R).
 
-```{r update-climasus4r, eval=FALSE}
-# Remover a versão anterior e reinstalar
-remove.packages("climasus4r")
-remotes::install_github("ByMaxAnjos/climasus4r", upgrade = "never")
+## Opção 2: Instalação via Arquivo Local (.zip)
 
-# Após atualizar, reinicie sua sessão R (Session > Restart R)
-```
-:::
+Esta opção é recomendada para ambientes com instabilidade de conexão, restrições de rede ou uso em treinamentos com múltiplos usuários.
 
-Após a instalação (e sempre que iniciar uma nova sessão), carregue o
-pacote para começar a usá-lo:
+1. **Baixar o pacote**: Clique [AQUI](https://github.com/ByMaxAnjos/climasus4r/archive/refs/heads/master.zip) para baixar o .zip
+2. **Extrair o arquivo**: Extraia o conteúdo em uma pasta de fácil acesso (ex: Downloads ou Desktop).
+3. **Instalar localmente**: Execute o comando abaixo, ajustando o caminho para a pasta onde você extraiu o arquivo:
 
-```{r library, eval = FALSE}
-library(climasus4r)
-```
-**Instalação alternativa (arquivo local .zip):** Esta opção é recomendada para ambientes com instabilidade de conexão, restrições de rede ou uso em treinamentos com múltiplos usuários.
-
-Baixar o pacote
-
-Faça o download do arquivo compactado:
-
-```
-https://github.com/ByMaxAnjos/climasus4r/archive/refs/heads/master.zip
-```
-Extrair o arquivo
-
-Após o **download**, extraia o arquivo .zip em uma pasta local (por exemplo, Downloads).
-
-```
-Clique com o botão direito no arquivo .zip → "Extrair aqui" ou "Extrair para climasus4r-master"
-```
-
-Instalar o pacote localmente
-
-```
+```{r install-climasus4r, eval=FALSE}
+# IMPORTANTE: Altere o caminho abaixo para o local onde você salvou o pacote
 remotes::install_local(
-  "C:/Users/SEU_USUARIO/Downloads/climasus4r-master/climasus4r-master",
+  "C:/Caminho/Para/Sua/Pasta/climasus4r-master", 
   upgrade = "never"
 )
 ```
-Após a instalação (e sempre que iniciar uma nova sessão), carregue o pacote para começar a usá-lo:
 
-```{r library, eval = FALSE}
+
+# 2. Carregando o pacote
+
+Após a instalação, carregue o pacote sempre que iniciar uma nova sessão no R para liberar as funções:
+```{r, eval=FALSE}
 library(climasus4r)
 ```
+:::
+
 ------------------------------------------------------------------------
 
 # 2. O Fluxo de Trabalho do `climasus4r`
