@@ -97,7 +97,7 @@ if (!require("remotes")) { install.packages("remotes")}
 
 Esta é a forma mais rápida de obter a versão mais recente:
 
-```{r install-climasus4r, eval=FALSE}
+```{r, eval=FALSE}
 # Instalar ou atualizar o pacote diretamente do GitHub
 remotes::install_github("ByMaxAnjos/climasus4r", upgrade = "never")
 ```
@@ -113,14 +113,13 @@ Esta opção é recomendada para ambientes com instabilidade de conexão, restri
 2. **Extrair o arquivo**: Extraia o conteúdo em uma pasta de fácil acesso (ex: Downloads ou Desktop).
 3. **Instalar localmente**: Execute o comando abaixo, ajustando o caminho para a pasta onde você extraiu o arquivo:
 
-```{r install-climasus4r, eval=FALSE}
+```{r, eval=FALSE}
 # IMPORTANTE: Altere o caminho abaixo para o local onde você salvou o pacote
 remotes::install_local(
   "C:/Caminho/Para/Sua/Pasta/climasus4r-master", 
   upgrade = "never"
 )
 ```
-
 
 # 2. Carregando o pacote
 

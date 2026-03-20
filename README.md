@@ -39,23 +39,57 @@ O [**climasus4r**](https://bymaxanjos.github.io/climasus4r/) transforma como pes
 > - **Alta Performance:** Processamento paralelo para lidar com grandes volumes de dados de forma eficiente.
 
 
-## Instalação
+# Instalação
 
-O climasus4r encontra-se atualmente em desenvolvimento ativo. A versão mais recente pode ser instalada diretamente a partir do GitHub, garantindo acesso às funcionalidades mais atualizadas. Antes da instalação, é necessário ter o pacote remotes, que permite a instalação de pacotes hospedados no GitHub.
+O pacote `climasus4r`está disponível no GitHub e pode ser instalado de duas formas. Recomendamos a **Opção 1** para a maioria dos usuários.
+
+Caso você ainda não tenha o pacote `remotes` instalado, execute o código abaixo:
+
+::: callout-tip
+**Pré-requisito::** Se você já tem o `remotes` ou `devtools` instalado, pode pular
+essa etapa.
+:::
 
 ```r
-# Instale o remotes se ainda não o tiver
-if (!require("remotes")) {
-  install.packages("remotes")
-}
+if (!require("remotes")) { install.packages("remotes")}
+```
 
-# Instale o CLIMASUS4r
-remotes::install_github("ByMaxAnjos/climasus4r", upgrade = "never")
+## Opção 1: Instalação via GitHub (Recomendado)
 
-# Atualize com frequência para obter as melhorias mais recentes
-remove.packages("climasus4r")
+Esta é a forma mais rápida de obter a versão mais recente:
+
+```r
+# Instalar ou atualizar o pacote diretamente do GitHub
 remotes::install_github("ByMaxAnjos/climasus4r", upgrade = "never")
 ```
+
+::: callout-warning
+**Atualizações:** O `climasus4r` está em desenvolvimento ativo. Para atualizar, basta executar o comando acima novamente. O R irá sobrescrever a versão antiga automaticamente. Após a atualização, recomenda-se reiniciar a sessão (Menu: Session > Restart R).
+
+## Opção 2: Instalação via Arquivo Local (.zip)
+
+Esta opção é recomendada para ambientes com instabilidade de conexão, restrições de rede ou uso em treinamentos com múltiplos usuários.
+
+1. **Baixar o pacote**: Clique [AQUI](https://github.com/ByMaxAnjos/climasus4r/archive/refs/heads/master.zip) para baixar o .zip
+2. **Extrair o arquivo**: Extraia o conteúdo em uma pasta de fácil acesso (ex: Downloads ou Desktop).
+3. **Instalar localmente**: Execute o comando abaixo, ajustando o caminho para a pasta onde você extraiu o arquivo:
+
+```r
+# IMPORTANTE: Altere o caminho abaixo para o local onde você salvou o pacote
+remotes::install_local(
+  "C:/Caminho/Para/Sua/Pasta/climasus4r-master", 
+  upgrade = "never"
+)
+```
+
+## Carregando o pacote
+
+Após a instalação, carregue o pacote sempre que iniciar uma nova sessão no R para liberar as funções:
+```r
+library(climasus4r)
+```
+:::
+
 
 ### **Sistemas Suportados**
 
