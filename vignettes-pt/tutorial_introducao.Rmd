@@ -124,7 +124,36 @@ pacote para começar a usá-lo:
 ```{r library, eval = FALSE}
 library(climasus4r)
 ```
+**Instalação alternativa (arquivo local .zip):** Esta opção é recomendada para ambientes com instabilidade de conexão, restrições de rede ou uso em treinamentos com múltiplos usuários.
 
+Baixar o pacote
+
+Faça o download do arquivo compactado:
+
+```
+https://github.com/ByMaxAnjos/climasus4r/archive/refs/heads/master.zip
+```
+Extrair o arquivo
+
+Após o **download**, extraia o arquivo .zip em uma pasta local (por exemplo, Downloads).
+
+```
+Clique com o botão direito no arquivo .zip → "Extrair aqui" ou "Extrair para climasus4r-master"
+```
+
+Instalar o pacote localmente
+
+```
+remotes::install_local(
+  "C:/Users/SEU_USUARIO/Downloads/climasus4r-master/climasus4r-master",
+  upgrade = "never"
+)
+```
+Após a instalação (e sempre que iniciar uma nova sessão), carregue o pacote para começar a usá-lo:
+
+```{r library, eval = FALSE}
+library(climasus4r)
+```
 ------------------------------------------------------------------------
 
 # 2. O Fluxo de Trabalho do `climasus4r`
