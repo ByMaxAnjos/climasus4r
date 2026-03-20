@@ -14,44 +14,29 @@
 <!-- badges: end -->
 
 
-O [**climasus4r**](https://bymaxanjos.github.io/climasus4r/) é um pacote integrado de ferramentas em R desenvolvido para otimizar a análise de dados de saúde, clima e ambiente no Brasil. O pacote foi concebido no âmbito do projeto INCT Conexão – Amazônia e tem como objetivo automatizar e padronizar etapas críticas do fluxo de trabalho em pesquisas epidemiológicas e ambientais, promovendo reprodutibilidade, eficiência e escalabilidade.
+O [**climasus4r**](https://bymaxanjos.github.io/climasus4r/) transforma como pesquisadores analisam a interseção de clima, saúde e ambiente no Brasil. Este pacote R integra dados de múltiplas fontes—sistemas de saúde, estações meteorológicas, imagens de satélite e bancos de dados socioeconômicos—em um framework analítico unificado. O que normalmente levaria meses de manipulação manual de dados agora leva minutos ou segundos, graças a pipelines automatizados que garantem reprodutibilidade e rigor científico. Com o climasus4r usuários podem compartilhar não apenas resultados, mas fluxos de trabalho analíticos inteiros que outros podem verificar e construir sobre.
 
-Baeado no sóilido ecossistema do pacote [`microdatasus`](https://github.com/rfsaldanha/microdatasus), o climasus4r expande suas funcionalidades ao incoporar rotinas especializadas para estudos em clima e saúde, reduzindo significativamente o esforço necessario para aquisição, limpeza, integração e preparação dos dados, incluindo:
+## Por que usar climasus4r?
 
-- **Aquisição de dados em paralelo**, permitindo o download simultâneo de múltiplos estados e anos
-- **Suporte multi-sistema** para todos os 6 principais sistemas de saúde brasileiros (SIM, SINASC, SINAN, SIH, SIA, CNES)
-- **Correção de codificação aprimorada** para texto em português do Brasil
-- **Nomes de colunas e valores padronizados** com traduções multilíngues (EN/PT/ES)
-- **Filtragem abrangente da CID-10** com mais de 54 grupos de doenças predefinidos
-- **Agregação temporal flexível** com sazonalidade brasileira
-- **Criação automática de variáveis** epidemiológicas e temporais
-- **Relatórios de qualidade de dados** automatizados
-- **Filtragem demográfica avançada** com grupos etários personalizáveis
-- **Exportação com metadados** para reprodutibilidade
-- **Classificação de doenças sensíveis ao clima** para pesquisa epidemiológica
-- **Interface totalmente multilíngue** favorecendo colaboração científica internacional
+> | Aspecto | climasus4r | Pacotes Similares |
+> |---|---|---|
+> | **Integração Saúde-Clima** | ✓ Nativa | ✗ Requer integração manual |
+> | **Dados SUS Automatizados** | ✓ Sim (6 sistemas) | ✗ Requer download manual |
+> | **RAPs (Reprodutibilidade)** | ✓ Integrado | ✗ Requer documentação manual |
+> | **Multilíngue** | ✓ PT/ES/EN | ✗ Geralmente apenas EN |
+> | **Processamento Paralelo** | ✓ Nativo | ✗ Requer configuração manual |
+> | **Agregação Espaciotemporal** | ✓ Flexível (15+ opções) | ✗ Limitado |
+> | **Foco em Contexto Brasileiro** | ✓ Sim | ✗ Genérico |
 
 
-## 📦 Visão Geral das Funções
+## Principais Funcionalidades
 
-| Categoria | Função | Descrição |
-| :--- | :--- | :--- |
-| **📥 Importação e Exportação** | `sus_data_import()` | Importa e pré-processa dados do DATASUS com cache inteligente. |
-| | `sus_data_read()` | Leitura otimizada de dados processados com suporte paralelo. |
-| | `sus_data_export()` | Exporta dados processados preservando metadados. |
-| **🧹 Limpeza e Padronização** | `sus_data_clean_encoding()` | Detecta e corrige problemas de codificação de caracteres. |
-| | `sus_data_standardize()` | Padroniza nomes de colunas e valores dos dados do SUS. |
-| | `sus_create_variables()` | Cria variáveis derivadas para análise epidemiológica. |
-| **🔍 Filtros e Seleção** | `sus_data_filter_cid()` | Filtra por códigos CID-10 ou grupos de doenças (multilíngue). |
-| | `sus_data_filter_demographics()` | Filtra dados por variáveis demográficas (idade, sexo, raça). |
-| **🗺️ Espacial e Censo** | `sus_join_spatial()` | Vincula dados do SUS às malhas geográficas brasileiras. |
-| | `sus_socio_add_census()` | Enriquece dados de saúde com variáveis socioeconômicas do Censo. |
-| | `sus_data_aggregate()` | Agrega dados de saúde em séries temporais. |
-| **📊 Qualidade e Metadados** | `sus_data_quality_report()` | Gera relatórios detalhados sobre a qualidade dos dados. |
-| | `list_disease_groups()` | Lista os grupos de doenças disponíveis para filtro. |
-| | `sus_census_explore()` | Explorador interativo de variáveis do Censo. |
-| **⚡ Cache** | `clear_climasus_cache()` | Gerencia e limpa o armazenamento local de arquivos. |
-
+> - **Integração Unificada de Dados:** Combine dados de saúde (SUS), clima (INMET, ERA5), ambientais (MapBiomas, AQI) e socioeconômicos (IBGE) de forma transparente.
+> - **Pipelines Automatizados:** Importe, limpe, padronize e agregue dados com poucas linhas de código.
+> - **Workflows Reprodutíveis:** Gere RAPs (Reproducible Analytical Pipelines) que documentam cada etapa da sua análise.
+> - **Agregação Flexível:** Analise dados em escalas diárias, semanais, mensais, sazonais ou anuais; em níveis municipais, regionais ou nacionais.
+> - **Suporte Multilíngue:** Saídas em Português, Espanhol ou Inglês.
+> - **Alta Performance:** Processamento paralelo para lidar com grandes volumes de dados de forma eficiente.
 
 
 ## Instalação
@@ -171,7 +156,7 @@ sus_data_export(df_analise,
 
 ---
 
-## Fase 1: Infraestrutura de Dados ✅ 
+## Exemplo: Infraestrutura de Dados ✅ 
 
 A Fase 1 do `climasus4r` fornece um **pipeline end-to-end completo** para preparação de dados de saúde, desde a aquisição bruta até dados prontos para análise. Com **9 funções principais**, você pode transformar dados do DATASUS em séries temporais agregadas, padronizadas e prontas para modelagem em minutos.
 
@@ -222,7 +207,6 @@ df <- sus_data_import(
   workers = 4
 )
 ```
-
 
 **Recursos:**
 - ✅ Cache automático para evitar downloads redundantes
@@ -816,6 +800,12 @@ O projeto climasus4r é financiado pelo Ministério da Saúde, pela Fundação O
 - **INCT Conexão - Amazônia** pelo financiamento e suporte
 - Todos os colaboradores e testadores que ajudaram a melhorar o pacote
 
+
+---
+
+## Inspiração
+
+- Pacote R [`microdatasus`](https://github.com/rfsaldanha/microdatasus)
 
 ---
 

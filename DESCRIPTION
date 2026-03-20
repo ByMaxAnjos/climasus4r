@@ -1,23 +1,19 @@
 Package: climasus4r
-Title: Integrated Analysis Toolkit for Health, Climate, and Environmental Data
+Title: Integrated Analysis Toolkit for Health, Climate, and Environmental Data in Brazil: Reproducible Workflows for Climate-Health Research
 Version: 0.0.0.9000
 Authors@R: 
     c(person(given = "Max",
              family = "Anjos",
-             role = c("aut", "cre"),
+             role = c("aut", "cre", "cph"),
              email = "maxanjos@campus.ul.pt",
              comment = c(ORCID = "0000-0001-6394-1324")),
        person(given = "Thaua",
              family = "Menezes",
-             role = c("aut", "ctb"),
+             role = c("ctb"),
              email = "thaua.menezes@unesp.br",
              comment = c(ORCID = "0000-0002-3015-2270"))      
              )
-Description: A computational toolkit to import, process, integrate, and analyze
-    climatic, air quality, and health data from the Brazilian Unified Health
-    System (SUS). Climasus4r automates the most laborious steps of data analysis,
-    ensuring standardized and reproducible research, specifically aligned with
-    the strategic goals of the INCT Conexão - Amazônia project.
+Description: climasus4r is a comprehensive R toolkit for integrated analysis of health, climate, and environmental data in Brazil. The package automates the entire data pipeline: (1) importing and cleaning health data from the Brazilian Unified Health System (SUS) across six systems (SIM, SIH, SINAN, SIA, CNES, SINASC); (2) integrating climate data (INMET, ERA5), air quality (AQI), environmental data (MapBiomas), and socioeconomic indicators (IBGE); (3) performing flexible spatiotemporal aggregation at multiple scales; (4) constructing reproducible analytical pipelines (RAPs) that ensure transparency and replicability. Designed for researchers studying climate-health interactions, environmental vulnerability, and adaptation strategies in the Brazilian context. Supports multilingual output (Portuguese, Spanish, English) and parallel processing for large datasets.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

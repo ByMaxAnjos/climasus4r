@@ -96,6 +96,8 @@ if (!require("remotes")) {
 }
 ```
 
+## Opcão 1
+
 Agora instale o `climasus4r` diretamente do GitHub:
 
 ```{r install-climasus4r, eval=FALSE}

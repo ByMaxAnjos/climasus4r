@@ -272,6 +272,20 @@ a:hover { text-decoration: underline; }
 
 <div class="cls-contrib-grid">
 
+    <div class="cls-contrib-card test">
+    <div class="cls-contrib-icon">🧪</div>
+    <div class="cls-contrib-title">Contribuidor R</div>
+    <div class="cls-contrib-desc">Para usuários de R que querem ajudar com testes e na divulgação do pacote.</div>
+    <ul class="cls-contrib-list">
+      <li>Testar funções e reportar bugs</li>
+      <li>Escrever exemplos e tutoriais</li>
+      <li>Criar estudos de caso com dados reais do SUS</li>
+      <li>Divulgar em redes e eventos</li>
+      <li>Traduzir documentação</li>
+    </ul>
+    <a class="cls-cta-btn" href="https://github.com/ByMaxAnjos/climasus4r/issues" target="_blank">Abrir Issue no GitHub</a>
+  </div>
+  
   <div class="cls-contrib-card dev">
     <div class="cls-contrib-icon">💻</div>
     <div class="cls-contrib-title">Desenvolvedor R</div>
@@ -285,28 +299,15 @@ a:hover { text-decoration: underline; }
     <a class="cls-cta-btn" href="https://github.com/ByMaxAnjos/climasus4r/issues" target="_blank">Abrir Issue no GitHub</a>
   </div>
 
-  <div class="cls-contrib-card test">
-    <div class="cls-contrib-icon">🧪</div>
-    <div class="cls-contrib-title">Contribuidor R</div>
-    <div class="cls-contrib-desc">Para usuários de R que querem ajudar com testes e na divulgação do pacote.</div>
-    <ul class="cls-contrib-list">
-      <li>Testar funções e reportar bugs</li>
-      <li>Escrever exemplos e tutoriais</li>
-      <li>Divulgar em redes e eventos</li>
-      <li>Traduzir documentação</li>
-    </ul>
-    <a class="cls-cta-btn" href="https://github.com/ByMaxAnjos/climasus4r/issues" target="_blank">Abrir Issue no GitHub</a>
-  </div>
-
   <div class="cls-contrib-card sci">
     <div class="cls-contrib-icon">🔬</div>
-    <div class="cls-contrib-title">Contribuidor Científico</div>
+    <div class="cls-contrib-title">Consultor Científico</div>
     <div class="cls-contrib-desc">Para pesquisadores e professores de clima &amp; saúde — sem exigência de expertise em R.</div>
     <ul class="cls-contrib-list">
       <li>Auditar métodos e resultados</li>
-      <li>Sugerir novas funções</li>
+      <li>Sugerir novas funções e análises</li>
       <li>Validar interpretações científicas</li>
-      <li>Propor casos de uso e análises</li>
+      <li>Co-autoria em publicações e relatórios técnicoss</li>
     </ul>
     <a class="cls-cta-btn" href="mailto:maxanjos@edu.ulisboa.pt">Entrar em Contato</a>
   </div>
