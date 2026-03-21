@@ -2,35 +2,98 @@
 title: "Primeiros passos com o Climasus4r"
 author:
   - name: "Max Anjos"
-date: "`r format(Sys.Date(), '%d de %B de %Y')`"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
 output:
   html_document:
     toc: true
     toc_depth: 4
     toc_float:
-      collapsed: false
+      collapsed: true
       smooth_scroll: true
     number_sections: true
     theme: flatly
-    highlight: kate
+    highlight: tango
     code_folding: show
-    fig_caption: true
+    code_download: true      # Permite ao usuário baixar o código Rmd original
+    self_contained: true     # Garante que tudo funcione offline
     df_print: paged
-    css: |
-      body { font-family: 'Source Serif Pro', Georgia, serif; font-size: 16px; line-height: 1.75; }
-      h1, h2, h3, h4 { font-family: 'Inter', 'Helvetica Neue', sans-serif; }
-      .callout-box { border-left: 4px solid #2EC4B6; background: #f0fafa; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
-      .callout-tip { border-left: 4px solid #3BB273; background: #f0faf4; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
-      .callout-warning { border-left: 4px solid #F4A261; background: #fff8f0; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
-      pre { font-size: 13px; }
-editor_options: 
-  markdown: 
-    wrap: 72
 ---
 
-![](https://github.com/ByMaxAnjos/climasus4r/blob/master/inst/figures/logo.png?raw=true){width="199"}
+```{css, echo=FALSE}
+/* ── Variáveis de Cores Modernas ────────────────── */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+}
 
-> **Infraestrutura e Preparação de Dados DATASUS**
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 18px; /* Aumentado para melhor legibilidade */
+  color: var(--text-main);
+  background-color: #fff;
+}
+
+/* ── Títulos com Inter-spacing ─────────────────── */
+h1, h2, h3 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  color: var(--dark-green);
+}
+
+h1.title {
+  font-size: 2.8em;
+  border-bottom: 4px solid var(--primary-color);
+  padding-bottom: 10px;
+}
+
+/* ── Code Blocks Estilizados ────────────────────── */
+pre.r {
+  background-color: var(--code-bg);
+  border: 1px solid #e1e1e1;
+  border-left: 5px solid var(--primary-color) !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* ── Custom Callouts (Estilo Quarto) ────────────── */
+.callout {
+  padding: 1.2em;
+  margin: 1.5em 0;
+  border-radius: 0 8px 8px 0;
+  border-left: 6px solid;
+}
+
+.callout-note {
+  background-color: #f0f7ff;
+  border-color: #007bff;
+}
+
+/* ── Transições suaves no menu lateral ──────────── */
+.list-group-item.active, .list-group-item.active:focus, .list-group-item.active:hover {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  eval    = FALSE,      # set TRUE in a live session with climasus4r installed
+  warning = FALSE,
+  message = FALSE,
+  comment = "#>",
+  fig.align = "center",
+  out.width = "100%"
+)
+```
+
 
 # Introdução
 
