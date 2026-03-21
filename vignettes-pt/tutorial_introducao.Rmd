@@ -101,15 +101,7 @@ knitr::opts_chunk$set(
 **Tutorial Introdutório** --- Este tutorial apresenta um guia prático para começar a utilizar o pacote `climasus4r`. O objetivo é demonstrar o fluxo básico de trabalho, desde a instalação do pacote até a criação de séries temporais a partir de dados de saúde do DATASUS, integrando informações de saúde, clima e meio ambiente.
 :::
 
-O Sistema Único de Saúde (SUS) disponibiliza grandes bases de dados públicos, como:
-
-**SIM** — Sistema de Informações sobre Mortalidade
-
-**SIH** — Sistema de Informações Hospitalares
-
-**SINAN** — Sistema de Agravos de Notificação
-
-No entanto, esses dados geralmente exigem etapas de importação, limpeza, padronização e agregação antes de poderem ser utilizados em análises epidemiológicas.
+O Sistema Único de Saúde (SUS) disponibiliza grandes bases de dados públicos, como SIM, SIH, SINAN, CNES, SINAC. No entanto, esses dados geralmente exigem etapas de importação, limpeza, padronização e agregação antes de poderem ser utilizados em análises epidemiológicas.
 
 O pacote `climasus4r` foi desenvolvido para automatizar e padronizar esse processo, permitindo análises reprodutíveis, rápidas e escaláveis em estudos de clima, ambiente e saúde pública.
 
@@ -129,17 +121,6 @@ Neste tutorial, você aprenderá a:
 9.  **Agregar** os dados em séries temporais (diárias, mensais, anuais).
 
 ------------------------------------------------------------------------
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(
-  echo       = TRUE,
-  warning    = FALSE,
-  message    = FALSE,
-  fig.align  = "center",
-  out.width  = "100%",
-  comment    = "#>"
-)
-```
 
 # 1. Instalação
 

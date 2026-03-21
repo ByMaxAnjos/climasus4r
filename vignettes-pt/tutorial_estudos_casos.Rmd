@@ -92,10 +92,6 @@ knitr::opts_chunk$set(
 ```
 
 
-![](https://github.com/ByMaxAnjos/climasus4r/blob/master/inst/figures/logo.png?raw=true){width="199"}
-
-> **Estudos de Caso e Pipelines Analíticos Reprodutíveis (RAPs)**
-
 # Introdução
 
 ::: callout-box
@@ -113,20 +109,9 @@ Neste tutorial, você aprenderá a construir os seguintes pipelines:
 
 ------------------------------------------------------------------------
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(
-  echo       = TRUE,
-  warning    = FALSE,
-  message    = FALSE,
-  fig.align  = "center",
-  out.width  = "100%",
-  comment    = "#>"
-)
-```
-
 # 1. Operador Pipe: Conceito e Uso
 
-Antes de apresentarmos os pipelines, é fundamental entender o **operador pipe** (`%>%)` , que é a espinha dorsal de todo o código que você verá neste tutorial. O pipe é uma forma elegante de encadear operações em R, tornando o código mais legível, intuitivo e fácil de manter.
+Antes de apresentarmos os pipelines, é fundamental entender o **operador pipe** (`%>%` ou `|>`) , que é a espinha dorsal de todo o código que você verá neste tutorial. O pipe é uma forma elegante de encadear operações em R, tornando o código mais legível, intuitivo e fácil de manter.
 
 ## 1.1. O Que É o Pipe?
 
