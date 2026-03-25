@@ -14,8 +14,8 @@ output:
     theme: flatly
     highlight: tango
     code_folding: show
-    code_download: true      # Permite ao usuário baixar o código Rmd original
-    self_contained: true     # Garante que tudo funcione offline
+    code_download: true
+    self_contained: true
     df_print: paged
 ---
 
@@ -27,6 +27,8 @@ output:
   --bg-light: #f8faf9;
   --text-main: #1a1a1a;
   --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
 }
 
 html {
@@ -35,13 +37,14 @@ html {
 
 body {
   font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 18px; /* Aumentado para melhor legibilidade */
+  font-size: 18px;
   color: var(--text-main);
   background-color: #fff;
+  line-height: 1.6;
 }
 
 /* ── Títulos com Inter-spacing ─────────────────── */
-h1, h2, h3 {
+h1, h2, h3, h4 {
   font-family: 'Inter', sans-serif;
   font-weight: 700;
   color: var(--dark-green);
@@ -51,23 +54,32 @@ h1.title {
   font-size: 2.8em;
   border-bottom: 4px solid var(--primary-color);
   padding-bottom: 10px;
+  margin-bottom: 1.5rem;
+}
+
+h2 {
+  margin-top: 2rem;
+  border-left: 4px solid var(--primary-color);
+  padding-left: 1rem;
 }
 
 /* ── Code Blocks Estilizados ────────────────────── */
-pre.r {
+pre.r, pre.sourceCode {
   background-color: var(--code-bg);
   border: 1px solid #e1e1e1;
   border-left: 5px solid var(--primary-color) !important;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  padding: 1rem;
 }
 
 /* ── Custom Callouts (Estilo Quarto) ────────────── */
 .callout {
-  padding: 1.2em;
+  padding: 1.2em 1.5em;
   margin: 1.5em 0;
-  border-radius: 0 8px 8px 0;
+  border-radius: 8px;
   border-left: 6px solid;
+  background-color: var(--bg-light);
 }
 
 .callout-note {
@@ -75,89 +87,312 @@ pre.r {
   border-color: #007bff;
 }
 
-/* ── Transições suaves no menu lateral ──────────── */
-.list-group-item.active, .list-group-item.active:focus, .list-group-item.active:hover {
-  background-color: var(--primary-color);
-  border-color: var(--primary-color);
+.callout-tip {
+  background-color: #e8f5e9;
+  border-color: #1D9E75;
 }
 
+.callout-warning {
+  background-color: #fff3e0;
+  border-color: #ff9800;
+}
+
+.callout-info {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+}
+
+/* ── Workflow container ─────────────────────────── */
+.workflow-container {
+  background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  border: 1px solid var(--fc-border);
+  overflow-x: auto;
+}
+
+.workflow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'Inter', monospace;
+  font-size: 0.8rem;
+}
+
+.workflow-step {
+  background: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.workflow-arrow {
+  color: var(--primary-color);
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+/* ── Feature cards ───────────────────────────────── */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.feature-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e1e1e1;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-align: center;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.feature-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+  margin-top: 0;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
+
+.feature-card p {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  margin-bottom: 0;
+}
+
+/* ── Table styling ───────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+th {
+  background-color: var(--bg-light);
+  font-weight: 600;
+  color: var(--dark-green);
+}
+
+tr:hover {
+  background-color: var(--bg-light);
+}
+
+/* ── Figure styling ─────────────────────────────── */
+.figure {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.figure img {
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  max-width: 100%;
+  height: auto;
+}
+
+.figure .caption {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* ── Botão GitHub aprimorado ───────────────────── */
+.github-feedback-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #24292e;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-family: sans-serif;
+  transition: background-color 0.2s;
+  margin-top: 1rem;
+}
+
+.github-feedback-btn:hover {
+  background-color: #2c3e50;
+  color: white;
+  text-decoration: none;
+}
+
+/* ── Responsive ─────────────────────────────────── */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+  
+  h1.title {
+    font-size: 2rem;
+  }
+  
+  .workflow-steps {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .workflow-arrow {
+    transform: rotate(90deg);
+  }
+  
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  th, td {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-card,
+  .github-feedback-btn {
+    transition: none;
+  }
+}
+```
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   echo    = TRUE,
-  eval    = FALSE,      # set TRUE in a live session with climasus4r installed
+  eval    = FALSE,
   warning = FALSE,
   message = FALSE,
   comment = "#>",
   fig.align = "center",
-  out.width = "100%"
+  out.width = "80%",
+  fig.retina = 2
 )
 ```
 
-
 # Introdução
 
-::: callout-box
-**Tutorial Introdutório** --- Este tutorial apresenta um guia prático para começar a utilizar o pacote `climasus4r`. O objetivo é demonstrar o fluxo básico de trabalho, desde a instalação do pacote até a criação de séries temporais a partir de dados de saúde do DATASUS, integrando informações de saúde, clima e meio ambiente.
+::: callout-tip
+**Tutorial Introdutório** — Este tutorial apresenta um guia prático para começar a utilizar o pacote `climasus4r`. O objetivo é demonstrar o fluxo básico de trabalho, desde a instalação do pacote até a criação de séries temporais a partir de dados de saúde do DATASUS, integrando informações de saúde, clima e meio ambiente.
 :::
 
-O Sistema Único de Saúde (SUS) disponibiliza grandes bases de dados públicos, como SIM, SIH, SINAN, CNES, SINAC.No entanto, esses dados geralmente exigem etapas de importação, limpeza, padronização e agregação antes de poderem ser utilizados em análises epidemiológicas.
+O Sistema Único de Saúde (SUS) disponibiliza grandes bases de dados públicos, como SIM, SIH, SINAN, CNES, SINASC. No entanto, esses dados geralmente exigem etapas de importação, limpeza, padronização e agregação antes de poderem ser utilizados em análises epidemiológicas.
 
 O pacote `climasus4r` foi desenvolvido para automatizar e padronizar esse processo, permitindo análises reprodutíveis, rápidas e escaláveis em estudos de clima, ambiente e saúde pública.
 
-Neste tutorial, você aprenderá a:
+## 🎯 O que você aprenderá
 
-1.  **Instalar** o pacote `climasus4r`.
-2.  **Importar** dados de forma otimizada, usando **processamento
-    paralelo** e **cache**.
-3.  **Limpar** e corrigir a codificação de caracteres dos dados.
-4.  **Padronizar** nomes de colunas e tipos de dados.
-5.  **Criar** novas variáveis de interesse (faixas etárias, variáveis de
-    calendário).
-6.  **Filtrar** os dados por causas de óbito (doenças respiratórias e
-    cardiovasculares).
-7.  **Explorar** os dados filtrados de forma interativa.
-8.  **Filtrar** os dados por variáveis demográficas (sexo, idade, raça).
-9.  **Agregar** os dados em séries temporais (diárias, mensais, anuais).
+<div class="feature-grid">
+<div class="feature-card">
+<div class="feature-icon">📦</div>
+<h3>Instalação</h3>
+<p>Instalar o pacote `climasus4r` de forma rápida e eficiente</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon">⚡</div>
+<h3>Importação Otimizada</h3>
+<p>Importar dados do DATASUS com cache e processamento paralelo</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon">🧹</div>
+<h3>Limpeza e Padronização</h3>
+<p>Corrigir codificação e padronizar variáveis</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon">🔍</div>
+<h3>Filtragem</h3>
+<p>Filtrar por causas de óbito e variáveis demográficas</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon">📊</div>
+<h3>Agregação Temporal</h3>
+<p>Criar séries temporais diárias, mensais e anuais</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon">💾</div>
+<h3>Exportação e Importação</h3>
+<p>Salvar e carregar dados com metadados completos</p>
+</div>
+</div>
 
-------------------------------------------------------------------------
+---
 
-# 1. Instalação
+## 📋 O Fluxo de Trabalho do `climasus4r`
 
-O pacote `climasus4r`está disponível no GitHub e pode ser instalado de duas formas. Recomendamos a **Opção 1** para a maioria dos usuários.
+A análise de dados com o `climasus4r` segue um pipeline lógico e sequencial, onde o resultado de uma função é a entrada para a próxima. Este design, inspirado no `tidyverse`, torna o código mais legível e fácil de manter.
+
+<div class="workflow-container">
+<div class="workflow-steps">
+<span class="workflow-step">sus_data_import()</span>
+<span class="workflow-arrow">→</span>
+<span class="workflow-step">sus_data_clean_encoding()</span>
+<span class="workflow-arrow">→</span>
+<span class="workflow-step">sus_data_standardize()</span>
+<span class="workflow-arrow">→</span>
+<span class="workflow-step">sus_create_variables()</span>
+<span class="workflow-arrow">→</span>
+<span class="workflow-step">sus_data_filter_cid()</span>
+<span class="workflow-arrow">→</span>
+<span class="workflow-step">sus_data_filter_demographics()</span>
+<span class="workflow-arrow">→</span>
+<span class="workflow-step">sus_data_aggregate()</span>
+</div>
+</div>
+
+Cada função executa uma etapa específica do processamento, como importação, limpeza, padronização, filtragem e agregação dos dados. Ao final desse pipeline, os dados estarão organizados e prontos para análises epidemiológicas ou construção de séries temporais.
+
+---
+
+## 1. Instalação
+
+O pacote `climasus4r` está disponível no GitHub e pode ser instalado de duas formas. Recomendamos a **Opção 1** para a maioria dos usuários.
 
 Caso você ainda não tenha o pacote `remotes` instalado, execute o código abaixo:
 
-::: callout-tip
-**Pré-requisito::** Se você já tem o `remotes` ou `devtools` instalado, pode pular
-essa etapa.
-:::
-
-```{r install-packages, eval=FALSE}
+```{r install-remotes, eval=FALSE}
 if (!require("remotes")) { install.packages("remotes")}
 ```
 
-## Opção 1: Instalação via GitHub (Recomendado)
+### Opção 1: Instalação via GitHub (Recomendado)
 
 Esta é a forma mais rápida de obter a versão mais recente:
 
-```{r, eval=FALSE}
+```{r install-github, eval=FALSE}
 # Instalar ou atualizar o pacote diretamente do GitHub
 remotes::install_github("ByMaxAnjos/climasus4r", upgrade = "never")
 ```
 
 ::: callout-warning
 **Atualizações:** O `climasus4r` está em desenvolvimento ativo. Para atualizar, basta executar o comando acima novamente. O R irá sobrescrever a versão antiga automaticamente. Após a atualização, recomenda-se reiniciar a sessão (Menu: Session > Restart R).
+:::
 
-## Opção 2: Instalação via Arquivo Local (.zip)
+### Opção 2: Instalação via Arquivo Local (.zip)
 
 Esta opção é recomendada para ambientes com instabilidade de conexão, restrições de rede ou uso em treinamentos com múltiplos usuários.
 
 1. **Baixar o pacote**: Clique [AQUI](https://github.com/ByMaxAnjos/climasus4r/archive/refs/heads/master.zip) para baixar o .zip
-2. **Extrair o arquivo**: Extraia o conteúdo em uma pasta de fácil acesso (ex: Downloads ou Desktop).
-3. **Instalar localmente**: Execute o comando abaixo, ajustando o caminho para a pasta onde você extraiu o arquivo:
+2. **Extrair o arquivo**: Extraia o conteúdo em uma pasta de fácil acesso (ex: Downloads ou Desktop)
+3. **Instalar localmente**:
 
-```{r, eval=FALSE}
+```{r install-local, eval=FALSE}
 # IMPORTANTE: Altere o caminho abaixo para o local onde você salvou o pacote
 remotes::install_local(
   "C:/Caminho/Para/Sua/Pasta/climasus4r-master", 
@@ -165,97 +400,54 @@ remotes::install_local(
 )
 ```
 
-# 2. Carregando o pacote
+---
 
-Após a instalação, carregue o pacote sempre que iniciar uma nova sessão no R para liberar as funções:
-```{r, eval=FALSE}
+## 2. Carregando o Pacote
+
+Após a instalação, carregue o pacote sempre que iniciar uma nova sessão no R:
+
+```{r load-package, eval=FALSE}
 library(climasus4r)
 ```
-:::
 
-------------------------------------------------------------------------
+---
 
-# 2. O Fluxo de Trabalho do `climasus4r`
+## 3. Importação de Dados com `sus_data_import()`
 
-A análise de dados com o `climasus4r` segue um pipeline lógico e
-sequencial, onde o resultado de uma função é a entrada para a próxima.
-Este design, inspirado no `tidyverse`, torna o código mais legível e
-fácil de manter.
+A primeira etapa do fluxo consiste na importação dos dados. A função `sus_data_import()` automatiza o download e a leitura dos microdados do DATASUS.
 
-O fluxo de trabalho principal é:
-
-`sus_data_import()` → `sus_data_clean_encoding()` →
-`sus_data_standardize()` → `sus_create_variables()` →
-`sus_data_filter_cid()` → `sus_data_filter_demographics()` →
-`sus_data_aggregate()`
-
-Cada função executa uma etapa específica do processamento, como importação, limpeza, padronização, filtragem e agregação dos dados. Ao final desse pipeline, os dados estarão organizados e prontos para análises epidemiológicas ou construção de séries temporais.
-
-Nas próximas seções, cada etapa do fluxo será apresentada em detalhes.
-
-------------------------------------------------------------------------
-
-# 3. Importação de Dados com `sus_data_import()`
-
-A primeira etapa do fluxo consiste na importação dos dados. A função `sus_data_import()` automatiza o download e a leitura dos microdados do DATASUS, permitindo definir o sistema de informação, os anos e as Unidades da Federação de interesse.
 ::: callout-tip
 O DATASUS possui diversos sistemas de informação. Neste tutorial, utilizaremos o **SIM-DO** (mortalidade) como exemplo.
 :::
 
-Neste exemplo, vamos importar dados de mortalidade dos estados de
-Rondônia (`"RO"`) e Amazonas (`"AM"`) para os anos de 2016 a 2017:
+### Exemplo Básico
 
-```{r import, eval=FALSE}
-# Importar dados de mortalidade (SIM-DO)
+Vamos importar dados de mortalidade dos estados de Rondônia (`"RO"`) e Amazonas (`"AM"`) para os anos de 2016 a 2017:
+
+```{r import-basic, eval=FALSE}
 df_raw <- sus_data_import(
   system = "SIM-DO",
   year = 2016:2017,
   uf = c("RO", "AM"),
   lang = "pt"
 )
-```
 
-```{r, echo=FALSE}
-df_raw <- readRDS("tutorial_sample_raw.rds")
-```
-
-```{r view_data}
-# Ver as primeiras linhas e a estrutura dos dados
 head(df_raw)
 ```
 
-::: callout-box
-**O que aconteceu?** A função `sus_data_import()` realizou as seguintes
-etapas automaticamente:
-
-1.  **Download**: Baixou os arquivos `.DBC` (formato do DATASUS) do FTP
-    do DATASUS
-2.  **Descompactação**: Extraiu os arquivos contenidos nos `.DBC`
-3.  **Leitura**: Leu todos os arquivos em um único `data.frame`
-4.  **Metadados**: Adicionou informações sobre a origem dos dados que
-    serão usadas nas próximas etapas
+::: callout-note
+**O que aconteceu?** A função `sus_data_import()` realizou automaticamente:
+1. **Download**: Baixou os arquivos `.DBC` do FTP do DATASUS
+2. **Descompactação**: Extraiu os arquivos contidos nos `.DBC`
+3. **Leitura**: Leu todos os arquivos em um único `data.frame`
+4. **Metadados**: Adicionou informações sobre a origem dos dados
 :::
 
-## Otimizando a Importação: Cache e Processamento Paralelo
+### Otimizando a Importação: Cache e Processamento Paralelo
 
-Trabalhar com grandes volumes de dados pode ser demorado. O
-`sus_data_import()` possui duas funcionalidades importantes para
-acelerar o processo: **cache** e **processamento paralelo**.
+#### Usando Cache para Evitar Re-downloads
 
-### Usando o Cache para Evitar Re-downloads
-
-Por padrão (`use_cache = TRUE`), a função salva uma cópia dos dados
-baixados em seu computador. Na próxima vez que você executar o mesmo
-comando com os **mesmos parâmetros** (sistema, anos, estados), os dados
-serão lidos diretamente do cache, economizando tempo de download.
-
-::: callout-warning
-**Atenção:** O cache é inteligente, mas específico! Ele só é utilizado
-se os parâmetros (sistema, anos, estados) forem **exatamente os
-mesmos**. Se você alterar qualquer um deles (mesmo que seja um único
-ano), os dados serão baixados novamente.
-
-Você também pode personalizar o diretório do cache:
+Por padrão (`use_cache = TRUE`), a função salva uma cópia dos dados baixados. Na próxima execução com os **mesmos parâmetros**, os dados serão lidos diretamente do cache.
 
 ```{r cache-custom, eval=FALSE}
 df_custom_cache <- sus_data_import(
@@ -263,229 +455,132 @@ df_custom_cache <- sus_data_import(
   year = 2018,
   uf = "RO",
   use_cache = TRUE,
-  cache_dir = "~/.climasus4r_cache/data",  # Diretório personalizado
+  cache_dir = "~/.climasus4r_cache/data",
   lang = "pt"
 )
 ```
-:::
 
-### Acelerando com Processamento Paralelo
-
-Ao baixar dados de múltiplos estados ou anos, você pode habilitar o
-processamento paralelo. Isso permite que o R use vários núcleos do seu
-processador para baixar diferentes arquivos simultaneamente, reduzindo
-significativamente o tempo de importação.
-
-::: callout-tip
-**Quantos `workers` usar?** Um bom ponto de partida é usar o número de
-núcleos do seu processador menos um. Você pode descobrir quantos núcleos
-seu computador tem com o comando `parallel::detectCores()`.
-:::
+#### Acelerando com Processamento Paralelo
 
 ```{r import-parallel, eval=FALSE}
-# Exemplo: Baixando dados de 3 estados em paralelo
-# Use um número apropriado de workers para o seu computador
+# Baixar dados de 3 estados em paralelo
 df_parallel <- sus_data_import(
   system = "SIM-DO",
   year = 2018:2020,
   uf = c("RO", "PA", "MT"),
   use_cache = TRUE,
-  cache_dir = "~/.climasus4r_cache/data",
   parallel = TRUE,
-  workers = 3,  # Exemplo: 3 trabalhadores em paralelo
+  workers = 3,
   lang = "pt"
 )
 ```
 
-------------------------------------------------------------------------
+::: callout-tip
+**Quantos `workers` usar?** Um bom ponto de partida é usar o número de núcleos do seu processador menos um (`parallel::detectCores() - 1`).
+:::
 
-# 4. Limpeza de Codificação com `sus_data_clean_encoding()`
+---
 
-Os dados do DATASUS frequentemente vêm com problemas de codificação de
-caracteres (encoding), resultando em texto corrompido. Você pode
-encontrar problemas como:
+## 4. Limpeza de Codificação com `sus_data_clean_encoding()`
 
--   `"SÃ£o Paulo"` em vez de `"São Paulo"`
--   `"BrasÃ­lia"` em vez de `"Brasília"`
--   Caracteres estranhos em nomes de municípios
+Os dados do DATASUS frequentemente vêm com problemas de codificação de caracteres. A função `sus_data_clean_encoding()` resolve isso convertendo todas as colunas de texto para UTF-8.
 
-A função `sus_data_clean_encoding()` resolve isso, convertendo todas as
-colunas de texto para o padrão UTF-8.
-
-```{r clean, eval=FALSE}
+```{r clean-encoding, eval=FALSE}
 # Corrigir a codificação de caracteres
 df_clean <- sus_data_clean_encoding(df_raw, lang = "pt")
 
-```
-
-```{r, echo=FALSE}
-df_clean <- readRDS("tutorial_sample_clean.rds")
-```
-
-```{r}
-# Verificar uma coluna de exemplo (nomes de municípios)
 head(df_clean)
 ```
 
+---
 
-::: callout-tip
-**Nota:** Em dados reais, a diferença entre o texto original e o texto
-corrigido será visível. Em alguns casos (dependendo do sistema
-operacional e configuração regional), os dados podem já estar corretos,
-mas é sempre importante executar esta etapa para garantir a
-consistência.
-:::
+## 5. Padronização de Dados com `sus_data_standardize()`
 
-------------------------------------------------------------------------
+Esta etapa é crucial para a consistência da análise. A função realiza:
 
-# 5. Padronização de Dados com `sus_data_standardize()`
-
-Esta é uma das etapas mais importantes do fluxo de trabalho. A função
-`sus_data_standardize()` realiza várias tarefas cruciais:
-
--   **Renomeia** as colunas para nomes padronizados e em inglês (ex:
-    `CAUSABAS` → `underlying_cause_of_death`)
--   **Converte** as colunas para os tipos de dados corretos (ex: datas,
-    números)
--   **Cria** novas variáveis úteis, como faixas etárias e categorias de
-    raça/cor
+- **Renomeia** colunas para nomes padronizados (ex: `CAUSABAS` → `underlying_cause_of_death`)
+- **Converte** colunas para os tipos de dados corretos
+- **Cria** novas variáveis úteis como faixas etárias
 
 ```{r standardize, eval=FALSE}
-# Padronizar os dados
 df_std <- sus_data_standardize(df_clean, lang = "pt")
-```
 
-```{r, echo=FALSE}
-df_std <- readRDS("tutorial_sample_stand.rds")
-```
-
-```{r}
-# Verificar uma coluna de exemplo (nomes de municípios)
 head(df_std)
 ```
 
-
 ::: callout-tip
-**Objeto `climasus_df`:** A partir deste ponto, nosso `data.frame`
-possui uma classe especial, `climasus_df`. Isso permite que as funções
-do pacote "conversem" entre si, passando metadados importantes de uma
-etapa para a outra.
+**Objeto `climasus_df`:** A partir deste ponto, nosso `data.frame` possui uma classe especial que permite o fluxo contínuo de metadados entre as funções.
 :::
 
-------------------------------------------------------------------------
+---
 
-# 6. Criação de Variáveis com `sus_create_variables()`
+## 6. Criação de Variáveis com `sus_create_variables()`
 
-Antes de filtrar os dados, frequentemente queremos criar variáveis
-derivadas que não vêm nos dados originais. A função
-`sus_create_variables()` permite criar:
+Antes de filtrar, frequentemente queremos criar variáveis derivadas. A função `sus_create_variables()` permite criar:
 
--   **Faixas etárias**: Grupos etários personalizados ou padrão IBGE
--   **Variáveis de calendário**: Dia da semana, mês, estação do ano,
-    trimestre
--   **Outras variáveis**: Década de nascimento, entre outras
-
-Vamos criar faixas etárias quinquenais (padrão IBGE) e variáveis de
-calendário:
+- **Faixas etárias**: Grupos personalizados ou padrão IBGE
+- **Variáveis de calendário**: Dia da semana, mês, estação do ano
+- **Outras variáveis**: Década de nascimento, etc.
 
 ```{r create-vars, eval=FALSE}
-# Criar novas variáveis
 df_vars <- sus_create_variables(
   df_std,
   create_age_groups = TRUE,
   create_calendar_vars = TRUE,
   lang = "pt"
 )
-```
 
-
-```{r, echo=FALSE}
-df_vars <- readRDS("tutorial_sample_vars.rds")
-```
-
-```{r}
-# Verificar uma coluna de exemplo (nomes de municípios)
 head(df_vars)
 ```
 
+**Novas colunas criadas:**
+- `faixa_etaria_ibge`: Grupos etários de 5 anos (padrão IBGE)
+- `dia_da_semana`: Segunda a Domingo
+- `mes_nome`: Nome do mês
+- `estacao`: Estação do ano
+- `semana_do_ano`: Número da semana
 
-::: callout-box
-**Novas Colunas Criadas:** Observe as novas colunas como: -
-`faixa_etaria_ibge`: Grupos etários de 5 anos (padrão IBGE) -
-`dia_da_semana`: Segunda a Domingo - `mes_nome`: Nome do mês -
-`estacao`: Estação do ano (Verão, Outono, Inverno, Primavera) -
-`semana_do_ano`: Número da semana
+---
 
-Essas variáveis serão muito úteis para as próximas etapas de filtragem e
-agregação.
-:::
+## 7. Filtragem por Causa de Óbito com `sus_data_filter_cid()`
 
-------------------------------------------------------------------------
-
-# 7. Filtragem por Causa de Óbito com `sus_data_filter_cid()`
-
-Com os dados enriquecidos, podemos começar a responder perguntas
-epidemiológicas. Vamos filtrar os dados para selecionar apenas os óbitos
-por **doenças respiratórias** e **doenças cardiovasculares**.
+Vamos filtrar os dados para selecionar apenas óbitos por **doenças respiratórias** e **doenças cardiovasculares**.
 
 ```{r filter-cid, eval=FALSE}
-# Filtrar por grupos de doenças (CID-10)
 df_cid <- sus_data_filter_cid(
   df_vars,
   disease_group = c("respiratory", "cardiovascular"),
   lang = "pt"
 )
-```
 
-```{r, echo=FALSE}
-df_cid <- readRDS("tutorial_sample_cid.rds")
-```
-
-```{r}
-# Verificar uma coluna de exemplo (nomes de municípios)
 head(df_cid)
 ```
 
-::: callout-box
-**Resultado:** A função mostra automaticamente: - Quantos registros
-foram mantidos após o filtro - Quais códigos CID-10 foram incluídos em
-cada grupo - Distribuição por tipo de doença
-:::
-
 ### Explorando os Grupos de Doenças Disponíveis
 
-Como saber quais `disease_group` estão disponíveis? A função
-`sus_explore_cid()` abre uma interface interativa para explorar todos os
-grupos de doenças, suas descrições e os códigos CID-10 correspondentes.
-
 ```{r explore-cid, eval=FALSE}
-# Abrir a interface interativa de exploração
+# Abrir interface interativa de exploração
 sus_filter_cid_explore(lang = "pt")
 ```
 
-::: callout-tip
-**Grupos de Doenças Disponíveis:** Alguns grupos de doenças comumente
-usados incluem: - `respiratory` (doenças respiratórias) -
-`cardiovascular` (doenças cardiovasculares) - `neoplasms`
-(neoplasias/câncer) - `diabetes` (diabetes mellitus) - `infectious`
-(doenças infecciosas) - `mental` (transtornos mentais)
+**Grupos de doenças comumente usados:**
+- `respiratory` (doenças respiratórias)
+- `cardiovascular` (doenças cardiovasculares)
+- `neoplasms` (neoplasias/câncer)
+- `diabetes` (diabetes mellitus)
+- `infectious` (doenças infecciosas)
 
-Execute `sus_explore_cid()` para ver a lista completa!
-:::
+---
 
-------------------------------------------------------------------------
+## 8. Filtragem por Variáveis Demográficas com `sus_data_filter_demographics()`
 
-# 8. Filtragem por Variáveis Demográficas com `sus_data_filter_demographics()`
+Vamos refinar o filtro para um subgrupo demográfico específico:
 
-Agora, vamos refinar ainda mais nosso filtro, selecionando um subgrupo
-demográfico específico. Vamos focar em:
-
--   **Sexo**: Feminino
--   **Idade**: Entre 20 e 59 anos
--   **Raça/Cor**: Preta ou Parda
+- **Sexo**: Feminino
+- **Idade**: Entre 20 e 59 anos
+- **Raça/Cor**: Preta ou Parda
 
 ```{r filter-demo, eval=FALSE}
-# Filtrar por variáveis demográficas
 df_demo <- sus_data_filter_demographics(
   df_cid,
   sex = "Feminino",
@@ -493,121 +588,73 @@ df_demo <- sus_data_filter_demographics(
   race = c("Preta", "Parda"),
   lang = "pt"
 )
-```
 
-```{r, echo=FALSE}
-df_demo <- readRDS("tutorial_sample_demo.rds")
-```
-
-```{r}
-# Verificar uma coluna de exemplo
 head(df_demo)
 ```
 
-
 ::: callout-tip
-**Nota Importante sobre o Idioma:** O argumento `lang` deve ser
-consistente em todas as etapas. Quando `lang = "pt"`: - Sexo deve ser
-`"Feminino"` ou `"Masculino"` (não `"Female"` ou `"Male"`) - Raça deve
-ser `"Preta"`, `"Parda"`, `"Branca"`, `"Amarela"`, `"Indígena"` (não em
-inglês) - Estados e nomes seguem o padrão brasileiro
+**Idioma:** Quando `lang = "pt"`, use os valores em português: `"Feminino"`, `"Masculino"`, `"Preta"`, `"Parda"`, etc.
 :::
 
-------------------------------------------------------------------------
+---
 
-# 9. Agregação Temporal com `sus_data_aggregate()`
+## 9. Agregação Temporal com `sus_data_aggregate()`
 
-Finalmente, com os dados totalmente filtrados, podemos agregar os
-registros para criar uma série temporal. A função `sus_data_aggregate()`
-conta o número de ocorrências (óbitos, neste caso) por unidade de tempo.
-
-Vamos criar duas agregações: mensal e diária.
+Finalmente, vamos agregar os registros para criar séries temporais.
 
 ### Agregação Mensal
 
 ```{r aggregate-monthly, eval=FALSE}
-# Agregar os dados por mês
 df_monthly <- sus_data_aggregate(
   df_demo,
   time_unit = "month",
   lang = "pt"
 )
-```
 
-```{r, echo=FALSE}
-df_monthly <- readRDS("tutorial_sample_month.rds")
-```
-
-```{r}
-# Verificar uma coluna de exemplo 
 head(df_monthly)
 ```
-
 
 ### Agregação Diária
 
 ```{r aggregate-daily, eval=FALSE}
-# Agregar os dados por dia
 df_daily <- sus_data_aggregate(
   df_demo,
   time_unit = "day",
   lang = "pt"
 )
-```
 
-
-```{r, echo=FALSE}
-df_daily <- readRDS("tutorial_sample_day.rds")
-```
-
-```{r}
-# Verificar uma coluna de exemplo
 head(df_daily)
 ```
 
-------------------------------------------------------------------------
+---
 
-# 10. Exportação de Dados com `sus_data_export()`
+## 10. Exportação de Dados com `sus_data_export()`
 
-Após toda a transformação e análise, você frequentemente precisará salvar os resultados para uso posterior ou compartilhamento com colegas. A função `sus_data_export()` permite exportar os dados em diversos formatos, com a importante característica de incluir **metadados automáticos** que garantem a reprodutibilidade da sua análise.
-
-::: callout-box
-**Por que exportar com metadados?** Quando você exporta dados processados, é fundamental manter um registro de onde os dados vieram, quais filtros foram aplicados, quando foram processados, etc. O `sus_data_export()` faz isso automaticamente!
-:::
-
-## Formatos de Arquivo Suportados
-
-A função suporta diversos formatos, cada um com suas vantagens:
+### Formatos Suportados
 
 | Formato | Extensão | Uso Recomendado |
 |---------|----------|-----------------|
-| **RDS** | `.rds` | Formato nativo do R. Melhor para workflows exclusivamente em R. Preserva todos os atributos do objeto. |
-| **Parquet** | `.parquet` | Formato columnar otimizado. Excelente compressão e velocidade de leitura. Ideal para grandes volumes de dados e interoperabilidade com Python, Spark, etc. |
-| **CSV** | `.csv` | Formato universal de texto. Legível por qualquer software. Melhor para compartilhar com quem não usa R. |
-| **GeoParquet** | `.geoparquet` | Formato otimizado para dados espaciais. 50-90% menor que shapefiles, 10-100x mais rápido. |
-| **Shapefile** | `.shp` | Formato tradicional de GIS. широко suportado, mas ineficiente para grandes volumes. |
+| **RDS** | `.rds` | Formato nativo do R |
+| **Parquet** | `.parquet` | Grande volume, interoperabilidade |
+| **CSV** | `.csv` | Universal, compartilhamento |
+| **GeoParquet** | `.geoparquet` | Dados espaciais otimizados |
+| **Shapefile** | `.shp` | GIS tradicional |
 
-## Exemplo de Exportação
-
-Vamos exportar nossa série temporal mensal em diferentes formatos:
-
-### Exportando em CSV
+### Exemplos de Exportação
 
 ```{r export-csv, eval=FALSE}
-# Exportar os dados em formato CSV
+# Exportar em CSV com metadados
 sus_data_export(
   df_monthly,
   file_path = "obitos_mensais_resumo_cardio.csv",
   format = "csv",
-  include_metadata = TRUE,  # Inclui arquivo de metadados
+  include_metadata = TRUE,
   lang = "pt"
 )
 ```
 
-### Exportando em Parquet (Recomendado para Grandes Volumes)
-
 ```{r export-parquet, eval=FALSE}
-# Exportar em formato Parquet (mais eficiente)
+# Exportar em Parquet (mais eficiente)
 sus_data_export(
   df_monthly,
   file_path = "obitos_mensais_resumo_cardio.parquet",
@@ -617,10 +664,9 @@ sus_data_export(
 )
 ```
 
-### Exportando com Metadados Personalizados
+### Exportação com Metadados Personalizados
 
 ```{r export-metadata, eval=FALSE}
-# Exportar com metadados customizados
 sus_data_export(
   df_monthly,
   file_path = "analise_especifica.csv",
@@ -631,7 +677,6 @@ sus_data_export(
     states = c("RO", "AM"),
     years = c(2016, 2017),
     disease_groups = c("respiratory", "cardiovascular"),
-    filters_applied = "sex=Feminino, age_range=20-59, race=Preta/Parda",
     author = "Seu Nome",
     project = "Estudo Clima e Saúde"
   ),
@@ -639,84 +684,27 @@ sus_data_export(
 )
 ```
 
-## O que contém o arquivo de metadados?
+---
 
-Quando `include_metadata = TRUE`, um arquivo adicional é criado com extensão `_metadata.txt`. Ele contém informações valiosas como:
+## 11. Importação de Dados com `sus_data_read()`
 
-- Data de exportação
-- Versão do pacote climasus4r utilizado
-- Número de registros e colunas
-- Nomes das colunas
-- Tamanho do arquivo
-- Quaisquer metadados personalizados que você tenha fornecido
-
-::: callout-tip
-**Boa prática:** Sempre mantenha os metadados junto com seus dados. Isso facilita enormemente a reprodutibilidade das suas análises!
-:::
-
-------------------------------------------------------------------------
-
-# 11. Importação de Dados com `sus_data_read()`
-
-Agora que você aprendeu a exportar dados, vamos aprender a importá-los de volta. A função `sus_data_read()` é a companheira perfeita do `sus_data_export()`. Ela não apenas lê os dados em diversos formatos, mas também pode:
-
-- **Detectar automaticamente** o formato do arquivo
-- **Ler múltiplos arquivos** de uma vez (processamento em lote)
-- **Processar em paralelo** para acelerar a leitura de muitos arquivos
-- **Carregar metadados** salvos automaticamente
-
-## Leitura de Arquivo Único
-
-Vamos ler o arquivo CSV que exportamos anteriormente:
+### Leitura de Arquivo Único
 
 ```{r read-single, eval=FALSE}
-# Ler um arquivo CSV
 df_lido <- sus_data_read(
   path = "obitos_mensais_resumo_cardio.csv",
   format = "csv",
-  read_metadata = TRUE,  # Carregar metadados salvos
+  read_metadata = TRUE,
   lang = "pt"
 )
-
-# Ver os dados lidos
-head(df_lido)
 
 # Acessar os metadados
 climasus_meta(df_lido, print_history = TRUE)
 ```
 
-::: callout-tip
-**Nota:** Os metadados são automaticamente detectados e carregados quando você usa `climasus_meta()`. Isso é extremamente útil para entender a origem e o processamento dos dados!
-:::
+### Leitura em Lote (Múltiplos Arquivos)
 
-## Leitura em Lote (Múltiplos Arquivos)
-
-Uma das funcionalidades mais poderosas do `sus_data_read()` é a capacidade de ler múltiplos arquivos de uma vez e combiná-los automaticamente. Isso é especialmente útil quando você processa dados ano por ano e depois quer analisar todos juntos.
-
-### Lendo de um Vetor de Arquivos
-
-```{r read-batch-vector, eval=FALSE}
-# Suponha que você tenha múltiplos arquivos salvos
-arquivos <- c(
-  "dados_2020.csv",
-  "dados_2021.csv",
-  "dados_2022.csv"
-)
-
-# Ler todos de uma vez
-df_combinado <- sus_data_read(
-  path = arquivos,
-  format = "csv",
-  lang = "pt"
-)
-
-# O resultado já vem combinado automaticamente
-head(df_combinado)
-```
-
-### Lendo de um Diretório
-
-```{r read-directory, eval=FALSE}
+```{r read-batch, eval=FALSE}
 # Ler todos os arquivos CSV de uma pasta
 df_diretorio <- sus_data_read(
   path = "resultados_analises/",
@@ -725,117 +713,50 @@ df_diretorio <- sus_data_read(
 )
 ```
 
-## Processamento Paralelo
-
-Quando você precisa ler muitos arquivos grandes, o processamento paralelo pode acelerar significativamente o processo:
+### Leitura com Processamento Paralelo
 
 ```{r read-parallel, eval=FALSE}
-# Leitura paralela de múltiplos arquivos
 df_paralelo <- sus_data_read(
   path = "pasta_de_dados/",
   format = "parquet",
-  parallel = TRUE,       # Habilitar processamento paralelo
-  workers = 4,           # Número de núcleos a usar
+  parallel = TRUE,
+  workers = 4,
   read_metadata = TRUE,
   lang = "pt"
 )
 ```
 
-::: callout-tip
-**Quantos workers usar?** Como no processamento paralelo de importação, uma boa regra é usar `parallel::detectCores() - 1`.
-:::
+---
 
-## Detecção Automática de Formato
-
-Uma das grandes vantagens do `sus_data_read()` é a detecção automática de formato. Se você não especificar o formato, a função tentará detectá-lo automaticamente a partir da extensão do arquivo:
-
-```{r read-auto, eval=FALSE}
-# Sem especificar formato - detecta automaticamente
-df_auto <- sus_data_read(
-  path = "meus_dados.parquet",
-  lang = "pt"
-)
-```
-
-## Formatos Suportados para Leitura
-
-| Formato | Extensões | Notas |
-|---------|-----------|-------|
-| RDS | `.rds` | Formato nativo R |
-| Parquet | `.parquet` | Dados regulares ou GeoParquet |
-| CSV | `.csv`, `.txt`, `.tsv` | Detecção automática |
-| DBF | `.dbf` | Formato do DATASUS |
-| DBC | `.dbc` | Formato comprimido do DATASUS |
-| Shapefile | `.shp` | Dados espaciais |
-| GeoPackage | `.gpkg` | Dados espaciais modernos |
-| GeoJSON | `.geojson`, `.json` | Dados espaciais |
-
-## Exemplo Completo: Exportar, Modifier, Reimportar
-
-Voici um exemplo completo mostrando o fluxo completo:
-
-```{r read-full-example, eval=FALSE}
-# 1. Exportar dados processados
-sus_data_export(
-  df_monthly,
-  file_path = "backup_analise.parquet",
-  format = "parquet",
-  include_metadata = TRUE,
-  metadata = list(
-    project = "Meu Estudo",
-    created_by = "Pesquisador"
-  ),
-  lang = "pt"
-)
-
-# 2. Em outra sessão ou projeto, importar os dados
-df_restaurado <- sus_data_read(
-  path = "backup_analise.parquet",
-  read_metadata = TRUE,
-  lang = "pt"
-)
-
-```
-
-------------------------------------------------------------------------
-
-# Conclusão
+## 🎉 Conclusão
 
 Parabéns! Você completou o fluxo de trabalho básico do `climasus4r`. Em poucos passos, você foi capaz de:
 
-- **Baixar e importar** dados brutos do DATASUS de forma otimizada (com cache e paralelo)
+- **Baixar e importar** dados brutos do DATASUS de forma otimizada
 - **Limpar, padronizar e enriquecer** os dados com novas variáveis
-- **Filtrar** por critérios epidemiológicos (causas de óbito) e demográficos (sexo, idade, raça)
-- **Criar** uma série temporal pronta para análise e visualização
-- **Exportar** os resultados com metadados para garantir reprodutibilidade
-- **Importar** os dados salvos de forma eficiente, com suporte a lote e processamento paralelo
+- **Filtrar** por critérios epidemiológicos e demográficos
+- **Criar** séries temporais prontas para análise
+- **Exportar e importar** dados com metadados completos
 
-Este tutorial cobriu apenas a superfície do que o `climasus4r` pode fazer. O pacote oferece muitas outras funcionalidades, incluindo:
+### 📚 Próximos Passos
 
-- Análise espacial com integração de dados climáticos
-- Criação de variáveis personalizadas
-- Integração com outros sistemas do DATASUS (SIH, SINAN)
-- Visualizações avançadas
+1. Experimente outros sistemas (`system = "SIH"` para hospitalizações)
+2. Teste diferentes estados e anos
+3. Explore diferentes grupos de doenças
+4. Combine com dados climáticos para análises de impacto
+5. Consulte a documentação completa: [github.com/ByMaxAnjos/climasus4r](https://github.com/ByMaxAnjos/climasus4r)
 
-::: callout-tip
-**Próximos Passos Sugeridos:**
-1. Tente refazer este tutorial com diferentes sistemas (ex: `system = "SIH"` para hospitalizações)
-2. Experimente outros estados ou anos
-3. Teste diferentes filtros demográficos
-4. Pratique exportando e importando dados em diferentes formatos
-5. Explore a documentação das funções com `?sus_data_import` e outras
-
-**Documentação:** Acesse a documentação completa em: https://github.com/ByMaxAnjos/climasus4r
-:::
-
+---
 
 ## 🌲 Tem feedback ou sugestões?
 
 Você tem alguma ideia de melhoria ou encontrou algum erro? Clique no botão abaixo para abrir uma nova *issue* no GitHub e compartilhar suas sugestões diretamente conosco.
 
-<a href='https://github.com/ByMaxAnjos/climasus4r/issues/new'>
-  <button type="button" class="btn" style="background-color: #3BB273; color: white; padding: 10px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s;">
-    Abrir uma issue no GitHub
-  </button>
+```{=html}
+<a href='https://github.com/ByMaxAnjos/climasus4r/issues/new' class="github-feedback-btn">
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+  </svg>
+  Abrir issue no GitHub
 </a>
-
+```
