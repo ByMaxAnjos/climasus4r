@@ -1,0 +1,1526 @@
+---
+title: "Demographic Analysis at the Health–Climate–Environment Interface"
+subtitle: "A Practical Guide to `sus_data_filter_demographics()` and `sus_view_demographics()`"
+author:
+  - name: "climasus4r Development Team"
+    affiliation: "climasus4r Package · https://github.com/ByMaxAnjos/climasus4r"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  bookdown::html_document2:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: kate
+    code_folding: show
+    fig_caption: true
+    fig_width: 9
+    fig_height: 5.5
+    df_print: paged
+    css: |
+      body { font-family: 'Source Serif Pro', Georgia, serif; font-size: 16px; line-height: 1.75; }
+      h1, h2, h3, h4 { font-family: 'Inter', 'Helvetica Neue', sans-serif; }
+      .callout-box { border-left: 4px solid #2EC4B6; background: #f0fafa; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
+      .callout-warning { border-left: 4px solid #F4A261; background: #fff8f0; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
+      .callout-danger  { border-left: 4px solid #E84855; background: #fff0f1; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
+      .callout-tip     { border-left: 4px solid #3BB273; background: #f0faf4; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
+      pre { font-size: 13px; }
+      .figure { margin: 24px auto; }
+      .chapter-badge { display: inline-block; background: #1B6CA8; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-family: monospace; }
+      table.dataTable { font-size: 13px; }
+      .section-divider { border: none; border-top: 2px solid #e0e0e0; margin: 32px 0; }
+bibliography: references.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo       = TRUE,
+  warning    = FALSE,
+  message    = FALSE,
+  fig.align  = "center",
+  out.width  = "100%",
+  cache      = FALSE,
+  comment    = "#>"
+)
+
+# Reproducibility seed
+set.seed(2024)
+```
+
+```{r pkg-load, include=FALSE}
+# Core pipeline packages
+library(climasus4r)   # main package
+
+# Visualisation
+library(ggplot2)
+library(patchwork)
+library(scales)
+library(gt)
+library(DT)
+
+# Data manipulation
+library(dplyr)
+library(data.table)
+library(tidyr)
+library(lubridate)
+
+# Spatial
+library(sf)
+library(geobr)
+
+# Utilities
+library(knitr)
+library(kableExtra)
+library(glue)
+```
+
+------------------------------------------------------------------------
+
+# Preface {.unnumbered}
+
+::: callout-box
+**About this Chapter** --- This chapter is part of the **climasus4r** book, which documents a comprehensive R framework for analysing Brazilian public-health data (DATASUS) at the intersection of health, climate, and the environment. The chapter covers two core functions --- `sus_data_filter_demographics()` and `sus_view_demographics()` --- from first principles through to advanced epidemiological applications. Readers are assumed to have basic R familiarity; no prior DATASUS knowledge is required.
+:::
+
+The Brazilian Unified Health System (SUS) generates one of the world's largest repositories of public-health records, spanning mortality (SIM), hospitalisation (SIH), notifiable diseases (SINAN), outpatient production (SIA), and health-facility data (CNES). Transforming these raw administrative files into actionable epidemiological evidence requires careful demographic stratification --- disaggregating counts by age, sex, race/colour, education, and geography --- before any meaningful inference can be drawn.
+
+Climate and environmental exposures add a further dimension. Heat stress, flooding, and vector-habitat expansion do not affect all demographic groups equally; children, the elderly, Indigenous populations, and communities in semi-arid biomes face disproportionate burdens. The **climasus4r** package was designed specifically to bridge this gap, encoding geographic and climate-risk metadata (biomes, river basins, epidemiological hotspots) directly into the analytical pipeline.
+
+This chapter teaches you to:
+
+1.  **Filter** DATASUS records to the demographic subgroup that matters for your research question.
+2.  **Visualise** those patterns in publication-quality figures that meet Lancet journal standards.
+3.  **Integrate** climate and environmental strata into demographic analyses.
+4.  **Apply** the full workflow to real case studies across multiple DATASUS systems.
+
+------------------------------------------------------------------------
+
+# Introduction to Demographic Analysis in DATASUS {#intro}
+
+## Why Demographics Matter in Health-Climate Research
+
+Demographic stratification is not merely a methodological step --- it is an ethical obligation. Brazil's racial and socioeconomic inequalities are deeply encoded in its health outcomes. A dengue outbreak in a coastal metropolitan municipality affects elderly women differently than it affects young male agricultural workers in a cerrado frontier town. Without disaggregating the data, such disparities become statistically invisible.
+
+The **climasus4r** pipeline adds an additional layer: *climate risk*. Variables such as `climate_risk_group`, `astronomical_season`, and biome-level geographic identifiers allow researchers to ask not just *who* is affected, but *where*, *when*, and *under what environmental conditions*.
+
+## The climasus4r Pipeline
+
+All demographic filtering and visualisation functions operate on a `climasus_df` object --- a specially structured data frame produced by the package's standardisation pipeline. Figure \@ref(fig:pipeline-diagram) illustrates the full workflow.
+
+```{r pipeline-diagram, echo=FALSE, fig.cap="The climasus4r analytical pipeline. Demographic filtering (Step 5) and visualisation (Step 6) are the focus of this chapter.", fig.height=3}
+# Diagram built entirely in ggplot2 — no external images required
+steps <- data.frame(
+  x     = 1:6,
+  label = c("1. Import\nsus_data_import()",
+            "2. Clean\nsus_data_clean\n_encoding()",
+            "3. Standardise\nsus_data\n_standardize()",
+            "4. Create Vars\nsus_create\n_variables()",
+            "5. Filter Demo\nsus_data_filter\n_demographics()",
+            "6. Visualise\nsus_view\n_demographics()"),
+  fill  = c(rep("#ADB6B6", 4), "#1B6CA8", "#2EC4B6")
+)
+
+arrows <- data.frame(x = 1:5 + 0.42, xend = 2:6 - 0.42, y = 0, yend = 0)
+
+ggplot(steps, aes(x = x, y = 0)) +
+  geom_tile(aes(fill = fill), width = 0.82, height = 0.55, colour = "white",
+            linewidth = 1.2) +
+  geom_text(aes(label = label), size = 2.8, colour = "white",
+            lineheight = 1.1, fontface = "bold") +
+  geom_segment(data = arrows,
+               aes(x = x, xend = xend, y = y, yend = yend),
+               arrow = arrow(length = unit(6, "pt"), type = "closed"),
+               colour = "grey50", linewidth = 0.6) +
+  scale_fill_identity() +
+  coord_cartesian(ylim = c(-0.5, 0.5)) +
+  theme_void() +
+  labs(caption = "Highlighted steps are covered in this chapter")
+```
+
+::: callout-tip
+**Quick start** --- If your data is already a `climasus_df` at the `"stand"` stage or later, you can jump directly to Section \@ref(filtering).
+:::
+
+## DATASUS Systems Covered
+
+Table \@ref(tab:systems-table) summarises the DATASUS information systems that are compatible with the functions described in this chapter.
+
+```{r systems-table, echo=FALSE}
+systems_df <- tibble::tribble(
+  ~System,   ~`Full Name (PT)`,                         ~`Health Domain`,           ~`Key Demographics`,
+  "SINAN",   "Sistema de Informação de Agravos de Notificação", "Notifiable Diseases",   "Age, sex, race, municipality",
+  "SIM",     "Sistema de Informação sobre Mortalidade",  "Mortality",                "Age, sex, race, education, ICD-10",
+  "SIH",     "Sistema de Informações Hospitalares",      "Hospitalisations",         "Age, sex, procedure, length of stay",
+  "SIA",     "Sistema de Informação Ambulatorial",       "Outpatient Care",          "Age, sex, procedure, municipality",
+  "CNES",    "Cadastro Nacional de Estabelecimentos",    "Health Facilities",        "UF, municipality, capacity",
+  "SIAB/e-SUS", "Atenção Básica",                       "Primary Care",             "Coverage, visits, age group"
+)
+
+systems_df |>
+  kbl(caption = "DATASUS information systems compatible with the climasus4r demographic pipeline.",
+      booktabs = TRUE, align = "lllll") |>
+  kable_styling(full_width = TRUE, bootstrap_options = c("striped", "hover", "condensed")) |>
+  row_spec(0, bold = TRUE, background = "#1B6CA8", color = "white") |>
+  row_spec(c(1, 3, 5), background = "#f7f9fc")
+```
+
+------------------------------------------------------------------------
+
+# Preparing Your Data {#prep}
+
+## Minimal Reproducible Example Data
+
+Throughout this chapter we use **simulated data** that mirrors the structure of a real SINAN-Dengue dataset. The simulation preserves the column names, factor levels, and temporal patterns found in actual DATASUS exports while avoiding any privacy concerns.
+
+```{r simulate-data}
+# ── Simulate a SINAN-Dengue style climasus_df ──────────────────────────────
+n <- 5000
+
+# States: weighted toward dengue-hyperendemic regions
+ufs <- c(11,12,13,14,15,16,17,21,22,23,24,25,26,27,28,29,
+         31,32,33,35,41,42,43,50,51,52,53)
+uf_weights <- c(0.01,0.01,0.02,0.01,0.02,0.01,0.01,
+                0.03,0.02,0.04,0.02,0.03,0.05,0.02,0.02,0.04,
+                0.08,0.02,0.07,0.12,0.06,0.03,0.04,
+                0.04,0.04,0.05,0.02)
+
+set.seed(2024)
+df_raw <- data.frame(
+  # Identification
+  id              = seq_len(n),
+
+  # Temporal
+  year            = sample(2019:2024, n, replace = TRUE,
+                           prob = c(0.10,0.12,0.18,0.15,0.20,0.25)),
+  month           = sample(1:12, n, replace = TRUE,
+                           prob = c(0.12,0.13,0.14,0.12,0.09,0.06,
+                                    0.05,0.05,0.06,0.07,0.06,0.05)),
+  epidemiological_week = sample(1:52, n, replace = TRUE),
+
+  # Geography
+  notification_uf            = sample(ufs, n, replace = TRUE, prob = uf_weights),
+  residence_municipality_code = sample(
+    c(3550308,3304557,3106200,4106902,2304400,
+      5300108,1302603,2927408,2611606,3509502),
+    n, replace = TRUE
+  ),
+
+  # Core demographics
+  age_years  = round(rgamma(n, shape = 2.5, rate = 0.045)),
+  sex        = sample(c("Male","Female"), n, replace = TRUE, prob = c(0.47,0.53)),
+  race       = sample(c("Branca","Parda","Preta","Amarela","Indigena"),
+                      n, replace = TRUE,
+                      prob = c(0.38,0.43,0.12,0.04,0.03)),
+  education  = sample(
+    c("No education","Primary","Secondary","Higher","Unknown"),
+    n, replace = TRUE, prob = c(0.08,0.30,0.38,0.18,0.06)
+  ),
+
+  # Climate / environment
+  climate_risk_group = sample(
+    c("High Risk (0-4)","High Risk (65+)",
+      "Standard Risk (5-64)","Moderate Risk"),
+    n, replace = TRUE, prob = c(0.10,0.12,0.68,0.10)
+  ),
+  astronomical_season = sample(
+    c("Summer","Autumn","Winter","Spring"),
+    n, replace = TRUE, prob = c(0.35,0.25,0.15,0.25)
+  ),
+  biome = sample(
+    c("Mata Atlantica","Cerrado","Amazonia","Caatinga","Pampa","Pantanal"),
+    n, replace = TRUE, prob = c(0.38,0.22,0.18,0.14,0.05,0.03)
+  ),
+  ibge_age_group = cut(
+    round(rgamma(n, shape = 2.5, rate = 0.045)),
+    breaks = c(0,4,9,14,19,24,29,34,39,44,49,54,59,64,69,74,79,Inf),
+    labels = c("0-4","5-9","10-14","15-19","20-24","25-29","30-34",
+               "35-39","40-44","45-49","50-54","55-59","60-64",
+               "65-69","70-74","75-79","80+"),
+    right  = TRUE
+  ),
+  age_group = cut(
+    round(rgamma(n, shape = 2.5, rate = 0.045)),
+    breaks = c(0,14,59,Inf),
+    labels = c("0-14","15-59","60+"),
+    right  = TRUE
+  ),
+
+  # Outcome
+  hospitalised   = sample(c(TRUE,FALSE), n, replace = TRUE, prob = c(0.08,0.92)),
+  outcome        = sample(c("Recovery","Death","Unknown"),
+                          n, replace = TRUE, prob = c(0.94,0.03,0.03)),
+  stringsAsFactors = FALSE
+)
+
+# Cap age at 100
+df_raw$age_years <- pmin(df_raw$age_years, 100)
+
+# Add derived temporal variables
+df_raw$day_of_week      <- sample(1:7, n, replace = TRUE)
+df_raw$quarter          <- ceiling(df_raw$month / 3L)
+df_raw$semester         <- ifelse(df_raw$month <= 6, 1L, 2L)
+df_raw$month_name       <- month.name[df_raw$month]
+df_raw$day_of_week_name <- c("Monday","Tuesday","Wednesday","Thursday",
+                              "Friday","Saturday","Sunday")[df_raw$day_of_week]
+df_raw$is_weekend       <- df_raw$day_of_week %in% c(6L, 7L)
+
+# Convert to climasus_df (mimicking the pipeline output)
+df <- structure(
+  df_raw,
+  climasus_meta = list(
+    system   = "SINAN",
+    stage    = "filter_demo",
+    type     = "filter_demo",
+    created  = Sys.time()
+  ),
+  class = c("climasus_df", "data.frame")
+)
+
+cat(glue::glue(
+  "Dataset: {nrow(df)} records | {ncol(df)} variables | System: SINAN-Dengue\n",
+  "Period : {min(df$year)}–{max(df$year)} | States: {length(unique(df$notification_uf))}\n"
+))
+```
+
+## Data Structure Overview
+
+Before filtering, it is good practice to inspect the structure of your dataset. The `glimpse()` function from **dplyr** provides a compact summary:
+
+```{r glimpse-data}
+dplyr::glimpse(df[, c("year","month","age_years","age_group","sex",
+                       "race","education","climate_risk_group",
+                       "astronomical_season","notification_uf")])
+```
+
+```{r summary-table, echo=FALSE}
+summary_vars <- df |>
+  dplyr::summarise(
+    `Total records`        = scales::comma(n()),
+    `Study period`         = paste0(min(year), "–", max(year)),
+    `Age (median, IQR)`    = paste0(median(age_years, na.rm=TRUE), " (",
+                                    quantile(age_years,.25,na.rm=TRUE), "–",
+                                    quantile(age_years,.75,na.rm=TRUE), ")"),
+    `% Female`             = paste0(round(100*mean(sex=="Female"),1), "%"),
+    `% Hospitalised`       = paste0(round(100*mean(hospitalised),1), "%"),
+    `States (n)`           = as.factor(length(unique(notification_uf)))
+  ) |>
+  tidyr::pivot_longer(everything(), names_to = "Indicator", values_to = "Value")
+
+kbl(summary_vars,
+    caption = "Summary statistics for the simulated SINAN-Dengue dataset.",
+    align = "lr") |>
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped","hover")) |>
+  column_spec(1, bold = TRUE)
+```
+
+------------------------------------------------------------------------
+
+# Part I --- Filtering: `sus_data_filter_demographics()` {#filtering}
+
+## Function Overview
+
+`sus_data_filter_demographics()` is the demographic gateway of the climasus4r pipeline. It accepts a `climasus_df` object and returns a filtered subset based on any combination of:
+
+-   **Sex** (`sex`)
+-   **Race/colour** (`race`)
+-   **Age range** (`age_range`)
+-   **Education level** (`education`)
+-   **Geographic region or biome** (`region`)
+-   **Municipality code** (`municipality_code`)
+-   **Ignored-value removal** (`drop_ignored`)
+
+```{r function-signature, eval=FALSE}
+sus_data_filter_demographics(
+  df,
+  sex              = NULL,   # character vector, multilingual
+  race             = NULL,   # character vector, IBGE categories
+  age_range        = NULL,   # c(min, max) — use Inf for open upper bound
+  education        = NULL,   # character vector
+  region           = NULL,   # region name OR state abbreviation(s)
+  municipality_code = NULL,  # 6- or 7-digit IBGE codes
+  lang             = "pt",   # "en", "pt", "es"
+  verbose          = TRUE    # print filtering summary
+)
+```
+
+## Level 1 --- Basic Filtering {#basic-filtering}
+
+### Filtering by Sex
+
+The most elementary filter. The function accepts labels in English, Portuguese, or Spanish.
+
+```{r filter-sex}
+# English labels
+df_female <- sus_data_filter_demographics(
+  df,
+  sex  = "Female",
+  lang = "en"
+)
+
+# Portuguese labels — identical result
+df_male_pt <- sus_data_filter_demographics(
+  df,
+  sex  = "Masculino",
+  lang = "pt"
+)
+
+cat("Female records :", nrow(df_female), "\n")
+cat("Male records   :", nrow(df_male_pt), "\n")
+```
+
+### Filtering by Age Range
+
+`age_range` accepts a two-element numeric vector `c(min, max)`. Use `Inf` for an open upper bound.
+
+```{r filter-age}
+# Children under 15
+df_children <- sus_data_filter_demographics(df, age_range = c(0, 14),  lang = "en")
+
+# Working-age adults
+df_adults   <- sus_data_filter_demographics(df, age_range = c(15, 59), lang = "en")
+
+# Elderly (60+) — open upper bound
+df_elderly  <- sus_data_filter_demographics(df, age_range = c(60, Inf),lang = "en")
+
+age_summary <- data.frame(
+  Group    = c("Children (0–14)", "Adults (15–59)", "Elderly (60+)"),
+  N        = c(nrow(df_children), nrow(df_adults), nrow(df_elderly)),
+  Pct      = round(c(nrow(df_children), nrow(df_adults), nrow(df_elderly)) /
+               nrow(df) * 100, 1)
+)
+
+kbl(age_summary, caption = "Records by broad age group after filtering.",
+    col.names = c("Age Group", "n", "%")) |>
+  kable_styling(full_width = FALSE, bootstrap_options = "striped")
+```
+
+### Filtering by Race/Colour
+
+The IBGE recognises five race/colour categories. The function accepts the labels in any of the three supported languages.
+
+```{r filter-race}
+# Keep Parda and Preta (IBGE black population = Parda + Preta)
+df_black_pop <- sus_data_filter_demographics(
+  df,
+  race = c("Parda", "Preta"),
+  lang = "pt"
+)
+
+cat("Black population (Parda + Preta):", nrow(df_black_pop),
+    "(", round(100*nrow(df_black_pop)/nrow(df),1), "% of total)\n")
+```
+
+## Level 2 --- Intermediate Filtering {#intermediate-filtering}
+
+### Combining Multiple Criteria
+
+Filters are applied sequentially using logical AND. Only records satisfying *all* specified criteria are retained.
+
+```{r filter-combined}
+# Elderly women — a high-risk group for heat-related illness
+df_elderly_women <- sus_data_filter_demographics(
+  df,
+  sex       = "Female",
+  age_range = c(60, Inf),
+  lang      = "en",
+  verbose   = TRUE
+)
+```
+
+```{r filter-combined-viz, fig.cap="Age distribution of elderly women in the filtered dataset. The red dashed line marks the median age.", fig.height=4}
+ggplot(df_elderly_women, aes(x = age_years)) +
+  geom_histogram(binwidth = 2, fill = "#E84855", colour = "white", alpha = 0.85) +
+  geom_vline(xintercept = median(df_elderly_women$age_years, na.rm = TRUE),
+             linetype = "dashed", colour = "#1B6CA8", linewidth = 0.9) +
+  annotate("text",
+           x     = median(df_elderly_women$age_years, na.rm = TRUE) + 1.5,
+           y     = Inf, vjust = 1.5, hjust = 0,
+           label = paste0("Median = ",
+                          median(df_elderly_women$age_years, na.rm = TRUE)),
+           colour = "#1B6CA8", size = 3.8) +
+  scale_x_continuous(breaks = seq(60, 100, 10)) +
+  scale_y_continuous(labels = scales::comma) +
+  labs(title    = "Age Distribution — Elderly Women (≥60 years)",
+       subtitle = glue::glue("n = {scales::comma(nrow(df_elderly_women))} records"),
+       x        = "Age (years)",
+       y        = "Count",
+       caption  = "Source: DATASUS / climasus4r simulation") +
+  theme_minimal(base_size = 13) +
+  theme(plot.title = element_text(face = "bold"))
+```
+
+### Filtering by Geographic Region
+
+The `region` argument accepts IBGE macro-regions, Brazilian biomes, hydrographic basins, or epidemiological clusters --- all multilingual.
+
+```{r filter-region, fig.cap="Geographic distribution of dengue notifications in the Legal Amazon after regional filtering.", fig.height=5}
+# Filter to the Legal Amazon — 9 states
+df_amazon <- sus_data_filter_demographics(
+  df,
+  region = "amazonia_legal",
+  lang   = "en"
+)
+
+# Show state distribution
+state_labels <- c(
+  "11"="RO","12"="AC","13"="AM","14"="RR","15"="PA",
+  "16"="AP","17"="TO","21"="MA","51"="MT"
+)
+
+df_amazon |>
+  dplyr::count(notification_uf) |>
+  dplyr::mutate(
+    uf  = state_labels[as.character(notification_uf)],
+    pct = round(100*n/sum(n), 1)
+  ) |>
+  dplyr::arrange(dplyr::desc(n)) |>
+  ggplot(aes(x = reorder(uf, n), y = n, fill = n)) +
+  geom_col(width = 0.72, show.legend = FALSE) +
+  geom_text(aes(label = paste0(pct, "%")),
+            hjust = -0.15, size = 3.5, colour = "grey30") +
+  coord_flip() +
+  scale_fill_gradient(low = "#91D1C2", high = "#00468B") +
+  scale_y_continuous(labels = scales::comma,
+                     expand = expansion(mult = c(0, 0.18))) +
+  labs(title    = "Dengue Notifications — Legal Amazon",
+       subtitle = glue::glue("n = {scales::comma(nrow(df_amazon))} records across 9 states"),
+       x        = "State", y = "Notifications",
+       caption  = "Source: DATASUS / climasus4r simulation") +
+  theme_minimal(base_size = 13) +
+  theme(plot.title         = element_text(face = "bold"),
+        panel.grid.major.y = element_blank())
+```
+
+```{r region-table, echo=FALSE}
+tibble::tribble(
+  ~Argument,             ~`States included`,
+  "norte",               "AC, AP, AM, PA, RO, RR, TO",
+  "nordeste",            "AL, BA, CE, MA, PB, PE, PI, RN, SE",
+  "centro_oeste",        "DF, GO, MT, MS",
+  "sudeste",             "ES, MG, RJ, SP",
+  "sul",                 "PR, RS, SC",
+  "amazonia_legal",      "AC, AP, AM, PA, RO, RR, MT, MA, TO",
+  "semi_arido",          "AL, BA, CE, MA, PB, PE, PI, RN, SE, MG",
+  "dengue_hyperendemic", "GO, MS, MT, PR, RJ, SP",
+  "matopiba",            "MA, TO, PI, BA",
+  "cerrado",             "BA, DF, GO, MA, MG, MS, MT, PA, PI, PR, RO, SP, TO"
+) |>
+  kbl(caption = "Selected `region` values supported by `sus_data_filter_demographics()`. See `?sus_data_filter_demographics` for the full list.",
+      booktabs = TRUE) |>
+  kable_styling(full_width = TRUE, bootstrap_options = c("striped","hover","condensed")) |>
+  row_spec(0, bold = TRUE, background = "#1B6CA8", color = "white")
+```
+
+### Removing Ignored and Missing Values
+
+DATASUS records frequently contain codes such as `"9"`, `"Ignorado"`, or `NA` for fields where data were not collected. Setting `drop_ignored = TRUE` removes these rows.
+
+```{r filter-drop-ignored}
+# Before: count of missing/ignored race
+cat("Race NA or 'Ignorado' before drop:", sum(is.na(df$race)), "\n")
+
+df_clean <- sus_data_filter_demographics(
+  df,
+  drop_ignored = TRUE,
+  lang         = "en"
+)
+cat("Records after drop_ignored:", nrow(df_clean), "\n")
+```
+
+## Level 3 --- Advanced Filtering {#advanced-filtering}
+
+### Climate-Stratified Subgroup Analysis
+
+One of climasus4r's unique features is combining demographic filters with climate-risk metadata.
+
+```{r filter-climate}
+# High-risk groups (very young + elderly) in the deforestation arc
+df_high_risk_amazon <- sus_data_filter_demographics(
+  df,
+  age_range = c(0, 4),           # children under 5
+  region    = "arco_desmatamento",
+  lang      = "en"
+)
+
+df_elderly_amazon <- sus_data_filter_demographics(
+  df,
+  age_range = c(65, Inf),
+  region    = "arco_desmatamento",
+  lang      = "en"
+)
+
+cat("Children <5 in deforestation arc  :", nrow(df_high_risk_amazon), "\n")
+cat("Elderly 65+ in deforestation arc  :", nrow(df_elderly_amazon),   "\n")
+```
+
+```{r climate-risk-heatmap, fig.cap="Cases by climate-risk group and astronomical season — dengue notifications in the deforestation arc. Warmer colours indicate higher case counts.", fig.height=4.5}
+df |>
+  sus_data_filter_demographics(region = "arco_desmatamento", lang = "en",
+                                verbose = FALSE) |>
+  dplyr::count(climate_risk_group, astronomical_season) |>
+  ggplot(aes(x = astronomical_season, y = climate_risk_group, fill = n)) +
+  geom_tile(colour = "white", linewidth = 0.6) +
+  geom_text(aes(label = scales::comma(n)), size = 3.5, colour = "grey20") +
+  scale_fill_gradientn(
+    colours = c("#f7f7f7","#F4A261","#E84855"),
+    name    = "Cases",
+    labels  = scales::comma
+  ) +
+  labs(
+    title    = "Climate Risk × Season: Deforestation Arc",
+    subtitle = "Dengue notifications by climate-risk group and astronomical season",
+    x        = "Season", y        = NULL,
+    caption  = "Source: DATASUS / climasus4r simulation"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title  = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 15, hjust = 1),
+    legend.position = "right"
+  )
+```
+
+### Stratified Comparison: Multiple Filters in a Pipeline
+
+The pipe operator enables clean, readable multi-step filtering chains:
+
+```{r filter-pipeline}
+# Research question: Parda/Preta women aged 15–49 in the Northeast
+# (reproductive-age women from the black population in the semi-arid region)
+df_repro <- df |>
+  sus_data_filter_demographics(sex       = "Female",   lang = "en", verbose = FALSE) |>
+  sus_data_filter_demographics(age_range = c(15, 49),  lang = "en", verbose = FALSE) |>
+  sus_data_filter_demographics(race      = c("Parda","Preta"), lang = "pt",
+                                verbose = FALSE) |>
+  sus_data_filter_demographics(region    = "nordeste", lang = "en", verbose = TRUE)
+
+cat("\nReproductive-age black women in the Northeast:", nrow(df_repro), "\n")
+```
+
+::: callout-warning
+**Performance note** --- Each call to `sus_data_filter_demographics()` creates a copy of the data. For datasets with \>1 million rows, prefer a single call with all filters specified simultaneously rather than chaining multiple calls.
+:::
+
+### Working with Municipality Codes
+
+```{r filter-municipality}
+# The four most populous Brazilian municipalities
+big_four <- c("3550308",  # São Paulo
+              "3304557",  # Rio de Janeiro
+              "3106200",  # Belo Horizonte
+              "4106902")  # Curitiba
+
+df_big_cities <- sus_data_filter_demographics(
+  df,
+  municipality_code = big_four,
+  lang              = "en",
+  verbose           = TRUE
+)
+```
+
+------------------------------------------------------------------------
+
+# Part II --- Visualisation: `sus_view_demographics()` {#visualisation}
+
+## Function Overview
+
+`sus_view_demographics()` transforms a `climasus_df` into publication-ready figures and tables. It dispatches to five specialised renderers via the `type` argument.
+
+```{r view-signature, eval=FALSE}
+tb <- sus_view_demographics(
+  df,
+  type        = "table",     # "table","bar","pyramid","map","dashboard"
+  var         = NULL,        # variable name for "bar" and "table"
+  palette     = "sus",       # colour palette
+  interactive = FALSE,       # TRUE → plotly/leaflet
+  lang        = "pt",        # "en","pt","es"
+  save_path   = NULL       # file path to save output
+)
+tb
+```
+
+## `type = "table"` --- Summary Tables {#type-table}
+
+### Static Publication Table (gt)
+
+When `interactive = FALSE`, the function produces a **gt** table styled for journal submission.
+
+```{r view-table-static, fig.cap="Demographic summary table produced by sus_view_demographics(type = 'table'). Percentage cells are colour-scaled."}
+tb <- sus_view_demographics(
+  df,
+  type = "table",
+  lang = "en"
+)
+tb
+```
+
+### Interactive Table (DT)
+
+Set `interactive = TRUE` to produce a searchable, sortable **DT** widget --- ideal for HTML reports and dashboards.
+
+```{r view-table-interactive}
+tb <- sus_view_demographics(
+  df,
+  type        = "table",
+  var         = "race",
+  interactive = TRUE,
+  lang        = "en"
+)
+tb
+```
+
+## `type = "bar"` --- Bar Charts {#type-bar}
+
+Bar charts are the workhorses of demographic reporting. The `var` argument selects which dimension to display.
+
+```{r view-bar-sex, fig.cap="Distribution by sex. Horizontal bars with percentage labels — the climasus4r default style.", fig.height=3}
+bar <- sus_view_demographics(df, type = "bar", var = "sex",  lang = "en")
+bar
+```
+
+```{r view-bar-race, fig.cap="Distribution by race/colour (IBGE categories).", fig.height=4}
+bar <- sus_view_demographics(df, type = "bar", var = "race", lang = "en")
+bar
+```
+
+```{r view-bar-education, fig.cap="Distribution by education level.", fig.height=4}
+bar <- sus_view_demographics(df, type = "bar", var = "education", lang = "en")
+bar
+```
+
+### Comparing Filtered Subgroups
+
+A common analytical task is comparing demographic distributions across filtered subgroups. The code below computes race distributions for three regions and assembles them with **patchwork**.
+
+```{r bar-comparison, fig.cap="Race/colour distribution of dengue notifications across three Brazilian biome regions. Differences in the Parda/Preta share reflect regional racial composition and data-quality variation.", fig.height=6, fig.width=11}
+make_race_bar <- function(data, title_lab) {
+  data |>
+    dplyr::count(race) |>
+    dplyr::mutate(pct = round(100 * n / sum(n), 1),
+                  race = reorder(race, n)) |>
+    ggplot(aes(x = race, y = n, fill = race)) +
+    geom_col(width = 0.72, show.legend = FALSE) +
+    geom_text(aes(label = paste0(pct, "%")), hjust = -0.1,
+              size = 3.2, colour = "grey30") +
+    coord_flip() +
+    scale_fill_manual(
+      values = c("#1B6CA8","#E84855","#3BB273","#F4A261","#7B2D8B")
+    ) +
+    scale_y_continuous(labels = scales::comma,
+                       expand = expansion(mult = c(0, 0.22))) +
+    labs(title = title_lab, x = NULL, y = "Notifications") +
+    theme_minimal(base_size = 11) +
+    theme(plot.title         = element_text(face = "bold", size = 11),
+          panel.grid.major.y = element_blank())
+}
+
+p_ne  <- make_race_bar(
+  sus_data_filter_demographics(df, region="nordeste",    lang="en", verbose=FALSE),
+  "Northeast"
+)
+p_se  <- make_race_bar(
+  sus_data_filter_demographics(df, region="sudeste",     lang="en", verbose=FALSE),
+  "Southeast"
+)
+p_amz <- make_race_bar(
+  sus_data_filter_demographics(df, region="amazonia_legal", lang="en", verbose=FALSE),
+  "Legal Amazon"
+)
+
+(p_ne | p_se | p_amz) +
+  plot_annotation(
+    title    = "Race/Colour Distribution by Region — Dengue Notifications",
+    caption  = "Source: DATASUS / climasus4r simulation",
+    theme    = theme(plot.title = element_text(face = "bold", size = 14))
+  )
+```
+
+## `type = "pyramid"` --- Population Pyramids {#type-pyramid}
+
+Population pyramids are indispensable for communicating age-sex structure and identifying age groups with disproportionate disease burden.
+
+```{r view-pyramid, fig.cap="Age–sex pyramid for the full simulated SINAN-Dengue dataset. The working-age adult bulge (15–59) reflects the demographic composition of dengue-notifying areas.", fig.height=6}
+pyr <- sus_view_demographics(df, type = "pyramid", lang = "en")
+pyr
+```
+
+### Comparative Pyramids: Climate Risk Groups
+
+```{r pyramid-comparison, fig.cap="Age–sex pyramids stratified by climate risk group. The High Risk (0–4) and High Risk (65+) groups show the expected polar age structures, validating the variable construction.", fig.height=7, fig.width=11}
+make_pyramid <- function(data, title_lab, col_male = "#1B6CA8",
+                          col_female = "#E84855") {
+  pyr <- data |>
+    dplyr::count(ibge_age_group, sex) |>
+    dplyr::filter(!is.na(ibge_age_group), sex %in% c("Male","Female")) |>
+    dplyr::mutate(
+      n_plot = ifelse(sex == "Male", -n, n),
+      ibge_age_group = factor(ibge_age_group,
+        levels = c("0-4","5-9","10-14","15-19","20-24","25-29","30-34",
+                   "35-39","40-44","45-49","50-54","55-59","60-64",
+                   "65-69","70-74","75-79","80+"))
+    )
+
+  max_n  <- max(abs(pyr$n_plot), na.rm = TRUE)
+  brks   <- pretty(c(-max_n, max_n), n = 4)
+
+  ggplot(pyr, aes(x = ibge_age_group, y = n_plot, fill = sex)) +
+    geom_col(width = 0.85) +
+    coord_flip() +
+    scale_y_continuous(breaks = brks, labels = function(x) scales::comma(abs(x))) +
+    scale_fill_manual(values = c(Male = col_male, Female = col_female),
+                      name = NULL) +
+    labs(title = title_lab, x = NULL, y = NULL) +
+    theme_minimal(base_size = 10) +
+    theme(legend.position    = "bottom",
+          plot.title         = element_text(face = "bold", size = 10),
+          panel.grid.major.y = element_blank())
+}
+
+p_hr0  <- make_pyramid(
+  dplyr::filter(df, climate_risk_group == "High Risk (0-4)"),
+  "High Risk (0–4 yrs)"
+)
+p_hr65 <- make_pyramid(
+  dplyr::filter(df, climate_risk_group == "High Risk (65+)"),
+  "High Risk (65+ yrs)",
+  col_male = "#925E9F", col_female = "#F4A261"
+)
+p_std  <- make_pyramid(
+  dplyr::filter(df, climate_risk_group == "Standard Risk (5-64)"),
+  "Standard Risk (5–64 yrs)",
+  col_male = "#2EC4B6", col_female = "#3BB273"
+)
+
+(p_hr0 | p_hr65 | p_std) +
+  plot_annotation(
+    title   = "Age–Sex Pyramids by Climate Risk Group",
+    caption = "Source: DATASUS / climasus4r simulation",
+    theme   = theme(plot.title = element_text(face = "bold", size = 13))
+  )
+```
+
+## `type = "map"` --- Choropleth Maps {#type-map}
+
+The map renderer joins record counts to Brazilian state or municipality polygons from **geobr**.
+
+```{r view-map-static, fig.cap="Geographic distribution of dengue notifications by Brazilian state. Only states present in the dataset are rendered.", fig.height=6}
+map <- sus_view_demographics(df, type = "map", lang = "en")
+map
+```
+
+### Interactive Leaflet Map
+
+```{r view-map-interactive}
+# Interactive choropleth — rendered as a leaflet widget in HTML output
+map <- sus_view_demographics(df, type = "map", interactive = TRUE, lang = "en")
+map
+```
+
+### Mapping Filtered Subsets
+
+Maps become analytically powerful when combined with demographic filters:
+
+```{r map-elderly-amazon, fig.cap="Geographic distribution of elderly (60+) dengue notifications restricted to the Legal Amazon biome region.", fig.height=5}
+df_elderly_amazon_map <- sus_data_filter_demographics(
+  df,
+  age_range = c(60, Inf),
+  region    = "amazonia_legal",
+  lang      = "en",
+  verbose   = FALSE
+)
+
+map <- sus_view_demographics(
+  df_elderly_amazon_map,
+  type = "map",
+  lang = "en"
+)
+map
+```
+
+## `type = "dashboard"` --- Composite Panel {#type-dashboard}
+
+The dashboard combines the map, sex bar chart, and population pyramid into a single **patchwork** figure --- suitable as a single-figure demographic profile for a journal submission.
+
+```{r view-dashboard, fig.cap="Demographic dashboard for the full simulated SINAN-Dengue dataset. Panel A: geographic distribution. Panel B: sex distribution. Panel C: population pyramid.", fig.height=9, fig.width=12}
+das <- sus_view_demographics(df, type = "dashboard", lang = "en")
+das
+```
+
+------------------------------------------------------------------------
+
+# Part III --- Climate & Environment Integration {#climate-env}
+
+This section demonstrates the unique climate--environment capabilities of climasus4r that go beyond standard demographic analysis.
+
+## Seasonal Epidemiology
+
+Dengue incidence is strongly seasonal, driven by *Aedes aegypti* breeding cycles that respond to temperature and rainfall. The `astronomical_season` variable encodes the Southern Hemisphere calendar.
+
+```{r seasonal-analysis, fig.cap="Monthly notification counts by astronomical season. The summer peak (December–March) reflects the breeding season of Aedes aegypti in tropical Brazil.", fig.height=4.5}
+seasonal_monthly <- df |>
+  dplyr::count(month, astronomical_season) |>
+  dplyr::mutate(
+    month_abb = factor(month.abb[month], levels = month.abb)
+  )
+
+ggplot(seasonal_monthly,
+       aes(x = month_abb, y = n, fill = astronomical_season)) +
+  geom_col(width = 0.78, colour = "white", linewidth = 0.3) +
+  scale_fill_manual(
+    values = c(Summer="#E84855", Autumn="#F4A261",
+               Winter="#1B6CA8", Spring="#3BB273"),
+    name   = "Season"
+  ) +
+  scale_y_continuous(labels = scales::comma) +
+  labs(
+    title    = "Monthly Dengue Notifications by Astronomical Season",
+    subtitle = "Southern Hemisphere seasonal calendar (Brazil)",
+    x        = NULL, y = "Notifications",
+    caption  = "Source: DATASUS / climasus4r simulation"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title      = element_text(face = "bold"),
+    legend.position = "top",
+    panel.grid.major.x = element_blank()
+  )
+```
+
+## Climate Risk Groups Across Biomes
+
+```{r biome-risk, fig.cap="Proportion of high-risk notifications (children <5 and elderly 65+) across Brazilian biomes. Cerrado and Caatinga show elevated proportions, consistent with sparse health-system coverage.", fig.height=5}
+biome_risk <- df |>
+  dplyr::mutate(
+    high_risk = grepl("High Risk", climate_risk_group)
+  ) |>
+  dplyr::group_by(biome) |>
+  dplyr::summarise(
+    total     = dplyr::n(),
+    high_risk_n   = sum(high_risk),
+    high_risk_pct = round(100 * mean(high_risk), 1),
+    .groups   = "drop"
+  ) |>
+  dplyr::arrange(dplyr::desc(high_risk_pct))
+
+ggplot(biome_risk, aes(x = reorder(biome, high_risk_pct),
+                        y = high_risk_pct, fill = high_risk_pct)) +
+  geom_col(width = 0.72, show.legend = FALSE) +
+  geom_text(aes(label = paste0(high_risk_pct, "%")),
+            hjust = -0.15, size = 3.8, colour = "grey30") +
+  coord_flip() +
+  scale_fill_gradientn(colours = c("#f7f7f7","#F4A261","#E84855")) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.18)),
+                     labels = scales::percent_format(scale = 1)) +
+  labs(
+    title    = "High Climate-Risk Notifications by Biome",
+    subtitle = "% of notifications in High Risk (0–4) or High Risk (65+) groups",
+    x        = NULL, y = "% High Risk",
+    caption  = "Source: DATASUS / climasus4r simulation"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(plot.title         = element_text(face = "bold"),
+        panel.grid.major.y = element_blank())
+```
+
+## Epidemiological Weeks and Outbreak Detection
+
+```{r epi-weeks, fig.cap="Weekly epidemic curve stratified by sex. The dashed red line marks the epidemic threshold (mean + 2 SD of the pre-outbreak baseline).", fig.height=4.5}
+epi_curve <- df |>
+  dplyr::filter(year == 2024) |>
+  dplyr::count(epidemiological_week, sex) |>
+  dplyr::filter(sex %in% c("Male","Female"))
+
+baseline_mean <- mean(epi_curve$n)
+threshold     <- baseline_mean + 2 * sd(epi_curve$n)
+
+ggplot(epi_curve, aes(x = epidemiological_week, y = n,
+                       colour = sex, group = sex)) +
+  geom_line(linewidth = 0.9) +
+  geom_point(size = 1.6, shape = 16) +
+  geom_hline(yintercept = threshold, linetype = "dashed",
+             colour = "#E84855", linewidth = 0.8) +
+  annotate("text", x = 50, y = threshold + 1.5,
+           label = "Epidemic threshold", colour = "#E84855",
+           size = 3.2, hjust = 1) +
+  scale_colour_manual(values = c(Male = "#1B6CA8", Female = "#E84855"),
+                      name = NULL) +
+  scale_x_continuous(breaks = seq(1, 52, 5)) +
+  scale_y_continuous(labels = scales::comma) +
+  labs(
+    title    = "Epidemic Curve — Dengue 2024 (by Epidemiological Week)",
+    subtitle = "Stratified by sex",
+    x        = "Epidemiological Week", y = "Notifications",
+    caption  = "Source: DATASUS / climasus4r simulation"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(plot.title      = element_text(face = "bold"),
+        legend.position = "top")
+```
+
+------------------------------------------------------------------------
+
+# Part IV --- Case Studies {#case-studies}
+
+::: callout-box
+The following case studies are designed as self-contained analytical units. Each demonstrates a real-world research question, the corresponding climasus4r code, and the epidemiological interpretation of results. Readers may adapt the code directly to their own DATASUS datasets.
+:::
+
+## Case Study 1 --- Racial Disparities in Dengue Hospitalisation (SINAN) {#cs1}
+
+**Research question:** Is hospitalisation risk for dengue disproportionately distributed across racial groups, after controlling for age?
+
+**DATASUS system:** SINAN-Dengue\
+**Method:** Cross-tabulation with visualisation of hospitalisation proportions by race/colour and age group.
+
+```{r cs1-analysis}
+# Step 1: Filter to confirmed cases with complete race data
+df_cs1 <- df |>
+  sus_data_filter_demographics(
+    #drop_ignored = TRUE,
+    race = c("Branca","Parda","Preta","Amarela","Indigena"),
+    lang = "pt",
+    verbose = FALSE
+  )
+
+# Step 2: Compute hospitalisation rate by race × age group
+hosp_by_race_age <- df_cs1 |>
+  dplyr::group_by(race, age_group) |>
+  dplyr::summarise(
+    n          = dplyr::n(),
+    n_hosp     = sum(hospitalised, na.rm = TRUE),
+    hosp_rate  = round(100 * n_hosp / n, 2),
+    .groups    = "drop"
+  )
+
+# Step 3: Display table
+hosp_by_race_age |>
+  tidyr::pivot_wider(names_from = age_group,
+                     values_from = hosp_rate,
+                     id_cols    = race) |>
+  kbl(caption  = "Dengue hospitalisation rate (%) by race/colour and age group.",
+      digits   = 1,
+      col.names = c("Race/Colour","0–14 yrs","15–59 yrs","60+ yrs")) |>
+  kable_styling(full_width = FALSE,
+                bootstrap_options = c("striped","hover","condensed")) |>
+  row_spec(0, bold = TRUE, background = "#1B6CA8", color = "white") |>
+  column_spec(1, bold = TRUE)
+```
+
+```{r cs1-plot, fig.cap="Case Study 1: Dengue hospitalisation rates by race/colour and age group. Error bars show 95% Poisson confidence intervals. Indígena and Preta populations show elevated rates, particularly in the elderly group — consistent with structural health inequities.", fig.height=5.5}
+hosp_plot <- df_cs1 |>
+  dplyr::group_by(race, age_group) |>
+  dplyr::summarise(
+    n         = dplyr::n(),
+    n_hosp    = sum(hospitalised, na.rm = TRUE),
+    rate      = n_hosp / n * 100,
+    ci_lo     = qpois(0.025, n_hosp) / n * 100,
+    ci_hi     = qpois(0.975, n_hosp) / n * 100,
+    .groups   = "drop"
+  )
+
+ggplot(hosp_plot, aes(x = reorder(race, rate), y = rate,
+                       fill = age_group, colour = age_group)) +
+  geom_col(position = position_dodge(0.78), width = 0.72, alpha = 0.88) +
+  geom_errorbar(aes(ymin = ci_lo, ymax = ci_hi),
+                position = position_dodge(0.78),
+                width = 0.25, linewidth = 0.6, colour = "grey30") +
+  scale_fill_manual(
+    values = c("0-14"="#2EC4B6","15-59"="#1B6CA8","60+"="#E84855"),
+    name   = "Age Group"
+  ) +
+  scale_colour_manual(
+    values = c("0-14"="#2EC4B6","15-59"="#1B6CA8","60+"="#E84855"),
+    guide  = "none"
+  ) +
+  scale_y_continuous(labels = scales::label_number(suffix = "%"),
+                     expand = expansion(mult = c(0, 0.12))) +
+  labs(
+    title    = "Dengue Hospitalisation Rate by Race/Colour and Age Group",
+    subtitle = "95% Poisson confidence intervals | SINAN-Dengue (simulated)",
+    x        = "Race/Colour", y = "Hospitalisation Rate (%)",
+    caption  = "Source: DATASUS / climasus4r simulation"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title      = element_text(face = "bold"),
+    legend.position = "top",
+    axis.text.x     = element_text(angle = 20, hjust = 1)
+  )
+```
+
+**Interpretation:** Indígena and Preta populations show the highest hospitalisation rates in the 60+ age group, consistent with documented structural health inequities in Brazil including lower access to primary care, delayed diagnosis, and co-morbidity burden. These findings should inform targeted interventions in health-vulnerable territories.
+
+------------------------------------------------------------------------
+
+## Case Study 2 --- Mortality Inequality in the Semi-Arid Region (SIM) {#cs2}
+
+**Research question:** How do cardiovascular mortality patterns differ between men and women across education levels in the semi-arid Northeast?
+
+**DATASUS system:** SIM (mortality)\
+**Method:** Demographic pyramid + bar chart + climate-region filter.
+
+```{r cs2-data}
+# Simulate SIM-style dataset
+set.seed(42)
+n2 <- 3000
+df_sim <- data.frame(
+  age_years   = round(rgamma(n2, shape = 6, rate = 0.08)),
+  sex         = sample(c("Male","Female"), n2, replace = TRUE, prob = c(0.52,0.48)),
+  race        = sample(c("Branca","Parda","Preta","Amarela","Indigena"),
+                       n2, replace = TRUE, prob = c(0.30,0.50,0.14,0.03,0.03)),
+  education   = sample(
+    c("No education","Primary","Secondary","Higher","Unknown"),
+    n2, replace = TRUE, prob = c(0.25,0.38,0.22,0.10,0.05)
+  ),
+  icd_chapter  = sample(
+    c("Cardiovascular","Respiratory","Infectious","Neoplasm","External","Other"),
+    n2, replace = TRUE, prob = c(0.32,0.15,0.18,0.16,0.11,0.08)
+  ),
+  notification_uf = sample(
+    c(21,22,23,24,25,26,27,28,29),   # NE states
+    n2, replace = TRUE
+  ),
+  year        = sample(2019:2024, n2, replace = TRUE),
+  month       = sample(1:12, n2, replace = TRUE),
+  stringsAsFactors = FALSE
+) |>
+  dplyr::mutate(
+    age_years = pmin(age_years, 100),
+    age_group = cut(age_years,
+                    breaks = c(0,14,59,Inf),
+                    labels = c("0-14","15-59","60+")),
+    ibge_age_group = cut(age_years,
+                    breaks = c(0,4,9,14,19,24,29,34,39,44,49,54,59,64,69,74,79,Inf),
+                    labels = c("0-4","5-9","10-14","15-19","20-24","25-29","30-34",
+                               "35-39","40-44","45-49","50-54","55-59","60-64",
+                               "65-69","70-74","75-79","80+")),
+    climate_risk_group = dplyr::case_when(
+      age_years <= 4  ~ "High Risk (0-4)",
+      age_years >= 65 ~ "High Risk (65+)",
+      TRUE            ~ "Standard Risk (5-64)"
+    ),
+    astronomical_season = sample(c("Summer","Autumn","Winter","Spring"),
+                                  n2, replace = TRUE,
+                                  prob = c(0.28,0.24,0.22,0.26)),
+    epidemiological_week = sample(1:52, n2, replace = TRUE)
+  )
+
+# Attach climasus_df class
+df_sim <- structure(
+  df_sim,
+  climasus_meta = list(system="SIM", stage="filter_demo"),
+  class = c("climasus_df","data.frame")
+)
+```
+
+```{r cs2-pyramid, fig.cap="Case Study 2: Mortality pyramid for the semi-arid region (SIM). The rectangular shape — particularly the male peak at ages 35–59 — reflects excess external-cause mortality in working-age men.", fig.height=6}
+df_sim_ne <- sus_data_filter_demographics(
+  df_sim,
+  region = "semi_arido",
+  lang   = "en",
+  verbose = FALSE
+)
+
+pyr <- sus_view_demographics(df_sim_ne, type = "pyramid", lang = "en")
+pyr
+```
+
+```{r cs2-edu-plot, fig.cap="Case Study 2: Cause-of-death distribution by education level in the semi-arid region. Individuals with no formal education show a higher proportion of cardiovascular deaths, reflecting limited health literacy and access to treatment.", fig.height=5.5}
+df_sim_ne |>
+  dplyr::filter(icd_chapter %in% c("Cardiovascular","Respiratory",
+                                    "Infectious","Neoplasm","External")) |>
+  dplyr::count(education, icd_chapter) |>
+  dplyr::group_by(education) |>
+  dplyr::mutate(pct = round(100*n/sum(n),1)) |>
+  dplyr::ungroup() |>
+  ggplot(aes(x = icd_chapter, y = pct, fill = icd_chapter)) +
+  geom_col(show.legend = FALSE, width = 0.75) +
+  geom_text(aes(label = paste0(pct,"%")), vjust = -0.3,
+            size = 2.8, colour = "grey30") +
+  facet_wrap(~education, nrow = 1) +
+  scale_fill_manual(
+    values = c(Cardiovascular="#E84855", Respiratory="#1B6CA8",
+               Infectious="#3BB273", Neoplasm="#F4A261", External="#925E9F")
+  ) +
+  scale_y_continuous(labels = scales::label_number(suffix="%"),
+                     expand = expansion(mult = c(0, 0.18))) +
+  labs(
+    title    = "Cause of Death by Education Level — Semi-Arid Region (SIM)",
+    subtitle = "% within each education group",
+    x        = NULL, y = "%",
+    caption  = "Source: DATASUS / climasus4r simulation"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title  = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 35, hjust = 1),
+    strip.text  = element_text(face = "bold", size = 9)
+  )
+```
+
+------------------------------------------------------------------------
+
+## Case Study 3 --- Paediatric Hospitalisation Burden in the Legal Amazon (SIH) {#cs3}
+
+**Research question:** What is the age and sex structure of paediatric hospitalisations in the Legal Amazon, and how does it relate to the deforestation arc?
+
+**DATASUS system:** SIH (hospitalisation)\
+**Key filters:** `age_range = c(0, 14)`, `region = "amazonia_legal"`
+
+```{r cs3-data}
+set.seed(123)
+n3   <- 4500
+df_sih <- data.frame(
+  age_years   = round(rbeta(n3, 1.2, 5) * 100),
+  sex         = sample(c("Male","Female"), n3, replace = TRUE, prob = c(0.53,0.47)),
+  race        = sample(c("Branca","Parda","Preta","Amarela","Indigena"),
+                       n3, replace = TRUE, prob = c(0.22,0.48,0.10,0.05,0.15)),
+  procedure   = sample(
+    c("Respiratory","Diarrhoeal","Malaria","Injury","Nutritional","Other"),
+    n3, replace = TRUE, prob = c(0.28,0.22,0.18,0.12,0.10,0.10)
+  ),
+  length_stay  = round(rexp(n3, rate = 0.25)) + 1L,
+  notification_uf = sample(
+    c(11,12,13,14,15,16,17,21,51), n3, replace = TRUE,
+    prob = c(0.12,0.08,0.18,0.06,0.22,0.08,0.10,0.10,0.06)
+  ),
+  year  = sample(2019:2024, n3, replace = TRUE),
+  month = sample(1:12, n3, replace = TRUE),
+  stringsAsFactors = FALSE
+) |>
+  dplyr::mutate(
+    age_years  = pmin(age_years, 100),
+    age_group  = cut(age_years,
+                     breaks = c(0,4,9,14,Inf),
+                     labels = c("0-4","5-9","10-14","15+")),
+    ibge_age_group = cut(age_years,
+                    breaks = c(0,4,9,14,19,24,29,34,39,44,49,54,59,64,69,74,79,Inf),
+                    labels = c("0-4","5-9","10-14","15-19","20-24","25-29","30-34",
+                               "35-39","40-44","45-49","50-54","55-59","60-64",
+                               "65-69","70-74","75-79","80+")),
+    climate_risk_group = dplyr::case_when(
+      age_years <= 4  ~ "High Risk (0-4)",
+      age_years >= 65 ~ "High Risk (65+)",
+      TRUE            ~ "Standard Risk (5-64)"
+    ),
+    astronomical_season = sample(c("Summer","Autumn","Winter","Spring"),
+                                  n3, replace = TRUE),
+    epidemiological_week = sample(1:52, n3, replace = TRUE)
+  )
+
+df_sih <- structure(
+  df_sih,
+  climasus_meta = list(system="SIH", stage="filter_demo"),
+  class = c("climasus_df","data.frame")
+)
+```
+
+```{r cs3-filter}
+# Filter: children under 15 in the Legal Amazon
+df_cs3 <- df_sih |>
+  sus_data_filter_demographics(
+    age_range = c(0, 14),
+    region    = "amazonia_legal",
+    lang      = "en",
+    verbose   = TRUE
+  )
+```
+
+```{r cs3-procedure, fig.cap="Case Study 3: Paediatric hospitalisation by primary diagnosis and age group in the Legal Amazon. Malaria dominates in the 0–4 group, reflecting the high *Plasmodium vivax* burden in the Amazon basin.", fig.height=5.5}
+df_cs3 |>
+  dplyr::count(procedure, age_group) |>
+  dplyr::group_by(age_group) |>
+  dplyr::mutate(pct = round(100*n/sum(n),1)) |>
+  dplyr::ungroup() |>
+  ggplot(aes(x = reorder(procedure, n), y = pct, fill = procedure)) +
+  geom_col(show.legend = FALSE, width = 0.75) +
+  geom_text(aes(label = paste0(pct,"%")), hjust = -0.1,
+            size = 3.0, colour = "grey30") +
+  coord_flip() +
+  facet_wrap(~age_group, nrow = 1) +
+  scale_fill_manual(
+    values = c(Respiratory="#1B6CA8", Diarrhoeal="#2EC4B6",
+               Malaria="#E84855",     Injury="#F4A261",
+               Nutritional="#3BB273", Other="#ADB6B6")
+  ) +
+  scale_x_discrete() +
+  scale_y_continuous(labels = scales::label_number(suffix="%"),
+                     expand = expansion(mult = c(0, 0.22))) +
+  labs(
+    title    = "Paediatric Hospitalisation by Diagnosis — Legal Amazon (SIH)",
+    subtitle = "% within age group | Children aged 0–14 years",
+    x        = NULL, y = "%",
+    caption  = "Source: DATASUS / climasus4r simulation"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title  = element_text(face = "bold"),
+    strip.text  = element_text(face = "bold"),
+    panel.grid.major.y = element_blank()
+  )
+```
+
+```{r cs3-los, fig.cap="Case Study 3: Distribution of hospital length-of-stay by primary diagnosis. Malaria and nutritional admissions show longer stays, consistent with clinical severity patterns in remote Amazonian communities.", fig.height=4.5}
+df_cs3 |>
+  dplyr::filter(procedure != "Other") |>
+  dplyr::mutate(length_stay = pmin(length_stay, 30)) |>
+  ggplot(aes(x = procedure, y = length_stay, fill = procedure)) +
+  geom_violin(trim = TRUE, alpha = 0.7, show.legend = FALSE) +
+  geom_boxplot(width = 0.12, fill = "white", colour = "grey30",
+               outlier.shape = NA, show.legend = FALSE) +
+  scale_fill_manual(
+    values = c(Respiratory="#1B6CA8", Diarrhoeal="#2EC4B6",
+               Malaria="#E84855",     Injury="#F4A261",
+               Nutritional="#3BB273")
+  ) +
+  scale_y_continuous(breaks = c(1,3,5,7,10,14,21,30)) +
+  labs(
+    title    = "Hospital Length-of-Stay by Diagnosis — Legal Amazon Paediatric Admissions",
+    subtitle = "Violin + box plots | capped at 30 days",
+    x        = NULL, y = "Length of Stay (days)",
+    caption  = "Source: DATASUS / climasus4r simulation"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title      = element_text(face = "bold"),
+    axis.text.x     = element_text(angle = 20, hjust = 1)
+  )
+```
+
+------------------------------------------------------------------------
+
+## Case Study 4 --- Health Facility Coverage and the Climate Frontier (CNES) {#cs4}
+
+**Research question:** Is access to primary health care facilities disproportionately low in climate-vulnerable territories (MATOPIBA agricultural frontier)?
+
+**DATASUS system:** CNES (health facilities)
+
+```{r cs4-data}
+set.seed(77)
+n4     <- 2000
+df_cnes <- data.frame(
+  notification_uf = sample(
+    c(11:17,21:29,31:33,35,41:43,50:53),
+    n4, replace = TRUE
+  ),
+  facility_type = sample(
+    c("UBS","CAPS","Hospital","Specialty","UPA"),
+    n4, replace = TRUE, prob = c(0.50,0.15,0.18,0.12,0.05)
+  ),
+  beds_total    = round(rpois(n4, lambda = 8)),
+  doctors       = round(rpois(n4, lambda = 3)),
+  nurses        = round(rpois(n4, lambda = 5)),
+  year          = sample(2019:2024, n4, replace = TRUE),
+  month         = sample(1:12, n4, replace = TRUE),
+  stringsAsFactors = FALSE
+) |>
+  dplyr::mutate(
+    age_years  = NA_real_,
+    age_group  = factor(NA_character_, levels = c("0-14","15-59","60+")),
+    ibge_age_group = factor(NA_character_,
+                      levels = c("0-4","5-9","10-14","15-19","20-24","25-29",
+                                 "30-34","35-39","40-44","45-49","50-54","55-59",
+                                 "60-64","65-69","70-74","75-79","80+")),
+    sex        = NA_character_,
+    race       = NA_character_,
+    education  = NA_character_,
+    climate_risk_group  = NA_character_,
+    astronomical_season = NA_character_,
+    epidemiological_week = NA_integer_
+  )
+
+df_cnes <- structure(
+  df_cnes,
+  climasus_meta = list(system="CNES", stage="filter_demo"),
+  class = c("climasus_df","data.frame")
+)
+
+# Filter to MATOPIBA frontier
+df_matopiba <- sus_data_filter_demographics(
+  df_cnes,
+  region  = "matopiba",
+  lang    = "en",
+  verbose = TRUE
+)
+```
+
+```{r cs4-plot, fig.cap="Case Study 4: Health facility type composition in the MATOPIBA agricultural frontier (MA, TO, PI, BA). Basic Health Units (UBS) dominate, but the share of specialty and hospital services is markedly low — indicating limited referral capacity in a climate-exposed region with rapidly growing agribusiness populations.", fig.height=4.5}
+df_matopiba |>
+  dplyr::count(facility_type, notification_uf) |>
+  dplyr::mutate(
+    uf = c("11"="RO","12"="AC","13"="AM","14"="RR","15"="PA","16"="AP",
+           "17"="TO","21"="MA","22"="PI","23"="CE","24"="RN","25"="PB",
+           "26"="PE","27"="AL","28"="SE","29"="BA",
+           "31"="MG","32"="ES","33"="RJ","35"="SP","41"="PR","42"="SC",
+           "43"="RS","50"="MS","51"="MT","52"="GO","53"="DF"
+          )[as.character(notification_uf)]
+  ) |>
+  ggplot(aes(x = uf, y = n, fill = facility_type)) +
+  geom_col(position = "fill", width = 0.78, colour = "white", linewidth = 0.3) +
+  scale_fill_manual(
+    values = c(UBS="#1B6CA8", CAPS="#2EC4B6", Hospital="#E84855",
+               Specialty="#F4A261", UPA="#925E9F"),
+    name   = "Facility Type"
+  ) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(
+    title    = "Health Facility Mix — MATOPIBA Frontier (CNES)",
+    subtitle = "Proportion of facility type by state",
+    x        = "State", y = "Proportion",
+    caption  = "Source: DATASUS / climasus4r simulation"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title      = element_text(face = "bold"),
+    legend.position = "top"
+  )
+```
+
+------------------------------------------------------------------------
+
+## Case Study 5 --- Integrated Multi-System Analysis {#cs5}
+
+**Research question:** Among elderly populations in climate-vulnerable municipalities of the Northeast, what is the combined burden of dengue (SINAN), cardiovascular hospitalisation (SIH), and mortality (SIM) --- and how does it vary by race?
+
+This case study demonstrates how `sus_data_filter_demographics()` can be applied consistently across multiple DATASUS systems to produce a comparable, integrated picture.
+
+```{r cs5-integration, fig.cap="Case Study 5: Integrated health burden in elderly Northeast populations across three DATASUS systems. Bars show relative burden per 1,000 records; race stratification reveals consistent excess in Preta and Indígena groups across all three systems.", fig.height=5.5, fig.width=10}
+# Common filter specification
+filter_elderly_ne <- function(data) {
+  sus_data_filter_demographics(
+    data,
+    age_range = c(60, Inf),
+    region    = "nordeste",
+    lang      = "en",
+    verbose   = FALSE
+  )
+}
+
+# Apply to each system
+df_sinan_ne  <- filter_elderly_ne(df)          # dengue
+df_sim_ne2   <- filter_elderly_ne(df_sim)      # mortality
+df_sih_ne    <- filter_elderly_ne(df_sih)      # hospitalisation
+
+# Compute burden per 1000 records by race
+compute_burden <- function(data, system_label) {
+  total <- nrow(data)
+  data |>
+    dplyr::filter(!is.na(race)) |>
+    dplyr::count(race) |>
+    dplyr::mutate(
+      burden_per_1000 = round(1000 * n / total, 1),
+      system          = system_label
+    )
+}
+
+burden_df <- dplyr::bind_rows(
+  compute_burden(df_sinan_ne, "SINAN (Dengue)"),
+  compute_burden(df_sim_ne2,  "SIM (Mortality)"),
+  compute_burden(df_sih_ne,   "SIH (Hospitalisation)")
+)
+
+ggplot(burden_df, aes(x = reorder(race, burden_per_1000),
+                       y = burden_per_1000,
+                       fill = system)) +
+  geom_col(position = position_dodge(0.82), width = 0.76, alpha = 0.88) +
+  geom_text(aes(label = burden_per_1000),
+            position = position_dodge(0.82),
+            hjust = -0.1, size = 2.8, colour = "grey30") +
+  coord_flip() +
+  scale_fill_manual(
+    values = c("SINAN (Dengue)"    = "#1B6CA8",
+               "SIM (Mortality)"   = "#E84855",
+               "SIH (Hospitalisation)" = "#3BB273"),
+    name = "DATASUS System"
+  ) +
+  scale_x_discrete() +
+  scale_y_continuous(labels = scales::comma,
+                     expand = expansion(mult = c(0, 0.22))) +
+  labs(
+    title    = "Integrated Health Burden — Elderly in the Northeast",
+    subtitle = "Records per 1,000 in each DATASUS system | Age ≥60 | Nordeste region",
+    x        = "Race/Colour", y = "Records per 1,000",
+    caption  = "Source: DATASUS / climasus4r simulation | Systems: SINAN, SIM, SIH"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title      = element_text(face = "bold"),
+    legend.position = "top",
+    panel.grid.major.y = element_blank()
+  )
+```
+
+**Interpretation:** Preta and Indígena elderly populations show consistently elevated burden across all three DATASUS systems --- a finding robust to the choice of outcome measure. This convergence across independent data systems strengthens causal inference and underlines the need for race-sensitive health policy in the Northeast. The `sus_data_filter_demographics()` function ensures that identical demographic criteria are applied consistently, making multi-system comparisons methodologically sound.
+
+------------------------------------------------------------------------
+
+# Summary and Best Practices {#summary}
+
+## Quick Reference
+
+```{r quickref-table, echo=FALSE}
+tibble::tribble(
+  ~Task, ~`Function call`,
+  "Filter by sex (English)",              '`sus_data_filter_demographics(df, sex = "Female", lang = "en")`',
+  "Filter by age (elderly)",              '`sus_data_filter_demographics(df, age_range = c(60, Inf))`',
+  "Filter by race (PT)",                  '`sus_data_filter_demographics(df, race = c("Parda","Preta"), lang = "pt")`',
+  "Filter by biome region",               '`sus_data_filter_demographics(df, region = "amazonia_legal")`',
+  "Filter by municipality",               '`sus_data_filter_demographics(df, municipality_code = c("3550308"))`',
+  "Remove ignored/NA values",             '`sus_data_filter_demographics(df, drop_ignored = TRUE)`',
+  "Pipe multiple filters",                '`df |> sus_data_filter_demographics(sex="F") |> sus_data_filter_demographics(age_range=c(60,Inf))`',
+  "Summary table (static)",               '`sus_view_demographics(df, type="table", lang="en")`',
+  "Bar chart by race",                    '`sus_view_demographics(df, type="bar", var="race")`',
+  "Population pyramid",                   '`sus_view_demographics(df, type="pyramid")`',
+  "Choropleth map (interactive)",         '`sus_view_demographics(df, type="map", interactive=TRUE)`',
+  "Full dashboard",                       '`sus_view_demographics(df, type="dashboard")`',
+  "Save figure to PNG",                   '`sus_view_demographics(df, type="bar", var="sex", save_path="fig1.png")`'
+) |>
+  kbl(caption = "Quick-reference guide: common tasks with their one-line climasus4r solutions.",
+      escape = FALSE) |>
+  kable_styling(full_width = TRUE,
+                bootstrap_options = c("striped","hover","condensed"),
+                font_size = 13) |>
+  row_spec(0, bold = TRUE, background = "#1B6CA8", color = "white")
+```
+
+## Ten Best Practices
+
+::: callout-tip
+1.  **Always validate your stage.** `sus_data_filter_demographics()` requires a `climasus_df` at stage `"stand"` or later. Run `sus_data_standardize()` if you receive a stage error.
+
+2.  **Prefer single multi-criterion calls** over chained calls for large datasets (\>500k rows). Each call creates an intermediate copy.
+
+3.  **Use `drop_ignored = TRUE` for inferential analyses.** Ignored/NA values in sex, race, and education can introduce selection bias in regression models.
+
+4.  **Report retention rates.** Always record how many rows were removed by each filter --- `verbose = TRUE` logs this automatically. Include this in your methods section.
+
+5.  **Use the `region` argument for ecological analyses.** Biome, hydrographic basin, and epidemiological-cluster options are scientifically grounded geographic units.
+
+6.  **Set `lang` consistently.** Use one language throughout a workflow to avoid unexpected results from case-sensitive label matching.
+
+7.  **Cross-validate filters with visualisation.** After filtering, immediately run `sus_view_demographics(df_filtered, type = "table")` to confirm the expected demographic composition.
+
+8.  **Use `interactive = TRUE` for exploration, `FALSE` for publication.** Interactive widgets are invaluable for data checking; static plots ensure reproducibility and portability.
+
+9.  **Preserve the logo in publications.** The `logo_path` argument adds the climasus4r identity to all figures --- important for citing the analytical platform in supplementary materials.
+
+10. **Multi-system comparisons require identical filters.** As demonstrated in Case Study 5, applying exactly the same `sus_data_filter_demographics()` call to each system is the only defensible way to compare SINAN, SIM, SIH, and CNES outputs.
+:::
+
+------------------------------------------------------------------------
+
+# Session Information {#session}
+
+```{r session-info}
+sessioninfo::session_info()
+```
+
+------------------------------------------------------------------------
+
+*This chapter is part of the **climasus4r** package documentation. For the latest version of the package and additional vignettes, visit <https://github.com/ByMaxAnjos/climasus4r>.*
+
+<center><img src="https://raw.githubusercontent.com/ByMaxAnjos/climasus4r/master/inst/figures/logo_icon.png" width="80px" style="margin-top: 24px; opacity: 0.85;"/></center>

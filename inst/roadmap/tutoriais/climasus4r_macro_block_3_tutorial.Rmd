@@ -1,0 +1,182 @@
+---
+title: "Tutorial climasus4r — Macro-Bloco 3: Análise & Modelagem"
+subtitle: "Da Análise Espacial à Modelagem Preditiva Clima-Saúde"
+author:
+  - name: "Equipe de Desenvolvimento climasus4r"
+    affiliation: "Pacote climasus4r · https://github.com/ByMaxAnjos/climasus4r"
+date: "`r format(Sys.Date(), 	"%B %d, %Y")`"
+output:
+  bookdown::html_document2:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: kate
+    code_folding: show
+    fig_caption: true
+    df_print: paged
+    css: |
+      body { font-family: 'Source Serif Pro', Georgia, serif; font-size: 16px; line-height: 1.75; }
+      h1, h2, h3, h4 { font-family: 'Inter', 'Helvetica Neue', sans-serif; }
+      .callout-box { border-left: 4px solid #1B6CA8; background: #f0f8ff; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
+      .callout-tip { border-left: 4px solid #3BB273; background: #f0faf4; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
+      .callout-warning { border-left: 4px solid #F4A261; background: #fff8f0; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
+      pre { font-size: 13px; }
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo       = TRUE,
+  warning    = FALSE,
+  message    = FALSE,
+  fig.align  = "center",
+  out.width  = "100%",
+  cache      = FALSE,
+  comment    = "#>"
+)
+
+# Carregar pacotes necessários
+# library(climasus4r) # Descomente se o pacote estiver instalado
+library(dplyr)
+library(ggplot2)
+library(sf)
+library(dlnm)
+library(splines)
+```
+
+<div class="callout-box">
+**Sobre este Tutorial** — Este documento é um guia prático para o **Macro-Bloco 3: Análise & Modelagem**. O objetivo é demonstrar como utilizar o dataset integrado (criado no Macro-Bloco 2) para realizar análises espaciais e modelagem preditiva, focando na relação entre clima e saúde. Este tutorial assume que você já completou os tutoriais dos Macro-Blocos 1 e 2.
+</div>
+
+# Introdução: Do Dataset à Descoberta
+
+Nos Macro-Blocos 1 e 2, realizamos a árdua tarefa de engenharia de dados: coletamos, limpamos, padronizamos e integramos dados de múltiplas fontes. O resultado é um **dataset integrado**, rico e pronto para análise. Agora, no Macro-Bloco 3, colheremos os frutos desse trabalho.
+
+Este tutorial irá guiá-lo através de três etapas de análise:
+
+1.  **Análise Espacial:** Identificar padrões geográficos e clusters de risco.
+2.  **Engenharia Temporal:** Preparar os dados para modelos de séries temporais.
+3.  **Modelagem Preditiva:** Quantificar a associação entre variáveis climáticas e desfechos de saúde.
+
+<div class="callout-warning">
+**Nota Importante:** O `climasus4r` atualmente foca nos Macro-Blocos 1 e 2. As análises do Macro-Bloco 3 são realizadas com pacotes R já consagrados na comunidade científica, como `sf`, `spdep`, `dlnm`, e `mgcv`. O `climasus4r` garante que os dados estejam no formato ideal para serem usados por esses pacotes.
+</div>
+
+```{r prerequisite-data, eval=FALSE}
+# Este tutorial assume que você possui o 'dataset_final' do Macro-Bloco 2.
+# Como ele é complexo de gerar, vamos criar um dataset simulado para este tutorial.
+
+set.seed(123)
+
+# Criar um grid de municípios simulados em Rondônia
+ro_bounds <- geobr::read_state(code_state = "RO")
+munis_sim <- st_make_grid(ro_bounds, n = c(5, 5), what = "polygons") |>
+  st_as_sf() |>
+  mutate(municipality_code = 1100015:(1100015 + n() - 1))
+
+# Simular dados de saúde e clima
+dates <- seq(as.Date("2018-01-01"), as.Date("2020-12-31"), by = "month")
+
+dataset_final <- tidyr::crossing(municipality_code = munis_sim$municipality_code, agg_date = dates) |>
+  mutate(
+    temp_mean_c = 25 + 2 * sin(2 * pi * month(agg_date) / 12) + rnorm(n(), 0, 0.5),
+    precip_mm_total = 150 + 100 * cos(2 * pi * month(agg_date) / 12) + runif(n(), 0, 20),
+    pop_total = round(runif(n(), 10000, 50000)),
+    cases = rpois(n(), lambda = 2 + 0.1 * temp_mean_c + 0.01 * precip_mm_total)
+  ) |>
+  left_join(munis_sim, by = "municipality_code") |>
+  st_as_sf()
+```
+
+---
+
+# 1. Análise Espacial: Onde os Riscos se Concentram?
+
+O primeiro passo é entender a distribuição geográfica dos eventos de saúde. Vamos calcular a taxa de incidência por município e criar um mapa coroplético.
+
+```{r spatial-analysis, eval=FALSE}
+# Calcular a taxa de incidência por 10.000 habitantes
+dataset_final <- dataset_final |>
+  mutate(incidence_rate = (cases / pop_total) * 10000)
+
+# Mapa de Incidência Média
+dataset_final |>
+  group_by(municipality_code) |>
+  summarise(mean_rate = mean(incidence_rate, na.rm = TRUE)) |>
+  ggplot() +
+  geom_sf(aes(fill = mean_rate)) +
+  scale_fill_viridis_c(name = "Taxa Média") +
+  labs(title = "Taxa de Incidência Média por Município (Simulado)") +
+  theme_minimal()
+```
+
+<div class="callout-tip">
+**Análises Avançadas:** Com o dataset espacial, você pode usar pacotes como `spdep` para calcular indicadores de autocorrelação espacial (e.g., Moran's I, LISA) e identificar clusters de alto e baixo risco.
+</div>
+
+---
+
+# 2. Engenharia Temporal: Preparando para Modelagem
+
+Modelos que analisam a relação entre clima e saúde, como os DLNMs (Distributed Lag Non-linear Models), requerem que os dados estejam em um formato específico, com variáveis defasadas (lags).
+
+## 2.1. Criando Variáveis de Lag
+
+Vamos criar variáveis de temperatura e precipitação defasadas em 1 e 2 meses. Isso nos permitirá investigar se o clima de meses anteriores influencia a saúde no mês atual.
+
+```{r temporal-engineering, eval=FALSE}
+dataset_final <- dataset_final |>
+  arrange(municipality_code, agg_date) |>
+  group_by(municipality_code) |>
+  mutate(
+    temp_lag1 = lag(temp_mean_c, 1),
+    temp_lag2 = lag(temp_mean_c, 2),
+    precip_lag1 = lag(precip_mm_total, 1)
+  ) |>
+  ungroup()
+```
+
+---
+
+# 3. Modelagem Preditiva: Quantificando a Relação Clima-Saúde
+
+Com os dados preparados, podemos finalmente construir um modelo estatístico. Usaremos um **Modelo Linear Generalizado (GLM)** com uma família de erros quasi-Poisson para modelar a contagem de casos, e um **DLNM** para capturar a relação não-linear e defasada da temperatura.
+
+## 3.1. Construindo um DLNM com o pacote `dlnm`
+
+O pacote `dlnm` é a ferramenta padrão para este tipo de análise.
+
+```{r dlnm-model, eval=FALSE}
+# 1. Criar a cross-basis para a temperatura
+# Usaremos um lag de até 3 meses e splines para capturar a não-linearidade
+cb_temp <- crossbasis(
+  dataset_final$temp_mean_c,
+  lag = 3,
+  argvar = list(fun = "ns", knots = 2),
+  arglag = list(fun = "ns", knots = 2)
+)
+
+# 2. Ajustar o modelo GLM + DLNM
+model <- glm(
+  cases ~ cb_temp + ns(agg_date, df = 3*3) + offset(log(pop_total)),
+  family = quasipoisson(),
+  data = dataset_final
+)
+
+# 3. Predizer e visualizar o risco relativo
+pred_temp <- crosspred(cb_temp, model, at = 20:30)
+
+# Plotar o risco relativo geral
+plot(pred_temp, xlab = "Temperatura (°C)", ylab = "Risco Relativo", main = "Risco Relativo de Casos por Temperatura")
+```
+
+O gráfico acima mostra o risco relativo de um desfecho de saúde em diferentes temperaturas, considerando os efeitos defasados. Este é o tipo de resultado que pode informar políticas públicas e sistemas de alerta.
+
+## Conclusão
+
+Neste tutorial, demonstramos como o dataset integrado, construído com o `climasus4r`, serve de base para análises espaciais e modelagem preditiva sofisticada. Embora o `climasus4r` não realize a modelagem em si, ele é a **ponte essencial** que conecta os dados brutos do Brasil às ferramentas analíticas mais avançadas da comunidade científica.
+
+Com este fluxo de trabalho, pesquisadores e gestores podem ir da coleta de dados à geração de evidências robustas sobre a relação entre clima e saúde de forma mais rápida, eficiente e reprodutível.

@@ -1,0 +1,224 @@
+---
+title: "Tutorial climasus4r — Macro-Bloco 2: Integração & Construção do Dataset"
+subtitle: "Unindo Dados de Saúde, Clima, Socioeconômicos e Territoriais"
+author:
+  - name: "Equipe de Desenvolvimento climasus4r"
+    affiliation: "Pacote climasus4r · https://github.com/ByMaxAnjos/climasus4r"
+date: "`r format(Sys.Date(), 	"%B %d, %Y")`"
+output:
+  bookdown::html_document2:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: kate
+    code_folding: show
+    fig_caption: true
+    df_print: paged
+    css: |
+      body { font-family: 'Source Serif Pro', Georgia, serif; font-size: 16px; line-height: 1.75; }
+      h1, h2, h3, h4 { font-family: 'Inter', 'Helvetica Neue', sans-serif; }
+      .callout-box { border-left: 4px solid #1B6CA8; background: #f0f8ff; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
+      .callout-tip { border-left: 4px solid #3BB273; background: #f0faf4; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
+      .callout-warning { border-left: 4px solid #F4A261; background: #fff8f0; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
+      pre { font-size: 13px; }
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo       = TRUE,
+  warning    = FALSE,
+  message    = FALSE,
+  fig.align  = "center",
+  out.width  = "100%",
+  cache      = FALSE,
+  comment    = "#>"
+)
+
+# Carregar pacotes necessários
+# library(climasus4r) # Descomente se o pacote estiver instalado
+library(dplyr)
+library(ggplot2)
+library(sf)
+```
+
+<div class="callout-box">
+**Sobre este Tutorial** — Este documento é um guia prático para o **Macro-Bloco 2: Integração & Construção do Dataset** do pacote `climasus4r`. O objetivo é demonstrar como enriquecer uma série temporal de saúde (criada no Macro-Bloco 1) com dados espaciais, socioeconômicos e climáticos, culminando em um dataset integrado e pronto para modelagem. Este tutorial assume que você já completou o tutorial do Macro-Bloco 1.
+</div>
+
+# Introdução: Construindo um Dataset Multidimensional
+
+No Macro-Bloco 1, transformamos dados brutos do DATASUS em uma série temporal limpa de eventos de saúde. Agora, no Macro-Bloco 2, vamos dar o próximo passo crucial: **contextualizar esses eventos**. Um caso de doença não ocorre no vácuo; ele está inserido em um município com características sociais específicas, sob a influência de um clima em constante mudança.
+
+Este tutorial irá guiá-lo através de dois fluxos de integração paralelos:
+
+1.  **Integração Territorial e Socioeconômica:** Adicionar geometrias espaciais e dados do Censo.
+2.  **Integração Climática:** Adicionar dados de estações meteorológicas e de satélite.
+
+Ao final, uniremos tudo para criar o **Dataset Integrado Final**, a base para as análises e modelagens do Macro-Bloco 3.
+
+<div class="callout-warning">
+**Pré-requisito:** Este tutorial assume que você já possui o `data.frame` agregado `final_timeseries` do tutorial do Macro-Bloco 1. Se não, você pode criá-lo rapidamente com o código abaixo.
+</div>
+
+```{r prerequisite-data, eval=FALSE}
+# Recriando o dataset do Macro-Bloco 1 (se necessário)
+# Este código é apenas para garantir que temos os dados iniciais.
+health_data <- sus_data_import(system = "SIM-DO", uf = "RO", year = 2018:2020, parallel = TRUE) |>
+  sus_data_clean_encoding() |>
+  sus_data_standardize() |>
+  sus_create_variables(age_breaks = c(0, 60, 70, 80, Inf), age_labels = c("0-59", "60-69", "70-79", "80+")) |>
+  sus_data_filter_cid(disease_group = "respiratory") |>
+  sus_data_filter_demographics(age_range = c(60, Inf)) |>
+  sus_data_aggregate(time_unit = "month", group_by = "residence_municipality_code") # Agregado por município!
+```
+
+---
+
+# Fluxo 1: Integração Territorial e Socioeconômica
+
+## Passo 1.1: Adicionando Geometrias (`sus_join_spatial`)
+
+Nosso `health_data` possui o código do município, mas não sua forma geométrica. A função `sus_join_spatial()` utiliza o pacote `geobr` para baixar os polígonos dos municípios e uni-los aos nossos dados de saúde, transformando nosso `data.frame` em um objeto `sf` (simple features).
+
+```{r join-spatial, eval=FALSE}
+# --- PASSO 1.1: JOIN ESPACIAL ---
+sf_health <- sus_join_spatial(
+  df = health_data,
+  level = "munic" # Nível de agregação: município
+)
+
+# Note a nova classe e a coluna 'geometry'
+class(sf_health)
+glimpse(sf_health)
+```
+
+## Passo 1.2: Adicionando Dados do Censo (`sus_socio_add_census`)
+
+Com os dados espacializados, podemos agora enriquecê-los com informações socioeconômicas do Censo Demográfico do IBGE. A função `sus_socio_add_census()` utiliza o pacote `censobr` para baixar variáveis específicas do censo e agregá-las por município.
+
+Vamos adicionar a população total e a densidade demográfica de cada município de Rondônia, com base no Censo de 2010.
+
+```{r add-census, eval=FALSE}
+# --- PASSO 1.2: ADICIONAR DADOS DO CENSO ---
+sf_socio <- sus_socio_add_census(
+  df = sf_health,
+  dataset = "population",   # Usar microdados de população
+  year = 2010,
+  census_vars = "V0001",      # V0001 = População residente
+  aggregation_fun = "sum"   # Somar a população por município
+)
+
+# Criar a variável de densidade demográfica
+sf_socio <- sf_socio |>
+  mutate(
+    area_km2 = as.numeric(st_area(geometry)) / 1e6, # Calcular área em km²
+    pop_density = V0001 / area_km2
+  )
+
+# Visualizar as novas colunas
+glimpse(sf_socio)
+```
+
+<div class="callout-tip">
+**Funções Futuras:** O `climasus4r` irá expandir com `sus_socio_indicators()` para calcular indicadores complexos (ex: Índice de Gini, IDH) e `sus_climate_map_biomas()` para integrar dados de uso e cobertura do solo.
+</div>
+
+---
+
+# Fluxo 2: Integração Climática
+
+## Passo 2.1: Baixando Dados Meteorológicos (`sus_climate_inmet`)
+
+Agora, vamos para o fluxo climático. A função `sus_climate_inmet()` baixa dados horários de todas as estações meteorológicas do INMET para os estados e anos de interesse.
+
+```{r download-climate, eval=FALSE}
+# --- PASSO 2.1: DOWNLOAD DE DADOS CLIMÁTICOS ---
+climate_raw <- sus_climate_inmet(
+  years = 2018:2020,
+  uf = "RO",
+  parallel = TRUE
+)
+
+glimpse(climate_raw)
+```
+
+## Passo 2.2: Preenchendo Falhas (`sus_climate_fill_gaps`)
+
+Dados de estações meteorológicas frequentemente possuem falhas. A função `sus_climate_fill_gaps()` utiliza um modelo de Machine Learning (XGBoost) para preencher essas lacunas de forma inteligente, usando as outras variáveis como preditores.
+
+Vamos preencher as falhas na variável de temperatura média (`tair_dry_bulb_c`).
+
+```{r fill-gaps, eval=FALSE}
+# --- PASSO 2.2: PREENCHIMENTO DE FALHAS ---
+climate_filled <- sus_climate_fill_gaps(
+  df = climate_raw,
+  target_var = "tair_dry_bulb_c"
+)
+```
+
+## Passo 2.3: Agregando Dados Climáticos
+
+Os dados climáticos são horários, mas nossos dados de saúde são mensais. Precisamos agregar os dados climáticos para a mesma escala de tempo. Embora a função `sus_climate_aggregate()` ainda esteja em desenvolvimento, podemos fazer isso facilmente com `dplyr`.
+
+```{r aggregate-climate, eval=FALSE}
+# --- PASSO 2.3: AGREGAÇÃO CLIMÁTICA ---
+climate_agg <- climate_filled |>
+  mutate(agg_date = floor_date(date, "month")) |>
+  group_by(station_code, agg_date) |>
+  summarise(
+    temp_mean_c = mean(tair_dry_bulb_c, na.rm = TRUE),
+    temp_max_c = max(tair_max_c, na.rm = TRUE),
+    precip_mm_total = sum(rainfall_mm, na.rm = TRUE)
+  ) |>
+  ungroup()
+```
+
+<div class="callout-tip">
+**Funções Futuras:** O `climasus4r` irá incluir `sus_climate_normals()` e `sus_climate_anomaly()` para calcular normais climatológicas e anomalias, e `sus_climate_indicators()` para criar indicadores como ondas de calor e dias de chuva intensa.
+</div>
+
+---
+
+# Unindo Tudo: O Dataset Integrado Final
+
+Agora temos dois datasets:
+
+1.  `sf_socio`: Dados de saúde + espacial + socioeconômico (mensal, por município).
+2.  `climate_agg`: Dados climáticos (mensal, por estação).
+
+O passo final é **unir os dados climáticos aos dados de saúde**. A abordagem mais comum é atribuir a cada município os dados da estação meteorológica mais próxima. O `climasus4r` fará isso de forma otimizada no futuro, mas por enquanto, podemos fazer uma demonstração simplificada.
+
+```{r final-join, eval=FALSE}
+# --- PASSO FINAL: JOIN ESPACIAL CLIMA-SAÚDE ---
+
+# 1. Transformar dados climáticos em objeto sf
+climate_sf <- climate_agg |>
+  distinct(station_code, .keep_all = TRUE) |>
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
+
+# 2. Encontrar a estação mais próxima para cada município
+nearest_station <- st_join(sf_socio, climate_sf, join = st_nearest_feature)
+
+# 3. Unir os dados climáticos aos de saúde
+dataset_final <- nearest_station |>
+  left_join(
+    climate_agg,
+    by = c("station_code" = "station_code", "agg_date" = "agg_date")
+  )
+
+glimpse(dataset_final)
+```
+
+## Conclusão
+
+Neste tutorial, demonstramos o fluxo completo do **Macro-Bloco 2**. Partimos de uma série temporal de saúde e a enriquecemos com múltiplas camadas de informação:
+
+*   **Geometrias municipais** para análise espacial.
+*   **Dados de população** do Censo para cálculo de taxas.
+*   **Séries temporais climáticas** de temperatura e precipitação.
+
+O `dataset_final` é um objeto rico e multidimensional, pronto para as análises e modelagens avançadas do **Macro-Bloco 3**, onde poderemos finalmente investigar as relações entre clima, saúde e sociedade.

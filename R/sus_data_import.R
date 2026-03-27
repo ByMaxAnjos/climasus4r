@@ -770,7 +770,7 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
   
   #combined_data <- dplyr::bind_rows(list_of_dfs)
   combined_data <- data.table::rbindlist(list_of_dfs, use.names = TRUE)
-
+  
   #NEW national system
   # Se for sistema nacional, filtrar pelos UFs solicitados
   if (is_national && exists("all_ufs")) {

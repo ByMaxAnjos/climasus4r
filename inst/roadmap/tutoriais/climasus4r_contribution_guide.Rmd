@@ -1,0 +1,103 @@
+---
+title: "Guia de Contribuição para o climasus4r"
+subtitle: "Junte-se a Nós na Construção da Próxima Geração de Ferramentas Clima-Saúde"
+author:
+  - name: "Dr. Max Anjos"
+    affiliation: "Pacote climasus4r · https://github.com/ByMaxAnjos/climasus4r"
+date: "`r format(Sys.Date(), 	"%B %d, %Y")`"
+output:
+  bookdown::html_document2:
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    number_sections: false
+    theme: flatly
+    highlight: kate
+    code_folding: hide
+    df_print: paged
+    css: |
+      body { font-family: 'Source Serif Pro', Georgia, serif; font-size: 16px; line-height: 1.75; }
+      h1, h2, h3, h4 { font-family: 'Inter', 'Helvetica Neue', sans-serif; }
+      .callout-box { border-left: 4px solid #1B6CA8; background: #f0f8ff; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
+      .callout-tip { border-left: 4px solid #3BB273; background: #f0faf4; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
+      .callout-warning { border-left: 4px solid #F4A261; background: #fff8f0; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
+      .contributor-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+      .contributor-card h2 { margin-top: 0; }
+      .contributor-card .icon { font-size: 2.5em; float: left; margin-right: 20px; }
+      .contributor-card table { width: 100%; border: none; }
+      .contributor-card th, .contributor-card td { padding: 10px; border-bottom: 1px solid #eee; vertical-align: top; }
+      .contributor-card th { text-align: left; font-weight: bold; width: 25%; }
+---
+
+<div class="callout-box">
+**Bem-vindo(a) à comunidade climasus4r!** — Este projeto é construído com o esforço coletivo de pesquisadores, desenvolvedores e entusiastas de dados. Toda contribuição, não importa o tamanho, é valiosa e bem-vinda. Este guia foi criado para ajudá-lo(a) a encontrar a melhor forma de participar.
+</div>
+
+# Por Que Contribuir?
+
+Contribuir para um projeto open-source como o `climasus4r` é uma oportunidade de:
+
+-   **Desenvolver Habilidades:** Aprimore suas competências em R, análise de dados, desenvolvimento de software e comunicação científica.
+-   **Construir seu Portfólio:** Contribuições no GitHub são uma expertise diferenciada para sua carreira.
+-   **Fazer Networking:** Conecte-se com uma rede de especialistas em clima, saúde e ciência de dados.
+-   **Gerar Impacto:** Ajude a construir uma ferramenta que pode fortalecer a vigilância em saúde e subsidiar políticas públicas no Brasil.
+
+<div class="callout-tip">
+**Código de Conduta:** Todas as interações em nosso projeto seguem um [Código de Conduta](https://github.com/ByMaxAnjos/climasus4r/blob/main/CODE_OF_CONDUCT.md). Comprometemo-nos a manter um ambiente acolhedor, respeitoso e colaborativo para todos.
+</div>
+
+---
+
+# Perfis de Contribuição
+
+Para facilitar sua inserção no climasus4r, criamos três perfis de contribuição. Encontre o que melhor se encaixa em seus interesses e habilidades.
+
+## 🧪 Contribuidor(a) R
+
+<div class="contributor-card">
+<div class="icon">🧪</div>
+
+**Perfil Ideal:** Usuários de R de todos os níveis que são interessados por dados de saúde e querem ajudar a testar, documentar e divulgar o pacote.
+
+| | |
+|---|---|
+| **Requisitos** | • Conta no GitHub (essencial)<br>• Conhecimento básico de R e RStudio<br>• Vontade de aprender e explorar | 
+| **Atividades** | • Testar funções e reportar bugs<br>• Escrever exemplos e tutoriais<br>• Criar estudos de caso com dados reais do SUS<br>• Divulgar o pacote em redes sociais e eventos<br>• Ajudar a traduzir a documentação | 
+| **Como Começar** | 1. **Explore o GitHub:** Visite a seção de [Issues](https://github.com/ByMaxAnjos/climasus4r/issues) e [Discussions](https://github.com/ByMaxAnjos/climasus4r/discussions).<br>2. **Escolha uma Tarefa:** Encontre uma tarefa que lhe interesse, como testar uma nova função ou documentar um caso de uso.<br>3. **Reporte seus Achados:** Abra uma nova *Issue* para reportar um bug ou inicie uma *Discussion* para compartilhar seu caso de uso. | 
+| **Benefícios** | • Torne-se um expert no `climasus4r`<br>• Ganhe reconhecimento na comunidade<br>• Desenvolva habilidades de comunicação técnica | 
+
+</div>
+
+## 💻 Desenvolvedor(a) R
+
+<div class="contributor-card">
+<div class="icon">💻</div>
+
+**Perfil Ideal:** Pessoas com experiência intermediária ou avançada em R que desejam contribuir diretamente com o código-fonte do pacote.
+
+| | |
+|---|---|
+| **Requisitos** | • Conta no GitHub (essencial)<br>• Experiência com R, `dplyr`, `data.table`, `sf`, `terra` e `tidymodels`<br>• Conhecimento de Git e do fluxo de Pull Requests | 
+| **Atividades** | • Desenvolver novas funções ou melhorar existentes<br>• Corrigir bugs e otimizar o desempenho<br>• Adicionar testes automatizados com `testthat` (a ser implementado)<br>• Revisar Pull Requests de outros contribuidores<br>• Escrever a documentação técnica (Roxygen2) | 
+| **Como Começar** | 1. **Fork & Clone:** Faça um *fork* do repositório e clone-o em sua máquina.<br>2. **Encontre uma Issue:** Procure por *Issues* com as tags `good first issue` ou `help wanted`.<br>3. **Crie uma Branch:** Crie uma nova *branch* para sua contribuição (ex: `feature/nova-funcao-x` ou `fix/bug-y`).<br>4. **Desenvolva e Teste:** Implemente sua contribuição e adicione testes, se aplicável.<br>5. **Envie um Pull Request:** Envie um PR para a branch `main` do repositório original, detalhando as mudanças realizadas. | 
+| **Benefícios** | • Aprimore suas habilidades de desenvolvimento de pacotes R<br>• Contribua para um projeto de alto impacto<br>• Tenha seu código revisado por desenvolvedores experientes | 
+
+</div>
+
+## 🔬 Consultor(a) Científico(a)
+
+<div class="contributor-card">
+<div class="icon">🔬</div>
+
+**Perfil Ideal:** Pesquisadores, professores e profissionais com expertise na área de clima e saúde, que podem oferecer orientação estratégica e validação científica — sem necessidade de conhecimento avançado em R.
+
+| | |
+|---|---|
+| **Requisitos** | • Experiência em epidemiologia, climatologia, saúde pública ou áreas correlatas<br>• Interesse em aplicar métodos quantitativos para problemas de clima e saúde | 
+| **Atividades** | • Auditar a validade de métodos estatísticos e epidemiológicos<br>• Sugerir novas funções, indicadores e análises relevantes<br>• Validar a interpretação científica dos resultados gerados pelo pacote<br>• Propor e colaborar em estudos de caso e publicações | 
+| **Como Começar** | 1. **Entre em Contato:** Envie um e-mail para a equipe de coordenação do projeto em `climasus4r.dev@example.com` com o assunto "Consulta Científica".<br>2. **Apresente-se:** Descreva brevemente sua área de expertise e como você acredita que pode contribuir.<br>3. **Agende uma Reunião:** A equipe agendará uma breve reunião online para discutir possíveis sinergias e colaborações. | 
+| **Benefícios** | • Influenciar a direção de uma ferramenta científica chave<br>• Oportunidades de co-autoria em artigos e relatórios<br>• Acesso a uma rede de especialistas em dados e programação | 
+
+</div>

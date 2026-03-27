@@ -1,0 +1,219 @@
+---
+title: "Tutorial climasus4r — Macro-Bloco 1: Aquisição & Preparação de Dados"
+subtitle: "Um Guia Prático do Pipeline de Engenharia de Dados do DATASUS"
+author:
+  - name: "Equipe de Desenvolvimento climasus4r"
+    affiliation: "Pacote climasus4r · https://github.com/ByMaxAnjos/climasus4r"
+date: "`r format(Sys.Date(), 	"%B %d, %Y")`"
+output:
+  bookdown::html_document2:
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: kate
+    code_folding: show
+    fig_caption: true
+    df_print: paged
+    css: |
+      body { font-family: 'Source Serif Pro', Georgia, serif; font-size: 16px; line-height: 1.75; }
+      h1, h2, h3, h4 { font-family: 'Inter', 'Helvetica Neue', sans-serif; }
+      .callout-box { border-left: 4px solid #1B6CA8; background: #f0f8ff; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
+      .callout-tip { border-left: 4px solid #3BB273; background: #f0faf4; padding: 12px 18px; margin: 16px 0; border-radius: 4px; }
+      pre { font-size: 13px; }
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo       = TRUE,
+  warning    = FALSE,
+  message    = FALSE,
+  fig.align  = "center",
+  out.width  = "100%",
+  cache      = FALSE,
+  comment    = "#>"
+)
+
+# Carregar pacotes necessários
+# library(climasus4r) # Descomente se o pacote estiver instalado
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+```
+
+<div class="callout-box">
+**Sobre este Tutorial** — Este documento é um guia prático para o **Macro-Bloco 1: Aquisição & Preparação** do pacote `climasus4r`. O objetivo é demonstrar o fluxo completo de engenharia de dados, desde o download de dados brutos do DATASUS até a criação de uma série temporal agregada, pronta para análise. Este tutorial é voltado para usuários com conhecimento básico de R.
+</div>
+
+# Introdução: O Pipeline de Preparação de Dados
+
+A análise de dados de saúde no Brasil, especialmente quando cruzada com dados climáticos e ambientais, começa com uma etapa fundamental e muitas vezes complexa: a preparação dos dados. O `climasus4r` foi projetado para automatizar e padronizar este processo através de um pipeline de funções interligadas.
+
+Neste tutorial, vamos seguir o fluxo completo do **Macro-Bloco 1**, que transforma dados brutos do DATASUS em uma tabela analítica estruturada. O nosso objetivo será criar uma série temporal de mortalidade por doenças respiratórias em idosos (60+ anos) no estado de Rondônia, entre 2018 e 2020.
+
+O pipeline que vamos construir é o seguinte:
+
+`sus_data_import()` → `sus_data_clean_encoding()` → `sus_data_standardize()` → `sus_create_variables()` → `sus_data_filter_cid()` → `sus_data_filter_demographics()` → `sus_data_aggregate()`
+
+---
+
+# Passo 1: Importação dos Dados (`sus_data_import`)
+
+Tudo começa com a aquisição dos dados. A função `sus_data_import()` automatiza o download de microdados de diversos sistemas do DATASUS. Ela baixa os arquivos `.dbc`, os descompacta e os carrega em um `data.frame`.
+
+Para nosso exemplo, vamos baixar os dados de mortalidade (SIM) de Rondônia (RO) para os anos de 2018, 2019 e 2020.
+
+```{r import-data, eval=FALSE}
+# --- PASSO 1: IMPORTAÇÃO ---
+df_raw <- sus_data_import(
+  system = "SIM-DO",      # Sistema de Informação sobre Mortalidade (Declarações de Óbito)
+  uf = "RO",              # Estado de Rondônia
+  year = 2018:2020,       # Período de 2018 a 2020
+  lang = "pt",
+  parallel = TRUE         # Usar processamento paralelo para acelerar
+)
+
+# Visualizar as primeiras linhas e dimensões
+glimpse(df_raw)
+```
+
+<div class="callout-tip">
+**Dica:** A função `sus_data_import()` possui um sistema de **cache** inteligente. Uma vez que um arquivo é baixado, ele não será baixado novamente em execuções futuras, economizando tempo e banda.
+</div>
+
+# Passo 2: Limpeza de Codificação (`sus_data_clean_encoding`)
+
+Os arquivos do DATASUS frequentemente vêm com problemas de codificação de caracteres (encoding), resultando em textos com acentos e símbolos corrompidos. A função `sus_data_clean_encoding()` resolve isso, convertendo todas as colunas de texto para o padrão UTF-8.
+
+```{r clean-encoding, eval=FALSE}
+# --- PASSO 2: LIMPEZA DE ENCODING ---
+df_cleaned <- sus_data_clean_encoding(df_raw)
+```
+
+# Passo 3: Padronização (`sus_data_standardize`)
+
+Os nomes das colunas nos arquivos do DATASUS são abreviados e em português (ex: `DTOBITO`, `SEXO`, `RACACOR`). Para facilitar a análise e a compatibilidade com padrões internacionais, `sus_data_standardize()` traduz esses nomes para o inglês (ex: `date_of_death`, `sex`, `race`) e converte os tipos de dados (ex: datas, números).
+
+Esta função também cria o objeto **`climasus_df`**, que carrega metadados importantes sobre o processamento dos dados.
+
+```{r standardize-data, eval=FALSE}
+# --- PASSO 3: PADRONIZAÇÃO ---
+df_std <- sus_data_standardize(df_cleaned)
+
+# Note a nova classe do objeto
+class(df_std)
+
+# Veja os metadados adicionados
+climasus_meta(df_std)
+```
+
+# Passo 4: Criação de Variáveis (`sus_create_variables`)
+
+Com os dados padronizados, podemos enriquecê-los com variáveis derivadas úteis para a análise. A função `sus_create_variables()` pode criar:
+
+*   **Faixas etárias:** Agrupar idades em categorias.
+*   **Variáveis de calendário:** Dia da semana, mês, estação do ano, etc.
+
+Para nosso estudo, vamos criar faixas etárias, com um foco especial na população idosa.
+
+```{r create-variables, eval=FALSE}
+# --- PASSO 4: CRIAÇÃO DE VARIÁVEIS ---
+df_vars <- sus_create_variables(
+  df_std,
+  create_age_groups = TRUE,
+  age_breaks = c(0, 60, 70, 80, Inf), # Pontos de corte para as idades
+  age_labels = c("0-59", "60-69", "70-79", "80+") # Rótulos para os grupos
+)
+
+# Ver a nova coluna 'age_group'
+table(df_vars$age_group)
+```
+
+# Passo 5: Filtragem por Doença (`sus_data_filter_cid`)
+
+Agora, focamos em nosso desfecho de interesse: mortalidade por doenças respiratórias. A função `sus_data_filter_cid()` permite filtrar os registros com base nos códigos da Classificação Internacional de Doenças (CID-10).
+
+O `climasus4r` já vem com 58 grupos de doenças pré-definidos.
+
+```{r filter-cid, eval=FALSE}
+# --- PASSO 5: FILTRAGEM POR CID-10 ---
+df_cid <- sus_data_filter_cid(
+  df_vars,
+  disease_group = "respiratory" # Grupo pré-definido para doenças respiratórias
+)
+```
+
+# Passo 6: Filtragem Demográfica (`sus_data_filter_demographics`)
+
+Com os casos de doenças respiratórias isolados, vamos agora focar em nosso público-alvo: a população idosa (60 anos ou mais).
+
+```{r filter-demographics, eval=FALSE}
+# --- PASSO 6: FILTRAGEM DEMOGRÁFICA ---
+df_demo <- sus_data_filter_demographics(
+  df_cid,
+  age_range = c(60, Inf) # Filtra para idades de 60 anos até o infinito
+)
+```
+
+# Passo 7: Agregação Temporal (`sus_data_aggregate`)
+
+Finalmente, com os dados totalmente preparados e filtrados, o último passo do Macro-Bloco 1 é transformar os registros individuais em uma **série temporal**. A função `sus_data_aggregate()` conta o número de ocorrências (óbitos, neste caso) por unidade de tempo.
+
+Vamos agregar os dados mensalmente.
+
+```{r aggregate-data, eval=FALSE}
+# --- PASSO 7: AGREGAÇÃO TEMPORAL ---
+df_agg <- sus_data_aggregate(
+  df_demo,
+  time_unit = "month" # Agrega os dados por mês
+)
+
+# Visualizar a série temporal final
+head(df_agg)
+```
+
+# O Pipeline Completo
+
+Uma das grandes vantagens do `climasus4r` e do R moderno é a capacidade de encadear todas essas etapas em um único pipeline coeso e legível, usando o operador `|>` (pipe).
+
+```{r full-pipeline, eval=FALSE}
+# Fluxo completo do Macro-Bloco 1
+final_timeseries <- sus_data_import(system = "SIM-DO", uf = "RO", year = 2018:2020, parallel = TRUE) |>
+  sus_data_clean_encoding() |>
+  sus_data_standardize() |>
+  sus_create_variables(age_breaks = c(0, 60, 70, 80, Inf), age_labels = c("0-59", "60-69", "70-79", "80+")) |>
+  sus_data_filter_cid(disease_group = "respiratory") |>
+  sus_data_filter_demographics(age_range = c(60, Inf)) |>
+  sus_data_aggregate(time_unit = "month")
+
+# Visualizar o resultado final
+glimpse(final_timeseries)
+```
+
+# Visualização dos Resultados
+
+Com a série temporal pronta, podemos facilmente visualizá-la usando `ggplot2` para entender a tendência de mortalidade por doenças respiratórias em idosos em Rondônia ao longo do período.
+
+```{r plot-results, eval=FALSE}
+ggplot(final_timeseries, aes(x = agg_date, y = count)) +
+  geom_line(color = "#1B6CA8", size = 1) +
+  geom_point(color = "#1B6CA8", size = 2) +
+  labs(
+    title = "Mortalidade Mensal por Doenças Respiratórias em Idosos (60+)",
+    subtitle = "Rondônia, 2018-2020",
+    x = "Data",
+    y = "Número de Óbitos",
+    caption = "Fonte: DATASUS/SIM, processado com climasus4r"
+  ) +
+  theme_minimal(base_family = "sans") +
+  theme(plot.title.position = "plot")
+```
+
+---
+
+## Conclusão
+
+Neste tutorial, percorremos as 7 funções que compõem o **Macro-Bloco 1: Aquisição & Preparação** do `climasus4r`. Demonstramos como transformar dados brutos e complexos do DATASUS em uma série temporal limpa, estruturada e pronta para as próximas etapas de análise, como a integração com dados climáticos e a modelagem preditiva.
