@@ -88,7 +88,7 @@ sus_data_standardize <- function(df,
   #df$system <- paste0(system)
   
   if (verbose) {
-    cli::cli_h2(messages$standardize_title)
+    cli::cli_h1(messages$standardize_title)
     cli::cli_alert_info(paste(messages$detected_system, get_system_description(system, lang)))
     cli::cli_alert_info(paste(messages$language, toupper(lang)))
   }

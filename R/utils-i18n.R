@@ -2599,23 +2599,208 @@ get_translation_dict_es_sinan <- function() {
 #' @return Uma lista com dois elementos
 #' @keywords internal
 #' @noRd
+# get_translation_dict_pt_sih <- function() {
+
+#   # ==========================================================================
+#   # TRADUCAO DOS NOMES DAS COLUNAS
+#   # Mapeia os nomes originais do SIH para um formato padronizado em portugues.
+#   # ==========================================================================
+
+#   columns <- c(
+#     # --- Identificacao da AIH e Competencia ---
+#     "UF_ZI" = "uf_gestor",
+#     "ANO_CMPT" = "ano_competencia",
+#     "MES_CMPT" = "mes_competencia",
+#     "ESPEC" = "especialidade_leito",
+#     "CGC_HOSP" = "cnpj_hospital",
+#     "N_AIH" = "numero_aih",
+#     "IDENT" = "identificador_aih",
+#     "SEQ_AIH5" = "sequencial_aih_longa_permanencia",
+
+#     # --- Dados do Paciente ---
+#     "CEP" = "cep_paciente",
+#     "MUNIC_RES" = "codigo_municipio_residencia",
+#     "NASC" = "data_nascimento",
+#     "SEXO" = "sexo",
+#     "IDADE" = "idade",
+#     "COD_IDADE" = "codigo_unidade_idade",
+#     "INSTRU" = "instrucao",
+#     "NUM_FILHOS" = "numero_filhos",
+#     "RACA_COR" = "raca",
+#     "ETNIA" = "etnia_indigena",
+#     "NACIONAL" = "nacionalidade",
+#     "HOMONIMO" = "homonimo",
+
+#     # --- Dados da Internacao ---
+#     "DT_INTER" = "data_internacao",
+#     "DT_SAIDA" = "data_saida",
+#     "DIAS_PERM" = "dias_permanencia",
+#     "DIAR_ACOM" = "diarias_acompanhante",
+#     "QT_DIARIAS" = "quantidade_diarias",
+#     "PROC_SOLIC" = "procedimento_solicitado",
+#     "PROC_REA" = "procedimento_realizado",
+#     "CAR_INT" = "carater_internacao",
+#     "MORTE" = "obito",
+#     "COBRANCA" = "motivo_saida_permanencia",
+#     "CID_NOTIF" = "cid_notificacao",
+#     "CID_ASSO" = "cid_causa_associada",
+#     "CID_MORTE" = "cid_obito",
+#     "DIAG_PRINC" = "diagnostico_principal",
+#     "DIAG_SECUN" = "diagnostico_secundario",
+#     # Diagnosticos secundarios adicionais
+#     "DIAGSEC1" = "diagnostico_secundario_1",
+#     "DIAGSEC2" = "diagnostico_secundario_2",
+#     "DIAGSEC3" = "diagnostico_secundario_3",
+#     "DIAGSEC4" = "diagnostico_secundario_4",
+#     "DIAGSEC5" = "diagnostico_secundario_5",
+#     "DIAGSEC6" = "diagnostico_secundario_6",
+#     "DIAGSEC7" = "diagnostico_secundario_7",
+#     "DIAGSEC8" = "diagnostico_secundario_8",
+#     "DIAGSEC9" = "diagnostico_secundario_9",
+#     "TPDISEC1" = "tipo_diagnostico_secundario_1",
+#     "TPDISEC2" = "tipo_diagnostico_secundario_2",
+#     "TPDISEC3" = "tipo_diagnostico_secundario_3",
+#     "TPDISEC4" = "tipo_diagnostico_secundario_4",
+#     "TPDISEC5" = "tipo_diagnostico_secundario_5",
+#     "TPDISEC6" = "tipo_diagnostico_secundario_6",
+#     "TPDISEC7" = "tipo_diagnostico_secundario_7",
+#     "TPDISEC8" = "tipo_diagnostico_secundario_8",
+#     "TPDISEC9" = "tipo_diagnostico_secundario_9",
+
+#     # --- UTI e UCI ---
+#     "UTI_MES_IN" = "uti_dias_mes_inicial",
+#     "UTI_MES_AN" = "uti_dias_mes_anterior",
+#     "UTI_MES_AL" = "uti_dias_mes_alta",
+#     "UTI_MES_TO" = "uti_dias_mes_total",
+#     "MARCA_UTI" = "tipo_uti_utilizada",
+#     "UTI_INT_IN" = "uti_diarias_intermediaria_inicial",
+#     "UTI_INT_AN" = "uti_diarias_intermediaria_anterior",
+#     "UTI_INT_AL" = "uti_diarias_intermediaria_alta",
+#     "UTI_INT_TO" = "uti_diarias_intermediaria_total",
+#     "VAL_UCI" = "valor_uci",
+#     "MARCA_UCI" = "tipo_uci_utilizada",
+
+#     # --- Valores da AIH ---
+#     "VAL_SH" = "valor_servicos_hospitalares",
+#     "VAL_SP" = "valor_servicos_profissionais",
+#     "VAL_TOT" = "valor_total_aih",
+#     "VAL_UTI" = "valor_uti",
+#     "US_TOT" = "valor_total_dolar",
+#     "VAL_SADT" = "valor_sadt",
+#     "VAL_RN" = "valor_recem_nascido",
+#     "VAL_ACOMP" = "valor_acompanhante",
+#     "VAL_ORTP" = "valor_ortese_protese",
+#     "VAL_SANGUE" = "valor_sangue",
+#     "VAL_SADTSR" = "valor_sadt_sem_remuneracao",
+#     "VAL_TRANSP" = "valor_transporte",
+#     "VAL_OBSANG" = "valor_opme_sangue",
+#     "VAL_PED1AC" = "valor_permanencia_maior",
+#     "VAL_SH_FED" = "valor_complemento_federal_sh",
+#     "VAL_SP_FED" = "valor_complemento_federal_sp",
+#     "VAL_SH_GES" = "valor_complemento_gestor_sh",
+#     "VAL_SP_GES" = "valor_complemento_gestor_sp",
+
+#     # --- Dados do Estabelecimento ---
+#     "NATUREZA" = "natureza_juridica_antiga",
+#     "NAT_JUR" = "natureza_juridica",
+#     "GESTAO" = "tipo_gestao_hospital",
+#     "MUNIC_MOV" = "codigo_municipio_estabelecimento",
+#     "CNES" = "codigo_cnes",
+#     "CNPJ_MANT" = "cnpj_mantenedora",
+#     "INFEHOSP" = "status_infeccao_hospitalar",
+#     "COMPLEX" = "complexidade",
+#     "FINANC" = "tipo_financiamento",
+#     "FAEC_TP" = "subtipo_financiamento_faec",
+#     "REGCT" = "regra_contratual",
+
+#     # --- Dados de Ginecologia e Obstetricia ---
+#     "IND_VDRL" = "exame_vdrl_realizado",
+#     "GESTRISCO" = "gestante_risco",
+#     "INSC_PN" = "numero_pre_natal",
+#     "CONTRACEP1" = "contraceptivo_principal",
+#     "CONTRACEP2" = "contraceptivo_secundario",
+
+#     # --- Dados Administrativos e de Pessoal ---
+#     "CBOR" = "cbo_paciente",
+#     "CNAER" = "cnae_acidente_trabalho",
+#     "VINCPREV" = "vinculo_previdencia",
+#     "GESTOR_COD" = "motivo_autorizacao_gestor",
+#     "GESTOR_TP" = "tipo_gestor",
+#     "GESTOR_CPF" = "cpf_gestor",
+#     "GESTOR_DT" = "data_autorizacao_gestor",
+#     "CPF_AUT" = "cpf_autorizador",
+#     "AUD_JUST" = "justificativa_auditor_cns",
+#     "SIS_JUST" = "justificativa_estabelecimento_cns",
+
+#     # --- Dados de Sistema e Remessa ---
+#     "RUBRICA" = "rubrica",
+#     "NUM_PROC" = "numero_procedimento",
+#     "TOT_PT_SP" = "total_pontos_sp",
+#     "SEQUENCIA" = "sequencial_aih_remessa",
+#     "REMESSA" = "numero_remessa"
+#   )
+
+#   # ==========================================================================
+#   # TRADUCAO DE VALORES CATEGORICOS
+#   # Decodifica os codigos para rotulos legiveis em portugues.
+#   # ==========================================================================
+
+#   values <- list(
+#     "IDENT" = c("1" = "Principal", "3" = "Longa permanencia", "5" = "Continuacao"),
+#     "SEXO" = c("1" = "Masculino", "3" = "Feminino", "0" = "Ignorado", "9" = "Ignorado"),
+#     "INSTRU" = c(
+#       "1" = "Analfabeto", "2" = "1 Grau", "3" = "2 Grau", "4" = "3 Grau", "9" = "Ignorado"
+#     ),
+#     "MORTE" = c("1" = "Sim", "0" = "Nao"),
+#     "CAR_INT" = c("1" = "Eletivo", "2" = "Urgencia", "3" = "Acidente no local de trabalho ou a servico da empresa", "4" = "Acidente no trajeto para o trabalho", "5" = "Outros tipos de acidente de transito", "6" = "Outras lesoes e envenenamentos por agentes quimicos ou fisicos"),
+#     "VINCPREV" = c(
+#       "1" = "Autonomo", "2" = "Desempregado", "3" = "Aposentado", "4" = "Nao segurado",
+#       "5" = "Empregado", "6" = "Empregador", "7" = "Beneficiario", "9" = "Ignorado"
+#     ),
+#     "GESTOR_TP" = c("E" = "Estadual", "M" = "Municipal"),
+#     "GESTRISCO" = c("1" = "Sim", "0" = "Nao"),
+#     "RACA_COR" = c(
+#       "01" = "Branca", "02" = "Preta", "03" = "Amarela", "04" = "Parda", "05" = "Indigena", "99" = "Sem informacao"
+#     ),
+#     "FINANC" = c(
+#       "1" = "Recursos proprios", "2" = "Custeio", "3" = "Investimento",
+#       "4" = "FAEC", "5" = "Outros", "6" = "Media e alta complexidade"
+#     ),
+#     "COMPLEX" = c("1" = "Atencao basica", "2" = "Media complexidade", "3" = "Alta complexidade"),
+#     "NATUREZA" = c(
+#       "10" = "Administracao Publica", "20" = "Entidades Empresariais",
+#       "30" = "Entidades sem Fins Lucrativos", "40" = "Pessoas Fisicas",
+#       "50" = "Organizacoes Internacionais", "99" = "Nao se aplica"
+#     )
+#   )
+
+#   return(list(columns = columns, values = values))
+# }
+
 get_translation_dict_pt_sih <- function() {
 
   # ==========================================================================
-  # TRADUCAO DOS NOMES DAS COLUNAS
-  # Mapeia os nomes originais do SIH para um formato padronizado em portugues.
+  # TRADUCAO DOS NOMES DAS COLUNAS (RD e SP)
+  # Mapeia os nomes originais para um formato padronizado em portugues.
   # ==========================================================================
 
   columns <- c(
-    # --- Identificacao da AIH e Competencia ---
+    # --- Identificacao da AIH e Competencia (Arquivos RD) ---
     "UF_ZI" = "uf_gestor",
     "ANO_CMPT" = "ano_competencia",
     "MES_CMPT" = "mes_competencia",
     "ESPEC" = "especialidade_leito",
     "CGC_HOSP" = "cnpj_hospital",
     "N_AIH" = "numero_aih",
+    "AIH" = "numero_internacao_hospitalar",
     "IDENT" = "identificador_aih",
     "SEQ_AIH5" = "sequencial_aih_longa_permanencia",
+    # --- Novos dados ---
+    "ANO" = "ano",
+    "MUN_MOV" = "codigo_municipio_hospital",
+    "MUN_RES" = "codigo_municipio_residencia",
+    "UF_RES" = "codigo_estado_paciente",
+    "CO_ERRO" = "codigo_erro",
 
     # --- Dados do Paciente ---
     "CEP" = "cep_paciente",
@@ -2647,7 +2832,6 @@ get_translation_dict_pt_sih <- function() {
     "CID_MORTE" = "cid_obito",
     "DIAG_PRINC" = "diagnostico_principal",
     "DIAG_SECUN" = "diagnostico_secundario",
-    # Diagnosticos secundarios adicionais
     "DIAGSEC1" = "diagnostico_secundario_1",
     "DIAGSEC2" = "diagnostico_secundario_2",
     "DIAGSEC3" = "diagnostico_secundario_3",
@@ -2737,41 +2921,79 @@ get_translation_dict_pt_sih <- function() {
     "NUM_PROC" = "numero_procedimento",
     "TOT_PT_SP" = "total_pontos_sp",
     "SEQUENCIA" = "sequencial_aih_remessa",
-    "REMESSA" = "numero_remessa"
+    "REMESSA" = "numero_remessa",
+
+    # --- NOVAS COLUNAS: Arquivos SP (Serviços Profissionais) ---
+    "SP_GESTOR"  = "codigo_gestor_sp",  
+    "SP_UF"      = "uf_internacao_sp",  
+    "SP_AA"      = "ano_internacao_sp",  
+    "SP_MM"      = "mes_internacao_sp",  
+    "SP_CNES"    = "cnes_executante_sp",  
+    "SP_NAIH"    = "numero_aih_sp",  
+    "SP_PROCREA" = "procedimento_principal_sp",  
+    "SP_DTINTER" = "data_internacao_sp",  
+    "SP_DTSAIDA" = "data_saida_sp",  
+    "SP_NUM_PR"  = "numero_pr_zerado_sp",  
+    "SP_TIPO"    = "tipo_zerado_sp",  
+    "SP_CPFCGC"  = "documento_prestador_sp",  
+    "SP_ATOPROF" = "procedimento_ato_profissional_sp",  
+    "SP_TP_ATO"  = "tipo_ato_zerado_sp",  
+    "SP_QTD_ATO" = "quantidade_atos_profissionais_sp",  
+    "SP_PTSP"    = "quantidade_pontos_sp",  
+    "SP_NF"      = "nota_fiscal_ou_data_ato_sp",  
+    "SP_VALATO"  = "valor_ato_profissional_sp",  
+    "SP_M_HOSP"  = "municipio_estabelecimento_sp",  
+    "SP_M_PAC"   = "municipio_residencia_paciente_sp",  
+    "SP_DES_HOS" = "indicador_uf_diferente_hosp_sp",  
+    "SP_DES_PAC" = "indicador_uf_diferente_pac_sp",  
+    "SP_COMPLEX" = "complexidade_ato_sp",  
+    "SP_FINANC"  = "tipo_financiamento_ato_sp",  
+    "SP_CO_FAEC" = "subtipo_financiamento_faec_sp",  
+    "SP_PF_CBO"  = "cbo_profissional_sp",  
+    "SP_PF_DOC"  = "documento_pessoa_juridica_sp",  
+    "SP_PJ_DOC"  = "documento_pessoa_fisica_sp",  
+    "IN_TP_VAL"  = "tipo_valor_sp_sh",  
+    "SERV_CLA"   = "servico_classificacao_sp",  
+    "SP_CIDPRI"  = "cid_principal_sp",  
+    "SP_CIDSEC"  = "cid_secundario_sp",  
+    "SP_QT_PROC" = "quantidade_procedimentos_sp",  
+    "SP_U_AIH"   = "indicador_unico_aih_sp"  
   )
 
   # ==========================================================================
   # TRADUCAO DE VALORES CATEGORICOS
-  # Decodifica os codigos para rotulos legiveis em portugues.
   # ==========================================================================
 
   values <- list(
     "IDENT" = c("1" = "Principal", "3" = "Longa permanencia", "5" = "Continuacao"),
-    "SEXO" = c("1" = "Masculino", "3" = "Feminino", "0" = "Ignorado", "9" = "Ignorado"),
+    "SEXO" = c("1" = "Masculino", "3" = "Feminino", "0" = "Ignorado", "9" = "Ignorado"), 
     "INSTRU" = c(
       "1" = "Analfabeto", "2" = "1 Grau", "3" = "2 Grau", "4" = "3 Grau", "9" = "Ignorado"
     ),
     "MORTE" = c("1" = "Sim", "0" = "Nao"),
-    "CAR_INT" = c("1" = "Eletivo", "2" = "Urgencia", "3" = "Acidente no local de trabalho ou a servico da empresa", "4" = "Acidente no trajeto para o trabalho", "5" = "Outros tipos de acidente de transito", "6" = "Outras lesoes e envenenamentos por agentes quimicos ou fisicos"),
+    "CAR_INT" = c("1" = "Eletivo", "2" = "Urgencia", "3" = "Acidente no local de trabalho", "4" = "Acidente no trajeto", "5" = "Outros acidentes de transito", "6" = "Outras lesoes/envenenamentos"), 
     "VINCPREV" = c(
       "1" = "Autonomo", "2" = "Desempregado", "3" = "Aposentado", "4" = "Nao segurado",
       "5" = "Empregado", "6" = "Empregador", "7" = "Beneficiario", "9" = "Ignorado"
-    ),
-    "GESTOR_TP" = c("E" = "Estadual", "M" = "Municipal"),
-    "GESTRISCO" = c("1" = "Sim", "0" = "Nao"),
+    ), 
+    "GESTOR_TP" = c("E" = "Estadual", "M" = "Municipal"), 
+    "GESTRISCO" = c("1" = "Sim", "0" = "Nao"), 
     "RACA_COR" = c(
       "01" = "Branca", "02" = "Preta", "03" = "Amarela", "04" = "Parda", "05" = "Indigena", "99" = "Sem informacao"
-    ),
+    ), 
     "FINANC" = c(
       "1" = "Recursos proprios", "2" = "Custeio", "3" = "Investimento",
       "4" = "FAEC", "5" = "Outros", "6" = "Media e alta complexidade"
-    ),
+    ), 
     "COMPLEX" = c("1" = "Atencao basica", "2" = "Media complexidade", "3" = "Alta complexidade"),
     "NATUREZA" = c(
       "10" = "Administracao Publica", "20" = "Entidades Empresariais",
       "30" = "Entidades sem Fins Lucrativos", "40" = "Pessoas Fisicas",
       "50" = "Organizacoes Internacionais", "99" = "Nao se aplica"
-    )
+    ), 
+    # Novos valores para os arquivos SP
+    "IN_TP_VAL" = c("1" = "SP", "2" = "SH"), 
+    "SP_U_AIH" = c("1" = "Unica", "0" = "Repetida") 
   )
 
   return(list(columns = columns, values = values))
@@ -2786,23 +3008,213 @@ get_translation_dict_pt_sih <- function() {
 #' @return A list with two elements
 #' @keywords internal
 #' @noRd
+# get_translation_dict_en_sih <- function() {
+
+#   # ==========================================================================
+#   # COLUMN NAME TRANSLATIONS
+#   # Maps original SIH names to a standardized English snake_case format.
+#   # ==========================================================================
+
+#   columns <- c(
+#     # --- AIH and Competence Period Identification ---
+#     "UF_ZI" = "manager_uf",
+#     "ANO_CMPT" = "competence_year",
+#     "MES_CMPT" = "competence_month",
+#     "ESPEC" = "bed_specialty",
+#     "CGC_HOSP" = "hospital_cnpj",
+#     "N_AIH" = "aih_number",
+#     "IDENT" = "aih_identifier",
+#     "SEQ_AIH5" = "long_stay_aih_sequence",
+
+#     # --- Patient Data ---
+#     "CEP" = "patient_zip_code",
+#     "MUNIC_RES" = "residence_municipality_code",
+#     "NASC" = "birth_date",
+#     "SEXO" = "sex",
+#     "IDADE" = "age",
+#     "COD_IDADE" = "age_unit_code",
+#     "INSTRU" = "education_level",
+#     "NUM_FILHOS" = "number_of_children",
+#     "RACA_COR" = "race",
+#     "ETNIA" = "ethnicity",
+#     "NACIONAL" = "nationality",
+#     "HOMONIMO" = "homonym_indicator",
+
+#     # --- Admission Data ---
+#     "DT_INTER" = "admission_date",
+#     "DT_SAIDA" = "discharge_date",
+#     "DIAS_PERM" = "length_of_stay",
+#     "DIAR_ACOM" = "companion_days",
+#     "QT_DIARIAS" = "number_of_days",
+#     "PROC_SOLIC" = "requested_procedure",
+#     "PROC_REA" = "performed_procedure",
+#     "CAR_INT" = "admission_type",
+#     "MORTE" = "death",
+#     "COBRANCA" = "discharge_reason",
+#     "CID_NOTIF" = "notification_cid",
+#     "CID_ASSO" = "associated_cause_cid",
+#     "CID_MORTE" = "death_cause_cid",
+#     "DIAG_PRINC" = "main_diagnosis_cid",
+#     "DIAG_SECUN" = "secondary_diagnosis_cid",
+#     # Additional secondary diagnoses
+#     "DIAGSEC1" = "secondary_diagnosis_1",
+#     "DIAGSEC2" = "secondary_diagnosis_2",
+#     "DIAGSEC3" = "secondary_diagnosis_3",
+#     "DIAGSEC4" = "secondary_diagnosis_4",
+#     "DIAGSEC5" = "secondary_diagnosis_5",
+#     "DIAGSEC6" = "secondary_diagnosis_6",
+#     "DIAGSEC7" = "secondary_diagnosis_7",
+#     "DIAGSEC8" = "secondary_diagnosis_8",
+#     "DIAGSEC9" = "secondary_diagnosis_9",
+#     "TPDISEC1" = "secondary_diagnosis_type_1",
+#     "TPDISEC2" = "secondary_diagnosis_type_2",
+#     "TPDISEC3" = "secondary_diagnosis_type_3",
+#     "TPDISEC4" = "secondary_diagnosis_type_4",
+#     "TPDISEC5" = "secondary_diagnosis_type_5",
+#     "TPDISEC6" = "secondary_diagnosis_type_6",
+#     "TPDISEC7" = "secondary_diagnosis_type_7",
+#     "TPDISEC8" = "secondary_diagnosis_type_8",
+#     "TPDISEC9" = "secondary_diagnosis_type_9",
+
+#     # --- ICU and Intermediate Care Unit ---
+#     "UTI_MES_IN" = "icu_days_initial_month",
+#     "UTI_MES_AN" = "icu_days_previous_month",
+#     "UTI_MES_AL" = "icu_days_discharge_month",
+#     "UTI_MES_TO" = "icu_days_total",
+#     "MARCA_UTI" = "icu_type_used",
+#     "UTI_INT_IN" = "intermediate_care_days_initial",
+#     "UTI_INT_AN" = "intermediate_care_days_previous",
+#     "UTI_INT_AL" = "intermediate_care_days_discharge",
+#     "UTI_INT_TO" = "intermediate_care_days_total",
+#     "VAL_UCI" = "intermediate_care_unit_value",
+#     "MARCA_UCI" = "intermediate_care_unit_type",
+
+#     # --- AIH Values ---
+#     "VAL_SH" = "value_hospital_services",
+#     "VAL_SP" = "value_professional_services",
+#     "VAL_TOT" = "value_total_aih",
+#     "VAL_UTI" = "value_icu",
+#     "US_TOT" = "value_total_usd",
+#     "VAL_SADT" = "value_sadt", # Diagnostic and Therapeutic Support Service
+#     "VAL_RN" = "value_newborn",
+#     "VAL_ACOMP" = "value_companion",
+#     "VAL_ORTP" = "value_orthotics_prosthetics",
+#     "VAL_SANGUE" = "value_blood",
+#     "VAL_SADTSR" = "value_sadt_no_remuneration",
+#     "VAL_TRANSP" = "value_transport",
+#     "VAL_OBSANG" = "value_opme_blood",
+#     "VAL_PED1AC" = "value_prolonged_stay",
+#     "VAL_SH_FED" = "value_federal_complement_hs",
+#     "VAL_SP_FED" = "value_federal_complement_ps",
+#     "VAL_SH_GES" = "value_manager_complement_hs",
+#     "VAL_SP_GES" = "value_manager_complement_ps",
+
+#     # --- Facility Data ---
+#     "NATUREZA" = "legal_nature_old",
+#     "NAT_JUR" = "legal_nature",
+#     "GESTAO" = "hospital_management_type",
+#     "MUNIC_MOV" = "facility_municipality_code",
+#     "CNES" = "cnes_code",
+#     "CNPJ_MANT" = "maintaining_entity_cnpj",
+#     "INFEHOSP" = "hospital_infection_status",
+#     "COMPLEX" = "complexity_level",
+#     "FINANC" = "financing_type",
+#     "FAEC_TP" = "faec_financing_subtype",
+#     "REGCT" = "contract_rule",
+
+#     # --- Gynecology and Obstetrics Data ---
+#     "IND_VDRL" = "vdrl_test_performed",
+#     "GESTRISCO" = "high_risk_pregnancy",
+#     "INSC_PN" = "prenatal_registration_number",
+#     "CONTRACEP1" = "contraceptive_method_1",
+#     "CONTRACEP2" = "contraceptive_method_2",
+
+#     # --- Administrative and Personnel Data ---
+#     "CBOR" = "patient_cbo_code",
+#     "CNAER" = "work_accident_cnae_code",
+#     "VINCPREV" = "social_security_link",
+#     "GESTOR_COD" = "manager_authorization_reason",
+#     "GESTOR_TP" = "manager_type",
+#     "GESTOR_CPF" = "manager_cpf",
+#     "GESTOR_DT" = "manager_authorization_date",
+#     "CPF_AUT" = "authorizer_cpf",
+#     "AUD_JUST" = "auditor_justification_cns",
+#     "SIS_JUST" = "facility_justification_cns",
+
+#     # --- System and Remittance Data ---
+#     "RUBRICA" = "rubric",
+#     "NUM_PROC" = "procedure_number",
+#     "TOT_PT_SP" = "total_points_sp",
+#     "SEQUENCIA" = "aih_sequence_in_remittance",
+#     "REMESSA" = "remittance_number"
+#   )
+
+#   # ==========================================================================
+#   # CATEGORICAL VALUE TRANSLATIONS
+#   # Decodes codes into human-readable English labels.
+#   # ==========================================================================
+
+#   values <- list(
+#     "IDENT" = c("1" = "Main", "3" = "Long Stay", "5" = "Continuation"),
+#     "SEXO" = c("1" = "Male", "3" = "Female", "0" = "Ignored", "9" = "Ignored"),
+#     "INSTRU" = c(
+#       "1" = "Illiterate", "2" = "Primary School", "3" = "High School", "4" = "Higher Education", "9" = "Ignored"
+#     ),
+#     "MORTE" = c("1" = "Yes", "0" = "No"),
+#     "CAR_INT" = c(
+#       "1" = "Elective", "2" = "Urgency", "3" = "Workplace accident",
+#       "4" = "Commuting accident", "5" = "Other traffic accidents",
+#       "6" = "Other injuries and poisonings"
+#     ),
+#     "VINCPREV" = c(
+#       "1" = "Self-employed", "2" = "Unemployed", "3" = "Retired", "4" = "Not insured",
+#       "5" = "Employed", "6" = "Employer", "7" = "Beneficiary", "9" = "Ignored"
+#     ),
+#     "GESTOR_TP" = c("E" = "State", "M" = "Municipal"),
+#     "GESTRISCO" = c("1" = "Yes", "0" = "No"),
+#     "RACA_COR" = c(
+#       "01" = "White", "02" = "Black", "03" = "Asian", "04" = "Brown", "05" = "Indigenous", "99" = "No information"
+#     ),
+#     "FINANC" = c(
+#       "1" = "Own Resources", "2" = "Costing", "3" = "Investment",
+#       "4" = "FAEC", "5" = "Others", "6" = "Medium and High Complexity"
+#     ),
+#     "COMPLEX" = c("1" = "Basic Care", "2" = "Medium Complexity", "3" = "High Complexity"),
+#     "NATUREZA" = c(
+#       "10" = "Public Administration", "20" = "Business Entities",
+#       "30" = "Non-profit Entities", "40" = "Individuals",
+#       "50" = "International Organizations", "99" = "Not applicable"
+#     )
+#   )
+
+#   return(list(columns = columns, values = values))
+# }
+
 get_translation_dict_en_sih <- function() {
 
   # ==========================================================================
-  # COLUMN NAME TRANSLATIONS
-  # Maps original SIH names to a standardized English snake_case format.
+  # COLUMN NAME TRANSLATION (RD and SP Files)
+  # Maps original SIH names to a standardized English format.
   # ==========================================================================
 
   columns <- c(
-    # --- AIH and Competence Period Identification ---
-    "UF_ZI" = "manager_uf",
-    "ANO_CMPT" = "competence_year",
-    "MES_CMPT" = "competence_month",
+    # --- AIH Identification and Processing Period ---
+    "UF_ZI" = "manager_state_code",
+    "ANO_CMPT" = "processing_year",
+    "MES_CMPT" = "processing_month",
     "ESPEC" = "bed_specialty",
     "CGC_HOSP" = "hospital_cnpj",
     "N_AIH" = "aih_number",
-    "IDENT" = "aih_identifier",
+    "AIH" = "hospital_admission_number",
+    "IDENT" = "aih_type_identifier",
     "SEQ_AIH5" = "long_stay_aih_sequence",
+    
+    # --- New Data ---
+    "ANO" = "year",
+    "MUN_MOV" = "hospital_municipality_code",
+    "MUN_RES" = "residence_municipality_code",
+    "UF_RES" = "patient_state_code",
+    "CO_ERRO" = "error_code",
 
     # --- Patient Data ---
     "CEP" = "patient_zip_code",
@@ -2813,28 +3225,27 @@ get_translation_dict_en_sih <- function() {
     "COD_IDADE" = "age_unit_code",
     "INSTRU" = "education_level",
     "NUM_FILHOS" = "number_of_children",
-    "RACA_COR" = "race",
-    "ETNIA" = "ethnicity",
-    "NACIONAL" = "nationality",
+    "RACA_COR" = "race_color",
+    "ETNIA" = "indigenous_ethnicity",
+    "NACIONAL" = "nationality_code",
     "HOMONIMO" = "homonym_indicator",
 
     # --- Admission Data ---
     "DT_INTER" = "admission_date",
     "DT_SAIDA" = "discharge_date",
-    "DIAS_PERM" = "length_of_stay",
-    "DIAR_ACOM" = "companion_days",
-    "QT_DIARIAS" = "number_of_days",
+    "DIAS_PERM" = "stay_duration_days",
+    "DIAR_ACOM" = "companion_daily_days",
+    "QT_DIARIAS" = "total_daily_days",
     "PROC_SOLIC" = "requested_procedure",
     "PROC_REA" = "performed_procedure",
-    "CAR_INT" = "admission_type",
-    "MORTE" = "death",
-    "COBRANCA" = "discharge_reason",
-    "CID_NOTIF" = "notification_cid",
-    "CID_ASSO" = "associated_cause_cid",
-    "CID_MORTE" = "death_cause_cid",
-    "DIAG_PRINC" = "main_diagnosis_cid",
-    "DIAG_SECUN" = "secondary_diagnosis_cid",
-    # Additional secondary diagnoses
+    "CAR_INT" = "admission_character",
+    "MORTE" = "death_indicator",
+    "COBRANCA" = "discharge_status_reason",
+    "CID_NOTIF" = "notification_icd",
+    "CID_ASSO" = "associated_cause_icd",
+    "CID_MORTE" = "death_cause_icd",
+    "DIAG_PRINC" = "primary_diagnosis",
+    "DIAG_SECUN" = "secondary_diagnosis",
     "DIAGSEC1" = "secondary_diagnosis_1",
     "DIAGSEC2" = "secondary_diagnosis_2",
     "DIAGSEC3" = "secondary_diagnosis_3",
@@ -2854,62 +3265,62 @@ get_translation_dict_en_sih <- function() {
     "TPDISEC8" = "secondary_diagnosis_type_8",
     "TPDISEC9" = "secondary_diagnosis_type_9",
 
-    # --- ICU and Intermediate Care Unit ---
+    # --- ICU (UTI) and Intermediate Care (UCI) ---
     "UTI_MES_IN" = "icu_days_initial_month",
     "UTI_MES_AN" = "icu_days_previous_month",
     "UTI_MES_AL" = "icu_days_discharge_month",
-    "UTI_MES_TO" = "icu_days_total",
-    "MARCA_UTI" = "icu_type_used",
-    "UTI_INT_IN" = "intermediate_care_days_initial",
-    "UTI_INT_AN" = "intermediate_care_days_previous",
-    "UTI_INT_AL" = "intermediate_care_days_discharge",
-    "UTI_INT_TO" = "intermediate_care_days_total",
-    "VAL_UCI" = "intermediate_care_unit_value",
-    "MARCA_UCI" = "intermediate_care_unit_type",
+    "UTI_MES_TO" = "icu_days_total_month",
+    "MARCA_UTI" = "icu_type",
+    "UTI_INT_IN" = "intermediate_care_days_initial_month",
+    "UTI_INT_AN" = "intermediate_care_days_previous_month",
+    "UTI_INT_AL" = "intermediate_care_days_discharge_month",
+    "UTI_INT_TO" = "intermediate_care_days_total_month",
+    "VAL_UCI" = "intermediate_care_value",
+    "MARCA_UCI" = "intermediate_care_type",
 
-    # --- AIH Values ---
-    "VAL_SH" = "value_hospital_services",
-    "VAL_SP" = "value_professional_services",
-    "VAL_TOT" = "value_total_aih",
-    "VAL_UTI" = "value_icu",
-    "US_TOT" = "value_total_usd",
-    "VAL_SADT" = "value_sadt", # Diagnostic and Therapeutic Support Service
-    "VAL_RN" = "value_newborn",
-    "VAL_ACOMP" = "value_companion",
-    "VAL_ORTP" = "value_orthotics_prosthetics",
-    "VAL_SANGUE" = "value_blood",
-    "VAL_SADTSR" = "value_sadt_no_remuneration",
-    "VAL_TRANSP" = "value_transport",
-    "VAL_OBSANG" = "value_opme_blood",
-    "VAL_PED1AC" = "value_prolonged_stay",
-    "VAL_SH_FED" = "value_federal_complement_hs",
-    "VAL_SP_FED" = "value_federal_complement_ps",
-    "VAL_SH_GES" = "value_manager_complement_hs",
-    "VAL_SP_GES" = "value_manager_complement_ps",
+    # --- Financial Values ---
+    "VAL_SH" = "hospital_services_value",
+    "VAL_SP" = "professional_services_value",
+    "VAL_TOT" = "total_aih_value",
+    "VAL_UTI" = "icu_value",
+    "US_TOT" = "total_value_usd",
+    "VAL_SADT" = "sadt_value",
+    "VAL_RN" = "newborn_value",
+    "VAL_ACOMP" = "companion_value",
+    "VAL_ORTP" = "orthotics_prosthetics_value",
+    "VAL_SANGUE" = "blood_services_value",
+    "VAL_SADTSR" = "sadt_non_remunerated_value",
+    "VAL_TRANSP" = "transport_value",
+    "VAL_OBSANG" = "opme_blood_value",
+    "VAL_PED1AC" = "extended_stay_value",
+    "VAL_SH_FED" = "federal_complement_sh_value",
+    "VAL_SP_FED" = "federal_complement_sp_value",
+    "VAL_SH_GES" = "manager_complement_sh_value",
+    "VAL_SP_GES" = "manager_complement_sp_value",
 
     # --- Facility Data ---
-    "NATUREZA" = "legal_nature_old",
-    "NAT_JUR" = "legal_nature",
+    "NATUREZA" = "old_legal_nature",
+    "NAT_JUR" = "legal_nature_concla",
     "GESTAO" = "hospital_management_type",
     "MUNIC_MOV" = "facility_municipality_code",
-    "CNES" = "cnes_code",
+    "CNES" = "cnes_facility_code",
     "CNPJ_MANT" = "maintaining_entity_cnpj",
     "INFEHOSP" = "hospital_infection_status",
     "COMPLEX" = "complexity_level",
     "FINANC" = "financing_type",
     "FAEC_TP" = "faec_financing_subtype",
-    "REGCT" = "contract_rule",
+    "REGCT" = "contractual_rule",
 
-    # --- Gynecology and Obstetrics Data ---
-    "IND_VDRL" = "vdrl_test_performed",
+    # --- Gynecology and Obstetrics ---
+    "IND_VDRL" = "vdrl_exam_indicator",
     "GESTRISCO" = "high_risk_pregnancy",
-    "INSC_PN" = "prenatal_registration_number",
+    "INSC_PN" = "prenatal_enrollment_number",
     "CONTRACEP1" = "contraceptive_method_1",
-    "CONTRACEP2" = "contraceptive_method_2",
+    "CONTRACEP2" = "contraceptice_method_2",
 
-    # --- Administrative and Personnel Data ---
-    "CBOR" = "patient_cbo_code",
-    "CNAER" = "work_accident_cnae_code",
+    # --- Administrative and Personnel ---
+    "CBOR" = "patient_occupation_cbo",
+    "CNAER" = "work_accident_cnae",
     "VINCPREV" = "social_security_link",
     "GESTOR_COD" = "manager_authorization_reason",
     "GESTOR_TP" = "manager_type",
@@ -2919,50 +3330,88 @@ get_translation_dict_en_sih <- function() {
     "AUD_JUST" = "auditor_justification_cns",
     "SIS_JUST" = "facility_justification_cns",
 
-    # --- System and Remittance Data ---
-    "RUBRICA" = "rubric",
-    "NUM_PROC" = "procedure_number",
-    "TOT_PT_SP" = "total_points_sp",
-    "SEQUENCIA" = "aih_sequence_in_remittance",
-    "REMESSA" = "remittance_number"
+    # --- System and Batch Data ---
+    "RUBRICA" = "budget_line_item",
+    "NUM_PROC" = "procedure_number_deprecated",
+    "TOT_PT_SP" = "total_sp_points",
+    "SEQUENCIA" = "batch_sequence_number",
+    "REMESSA" = "batch_id",
+
+    # --- SP Files (Professional Services) Specific ---
+    "SP_GESTOR"  = "sp_manager_code",
+    "SP_UF"      = "sp_state_code",
+    "SP_AA"      = "sp_admission_year",
+    "SP_MM"      = "sp_admission_month",
+    "SP_CNES"    = "sp_performing_facility_cnes",
+    "SP_NAIH"    = "sp_aih_number",
+    "SP_PROCREA" = "sp_main_procedure_performed",
+    "SP_DTINTER" = "sp_admission_date",
+    "SP_DTSAIDA" = "sp_discharge_date",
+    "SP_NUM_PR"  = "sp_zeroed_field_pr",
+    "SP_TIPO"    = "sp_zeroed_field_type",
+    "SP_CPFCGC"  = "sp_provider_tax_id",
+    "SP_ATOPROF" = "sp_professional_act_procedure",
+    "SP_TP_ATO"  = "sp_zeroed_field_act_type",
+    "SP_QTD_ATO" = "sp_act_quantity",
+    "SP_PTSP"    = "sp_points_quantity",
+    "SP_NF"      = "sp_invoice_or_act_date",
+    "SP_VALATO"  = "sp_act_value",
+    "SP_M_HOSP"  = "sp_facility_municipality",
+    "SP_M_PAC"   = "sp_patient_municipality",
+    "SP_DES_HOS" = "sp_diff_state_facility_indicator",
+    "SP_DES_PAC" = "sp_diff_state_patient_indicator",
+    "SP_COMPLEX" = "sp_act_complexity",
+    "SP_FINANC"  = "sp_act_financing",
+    "SP_CO_FAEC" = "sp_faec_subtype",
+    "SP_PF_CBO"  = "sp_professional_cbo",
+    "SP_PF_DOC"  = "sp_professional_tax_id",
+    "SP_PJ_DOC"  = "sp_corporate_tax_id",
+    "IN_TP_VAL"  = "value_type_sp_sh",
+    "SERV_CLA"   = "service_classification_code",
+    "SP_CIDPRI"  = "sp_primary_icd",
+    "SP_CIDSEC"  = "sp_secondary_icd",
+    "SP_QT_PROC" = "sp_procedure_quantity",
+    "SP_U_AIH"   = "sp_unique_aih_indicator"
   )
 
   # ==========================================================================
-  # CATEGORICAL VALUE TRANSLATIONS
-  # Decodes codes into human-readable English labels.
+  # CATEGORICAL VALUES TRANSLATION
   # ==========================================================================
 
   values <- list(
     "IDENT" = c("1" = "Main", "3" = "Long Stay", "5" = "Continuation"),
-    "SEXO" = c("1" = "Male", "3" = "Female", "0" = "Ignored", "9" = "Ignored"),
+    "SEXO" = c("1" = "Male", "3" = "Female", "0" = "Unknown", "9" = "Unknown"),
     "INSTRU" = c(
-      "1" = "Illiterate", "2" = "Primary School", "3" = "High School", "4" = "Higher Education", "9" = "Ignored"
+      "1" = "Illiterate", "2" = "Primary School", "3" = "High School", 
+      "4" = "Higher Education", "9" = "Unknown"
     ),
     "MORTE" = c("1" = "Yes", "0" = "No"),
     "CAR_INT" = c(
-      "1" = "Elective", "2" = "Urgency", "3" = "Workplace accident",
-      "4" = "Commuting accident", "5" = "Other traffic accidents",
-      "6" = "Other injuries and poisonings"
+      "1" = "Elective", "2" = "Urgent", "3" = "Workplace accident", 
+      "4" = "Commuting accident", "5" = "Traffic accident", "6" = "Other injuries/poisoning"
     ),
     "VINCPREV" = c(
       "1" = "Self-employed", "2" = "Unemployed", "3" = "Retired", "4" = "Not insured",
-      "5" = "Employed", "6" = "Employer", "7" = "Beneficiary", "9" = "Ignored"
+      "5" = "Employee", "6" = "Employer", "7" = "Beneficiary", "9" = "Unknown"
     ),
     "GESTOR_TP" = c("E" = "State", "M" = "Municipal"),
     "GESTRISCO" = c("1" = "Yes", "0" = "No"),
     "RACA_COR" = c(
-      "01" = "White", "02" = "Black", "03" = "Asian", "04" = "Brown", "05" = "Indigenous", "99" = "No information"
+      "01" = "White", "02" = "Black", "03" = "Yellow", "04" = "Pardo/Mixed", 
+      "05" = "Indigenous", "99" = "No Information"
     ),
     "FINANC" = c(
-      "1" = "Own Resources", "2" = "Costing", "3" = "Investment",
-      "4" = "FAEC", "5" = "Others", "6" = "Medium and High Complexity"
+      "1" = "Own Resources", "2" = "Maintenance", "3" = "Investment",
+      "4" = "FAEC", "5" = "Others", "6" = "Medium/High Complexity"
     ),
-    "COMPLEX" = c("1" = "Basic Care", "2" = "Medium Complexity", "3" = "High Complexity"),
+    "COMPLEX" = c("1" = "Primary Care", "2" = "Medium Complexity", "3" = "High Complexity"),
     "NATUREZA" = c(
       "10" = "Public Administration", "20" = "Business Entities",
-      "30" = "Non-profit Entities", "40" = "Individuals",
-      "50" = "International Organizations", "99" = "Not applicable"
-    )
+      "30" = "Non-Profit Entities", "40" = "Natural Persons",
+      "50" = "International Organizations", "99" = "Not Applicable"
+    ),
+    "IN_TP_VAL" = c("1" = "Professional Services (SP)", "2" = "Hospital Services (SH)"),
+    "SP_U_AIH" = c("1" = "Unique Record", "0" = "Repeated/Audit Line")
   )
 
   return(list(columns = columns, values = values))
@@ -2977,23 +3426,213 @@ get_translation_dict_en_sih <- function() {
 #' @return Una lista con dos elementos
 #' @keywords internal
 #' @noRd
+# get_translation_dict_es_sih <- function() {
+
+#   # ==========================================================================
+#   # TRADUCCION DE NOMBRES DE COLUMNAS
+#   # Mapea los nombres originales de SIH a un formato estandarizado en espanol.
+#   # ==========================================================================
+
+#   columns <- c(
+#     # --- Identificacion de la AIH y Competencia ---
+#     "UF_ZI" = "uf_gestor",
+#     "ANO_CMPT" = "ano_competencia",
+#     "MES_CMPT" = "mes_competencia",
+#     "ESPEC" = "especialidad_cama",
+#     "CGC_HOSP" = "cnpj_hospital",
+#     "N_AIH" = "numero_aih",
+#     "IDENT" = "identificador_aih",
+#     "SEQ_AIH5" = "secuencial_aih_larga_estancia",
+
+#     # --- Datos del Paciente ---
+#     "CEP" = "codigo_postal_paciente",
+#     "MUNIC_RES" = "codigo_municipio_residencia",
+#     "NASC" = "fecha_nacimiento",
+#     "SEXO" = "sexo",
+#     "IDADE" = "edad",
+#     "COD_IDADE" = "codigo_unidad_edad",
+#     "INSTRU" = "nivel_instruccion",
+#     "NUM_FILHOS" = "numero_hijos",
+#     "RACA_COR" = "raza",
+#     "ETNIA" = "etnia_indigena",
+#     "NACIONAL" = "nacionalidad",
+#     "HOMONIMO" = "homonimo_indicador",
+
+#     # --- Datos de la Hospitalizacion ---
+#     "DT_INTER" = "fecha_hospitalizacion",
+#     "DT_SAIDA" = "fecha_alta",
+#     "DIAS_PERM" = "dias_estancia",
+#     "DIAR_ACOM" = "dias_acompanante",
+#     "QT_DIARIAS" = "cantidad_diarias",
+#     "PROC_SOLIC" = "procedimiento_solicitado",
+#     "PROC_REA" = "procedimiento_realizado",
+#     "CAR_INT" = "caracter_hospitalizacion",
+#     "MORTE" = "fallecimiento",
+#     "COBRANCA" = "motivo_alta_permanencia",
+#     "CID_NOTIF" = "cid_notificacion",
+#     "CID_ASSO" = "cid_causa_asociada",
+#     "CID_MORTE" = "cid_fallecimiento",
+#     "DIAG_PRINC" = "diagnostico_principal_cid",
+#     "DIAG_SECUN" = "diagnostico_secundario_cid",
+#     # Diagnosticos secundarios adicionales
+#     "DIAGSEC1" = "diagnostico_secundario_1",
+#     "DIAGSEC2" = "diagnostico_secundario_2",
+#     "DIAGSEC3" = "diagnostico_secundario_3",
+#     "DIAGSEC4" = "diagnostico_secundario_4",
+#     "DIAGSEC5" = "diagnostico_secundario_5",
+#     "DIAGSEC6" = "diagnostico_secundario_6",
+#     "DIAGSEC7" = "diagnostico_secundario_7",
+#     "DIAGSEC8" = "diagnostico_secundario_8",
+#     "DIAGSEC9" = "diagnostico_secundario_9",
+#     "TPDISEC1" = "tipo_diagnostico_secundario_1",
+#     "TPDISEC2" = "tipo_diagnostico_secundario_2",
+#     "TPDISEC3" = "tipo_diagnostico_secundario_3",
+#     "TPDISEC4" = "tipo_diagnostico_secundario_4",
+#     "TPDISEC5" = "tipo_diagnostico_secundario_5",
+#     "TPDISEC6" = "tipo_diagnostico_secundario_6",
+#     "TPDISEC7" = "tipo_diagnostico_secundario_7",
+#     "TPDISEC8" = "tipo_diagnostico_secundario_8",
+#     "TPDISEC9" = "tipo_diagnostico_secundario_9",
+
+#     # --- UCI y Unidad de Cuidados Intermedios ---
+#     "UTI_MES_IN" = "uci_dias_mes_inicial",
+#     "UTI_MES_AN" = "uci_dias_mes_anterior",
+#     "UTI_MES_AL" = "uci_dias_mes_alta",
+#     "UTI_MES_TO" = "uci_dias_mes_total",
+#     "MARCA_UTI" = "tipo_uci_utilizada",
+#     "UTI_INT_IN" = "cuidados_intermedios_dias_inicial",
+#     "UTI_INT_AN" = "cuidados_intermedios_dias_anterior",
+#     "UTI_INT_AL" = "cuidados_intermedios_dias_alta",
+#     "UTI_INT_TO" = "cuidados_intermedios_dias_total",
+#     "VAL_UCI" = "valor_unidad_cuidados_intermedios",
+#     "MARCA_UCI" = "tipo_unidad_cuidados_intermedios",
+
+#     # --- Valores de la AIH ---
+#     "VAL_SH" = "valor_servicios_hospitalarios",
+#     "VAL_SP" = "valor_servicios_profesionales",
+#     "VAL_TOT" = "valor_total_aih",
+#     "VAL_UTI" = "valor_uci",
+#     "US_TOT" = "valor_total_usd",
+#     "VAL_SADT" = "valor_sadt", # Servicio de Apoyo Diagnostico y Terapeutico
+#     "VAL_RN" = "valor_recien_nacido",
+#     "VAL_ACOMP" = "valor_acompanante",
+#     "VAL_ORTP" = "valor_ortesis_protesis",
+#     "VAL_SANGUE" = "valor_sangre",
+#     "VAL_SADTSR" = "valor_sadt_sin_remuneracion",
+#     "VAL_TRANSP" = "valor_transporte",
+#     "VAL_OBSANG" = "valor_opme_sangre",
+#     "VAL_PED1AC" = "valor_estancia_prolongada",
+#     "VAL_SH_FED" = "valor_complemento_federal_sh",
+#     "VAL_SP_FED" = "valor_complemento_federal_sp",
+#     "VAL_SH_GES" = "valor_complemento_gestor_sh",
+#     "VAL_SP_GES" = "valor_complemento_gestor_sp",
+
+#     # --- Datos del Establecimiento ---
+#     "NATUREZA" = "naturaleza_juridica_antigua",
+#     "NAT_JUR" = "naturaleza_juridica",
+#     "GESTAO" = "tipo_gestion_hospital",
+#     "MUNIC_MOV" = "codigo_municipio_establecimiento",
+#     "CNES" = "codigo_cnes",
+#     "CNPJ_MANT" = "cnpj_entidad_mantenedora",
+#     "INFEHOSP" = "estado_infeccion_hospitalaria",
+#     "COMPLEX" = "complejidad",
+#     "FINANC" = "tipo_financiamiento",
+#     "FAEC_TP" = "subtipo_financiamiento_faec",
+#     "REGCT" = "regla_contractual",
+
+#     # --- Datos de Ginecologia y Obstetricia ---
+#     "IND_VDRL" = "examen_vdrl_realizado",
+#     "GESTRISCO" = "embarazo_riesgo",
+#     "INSC_PN" = "numero_pre_natal",
+#     "CONTRACEP1" = "anticonceptivo_principal",
+#     "CONTRACEP2" = "anticonceptivo_secundario",
+
+#     # --- Datos Administrativos y de Personal ---
+#     "CBOR" = "cbo_paciente",
+#     "CNAER" = "cnae_accidente_trabajo",
+#     "VINCPREV" = "vinculo_seguridad_social",
+#     "GESTOR_COD" = "motivo_autorizacion_gestor",
+#     "GESTOR_TP" = "tipo_gestor",
+#     "GESTOR_CPF" = "cpf_gestor",
+#     "GESTOR_DT" = "fecha_autorizacion_gestor",
+#     "CPF_AUT" = "cpf_autorizador",
+#     "AUD_JUST" = "justificacion_auditor_cns",
+#     "SIS_JUST" = "justificacion_establecimiento_cns",
+
+#     # --- Datos de Sistema y Remesa ---
+#     "RUBRICA" = "rubrica",
+#     "NUM_PROC" = "numero_procedimiento",
+#     "TOT_PT_SP" = "total_puntos_sp",
+#     "SEQUENCIA" = "secuencial_aih_en_remesa",
+#     "REMESSA" = "numero_remesa"
+#   )
+
+#   # ==========================================================================
+#   # TRADUCCION DE VALORES CATEGORICOS
+#   # Decodifica los codigos a etiquetas legibles en espanol.
+#   # ==========================================================================
+
+#   values <- list(
+#     "IDENT" = c("1" = "Principal", "3" = "Larga estancia", "5" = "Continuacion"),
+#     "SEXO" = c("1" = "Masculino", "3" = "Femenino", "0" = "Ignorado", "9" = "Ignorado"),
+#     "INSTRU" = c(
+#       "1" = "Analfabeto", "2" = "Educacion primaria", "3" = "Educacion secundaria", "4" = "Educacion superior", "9" = "Ignorado"
+#     ),
+#     "MORTE" = c("1" = "Si", "0" = "No"),
+#     "CAR_INT" = c(
+#       "1" = "Electiva", "2" = "Urgencia", "3" = "Accidente en el lugar de trabajo",
+#       "4" = "Accidente en el trayecto al trabajo", "5" = "Otros accidentes de transito",
+#       "6" = "Otras lesiones y envenenamientos"
+#     ),
+#     "VINCPREV" = c(
+#       "1" = "Autonomo", "2" = "Desempleado", "3" = "Jubilado", "4" = "No asegurado",
+#       "5" = "Empleado", "6" = "Empleador", "7" = "Beneficiario", "9" = "Ignorado"
+#     ),
+#     "GESTOR_TP" = c("E" = "Estatal", "M" = "Municipal"),
+#     "GESTRISCO" = c("1" = "Si", "0" = "No"),
+#     "RACA_COR" = c(
+#       "01" = "Blanca", "02" = "Negra", "03" = "Asiatica", "04" = "Parda", "05" = "Indigena", "99" = "Sin informacion"
+#     ),
+#     "FINANC" = c(
+#       "1" = "Recursos Propios", "2" = "Costeo", "3" = "Inversion",
+#       "4" = "FAEC", "5" = "Otros", "6" = "Media y Alta Complejidad"
+#     ),
+#     "COMPLEX" = c("1" = "Atencion Basica", "2" = "Media Complejidad", "3" = "Alta Complejidad"),
+#     "NATUREZA" = c(
+#       "10" = "Administracion Publica", "20" = "Entidades Empresariales",
+#       "30" = "Entidades sin Fines de Lucro", "40" = "Personas Fisicas",
+#       "50" = "Organizaciones Internacionales", "99" = "No aplica"
+#     )
+#   )
+
+#   return(list(columns = columns, values = values))
+# }
+
 get_translation_dict_es_sih <- function() {
 
   # ==========================================================================
-  # TRADUCCION DE NOMBRES DE COLUMNAS
+  # TRADUCCION DE NOMBRES DE COLUMNAS (Archivos RD y SP)
   # Mapea los nombres originales de SIH a un formato estandarizado en espanol.
   # ==========================================================================
 
   columns <- c(
     # --- Identificacion de la AIH y Competencia ---
-    "UF_ZI" = "uf_gestor",
-    "ANO_CMPT" = "ano_competencia",
-    "MES_CMPT" = "mes_competencia",
+    "UF_ZI" = "codigo_gestor_municipio",
+    "ANO_CMPT" = "anio_procesamiento",
+    "MES_CMPT" = "mes_procesamiento",
     "ESPEC" = "especialidad_cama",
     "CGC_HOSP" = "cnpj_hospital",
     "N_AIH" = "numero_aih",
-    "IDENT" = "identificador_aih",
+    "AIH" = "numero_internacion_hospitalaria",
+    "IDENT" = "identificador_tipo_aih",
     "SEQ_AIH5" = "secuencial_aih_larga_estancia",
+    
+    # --- Neuvos Datos del Paciente ---
+    "ANO" = "ano",
+    "MUN_MOV" = "codigo_municipio_hospital",
+    "MUN_RES" = "codigo_municipio_residencia",
+    "UF_RES" = "codigo_estado_paciente",
+    "CO_ERRO" = "codigo_error",
 
     # --- Datos del Paciente ---
     "CEP" = "codigo_postal_paciente",
@@ -3004,28 +3643,27 @@ get_translation_dict_es_sih <- function() {
     "COD_IDADE" = "codigo_unidad_edad",
     "INSTRU" = "nivel_instruccion",
     "NUM_FILHOS" = "numero_hijos",
-    "RACA_COR" = "raza",
+    "RACA_COR" = "raza_color",
     "ETNIA" = "etnia_indigena",
     "NACIONAL" = "nacionalidad",
-    "HOMONIMO" = "homonimo_indicador",
+    "HOMONIMO" = "indicador_homonimo",
 
-    # --- Datos de la Hospitalizacion ---
-    "DT_INTER" = "fecha_hospitalizacion",
-    "DT_SAIDA" = "fecha_alta",
+    # --- Datos de la Internacion ---
+    "DT_INTER" = "fecha_ingreso",
+    "DT_SAIDA" = "fecha_egreso",
     "DIAS_PERM" = "dias_estancia",
     "DIAR_ACOM" = "dias_acompanante",
-    "QT_DIARIAS" = "cantidad_diarias",
+    "QT_DIARIAS" = "total_dias_estancia",
     "PROC_SOLIC" = "procedimiento_solicitado",
     "PROC_REA" = "procedimiento_realizado",
-    "CAR_INT" = "caracter_hospitalizacion",
-    "MORTE" = "fallecimiento",
-    "COBRANCA" = "motivo_alta_permanencia",
-    "CID_NOTIF" = "cid_notificacion",
-    "CID_ASSO" = "cid_causa_asociada",
-    "CID_MORTE" = "cid_fallecimiento",
-    "DIAG_PRINC" = "diagnostico_principal_cid",
-    "DIAG_SECUN" = "diagnostico_secundario_cid",
-    # Diagnosticos secundarios adicionales
+    "CAR_INT" = "caracter_ingreso",
+    "MORTE" = "indicador_fallecimiento",
+    "COBRANCA" = "motivo_egreso_permanencia",
+    "CID_NOTIF" = "cie_notificacion",
+    "CID_ASSO" = "cie_causa_asociada",
+    "CID_MORTE" = "cie_fallecimiento",
+    "DIAG_PRINC" = "diagnostico_principal",
+    "DIAG_SECUN" = "diagnostico_secundario",
     "DIAGSEC1" = "diagnostico_secundario_1",
     "DIAGSEC2" = "diagnostico_secundario_2",
     "DIAGSEC3" = "diagnostico_secundario_3",
@@ -3035,130 +3673,104 @@ get_translation_dict_es_sih <- function() {
     "DIAGSEC7" = "diagnostico_secundario_7",
     "DIAGSEC8" = "diagnostico_secundario_8",
     "DIAGSEC9" = "diagnostico_secundario_9",
-    "TPDISEC1" = "tipo_diagnostico_secundario_1",
-    "TPDISEC2" = "tipo_diagnostico_secundario_2",
-    "TPDISEC3" = "tipo_diagnostico_secundario_3",
-    "TPDISEC4" = "tipo_diagnostico_secundario_4",
-    "TPDISEC5" = "tipo_diagnostico_secundario_5",
-    "TPDISEC6" = "tipo_diagnostico_secundario_6",
-    "TPDISEC7" = "tipo_diagnostico_secundario_7",
-    "TPDISEC8" = "tipo_diagnostico_secundario_8",
-    "TPDISEC9" = "tipo_diagnostico_secundario_9",
 
-    # --- UCI y Unidad de Cuidados Intermedios ---
+    # --- UCI y Cuidados Intermedios ---
     "UTI_MES_IN" = "uci_dias_mes_inicial",
     "UTI_MES_AN" = "uci_dias_mes_anterior",
     "UTI_MES_AL" = "uci_dias_mes_alta",
-    "UTI_MES_TO" = "uci_dias_mes_total",
+    "UTI_MES_TO" = "uci_dias_total_mes",
     "MARCA_UTI" = "tipo_uci_utilizada",
-    "UTI_INT_IN" = "cuidados_intermedios_dias_inicial",
-    "UTI_INT_AN" = "cuidados_intermedios_dias_anterior",
-    "UTI_INT_AL" = "cuidados_intermedios_dias_alta",
-    "UTI_INT_TO" = "cuidados_intermedios_dias_total",
-    "VAL_UCI" = "valor_unidad_cuidados_intermedios",
-    "MARCA_UCI" = "tipo_unidad_cuidados_intermedios",
+    "VAL_UCI" = "valor_cuidados_intermedios",
 
-    # --- Valores de la AIH ---
+    # --- Valores Financieros ---
     "VAL_SH" = "valor_servicios_hospitalarios",
     "VAL_SP" = "valor_servicios_profesionales",
     "VAL_TOT" = "valor_total_aih",
     "VAL_UTI" = "valor_uci",
-    "US_TOT" = "valor_total_usd",
-    "VAL_SADT" = "valor_sadt", # Servicio de Apoyo Diagnostico y Terapeutico
+    "US_TOT" = "valor_total_dolar",
+    "VAL_SADT" = "valor_sadt",
     "VAL_RN" = "valor_recien_nacido",
     "VAL_ACOMP" = "valor_acompanante",
     "VAL_ORTP" = "valor_ortesis_protesis",
-    "VAL_SANGUE" = "valor_sangre",
-    "VAL_SADTSR" = "valor_sadt_sin_remuneracion",
-    "VAL_TRANSP" = "valor_transporte",
-    "VAL_OBSANG" = "valor_opme_sangre",
-    "VAL_PED1AC" = "valor_estancia_prolongada",
-    "VAL_SH_FED" = "valor_complemento_federal_sh",
-    "VAL_SP_FED" = "valor_complemento_federal_sp",
-    "VAL_SH_GES" = "valor_complemento_gestor_sh",
-    "VAL_SP_GES" = "valor_complemento_gestor_sp",
 
     # --- Datos del Establecimiento ---
     "NATUREZA" = "naturaleza_juridica_antigua",
-    "NAT_JUR" = "naturaleza_juridica",
-    "GESTAO" = "tipo_gestion_hospital",
+    "NAT_JUR" = "naturaleza_juridica_actual",
+    "GESTAO" = "tipo_gestion_hospitalaria",
     "MUNIC_MOV" = "codigo_municipio_establecimiento",
-    "CNES" = "codigo_cnes",
-    "CNPJ_MANT" = "cnpj_entidad_mantenedora",
-    "INFEHOSP" = "estado_infeccion_hospitalaria",
-    "COMPLEX" = "complejidad",
+    "CNES" = "codigo_cnes_establecimiento",
+    "COMPLEX" = "nivel_complejidad",
     "FINANC" = "tipo_financiamiento",
-    "FAEC_TP" = "subtipo_financiamiento_faec",
     "REGCT" = "regla_contractual",
 
-    # --- Datos de Ginecologia y Obstetricia ---
-    "IND_VDRL" = "examen_vdrl_realizado",
-    "GESTRISCO" = "embarazo_riesgo",
-    "INSC_PN" = "numero_pre_natal",
-    "CONTRACEP1" = "anticonceptivo_principal",
-    "CONTRACEP2" = "anticonceptivo_secundario",
-
-    # --- Datos Administrativos y de Personal ---
-    "CBOR" = "cbo_paciente",
-    "CNAER" = "cnae_accidente_trabajo",
-    "VINCPREV" = "vinculo_seguridad_social",
-    "GESTOR_COD" = "motivo_autorizacion_gestor",
-    "GESTOR_TP" = "tipo_gestor",
-    "GESTOR_CPF" = "cpf_gestor",
-    "GESTOR_DT" = "fecha_autorizacion_gestor",
-    "CPF_AUT" = "cpf_autorizador",
-    "AUD_JUST" = "justificacion_auditor_cns",
-    "SIS_JUST" = "justificacion_establecimiento_cns",
-
     # --- Datos de Sistema y Remesa ---
-    "RUBRICA" = "rubrica",
-    "NUM_PROC" = "numero_procedimiento",
-    "TOT_PT_SP" = "total_puntos_sp",
-    "SEQUENCIA" = "secuencial_aih_en_remesa",
-    "REMESSA" = "numero_remesa"
+    "SEQUENCIA" = "numero_secuencial_remesa",
+    "REMESSA" = "identificador_remesa",
+
+    # --- COLUMNAS ESPECIFICAS: Archivos SP (Servicios Profesionales) ---
+    "SP_GESTOR"  = "sp_codigo_gestor",
+    "SP_UF"      = "sp_codigo_estado",
+    "SP_AA"      = "sp_anio_ingreso",
+    "SP_MM"      = "sp_mes_ingreso",
+    "SP_CNES"    = "sp_cnes_ejecutor",
+    "SP_NAIH"    = "sp_numero_aih",
+    "SP_PROCREA" = "sp_procedimiento_principal",
+    "SP_DTINTER" = "sp_fecha_ingreso",
+    "SP_DTSAIDA" = "sp_fecha_egreso",
+    "SP_CPFCGC"  = "sp_identificacion_prestador",
+    "SP_ATOPROF" = "sp_procedimiento_acto_profesional",
+    "SP_QTD_ATO" = "sp_cantidad_actos",
+    "SP_VALATO"  = "sp_valor_acto_profesional",
+    "SP_M_HOSP"  = "sp_municipio_establecimiento",
+    "SP_M_PAC"   = "sp_municipio_paciente",
+    "SP_COMPLEX" = "sp_complejidad_acto",
+    "SP_FINANC"  = "sp_financiamiento_acto",
+    "SP_PF_CBO"  = "sp_cbo_profesional",
+    "SP_PF_DOC"  = "sp_dni_profesional",
+    "SP_PJ_DOC"  = "sp_cnpj_institucion",
+    "IN_TP_VAL"  = "tipo_valor_sp_sh",
+    "SP_CIDPRI"  = "sp_cie_principal",
+    "SP_CIDSEC"  = "sp_cie_secundario",
+    "SP_QT_PROC" = "sp_cantidad_procedimientos",
+    "SP_U_AIH"   = "sp_indicador_unico_aih"
   )
 
   # ==========================================================================
   # TRADUCCION DE VALORES CATEGORICOS
-  # Decodifica los codigos a etiquetas legibles en espanol.
   # ==========================================================================
 
   values <- list(
-    "IDENT" = c("1" = "Principal", "3" = "Larga estancia", "5" = "Continuacion"),
+    "IDENT" = c("1" = "Principal", "3" = "Larga estancia", "5" = "Continuación"),
     "SEXO" = c("1" = "Masculino", "3" = "Femenino", "0" = "Ignorado", "9" = "Ignorado"),
     "INSTRU" = c(
-      "1" = "Analfabeto", "2" = "Educacion primaria", "3" = "Educacion secundaria", "4" = "Educacion superior", "9" = "Ignorado"
+      "1" = "Analfabeto", "2" = "Primaria", "3" = "Secundaria", 
+      "4" = "Superior", "9" = "Ignorado"
     ),
-    "MORTE" = c("1" = "Si", "0" = "No"),
+    "MORTE" = c("1" = "Sí", "0" = "No"),
     "CAR_INT" = c(
-      "1" = "Electiva", "2" = "Urgencia", "3" = "Accidente en el lugar de trabajo",
-      "4" = "Accidente en el trayecto al trabajo", "5" = "Otros accidentes de transito",
-      "6" = "Otras lesiones y envenenamientos"
+      "1" = "Electivo", "2" = "Urgencia", "3" = "Accidente laboral", 
+      "4" = "Accidente de trayecto", "5" = "Accidente de tránsito", "6" = "Otras lesiones/envenenamientos"
     ),
     "VINCPREV" = c(
-      "1" = "Autonomo", "2" = "Desempleado", "3" = "Jubilado", "4" = "No asegurado",
+      "1" = "Autónomo", "2" = "Desempleado", "3" = "Jubilado", "4" = "No asegurado",
       "5" = "Empleado", "6" = "Empleador", "7" = "Beneficiario", "9" = "Ignorado"
     ),
     "GESTOR_TP" = c("E" = "Estatal", "M" = "Municipal"),
-    "GESTRISCO" = c("1" = "Si", "0" = "No"),
     "RACA_COR" = c(
-      "01" = "Blanca", "02" = "Negra", "03" = "Asiatica", "04" = "Parda", "05" = "Indigena", "99" = "Sin informacion"
+      "01" = "Blanca", "02" = "Negra", "03" = "Amarilla", "04" = "Parda/Mestiza", 
+      "05" = "Indígena", "99" = "Sin información"
     ),
     "FINANC" = c(
-      "1" = "Recursos Propios", "2" = "Costeo", "3" = "Inversion",
-      "4" = "FAEC", "5" = "Otros", "6" = "Media y Alta Complejidad"
+      "1" = "Recursos propios", "2" = "Mantenimiento", "3" = "Inversión",
+      "4" = "FAEC", "5" = "Otros", "6" = "Media/Alta complejidad"
     ),
-    "COMPLEX" = c("1" = "Atencion Basica", "2" = "Media Complejidad", "3" = "Alta Complejidad"),
-    "NATUREZA" = c(
-      "10" = "Administracion Publica", "20" = "Entidades Empresariales",
-      "30" = "Entidades sin Fines de Lucro", "40" = "Personas Fisicas",
-      "50" = "Organizaciones Internacionales", "99" = "No aplica"
-    )
+    "COMPLEX" = c("1" = "Atención básica", "2" = "Media complejidad", "3" = "Alta complejidad"),
+    "IN_TP_VAL" = c("1" = "Servicios Profesionales (SP)", "2" = "Servicios Hospitalarios (SH)"),
+    "SP_U_AIH" = c("1" = "Registro único", "0" = "Registro repetido/auditoría")
   )
 
   return(list(columns = columns, values = values))
 }
-
 #' Obtem o Dicionario de Traducao para o SIA (Portugues)
 #'
 #' Retorna uma lista contendo dicionarios para traduzir os nomes das colunas

@@ -583,11 +583,11 @@ detect_health_system <- function(df) {
   
   sih_indicators <- c(
     # Original DATASUS
-    "N_AIH", "DIAG_PRINC", "QT_DIARIAS", "DT_INTER", "DT_SAIDA",
+    "N_AIH", "DIAG_PRINC", "QT_DIARIAS", "DT_INTER", "DT_SAIDA", "SP_DTINTER", "SP_DTSAIDA",
     # English
     "aih_number", "primary_diagnosis", "length_of_stay", "admission_date", "discharge_date",
     # Portuguese
-    "numero_aih", "diagnostico_principal", "dias_internacao", "data_internacao", "data_saida",
+    "numero_aih", "diagnostico_principal", "dias_internacao", "data_internacao", "data_saida", "data_internacao_sp", "data_saida_sp",
     # Spanish
     "numero_aih", "diagnostico_principal", "dias_internacion", "fecha_internacion", "fecha_alta"
   )

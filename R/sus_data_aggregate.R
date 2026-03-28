@@ -114,13 +114,20 @@ sus_data_aggregate <- function(df,
                                fun = "count",
                                group_by = NULL,
                                value_col = NULL,
-                               complete_dates = TRUE,
+                               complete_dates = FALSE,
                                date_col = NULL,
                                lang = "pt",
                                verbose = TRUE) {
   
   # Validate inputs
-  cli::cli_h1("climaus4r - Temporal Data Aggregate")
+  if (verbose) {
+    title_msg <- switch(lang,
+      "en" = "climasus4r - Temporal Data Aggregation",
+      "pt" = "climasus4r - Agregação Temporal de Dados",
+      "es" = "climasus4r - Agregación Temporal de Datos"
+    )
+    cli::cli_h1(title_msg)
+  }
 
   if (!is.data.frame(df)) {
     stop("df must be a data frame")
@@ -359,51 +366,147 @@ sus_data_aggregate <- function(df,
   
   #Get geographical columns
 
- # Get geographical columns (auto-detect municipality codes)
-  common_cols <- c(
-    "codigo_municipio_notificacao", "codigo_municipio_notificacion", "notification_municipality_code",
-    "residence_municipality_code", "municipality_code", "residence_municipality",
-    "codigo_municipio_ocurrencia", "codigo_municipio_residencia", "codigo_municipio_nascimento", "codigo_municipio",
-    "codigo_municipio_paciente", "uf_municipio_estabelecimento", "facility_uf_municipality",
-    "patient_municipality_code", "uf_municipio_establecimiento",
-    "cep_paciente", "codigo_postal_paciente", "codigo_postal", "patient_zip_code", "zip_code",
-    "CODMUNRES"
-  )
+#  # Get geographical columns (auto-detect municipality codes)
+#   common_cols <- c(
+#     "codigo_municipio_notificacao", "codigo_municipio_notificacion", "notification_municipality_code", "municipio_residencia_paciente_sp", "municipio_estabelecimento_sp",
+#     "residence_municipality_code", "municipality_code", "residence_municipality",
+#     "codigo_municipio_ocurrencia", "codigo_municipio_residencia", "codigo_municipio_nascimento", "codigo_municipio",
+#     "codigo_municipio_paciente", "uf_municipio_estabelecimento", "facility_uf_municipality",
+#     "patient_municipality_code", "uf_municipio_establecimiento",
+#     "cep_paciente", "codigo_postal_paciente", "codigo_postal", "patient_zip_code", "zip_code",
+#     "CODMUNRES"
+#   )
 
-  existent_cols <- names(df)[names(df) %in% common_cols]
+#   existent_cols <- names(df)[names(df) %in% common_cols]
 
-  priority_order <- c(
-    "codigo_municipio_ocorrencia",
-    "codigo_municipio_ocurrencia",
-    "occurrence_municipality_code",
+#   priority_order <- c(
+#     "codigo_municipio_ocorrencia",
+#     "codigo_municipio_ocurrencia",
+#     "occurrence_municipality_code",
 
-    "codigo_municipio_residencia",
-    "residence_municipality_code",
+#     "codigo_municipio_residencia",
+#     "residence_municipality_code",
 
-    "codigo_municipio",
-    "municipality_code",
+#     "codigo_municipio",
+#     "municipality_code",
 
-    "codigo_municipio_nascimento",
-    "codigo_municipio_nacimiento",
-    "birth_municipality_code",
+#     "codigo_municipio_nascimento",
+#     "codigo_municipio_nacimiento",
+#     "birth_municipality_code",
 
-    "codigo_municipio_paciente",
-    "patient_municipality_code",
+#     "codigo_municipio_paciente",
+#     "patient_municipality_code",
 
-    "uf_municipio_estabelecimento",
-    "facility_uf_municipality",
-    "uf_municipio_establecimiento",
-    "cep_paciente",
-    "codigo_postal_paciente",
-    "codigo_postal",
-    "patient_zip_code",
-    "zip_code",
-    "CODMUNRES"
-  )
-  geo_col <- priority_order[priority_order %in% existent_cols][1]
-
-  #geo_col <- names(df)[grepl(paste(get_geo_col, collapse = "|"), names(df), ignore.case = TRUE)]
+#     "uf_municipio_estabelecimento",
+#     "facility_uf_municipality",
+#     "uf_municipio_establecimiento",
+#     "cep_paciente",
+#     "codigo_postal_paciente",
+#     "codigo_postal",
+#     "patient_zip_code",
+#     "zip_code",
+#     "CODMUNRES"
+#   )
   
+#   geo_col <- priority_order[priority_order %in% existent_cols][1]
+
+  # GRUPOS CONCEITUAIS
+  geo_groups <- list(
+
+    # Residencia (mais usado em analises epidemiologicas)
+    residencia = c(
+      "codigo_municipio_residencia",
+      "residence_municipality_code",
+      "municipio_residencia_paciente_sp",
+      "CODMUNRES", "MUNI_RES"
+    ),
+
+    # Ocorrencia / notificacao (evento)
+    ocorrencia = c(
+      "codigo_municipio_ocorrencia",
+      "codigo_municipio_ocurrencia",
+      "occurrence_municipality_code",
+      "codigo_municipio_notificacao",
+      "codigo_municipio_notificacion",
+      "notification_municipality_code"
+    ),
+
+    # Estabelecimento (local de atendimento)
+    estabelecimento = c(
+      "municipio_estabelecimento_sp",
+      "uf_municipio_estabelecimento",
+      "facility_uf_municipality",
+      "uf_municipio_establecimiento"
+    ),
+
+    # Nascimento
+    nascimento = c(
+      "codigo_municipio_nascimento",
+      "codigo_municipio_nacimiento",
+      "birth_municipality_code"
+    ),
+
+    # Generico / fallback
+    generico = c(
+      "codigo_municipio",
+      "municipality_code",
+      "codigo_municipio_paciente",
+      "patient_municipality_code"
+    ),
+
+    # CEP (ultimo recurso)
+    cep = c(
+      "cep_paciente",
+      "codigo_postal_paciente",
+      "codigo_postal",
+      "patient_zip_code",
+      "zip_code"
+    )
+  )
+  # PRIORIDADE POR SISTEMA
+
+  system_priority <- list(
+
+    # SIM (mortalidade)
+    "SIM" = c("ocorrencia", "residencia", "estabelecimento", "generico"),
+
+    # SIH (internacao)
+    "SIH" = c("residencia", "estabelecimento", "ocorrencia", "generico"),
+
+    # SINAN (doenças notificaveis)
+    "SINAN" = c("residencia", "ocorrencia", "estabelecimento", "generico"),
+
+    # SIA (ambulatorial)
+    "SIA" = c("residencia", "estabelecimento", "generico"),
+
+    # CNES (estabelecimentos)
+    "CNES" = c("estabelecimento", "generico"),
+
+    # SINASC (nascimentos)
+    "SINASC" = c("residencia", "nascimento", "estabelecimento", "generico")
+  )
+
+  # DETECTAR SISTEMA
+  priority_groups <- system_priority[[system]]
+  if (is.null(priority_groups)) {
+    priority_groups <- c("residencia", "ocorrencia", "estabelecimento", "generico")
+  }
+
+  # PRIORIDADE DINAMICA
+  priority_order <- unlist(geo_groups[priority_groups], use.names = FALSE)
+  priority_order <- c(priority_order, geo_groups$cep)  # CEP sempre último
+  
+  # SELECAO FINAL
+  existent_cols <- names(df)[names(df) %in% priority_order]
+  geo_col <- priority_order[priority_order %in% existent_cols][1]
+  
+  #New insert
+  invalid_geo <- c("0", "000000", "", NA)
+  n_invalid <- sum(df[[geo_col]] %in% invalid_geo, na.rm = TRUE)
+  if (n_invalid > 0) {
+    df <- df[!df[[geo_col]] %in% invalid_geo, ]
+  }
+
   # Add geo columns to group_vars if not already included
   if (length(geo_col) > 0) {
     group_vars <- unique(c(group_vars, geo_col))
@@ -453,6 +556,8 @@ sus_data_aggregate <- function(df,
   if (complete_dates) {
     fill_value <- if (is.character(fun) && fun == "count") 0 else NA
     df_agg <- complete_time_series(df_agg, time_unit, group_by, fill_value, lang, verbose)
+    #New insert
+    ddf_aggf <- df_agg[!is.na(df_agg[[geo_col]]) & df_agg[[geo_col]] != "0", ]
   }
   
   # Sort by date and grouping variables
