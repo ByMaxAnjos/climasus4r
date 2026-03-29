@@ -144,6 +144,13 @@ jobs:
           # Copy the main landing page (language selector)
           cp index.html deploy/
           
+          # Copy CSS and JS assets for the landing page
+          cp -r css/ deploy/css/
+          cp -r js/ deploy/js/
+          
+          # Copy inst/ folder (figures, roadmap images used in index.html)
+          cp -r inst/ deploy/inst/ 2>/dev/null || true
+          
           # Copy pkgdown assets to all language directories
           mkdir -p deploy/pt/pkgdown deploy/en/pkgdown deploy/es/pkgdown
           cp -r pkgdown/* deploy/pt/pkgdown/ 2>/dev/null || true
