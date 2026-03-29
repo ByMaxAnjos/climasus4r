@@ -112,4 +112,5 @@ climasus_meta <- function(x = NULL,
   
   # Operation 6: Get all metadata (default)
   return(get_climasus_meta_internal(x))
+  
 }

@@ -4,7 +4,7 @@
 #' without materializing the data. The correction is applied lazily using Arrow
 #' compute expressions that will be executed during the final collect().
 #'
-#' @param dataset An Arrow Dataset (climasus_dataset)
+#' @param df An Arrow Dataset (climasus_dataset)
 #' @param lang Character. Language for UI messages. Options: "en", "pt", "es".
 #' @param verbose Logical. If TRUE, prints a report of columns checked and corrected.
 #'
@@ -14,10 +14,10 @@
 #' @importFrom dplyr mutate across
 #' @importFrom stringi stri_enc_isutf8 stri_conv
 #' @export
-sus_data_clean_encoding_arrow <- function(dataset, lang = "pt", verbose = TRUE) {
+sus_data_clean_encoding_arrow <- function(df, lang = "pt", verbose = TRUE) {
   
   # Input validation
-  if (!inherits(dataset, "Dataset") && !inherits(dataset, "climasus_dataset")) {
+  if (!inherits(df, "Dataset") && !inherits(df, "climasus_dataset")) {
     cli::cli_abort("Input must be an Arrow Dataset")
   }
   
@@ -35,14 +35,14 @@ sus_data_clean_encoding_arrow <- function(dataset, lang = "pt", verbose = TRUE) 
   
   # Get schema to identify text columns
   schema <- tryCatch({
-    arrow::schema(dataset)
+    arrow::schema(df)
   }, error = function(e) {
     cli::cli_alert_danger("Failed to read dataset schema: {conditionMessage(e)}")
     return(NULL)
   })
   
   if (is.null(schema)) {
-    return(dataset)
+    return(df)
   }
   
   # Identify character/text columns
@@ -59,7 +59,7 @@ sus_data_clean_encoding_arrow <- function(dataset, lang = "pt", verbose = TRUE) 
       )
       cli::cli_alert_info(no_text_msg[[lang]])
     }
-    return(dataset)
+    return(df)
   }
   
   if (verbose) {
@@ -74,10 +74,10 @@ sus_data_clean_encoding_arrow <- function(dataset, lang = "pt", verbose = TRUE) 
   
   # For Arrow Dataset, we need to sample to detect encoding issues
   # Take a sample of rows to analyze encoding
-  sample_size <- min(10000, tryCatch(nrow(dataset), error = function(e) 10000))
+  sample_size <- min(10000, tryCatch(nrow(df), error = function(e) 10000))
   
   sample_data <- tryCatch({
-    dataset |>
+    df |>
       dplyr::slice_head(n = sample_size) |>
       dplyr::collect()
   }, error = function(e) {
@@ -87,7 +87,7 @@ sus_data_clean_encoding_arrow <- function(dataset, lang = "pt", verbose = TRUE) 
   
   if (is.null(sample_data)) {
     cli::cli_alert_warning("Cannot detect encoding issues. Returning original dataset.")
-    return(dataset)
+    return(df)
   }
   
   # Detect which columns need correction
@@ -119,49 +119,36 @@ sus_data_clean_encoding_arrow <- function(dataset, lang = "pt", verbose = TRUE) 
       cli::cli_alert_success(ui_msg$no_correction_needed)
     }
   }
-  
-  # Apply encoding correction using Arrow compute expressions
-  if (length(cols_to_correct) > 0) {
-    # Create a new dataset with corrected columns
-    # Note: Arrow doesn't have built-in encoding conversion, so we need to
-    # either convert during collect or create a wrapper
-    
-    # Option 1: Store metadata about which columns need correction
-    # This will be applied during collect
-    attr(dataset, "encoding_correction") <- list(
-      cols = cols_to_correct,
-      from = "latin1",
-      to = "UTF-8",
-      applied = Sys.time()
+
+  if (!inherits(df, "climasus_df")) {
+    # Create new climasus_df
+    meta <- list(
+      system = NULL,
+      stage = "clean",
+      type = "clean",
+      spatial = inherits(df, "sf"),
+      temporal = NULL,
+      created = Sys.time(),
+      modified = Sys.time(),
+      history = sprintf(
+        "[%s] Cleaned character encoding (UTF-8)",
+        format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+      ),
+      user = list()
     )
-    
-    # Option 2: For now, mark the dataset as needing encoding correction
-    # The actual conversion will happen in a custom collect method
-    dataset <- structure(
-      dataset,
-      needs_encoding_correction = TRUE,
-      encoding_cols = cols_to_correct,
-      class = c("climasus_dataset_encoding", class(dataset))
+
+    base_classes <- setdiff(class(df), "climasus_df")
+    df <- structure(
+      df,
+      climasus_meta = meta,
+      class = c("climasus_df", base_classes)
     )
-    
-    if (verbose) {
-      cli::cli_alert_success(
-        "Encoding correction will be applied lazily during collect()"
-      )
-    }
+  } else {
+    # Already climasus_df - update metadata
+    df <- climasus_meta(df, stage = "clean", type = "clean")
+    df <- climasus_meta(df, add_history = "Cleaned character encoding (UTF-8)")
   }
   
-  # Update metadata
-  if (inherits(dataset, "climasus_dataset")) {
-    meta <- attr(dataset, "climasus_meta")
-    meta$stage <- "clean_encoding"
-    meta$modified <- Sys.time()
-    meta$history <- c(meta$history,
-                      sprintf("[%s] Encoding correction marked for %d columns",
-                              format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-                              length(cols_to_correct)))
-    attr(dataset, "climasus_meta") <- meta
-  }
   
-  return(dataset)
+  return(df)
 }
