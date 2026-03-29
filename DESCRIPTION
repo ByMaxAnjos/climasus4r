@@ -11,7 +11,12 @@ Authors@R:
              family = "Menezes",
              role = c("ctb"),
              email = "thaua.menezes@unesp.br",
-             comment = c(ORCID = "0000-0002-3015-2270"))      
+             comment = c(ORCID = "0000-0002-3015-2270")),
+        person(given = "Marlon",
+             family = "Faria",
+             role = c("ctb"),
+             email = "marlon.faria@usp.br",
+             comment = c(ORCID = "0000-0002-9485-4079"))     
              )
 Description: climasus4r is a comprehensive R toolkit for integrated analysis of health, climate, and environmental data in Brazil. The package automates the entire data pipeline: (1) importing and cleaning health data from the Brazilian Unified Health System (SUS) across six systems (SIM, SIH, SINAN, SIA, CNES, SINASC); (2) integrating climate data (INMET, ERA5), air quality (AQI), environmental data (MapBiomas), and socioeconomic indicators (IBGE); (3) performing flexible spatiotemporal aggregation at multiple scales; (4) constructing reproducible analytical pipelines (RAPs) that ensure transparency and replicability. Designed for researchers studying climate-health interactions, environmental vulnerability, and adaptation strategies in the Brazilian context. Supports multilingual output (Portuguese, Spanish, English) and parallel processing for large datasets.
 License: MIT + file LICENSE
@@ -37,7 +42,8 @@ Imports:
     stringr,
     purrr,
     data.table,
-    glue
+    glue,
+    read.dbc
 Remotes: 
     rfsaldanha/microdatasus,
     ByMaxAnjos/climasus4r

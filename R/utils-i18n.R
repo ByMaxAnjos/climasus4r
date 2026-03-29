@@ -671,7 +671,6 @@ get_translation_dict_pt <- function() {
   
   # ==========================================================================
   # COLUMN NAME TRANSLATIONS
-  # Organizado por categorias para fácil manutenção e colaboração da equipe
   # ==========================================================================
   
   columns <- c(
@@ -2923,7 +2922,7 @@ get_translation_dict_pt_sih <- function() {
     "SEQUENCIA" = "sequencial_aih_remessa",
     "REMESSA" = "numero_remessa",
 
-    # --- NOVAS COLUNAS: Arquivos SP (Serviços Profissionais) ---
+    # --- NOVAS COLUNAS: Arquivos SP (Servicos Profissionais) ---
     "SP_GESTOR"  = "codigo_gestor_sp",  
     "SP_UF"      = "uf_internacao_sp",  
     "SP_AA"      = "ano_internacao_sp",  
@@ -3740,33 +3739,33 @@ get_translation_dict_es_sih <- function() {
   # ==========================================================================
 
   values <- list(
-    "IDENT" = c("1" = "Principal", "3" = "Larga estancia", "5" = "Continuación"),
+    "IDENT" = c("1" = "Principal", "3" = "Larga estancia", "5" = "Continuacion"),
     "SEXO" = c("1" = "Masculino", "3" = "Femenino", "0" = "Ignorado", "9" = "Ignorado"),
     "INSTRU" = c(
       "1" = "Analfabeto", "2" = "Primaria", "3" = "Secundaria", 
       "4" = "Superior", "9" = "Ignorado"
     ),
-    "MORTE" = c("1" = "Sí", "0" = "No"),
+    "MORTE" = c("1" = "Si", "0" = "No"),
     "CAR_INT" = c(
       "1" = "Electivo", "2" = "Urgencia", "3" = "Accidente laboral", 
-      "4" = "Accidente de trayecto", "5" = "Accidente de tránsito", "6" = "Otras lesiones/envenenamientos"
+      "4" = "Accidente de trayecto", "5" = "Accidente de transito", "6" = "Otras lesiones/envenenamientos"
     ),
     "VINCPREV" = c(
-      "1" = "Autónomo", "2" = "Desempleado", "3" = "Jubilado", "4" = "No asegurado",
+      "1" = "Autonomo", "2" = "Desempleado", "3" = "Jubilado", "4" = "No asegurado",
       "5" = "Empleado", "6" = "Empleador", "7" = "Beneficiario", "9" = "Ignorado"
     ),
     "GESTOR_TP" = c("E" = "Estatal", "M" = "Municipal"),
     "RACA_COR" = c(
       "01" = "Blanca", "02" = "Negra", "03" = "Amarilla", "04" = "Parda/Mestiza", 
-      "05" = "Indígena", "99" = "Sin información"
+      "05" = "Indigena", "99" = "Sin informacion"
     ),
     "FINANC" = c(
-      "1" = "Recursos propios", "2" = "Mantenimiento", "3" = "Inversión",
+      "1" = "Recursos propios", "2" = "Mantenimiento", "3" = "Inversion",
       "4" = "FAEC", "5" = "Otros", "6" = "Media/Alta complejidad"
     ),
-    "COMPLEX" = c("1" = "Atención básica", "2" = "Media complejidad", "3" = "Alta complejidad"),
+    "COMPLEX" = c("1" = "Atencion basica", "2" = "Media complejidad", "3" = "Alta complejidad"),
     "IN_TP_VAL" = c("1" = "Servicios Profesionales (SP)", "2" = "Servicios Hospitalarios (SH)"),
-    "SP_U_AIH" = c("1" = "Registro único", "0" = "Registro repetido/auditoría")
+    "SP_U_AIH" = c("1" = "Registro unico", "0" = "Registro repetido/auditoria")
   )
 
   return(list(columns = columns, values = values))

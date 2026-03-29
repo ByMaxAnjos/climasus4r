@@ -12,6 +12,7 @@ sus_data_filter_demographics(
   education = NULL,
   region = NULL,
   municipality_code = NULL,
+  drop_ignored = FALSE,
   lang = "pt",
   verbose = TRUE
 )
@@ -33,13 +34,17 @@ includes all ages.}
 
 \item{education}{Character vector specifying education levels to include.
 If \code{NULL} (default), includes all education levels.
-to include. If \code{NULL} (default), includes all marital statuses.}
+to include. If \code{NULL} (default).}
 
 \item{region}{A string indicating a predefined group of states or regions (supports multilingual names PT, EN, ES). See below in details.}
 
 \item{municipality_code}{Character or numeric vector specifying municipality
 codes (IBGE 6 or 7-digit codes) to include. If \code{NULL} (default), includes
 all municipalities.}
+
+\item{drop_ignored}{Logical. If \code{TRUE}, explicitly removes rows where demographic
+variables (sex, race and education) contain missing values (\code{NA}) or DATASUS ignored codes (e.g., "9", "Ignorado").
+Default is \code{FALSE}.}
 
 \item{lang}{Character string specifying the language for messages. Options:
 \code{"en"} (English), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}
@@ -52,7 +57,7 @@ demographic criteria.
 }
 \description{
 Filters health data based on demographic characteristics such as sex, race,
-age range, education level, and marital status. This function complements
+age range, education level, region, and municipality. This function complements
 \code{sus_data_filter_cid()} by enabling stratified analyses by population subgroups.
 }
 \details{
@@ -62,9 +67,9 @@ names from \code{sus_data_standardize()}.
 
 \strong{Sex categories} (case-insensitive):
 \itemize{
-\item English: \code{"Male"}, \code{"Female"}, \code{"Unknown"}
-\item Portuguese: \code{"Masculino"}, \code{"Feminino"}, \code{"Ignorado"}
-\item Spanish: \code{"Masculino"}, \code{"Femenino"}, \code{"Desconocido"}
+\item English: \code{"Male"}, \code{"Female"}
+\item Portuguese: \code{"Masculino"}, \code{"Feminino"}
+\item Spanish: \code{"Masculino"}, \code{"Femenino"}
 }
 
 \strong{Race/Color categories} (IBGE standard):

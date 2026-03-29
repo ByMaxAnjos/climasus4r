@@ -5,8 +5,8 @@
 \title{Import and Process INMET Meteorological Data}
 \usage{
 sus_climate_inmet(
-  years = 2022,
-  uf = "AM",
+  years = NULL,
+  uf = NULL,
   use_cache = TRUE,
   cache_dir = "~/.climasus4r_cache/climate",
   parallel = TRUE,

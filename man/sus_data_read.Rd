@@ -18,7 +18,7 @@ sus_data_read(
 \item{path}{Character vector of file paths, or a single directory path.
 If a directory is provided, all matching files will be read.}
 
-\item{format}{Character string specifying the input format. Options: \code{"dbf"},
+\item{format}{Character string specifying the input format. Options: \code{"dbf"}, \code{"dbc"},
 \code{"rds"}, \code{"parquet"}, \code{"geoparquet"}, \code{"shapefile"}, \code{"gpkg"}, \code{"geojson"}, \code{"csv"}.
 If \code{NULL} (default), automatically detects format from file extension.}
 
@@ -46,7 +46,7 @@ Metadata is attached as attributes:
 }
 }
 \description{
-Intelligently reads one or multiple health data files exported by \code{sus_data_export()}.
+Smartly reads one or multiple health data files exported by \code{sus_data_export()}.
 Supports automatic format detection, batch processing, parallel execution, spatial data,
 metadata loading, and data validation.
 }

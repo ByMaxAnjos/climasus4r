@@ -75,7 +75,7 @@ different use cases, including GeoArrow/GeoParquet for spatial data.
 \itemize{
 \item \strong{RDS} (\code{.rds}): Native R format. Fast, compressed, preserves all
 R object attributes. Best for R-only workflows.
-\item \strong{Arrow/Parquet} (\code{.parquet}, \code{.arrow}): Columnar format. Excellent
+\item \strong{Parquet} (\code{.parquet}): Columnar format. Excellent
 compression, fast reading, language-agnostic. Best for large datasets
 and interoperability with Python, Spark, etc.
 \item \strong{GeoParquet} (\code{.geoparquet}, \code{.parquet} for sf objects): Optimized
@@ -131,7 +131,7 @@ sus_data_export(
 sus_data_export(
   df_final,
   file_path = "output/respiratory_sp_2023.parquet",
-  format = "arrow",
+  format = "parquet",
   metadata = list(
     source_system = "SIM-DO",
     states = "SP",

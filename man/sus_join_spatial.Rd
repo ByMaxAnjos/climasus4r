@@ -22,7 +22,7 @@ The data frame should have a \code{system} column created by \code{detect_health
 Options:
 \itemize{
 \item \strong{Administrative:} "munic" (municipality). Default.
-\item \strong{Health:} "health_region", "health_facilities", "schools"
+\item \strong{Health:} "health_region", "health_facilities", "school"
 \item \strong{Environmental:} "amazon", "biomes", "conservation_units",
 "disaster_risk_area", "semiarid", "indigenous_land"
 \item \strong{Urban:} "neighborhood", "urban_area", "metro_area",
@@ -105,7 +105,7 @@ sf_cep <- sus_join_spatial(
 # Example 4: Census tract level analysis
 sf_census <- sus_join_spatial(
   df = df_sim,
-  level = "school",
+  level = "schools",
   lang = "pt"
 )
 }

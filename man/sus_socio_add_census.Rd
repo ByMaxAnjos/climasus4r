@@ -8,7 +8,7 @@ sus_socio_add_census(
   df,
   dataset = "population",
   year = 2010,
-  vars = NULL,
+  census_vars = NULL,
   aggregation_fun = "sum",
   join_muni_col = NULL,
   use_cache = TRUE,
@@ -35,7 +35,7 @@ sus_socio_add_census(
 \item{year}{Integer specifying census year. Options: \code{2010} (default) or \code{2000}.
 Note: Dataset availability varies by year.}
 
-\item{vars}{Character vector specifying census variables to add. Use \code{sus_census_explore()} to select available variables.
+\item{census_vars}{Character vector specifying census variables to add. Use \code{sus_census_explore()} to select available variables.
 If \code{NULL}, returns all available variables (not recommended for large datasets).}
 
 \item{aggregation_fun}{Character. Method to aggregate microdata to municipality level:
@@ -119,7 +119,7 @@ sf_sim <- sus_data_import(uf = "SP", year = 2023, system = "SIM-DO") \%>\%
 sf_enriched <- sus_socio_add_census(
   df = sf_sim,
   dataset = "population",
-  vars = c("V0001", "V0002"),
+  census_vars = c("V0001", "V0002"),
   year = 2010,
   lang = "pt"
 )

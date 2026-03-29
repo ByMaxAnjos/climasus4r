@@ -236,7 +236,7 @@ sus_data_filter_demographics <- function(df,
           "*" = "{.strong 2. Limpiar:} {.code df <- sus_data_clean_encoding(df)}",
           "*" = "{.strong 3. Estandarizar:} {.code df <- sus_data_standardize(df)}",
           "*" = "{.strong 4. Create:} {.code df <- sus_create_variables(...)}",
-          "*" = "{.strong 5. Filtrar demo:} {.code df <- sus_data_filter_demographics(...)}",,
+          "*" = "{.strong 5. Filtrar demo:} {.code df <- sus_data_filter_demographics(...)}",
           " " = "",
           "v" = "Consejo: Si usa datos externos, ejecute {.fn sus_data_standardize} primero."
         )
@@ -355,13 +355,15 @@ sus_data_filter_demographics <- function(df,
     df_ufs_brasil <- data.table::data.table(
       sigla  = c("RO", "AC", "AM", "RR", "PA", "AP", "TO", "MA", "PI", "CE", "RN", "PB", "PE", "AL", "SE", "BA", "MG", "ES", "RJ", "SP", "PR", "SC", "RS", "MS", "MT", "GO", "DF"),
       codigo = c(11, 12, 13, 14, 15, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31, 32, 33, 35, 41, 42, 43, 50, 51, 52, 53),
-      estado_pt = c("Rondônia", "Acre", "Amazonas", "Roraima", "Pará", "Amapá", "Tocantins", "Maranhão", "Piauí", "Ceará", "Rio Grande do Norte", "Paraíba", "Pernambuco", "Alagoas", "Sergipe", "Bahia", "Minas Gerais", "Espírito Santo", "Rio de Janeiro", "São Paulo", "Paraná", "Santa Catarina", "Rio Grande do Sul", "Mato Grosso do Sul", "Mato Grosso", "Goiás", "Distrito Federal"),
-      
-      # english
+      # português
+      estado_pt = c("Rond\u00f4nia", "Acre", "Amazonas", "Roraima", "Par\u00e1", "Amap\u00e1", "Tocantins", "Maranh\u00e3o", "Piau\u00ed", "Cear\u00e1", "Rio Grande do Norte", "Para\u00edba", "Pernambuco", "Alagoas", "Sergipe", "Bahia", "Minas Gerais", "Esp\u00edrito Santo", "Rio de Janeiro", "S\u00e3o Paulo", "Paran\u00e1", "Santa Catarina", "Rio Grande do Sul", "Mato Grosso do Sul", "Mato Grosso", "Goi\u00e1s", "Distrito Federal"),
+
+      # english (Nota: Geralmente não usa acentos, mas mantive o padrão original que você enviou)
       state_en = c("Rondonia", "Acre", "Amazonas", "Roraima", "Para", "Amapa", "Tocantins", "Maranhao", "Piaui", "Ceara", "Rio Grande do Norte", "Paraiba", "Pernambuco", "Alagoas", "Sergipe", "Bahia", "Minas Gerais", "Espirito Santo", "Rio de Janeiro", "Sao Paulo", "Parana", "Santa Catarina", "Rio Grande do Sul", "Mato Grosso do Sul", "Mato Grosso", "Goias", "Federal District"),
-      
-      # Espanhol
-      estado_es = c("Rondonia", "Acre", "Amazonas", "Roraima", "Pará", "Amapá", "Tocantins", "Maranhão", "Piauí", "Ceará", "Rio Grande del Norte", "Paraíba", "Pernambuco", "Alagoas", "Sergipe", "Bahía", "Minas Gerais", "Espírito Santo", "Río de Janeiro", "São Paulo", "Paraná", "Santa Catarina", "Rio Grande del Sur", "Mato Grosso del Sur", "Mato Grosso", "Goiás", "Distrito Federal")
+
+      # espanhol
+      estado_es = c("Rondonia", "Acre", "Amazonas", "Roraima", "Par\u00e1", "Amap\u00e1", "Tocantins", "Maranh\u00e3o", "Piau\u00ed", "Cear\u00e1", "Rio Grande del Norte", "Para\u00edba", "Pernambuco", "Alagoas", "Sergipe", "Bah\u00eda", "Minas Gerais", "Esp\u00edrito Santo", "R\u00edo de Janeiro", "S\u00e3o Paulo", "Paran\u00e1", "Santa Catarina", "Rio Grande del Sur", "Mato Grosso del Sur", "Mato Grosso", "Goi\u00e1s", "Distrito Federal")
+
     )
     all_target_siglas <- unique(unlist(lapply(region, translate_input)))
     

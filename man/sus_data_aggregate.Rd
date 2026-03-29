@@ -8,9 +8,9 @@ sus_data_aggregate(
   df,
   time_unit = "day",
   fun = "count",
-  value_col = NULL,
   group_by = NULL,
-  complete_dates = TRUE,
+  value_col = NULL,
+  complete_dates = FALSE,
   date_col = NULL,
   lang = "pt",
   verbose = TRUE
@@ -32,13 +32,13 @@ Options: \code{"count"} (default), \code{"sum"}, \code{"mean"}, \code{"median"},
 Can also be a named list for multiple aggregations, e.g.,
 \code{list(mean_temp = "mean", max_temp = "max")}.}
 
+\item{group_by}{Character vector with names of columns to group by (e.g.,
+\code{c("sex", "age_group", "race")}). If \code{NULL} (default), aggregates
+across \code{"municipality_code"} records.}
+
 \item{value_col}{Character string with the name of the column to aggregate when
 using functions other than \code{"count"}. Required for \code{"sum"}, \code{"mean"}, etc.
 For example, \code{"temperature"}, \code{"precipitation"}, \code{"pm25"}.}
-
-\item{group_by}{Character vector with names of columns to group by (e.g.,
-\code{c("sex", "age_group", "municipality_code", "race")}). If \code{NULL} (default), aggregates
-across all records.}
 
 \item{complete_dates}{Logical. If \code{TRUE} (default), fills in missing time periods
 with zero counts to create a complete time series without gaps.}
@@ -48,7 +48,7 @@ aggregation. If \code{NULL} (default), the function will attempt to auto-detect
 the date column based on common patterns.}
 
 \item{lang}{Character string specifying the language for messages. Options:
-\code{"en"} (English, default), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}
+\code{"en"} (English), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}
 
 \item{verbose}{Logical. If \code{TRUE} (default), prints progress messages.}
 }
@@ -71,8 +71,8 @@ data for time series analysis, DLNM models, and other temporal epidemiological m
 \item \strong{Multiple aggregation functions}: Beyond counting, you can now calculate
 mean, sum, median, percentiles, etc., useful for climate and environmental data.
 \item \strong{Smart column naming}: The aggregated column is automatically named
-based on the health system (e.g., \code{n_deaths} for SIM-DO, \code{n_hospitalizations}
-for SIH-RD, \code{n_births} for SINASC).
+based on the health system (e.g., \code{n_deaths} for SIM, \code{n_hospitalizations}
+for SIH-RD, \code{n_births} for SINASC, \code{n_cases} for SINAN, \code{n_procedures} for SIA, and \code{n_establishments}, for CNES).
 }
 \strong{Epidemiological Use Cases}:
 \itemize{
@@ -98,9 +98,9 @@ for SIH-RD, \code{n_births} for SINASC).
 library(climasus4r)
 
 # Basic daily aggregation
-df_daily <- sus_data_import(uf = "SP", year = 2023, system = "SIM-DO") |>
-  sus_data_standardize() |>
-  sus_data_filter_cid(disease_group = "respiratory") |>
+df_daily <- sus_data_import(uf = "SP", year = 2023, system = "SIM-DO") \%>\%
+  sus_data_standardize() \%>\%
+  sus_data_filter_cid(disease_group = "respiratory") \%>\%
   sus_data_aggregate(time_unit = "day")
 
 # Pentad aggregation (5-day periods) for heat wave analysis
@@ -123,15 +123,14 @@ df_quarterly <- sus_data_aggregate(df, time_unit = "quarter")
 # Seasonal aggregation for dengue analysis (Brazilian seasons)
 df_seasonal <- sus_data_aggregate(
   df,
-  time_unit = "season",
-  group_by = "state"
+  time_unit = "season"
 )
 
 # Weekly aggregation by age group and sex
 df_weekly <- sus_data_aggregate(
   df,
   time_unit = "week",
-  group_by = c("age_group", "sex")
+  group_by = c("age_group", "sex") #age_group comes from `sus_create_variables()`
 )
 }
 }

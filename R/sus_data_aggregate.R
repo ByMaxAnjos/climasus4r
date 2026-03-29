@@ -123,8 +123,8 @@ sus_data_aggregate <- function(df,
   if (verbose) {
     title_msg <- switch(lang,
       "en" = "climasus4r - Temporal Data Aggregation",
-      "pt" = "climasus4r - Agregação Temporal de Dados",
-      "es" = "climasus4r - Agregación Temporal de Datos"
+      "pt" = "climasus4r - Agrega\u00e7\u00e3o Temporal de Dados",
+      "es" = "climasus4r - Agregaci\u00f3n Temporal de Datos"
     )
     cli::cli_h1(title_msg)
   }
@@ -473,7 +473,7 @@ sus_data_aggregate <- function(df,
     # SIH (internacao)
     "SIH" = c("residencia", "estabelecimento", "ocorrencia", "generico"),
 
-    # SINAN (doenças notificaveis)
+    # SINAN (doencas notificaveis)
     "SINAN" = c("residencia", "ocorrencia", "estabelecimento", "generico"),
 
     # SIA (ambulatorial)
@@ -494,7 +494,7 @@ sus_data_aggregate <- function(df,
 
   # PRIORIDADE DINAMICA
   priority_order <- unlist(geo_groups[priority_groups], use.names = FALSE)
-  priority_order <- c(priority_order, geo_groups$cep)  # CEP sempre último
+  priority_order <- c(priority_order, geo_groups$cep)  # CEP sempre ultimo
   
   # SELECAO FINAL
   existent_cols <- names(df)[names(df) %in% priority_order]
