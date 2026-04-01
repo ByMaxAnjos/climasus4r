@@ -1,0 +1,613 @@
+---
+title: "Integração de Dados Climáticos e de Saúde com sus_climate_aggregate()"
+author:
+  - name: "Max Anjos"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* ── Variáveis de Cores Modernas ────────────────── */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 18px;
+  color: var(--text-main);
+  background-color: #fff;
+  line-height: 1.6;
+}
+
+/* ── Títulos com Inter-spacing ─────────────────── */
+h1, h2, h3, h4 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  color: var(--dark-green);
+}
+
+h1.title {
+  font-size: 2.8em;
+  border-bottom: 4px solid var(--primary-color);
+  padding-bottom: 10px;
+  margin-bottom: 1.5rem;
+}
+
+h2 {
+  margin-top: 2rem;
+  border-left: 4px solid var(--primary-color);
+  padding-left: 1rem;
+}
+
+/* ── Code Blocks Estilizados ────────────────────── */
+pre.r, pre.sourceCode {
+  background-color: var(--code-bg);
+  border: 1px solid #e1e1e1;
+  border-left: 5px solid var(--primary-color) !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  padding: 1rem;
+}
+
+/* ── Custom Callouts (Estilo Quarto) ────────────── */
+.callout {
+  padding: 1.2em 1.5em;
+  margin: 1.5em 0;
+  border-radius: 8px;
+  border-left: 6px solid;
+  background-color: var(--bg-light);
+}
+
+.callout-note {
+  background-color: #f0f7ff;
+  border-color: #007bff;
+}
+
+.callout-tip {
+  background-color: #e8f5e9;
+  border-color: #1D9E75;
+}
+
+.callout-warning {
+  background-color: #fff3e0;
+  border-color: #ff9800;
+}
+
+.callout-info {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+}
+
+/* ── Workflow container ─────────────────────────── */
+.workflow-container {
+  background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  border: 1px solid var(--fc-border);
+  overflow-x: auto;
+}
+
+.workflow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'Inter', monospace;
+  font-size: 0.8rem;
+}
+
+.workflow-step {
+  background: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.workflow-arrow {
+  color: var(--primary-color);
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+/* ── Feature cards ───────────────────────────────── */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.feature-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e1e1e1;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-align: center;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.feature-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+  margin-top: 0;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
+
+.feature-card p {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  margin-bottom: 0;
+}
+
+/* ── Table styling ───────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+th {
+  background-color: var(--bg-light);
+  font-weight: 600;
+  color: var(--dark-green);
+}
+
+tr:hover {
+  background-color: var(--bg-light);
+}
+
+/* ── Figure styling ─────────────────────────────── */
+.figure {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.figure img {
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  max-width: 100%;
+  height: auto;
+}
+
+.figure .caption {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* ── Botão GitHub aprimorado ───────────────────── */
+.github-feedback-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #24292e;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-family: sans-serif;
+  transition: background-color 0.2s;
+  margin-top: 1rem;
+}
+
+.github-feedback-btn:hover {
+  background-color: #2c3e50;
+  color: white;
+  text-decoration: none;
+}
+
+/* ── Responsive ─────────────────────────────────── */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+  
+  h1.title {
+    font-size: 2rem;
+  }
+  
+  .workflow-steps {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .workflow-arrow {
+    transform: rotate(90deg);
+  }
+  
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  th, td {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-card,
+  .github-feedback-btn {
+    transition: none;
+  }
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  eval    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  comment = "#>",
+  fig.align = "center",
+  out.width = "80%",
+  fig.retina = 2
+)
+```
+
+# Introdução
+
+::: callout-tip
+**Tutorial Avançado** — Este tutorial foca exclusivamente na função `sus_climate_aggregate()`, a engine matemática e epidemiológica do `climasus4r` responsável por alinhar dados de saúde (DATASUS) com séries temporais meteorológicas (INMET). 
+:::
+
+O maior desafio na epidemiologia ambiental não é apenas ter dados de clima e de saúde, mas sim **integrá-los temporalmente de forma biologicamente plausível**. Se um paciente é diagnosticado com Dengue no dia $t$, o mosquito que o picou o fez aproximadamente 10 a 14 dias antes. A chuva que criou o criadouro ocorreu talvez 30 dias antes. 
+
+Usar simplesmente a temperatura do dia do diagnóstico é um erro metodológico grave. A função `sus_climate_aggregate()` foi construída para resolver esse problema, oferecendo 7 estratégias rigorosas de alinhamento temporal.
+
+## 📍 Onde esta função se encaixa no Pipeline?
+
+A integração climática ocorre **após** você ter preparado os dados de saúde e os dados de clima separadamente.
+
+<div class="workflow-container">
+<div class="workflow-steps">
+<span class="workflow-step" style="background:#555">Phase 1 (preparação dos dados)</span>
+<span class="workflow-arrow">+</span>
+<span class="workflow-step" style="background:#2196f3">Phase 2 (spatial join)</span>
+<span class="workflow-arrow">→</span>
+<span class="workflow-step" style="background:var(--primary-color); font-weight:bold">sus_climate_aggregate()</span>
+</div>
+</div>
+
+---
+
+## 🧠 As 7 Abordagens de Alinhamento Temporal
+
+A função oferece 7 abordagens distintas via o argumento `temporal_strategy`. Cada uma possui uma base matemática e um cenário de uso específico, alinhadas com o paradigma de séries temporais em R (como pacotes `slider` ou `RcppRoll`) e a literatura de epidemiologia ambiental.
+
+<div class="feature-grid">
+<div class="feature-card">
+<div class="feature-icon">📅</div>
+<h3><code>exact</code></h3>
+<p>Alinha o evento de saúde no dia $t$ com o clima no dia $t$. Ideal para eventos agudos (ex: desidratação, AVC por calor).</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon">⏪</div>
+<h3><code>discrete_lag</code></h3>
+<p>Busca o clima exatamente $L$ dias atrás. Útil para identificar picos de correlação específicos (ex: "o pico de dengue correlaciona-se fortemente com o dia exato $t-21$").</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon">⏳</div>
+<h3><code>moving_window</code></h3>
+<p>Calcula a média ou soma do clima no intervalo $[t-w, t]$. O padrão-ouro das séries temporais (Rolling Window), respeita a causalidade sem "olhar para o futuro".</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon">🔬</div>
+<h3><code>offset_window</code></h3>
+<p>Foca em um intervalo histórico específico $[t-W_2, t-W_1]$. Ideal para isolar o período de incubação extrínseca, ignorando os dias mais recentes.</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon">🌀</div>
+<h3><code>distributed_lag</code></h3>
+<p>Cria uma matriz de defasagens (0 até $L$). Prepara seus dados perfeitamente para modelos DLNM (Distributed Lag Non-Linear Models).</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon">🌡️</div>
+<h3><code>degree_days</code></h3>
+<p>Calcula Graus-Dia de Crescimento (GDD) acumulados. Essencial para biologia de vetores (ex: tempo necessário para o mosquito *Aedes aegypti* se tornar adulto).</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon">🌍</div>
+<h3><code>seasonal</code></h3>
+<p>Agrega o clima por estações do ano (DJF, MAM, JJA, SON). Indicado para estudos de tendências em longa escala (mudanças climáticas).</p>
+</div>
+</div>
+
+---
+
+# Entradas da Função (Inputs)
+
+Para que a integração ocorra, você precisa fornecer dois objetos `climasus_df` prontos:
+
+| Argumento | Descrição | Requisito de `stage` nos Metadados |
+|-----------|-----------|-----------------------------------|
+| `health_data` | Dados de saúde do DATASUS já agregados espacialmente. | Deve estar no estágio `"spatial"` (saída de `sus_join_spatial()`). |
+| `climate_data` | Dados meteorológicos do INMET sem falhas. | Deve estar no estágio `"climate"` (saída de `sus_climate_fill_gaps(..., evaluation = FALSE)`). |
+| `climate_var` | Quais variáveis climáticas pegar (ex: `"tair_dry_bulb_c"`, `"rainfall_mm"`). Padrão: `"all"`. | - |
+| `temporal_strategy` | Uma das 7 estratégias detalhadas acima. | - |
+| `window_days` | Inteiro. Necessário para `moving_window` e `degree_days`. | - |
+| `lag_days` | Inteiro (ou vetor). Necessário para `discrete_lag` e `distributed_lag`. | - |
+| `offset_days` | Vetor de 2 inteiros (ex: `c(7, 14)`). Necessário para `offset_window`. | - |
+
+::: callout-warning
+**Atenção:** A função irá abortar com mensagens em português, inglês ou espanhol (parâmetro `lang`) se os metadados indicarem que os dados não passaram pelas etapas corretas do pipeline. Isso evita vieses silenciosos na sua análise.
+:::
+
+---
+
+# Fundamentos Matemáticos por Estratégia
+
+Nesta seção, detalhamos a matemática por trás de cada estratégia. Seja $Y_t$ o evento de saúde (ex: número de casos de dengue) no dia $t$, e $X$ a variável climática (ex: temperatura).
+
+## 1. `exact` (Match Simultâneo)
+
+**Fórmula:** $Y_t \leftarrow X_t$
+
+**Conceito:** Atribui ao evento de saúde o valor exato do clima no mesmo dia. 
+
+**Quando usar:** Condições de saúde extremamente agudas onde a exposição no mesmo dia é a causa (ex: ondas de calor imediatas causando hipertermia).
+
+## 2. `discrete_lag` (Defasagem Discreta)
+
+**Fórmula:** $Y_t \leftarrow X_{t-L}$
+
+**Conceito:** Desloca a busca climática em $L$ dias no passado. Se você define `lag_days = c(7, 14, 21)`, a função cria três novas colunas no seu banco de dados.
+
+**Quando usar:** Na fase exploratória, para descobrir qual defasagem isolada tem maior correlação (ex: coeficiente de Pearson) com a sua variável de saúde.
+
+## 3. `moving_window` (Janela Móvel Retroativa) ⭐ *Mais Recomendada*
+
+**Fórmula (Média):** $Y_t \leftarrow \frac{1}{W+1} \sum_{i=t-W}^{t} X_i$
+
+**Fórmula (Soma - ex: chuva):** $Y_t \leftarrow \sum_{i=t-W}^{t} X_i$
+
+::: callout-warning
+**Por que não Janela Simétrica ($\pm W$)?** 
+Em muitos pacotes estatísticos, usa-se uma janela simétrica $[t-W, t+W]$. **Isso é um erro fatal em epidemiologia**, conhecido como *Look-Ahead Bias* (Viés de Olhar para o Futuro). O clima do dia $t+7$ não pode causar um evento no dia $t$. O `climasus4r` usa exclusivamente a janela *móvel retroativa* $[t-W, t]$ (equivalente a `align = "right"` no pacote `slider`) para manter a integridade causal.
+:::
+
+**Quando usar:** Como variável preditora principal em modelos de séries temporais (ex: Poisson, Binomial Negativa). Suaviza o ruído diário sem quebrar a seta do tempo. O argumento `min_obs` (padrão 0.7) garante que a linha do paciente receba `NA` se faltar dados, *sem deletar a linha do paciente*.
+
+## 4. `offset_window` (Janela de Incubação Deslocada) 🦟 *Para Doenças Infecciosas*
+
+**Fórmula:** $Y_t \leftarrow \frac{1}{(W_2 - W_1) + 1} \sum_{i=t-W_2}^{t-W_1} X_i$
+
+**Conceito:** Doenças como a Dengue têm um período de incubação. Se um paciente é diagnosticado hoje ($t$), o clima da última semana ($t-7$ até $t$) não causou a transmissão, pois o vírus ainda estava no período de incubação intrínseco (dentro do paciente). O clima que *realmente importou* para a transmissão foi o de 2 a 3 semanas atrás. O `offset_window` ignora os dias recentes e agrega estritamente um gap histórico.
+
+**Quando usar:** Modelos de transmissão vetorial (Dengue, Zika, Malária) onde você quer isolar o período de incubação extrínseca (desenvolvimento do mosquito) separado do período de transmissão recente.
+
+## 5. `distributed_lag` (Matriz DLNM)
+
+**Fórmula:** $Y_t \leftarrow [X_t, X_{t-1}, X_{t-2}, \dots, X_{t-L}]$
+
+**Conceito:** Em vez de resumir a janela em uma única média, ela "explode" os dados criando uma coluna para cada dia de defasagem até o limite $L$.
+
+**Quando usar:** Preparação estrita para modelos DLNM (pacote `dlnm` no R, de Antonio Gasparrini). Esses modelos conseguem atribuir pesos não-lineares diferentes para cada dia dentro da janela (ex: o efeito da chuva no dia $t-5$ pode ser diferente do efeito no dia $t-10$).
+
+## 6. `degree_days` (Graus-Dia de Crescimento - GDD)
+
+**Fórmula:** $GDD = \sum_{i=t-W}^{t} \max(0, T_i - T_{base})$
+
+**Conceito:** Insetos são de sangue frio (pecilotérmicos). O desenvolvimento do *Aedes aegypti* não depende da temperatura média, mas do **acúmulo de calor acima de um limiar**. Se $T_{base} = 11^\circ C$ e a temperatura de hoje foi $15^\circ C$, foram $4$ graus-dia. Se foi $10^\circ C$, contribuição foi $0$.
+
+**Quando usar:** Estudos de transmissão de doenças vetoriais (Dengue, Zika, Chikungunya, Malária). O parâmetro `t_base = 11` é o padrão aceito internacionalmente para o *Aedes aegypti*.
+
+## 7. `seasonal` (Climatologia Sazonal)
+
+**Fórmula:** Agregação por DJF (Verão), MAM (Outono), JJA (Inverno), SON (Primavera).
+
+**Conceito:** Calcula a média/total da variável climática para toda a estação do ano em que o evento ocorreu.
+
+**Quando usar:** Análises macroecológicas, estudos de tendências climáticas de longo prazo (décadas), onde a variabilidade diária é ruído.
+
+---
+
+# Exemplos Práticos no R
+
+Abaixo, demonstramos como aplicar essas teorias na prática. 
+
+## Preparação do Ambiente (Mock Data)
+
+*Nota: Assumimos que você já executou os pipelines de saúde e clima e possui os objetos `health_dengue` e `climate_ro` prontos.*
+
+```{r prep, eval=FALSE}
+library(climasus4r)
+library(dplyr)
+
+# Suponha que 'health_dengue' é a saída de sus_join_spatial()
+# Suponha que 'climate_ro' é a saída de sus_climate_fill_gaps(..., evaluation = FALSE)
+```
+
+## Exemplo 1: Básico (Match Exato para Ondas de Calor)
+
+Vamos investigar se a **temperatura máxima diária** no exato dia do óbito está associada a mortes por hipertermia.
+
+```{r ex-exact, eval=FALSE}
+df_exato <- sus_climate_aggregate(
+  health_data = health_hyperthermia,
+  climate_data = climate_ro,
+  climate_var = "tair_max_c",       # Temperatura máxima
+  temporal_strategy = "exact",
+  lang = "pt",
+  verbose = TRUE
+)
+
+# O resultado adicionará a coluna 'tair_max_c' ao seu banco de dados de saúde
+glimpse(df_exato)
+```
+
+## Exemplo 2: Intermediário (Janela Móvel para Dengue)
+
+A literatura mostra que a precipitação acumulada das últimas 3 semanas é um forte preditor para surtos de dengue. Vamos calcular a **soma da chuva** dos últimos 21 dias usando a estratégia padrão de séries temporais.
+
+```{r ex-window, eval=FALSE}
+df_dengue_window <- sus_climate_aggregate(
+  health_data = health_dengue,
+  climate_data = climate_ro,
+  climate_var = "rainfall_mm",      # Chuva
+  temporal_strategy = "moving_window",
+  window_days = 21,                 # 21 dias para trás
+  min_obs = 0.8,                    # Exige 80% dos dados presentes na janela
+  lang = "pt"
+)
+
+# A nova coluna se chamará 'mvwin21_rainfall_mm'
+# Note que se uma linha de saúde não tiver 80% dos 21 dias de chuva, 
+# o valor será NA (a linha de saúde É PRESERVADA!).
+```
+
+## Exemplo 3: Avançado (Janela de Incubação Deslocada)
+
+Queremos isolar o efeito do clima ocorrido entre 14 e 7 dias atrás, ignorando a semana atual (período de incubação intrínseco do paciente).
+
+```{r ex-offset, eval=FALSE}
+df_dengue_incubacao <- sus_climate_aggregate(
+  health_data = health_dengue,
+  climate_data = climate_ro,
+  climate_var = c("tair_dry_bulb_c", "rainfall_mm"),
+  temporal_strategy = "offset_window",
+  offset_days = c(7, 14),          # Ignora t-7 até t, foca em t-14 até t-7
+  lang = "pt"
+)
+
+# As novas colunas se chamarão: 
+# 'off7to14_tair_dry_bulb_c' e 'off7to14_rainfall_mm'
+```
+
+## Exemplo 4: Avançado (Matriz DLNM para Modelagem)
+
+Você deseja rodar um modelo DLNM complexo que avalie o efeito da temperatura média de 0 a 30 dias atrás.
+
+```{r ex-dlnm, eval=FALSE}
+df_dlnm_prep <- sus_climate_aggregate(
+  health_data = health_dengue,
+  climate_data = climate_ro,
+  climate_var = "tair_dry_bulb_c",  # Temperatura média
+  temporal_strategy = "distributed_lag",
+  lag_days = 30,                    # Cria lags de 0 até 30
+  lang = "pt"
+)
+
+# O banco agora terá 31 novas colunas:
+# 'tair_dry_bulb_c_lag0', 'tair_dry_bulb_c_lag1' ... 'tair_dry_bulb_c_lag30'
+```
+
+## Exemplo 5: Avançado (Biologia de Vetores - GDD)
+
+Queremos calcular os Graus-Dia acumulados nos últimos 30 dias para estimar a capacidade vetorial do mosquito.
+
+```{r ex-gdd, eval=FALSE}
+df_gdd <- sus_climate_aggregate(
+  health_data = health_dengue,
+  climate_data = climate_ro,
+  temporal_strategy = "degree_days",
+  window_days = 30,                 # Janela de acumulação
+  gdd_temp_var = "tair_dry_bulb_c", # Variável de temperatura base
+  t_base = 11,                      # Temperatura basal do Aedes aegypti
+  min_obs = 0.7,
+  lang = "pt"
+)
+
+# A nova coluna se chamará: 'gdd30_tbase11'
+```
+
+## Exemplo 6: Combinando Múltiplas Variáveis
+
+Freqüentemente, modelos precisam de variáveis com tratamentos diferentes (ex: Temperatura em janela, Chuva em incubação deslocada, GDD). Como o `sus_climate_aggregate` retorna um objeto `climasus_df`, você pode encadear as chamadas:
+
+```{r ex-multi, eval=FALSE}
+# 1. Adiciona Temperatura Média dos últimos 14 dias (Moving Window)
+df_model <- sus_climate_aggregate(
+  health_dengue, climate_ro, 
+  climate_var = "tair_dry_bulb_c", 
+  temporal_strategy = "moving_window", 
+  window_days = 14
+)
+
+# 2. Adiciona Chuva no período de incubação deslocada (Offset Window)
+df_model <- sus_climate_aggregate(
+  df_model, climate_ro, 
+  climate_var = "rainfall_mm", 
+  temporal_strategy = "offset_window", 
+  offset_days = c(7, 21)
+)
+
+# 3. Adiciona GDD
+df_model <- sus_climate_aggregate(
+  df_model, climate_ro, 
+  temporal_strategy = "degree_days", 
+  window_days = 30, t_base = 11
+)
+
+# Seu banco final terá: mvwin14_tair_dry_bulb_c, off7to21_rainfall_mm e gdd30_tbase11!
+```
+
+::: callout-tip
+**Dica de Performance:** O `climasus4r` é otimizado para encadear chamadas. Se você tiver milhões de linhas, recomenda-se especificar múltiplas variáveis em `climate_var = c(...)` em uma única chamada quando a janela/estratégia for a mesma. Use chamadas separadas apenas quando as janelas ou estratégias divergirem (como no Exemplo 6).
+:::
+
+---
+
+## 🎉 Conclusão
+
+A função `sus_climate_aggregate()` eleva o `climasus4r` de um simples pacote de limpeza de dados para uma **ferramenta de inferência epidemiológica**. 
+
+Ao alinhar a nomenclatura com o padrão da comunidade R (`moving_window`), fornecer uma ferramenta matemática única para períodos de incubação (`offset_window`), e manter o rigor contra vieses temporais, este pacote garante que suas conclusões sobre "Como o clima afeta a saúde no Brasil" sejam metodologicamente irrefutáveis e prontas para publicação em periódicos de alto impacto.
+
+---
+
+## 🌲 Tem feedback ou sugestões?
+
+Você tem alguma ideia de melhoria ou encontrou algum erro? Clique no botão abaixo para abrir uma nova *issue* no GitHub e compartilhar suas sugestões diretamente conosco.
+
+```{=html}
+<a href='https://github.com/ByMaxAnjos/climasus4r/issues/new' class="github-feedback-btn">
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+  </svg>
+  Abrir issue no GitHub
+</a>
+```
