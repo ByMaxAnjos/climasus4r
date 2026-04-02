@@ -4,6 +4,23 @@
 #' @name utils
 NULL
 
+
+#' Launch the climasus4r AI Assistant
+#' @export
+sus_chat_ai <- function() {
+  # Isso exibe o prompt: "The package 'rstudioapi' is required. Would you like to install it?"
+  rlang::check_installed("rstudioapi", reason = "para abrir a interface dentro do RStudio/Positron.")
+  
+  url <- "https://climasus4r.manus.space/"
+  
+  if (rstudioapi::isAvailable()) {
+    rstudioapi::viewer(url)
+  } else {
+    utils::browseURL(url)
+  }
+}
+
+
 #' @title Enable Spatial Features in climasus4r
 #' @description Checks for required spatial packages and attempts a robust installation if missing.
 #' This function guides the user through system dependencies and automatically installs R packages.

@@ -1,0 +1,4 @@
+Name: climasus4r AI Assistant
+Description: Abre o assistente de IA do climasus4r no painel Viewer.
+Binding: sus_chat_ai
+Interactive: true

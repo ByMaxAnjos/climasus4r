@@ -60,6 +60,7 @@ Suggests:
     future.apply,
     xgboost,
     zoo,
-    MASS
+    MASS,
+    rstudioapi
 URL: https://github.com/ByMaxAnjos/climasus4r
 BugReports: https://github.com/ByMaxAnjos/climasus4r/issues

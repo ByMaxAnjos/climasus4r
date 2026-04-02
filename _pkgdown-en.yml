@@ -21,20 +21,14 @@ navbar:
   title: "climasus4r"
   left:
     - text: "Home"
-      href: index.html
-    - text: "About"
-      href: articles/about.html
+      href: index.html 
+    - text: "Get Involved"
+      href: articles/contributing.html
     - text: "Tutorials"
       href: articles/tutorials.html
     - text: "Case Studies"
       href: articles/case-studies.html
-    - text: "Community"
-      menu:
-        - text: "GitHub Issues"
-          href: https://github.com/ByMaxAnjos/climasus4r/issues
-        - text: "Discussions"
-          href: https://github.com/ByMaxAnjos/climasus4r/discussions
-    - text: "Reference"
+    - text: "Functionalities"
       href: reference/index.html
     - text: "News"
       href: news/index.html
@@ -105,16 +99,17 @@ reference:
       - rbind.climasus_df
       - as.data.frame.climasus_df
 
-  - title: "Cache Management"
+  - title: "AI and Cache Management"
     desc: "Manage local storage of downloaded files"
     contents:
       - clear_climasus_cache
       - get_climasus_cache_info
+      - sus_chat_ai
 
 articles:
-  - title: "Introduction"
+  - title: "Get Involved"
     contents:
-      - about
+      - contributing
   - title: "Tutorials"
     contents:
       - tutorials
