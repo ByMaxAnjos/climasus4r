@@ -157,6 +157,9 @@ pre.r, pre.sourceCode {
   margin-bottom: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  /* Linhas adicionadas para consertar a cor: */
+  background-color: #e9ecef; /* fundo cinza clarinho */
+  color: #2c3e50 !important; /* texto escuro */
 }
 
 .badge-core {
@@ -607,5 +610,3 @@ Todos os contribuidores são listados no [site climasus4r](https://github.com/By
 
 **Pronto para começar?** 🚀  
 Acesse [github.com/ByMaxAnjos/climasus4r](https://github.com/ByMaxAnjos/climasus4r) e faça parte da comunidade!
-```
-```
