@@ -1,4 +1,4 @@
-<p align="center">
+<p align="rigth">
   <img src="https://github.com/ByMaxAnjos/climasus4r/blob/master/inst/figures/logo.png?raw=true"
        alt="climasus4r logo"
        width="190"/>
@@ -241,4 +241,3 @@ Para respostas a perguntas comuns sobre este código de conduta, veja as FAQ em 
 <strong>🌿 Juntos construímos uma comunidade onde ciência de qualidade floresce através do respeito mútuo</strong><br><br>
 
 </div>
-```
