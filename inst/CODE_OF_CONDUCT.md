@@ -1,145 +1,11 @@
----
-title: "Código de Conduta do climasus4r"
-subtitle: "Nossos compromissos para uma comunidade colaborativa, inclusiva e respeitosa"
-author: "Comunidade climasus4r"
-date: "`r format(Sys.Date(), '%d %B, %Y')`"
-output:
-  html_document:
-    toc: true
-    toc_depth: 3
-    theme: flatly
-    highlight: tango
-    self_contained: true
----
+<p align="center">
+  <img src="https://github.com/ByMaxAnjos/climasus4r/blob/master/inst/figures/logo.png?raw=true"
+       alt="climasus4r logo"
+       width="190"/>
+</p>
 
-```{css, echo=FALSE}
-:root {
-  --primary-color: #1D9E75;
-  --dark-green: #0f3d2e;
-  --accent-red: #e74c3c;
-  --accent-orange: #f39c12;
-  --bg-light: #f8faf9;
-  --text-main: #1a1a1a;
-}
+> **Código de Conduta do climasus4r**
 
-body {
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 17px;
-  line-height: 1.7;
-  color: var(--text-main);
-}
-
-h1, h2, h3 {
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  color: var(--dark-green);
-}
-
-h1.title {
-  font-size: 2.5em;
-  border-bottom: 4px solid var(--primary-color);
-  padding-bottom: 0.3em;
-}
-
-.principle-box {
-  background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%);
-  border-left: 5px solid var(--primary-color);
-  padding: 1.5em;
-  margin: 1.5em 0;
-  border-radius: 0 8px 8px 0;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-}
-
-.value-card {
-  background: white;
-  border: 1px solid #e1e1e1;
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  transition: transform 0.2s ease;
-}
-
-.value-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-}
-
-.value-card h3 {
-  margin-top: 0;
-  color: var(--primary-color);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.unacceptable-box {
-  background: #fdf2f2;
-  border-left: 5px solid var(--accent-red);
-  padding: 1.5em;
-  margin: 1.5em 0;
-  border-radius: 0 8px 8px 0;
-}
-
-.enforcement-box {
-  background: #fff8e1;
-  border-left: 5px solid var(--accent-orange);
-  padding: 1.5em;
-  margin: 1.5em 0;
-  border-radius: 0 8px 8px 0;
-}
-
-.contact-highlight {
-  background: var(--primary-color);
-  color: white;
-  padding: 1.5em;
-  border-radius: 8px;
-  text-align: center;
-  margin: 2em 0;
-}
-
-.contact-highlight a {
-  color: #e8f5e9;
-  font-weight: bold;
-  text-decoration: underline;
-}
-
-.contact-highlight a:hover {
-  color: white;
-}
-
-.reporting-steps {
-  background: var(--bg-light);
-  padding: 1.5em;
-  border-radius: 8px;
-  margin: 1.5em 0;
-}
-
-.reporting-steps ol {
-  margin: 0;
-  padding-left: 1.5em;
-}
-
-.reporting-steps li {
-  margin-bottom: 0.8em;
-}
-
-.scope-box {
-  border: 2px solid var(--primary-color);
-  padding: 1.5em;
-  border-radius: 8px;
-  margin: 1.5em 0;
-  background: #f0faf7;
-}
-
-.attribution {
-  font-size: 0.9em;
-  color: #666;
-  border-top: 1px solid #e1e1e1;
-  padding-top: 1.5em;
-  margin-top: 3em;
-  font-style: italic;
-}
-```
 
 # Nosso Compromisso
 
@@ -157,7 +23,6 @@ Nos comprometemos a agir e interagir de maneiras que contribuam para uma comunid
 
 </div>
 
----
 
 # Nossos Padrões
 
@@ -374,9 +239,6 @@ Para respostas a perguntas comuns sobre este código de conduta, veja as FAQ em 
 <div style="text-align: center; margin-top: 3em; padding: 2em; background: var(--bg-light); border-radius: 8px;">
 
 <strong>🌿 Juntos construímos uma comunidade onde ciência de qualidade floresce através do respeito mútuo</strong><br><br>
-
-<em>Última atualização: `r format(Sys.Date(), '%B %Y')`</em><br>
-<em>Versão: 1.0</em>
 
 </div>
 ```
