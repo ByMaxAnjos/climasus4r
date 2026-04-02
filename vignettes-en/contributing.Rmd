@@ -386,7 +386,7 @@ tr:hover {
     transition: none;
   }
 }
-````
+```
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(

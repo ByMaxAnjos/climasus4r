@@ -1,6 +1,3 @@
-Aquí tienes la versión en español de tu código y texto, manteniendo la estructura, las clases y traduciendo también los comentarios del CSS para mantener la coherencia:
-
-````html
 ---
 title: "Tutoriales"
 ---
@@ -155,7 +152,7 @@ title: "Tutoriales"
   </div>
 
 </div>
-````
+```
 
 -----
 
