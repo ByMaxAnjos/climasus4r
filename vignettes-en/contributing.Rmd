@@ -1,9 +1,9 @@
 ---
-title: "Guia de Contribuição para o climasus4r"
-subtitle: "Junte-se a Nós na Construção da Próxima Geração de Ferramentas Clima-Saúde"
+title: "Contribution Guide for climasus4r"
+subtitle: "Join Us in Building the Next Generation of Climate-Health Tools"
 author:
   - name: "Dr. Max Anjos"
-date: "`r format(Sys.Date(), '%d %B, %Y')`"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
 output:
   html_document:
     toc: true
@@ -21,7 +21,7 @@ output:
 ---
 
 ```{css, echo=FALSE}
-/* ── Variáveis de Cores Modernas ────────────────── */
+/* ── Modern Color Variables ────────────────── */
 :root {
   --primary-color: #1D9E75;
   --dark-green: #0f3d2e;
@@ -45,7 +45,7 @@ body {
   line-height: 1.6;
 }
 
-/* ── Títulos com Inter-spacing ─────────────────── */
+/* ── Titles with Inter-spacing ─────────────────── */
 h1, h2, h3, h4 {
   font-family: 'Inter', sans-serif;
   font-weight: 700;
@@ -65,7 +65,7 @@ h2 {
   padding-left: 1rem;
 }
 
-/* ── Code Blocks Estilizados ────────────────────── */
+/* ── Styled Code Blocks ────────────────────── */
 pre.r, pre.sourceCode {
   background-color: var(--code-bg);
   border: 1px solid #e1e1e1;
@@ -75,7 +75,7 @@ pre.r, pre.sourceCode {
   padding: 1rem;
 }
 
-/* ── Custom Callouts (Estilo Quarto) ────────────── */
+/* ── Custom Callouts (Quarto Style) ────────────── */
 .callout {
   padding: 1.2em 1.5em;
   margin: 1.5em 0;
@@ -104,7 +104,7 @@ pre.r, pre.sourceCode {
   border-color: #2196f3;
 }
 
-/* ── Custom Boxes Específicos ───────────────────── */
+/* ── Specific Custom Boxes ───────────────────── */
 .callout-box {
   padding: 1.2em 1.5em;
   margin: 1.5em 0;
@@ -179,7 +179,7 @@ pre.r, pre.sourceCode {
   color: white;
 }
 
-/* ── Tabelas em Role Cards ──────────────────────── */
+/* ── Tables in Role Cards ──────────────────────── */
 .role-card table {
   width: 100%;
   border: none;
@@ -322,7 +322,7 @@ tr:hover {
   font-style: italic;
 }
 
-/* ── Botão GitHub aprimorado ───────────────────── */
+/* ── Enhanced GitHub Button ───────────────────── */
 .github-feedback-btn {
   display: inline-flex;
   align-items: center;
@@ -383,7 +383,7 @@ tr:hover {
     transition: none;
   }
 }
-```
+````
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
@@ -398,213 +398,212 @@ knitr::opts_chunk$set(
 )
 ```
 
----
+-----
 
-<div class="callout-box">
-**Bem-vindo(a) à comunidade climasus4r!** — Este projeto é construído com o esforço coletivo de pesquisadores, desenvolvedores e entusiastas de dados. Toda contribuição, não importa o tamanho, é valiosa e bem-vinda. Este guia foi criado para ajudá-lo(a) a encontrar a melhor forma de participar.
-</div>
+\<div class="callout-box"\>
+**Welcome to the climasus4r community\!** — This project is built through the collective effort of researchers, developers, and data enthusiasts. Every contribution, no matter the size, is valuable and welcome. This guide was created to help you find the best way to participate.
+\</div\>
 
-# Por Que Contribuir?
+# Why Contribute?
 
-Contribuir para um projeto open-source como o `climasus4r` é uma oportunidade de:
+Contributing to an open-source project like `climasus4r` is an opportunity to:
 
--   **Desenvolver Habilidades:** Aprimore suas competências em R, Python, análise de dados, desenvolvimento de software e comunicação científica.
--   **Construir seu Portfólio:** Contribuições no GitHub são uma expertise diferenciada para sua carreira acadêmica ou profissional.
--   **Fazer Networking:** Conecte-se com uma rede de especialistas em clima, saúde e ciência de dados.
--   **Gerar Impacto:** Ajude a construir uma ferramenta que fortalece a vigilância em saúde e subsidia políticas públicas no Brasil.
+  - **Develop Skills:** Improve your skills in R, Python, data analysis, software development, and scientific communication.
+  - **Build Your Portfolio:** GitHub contributions are a distinctive expertise for your academic or professional career.
+  - **Network:** Connect with a network of experts in climate, health, and data science.
+  - **Create Impact:** Help build a tool that strengthens health surveillance and supports public policies in Brazil.
 
-<div class="callout callout-tip">
-**Código de Conduta:** Todas as interações em nosso projeto seguem um [Código de Conduta](https://github.com/ByMaxAnjos/climasus4r/blob/main/CODE_OF_CONDUCT.md). Comprometemo-nos a manter um ambiente acolhedor, respeitoso e colaborativo para todos.
-</div>
+\<div class="callout callout-tip"\>
+**Code of Conduct:** All interactions in our project follow a [Code of Conduct](https://github.com/ByMaxAnjos/climasus4r/blob/master/inst/CODE_OF_CONDUCT.md). We are committed to maintaining a welcoming, respectful, and collaborative environment for everyone.
+\</div\>
 
----
+-----
 
-# Funções a desempenhar
+# Roles to Play
 
-Nossa equipe é organizada em **vários níveis de engajamento**, desde liderança técnica até contribuições pontuais. Cada função dentro do fluxo de trabalho possui responsabilidades específicas, mas todos são essenciais para o sucesso do projeto climasus4r.
+Our team is organized into **several levels of engagement**, from technical leadership to occasional contributions. Each role within the workflow has specific responsibilities, but all are essential to the success of the climasus4r project.
 
-<div class="pathway-box" style="line-height: 2;">
-  <strong style="display: block; margin-bottom: 8px;">🚀 Perfil de Contribuição:</strong>
-  <span class="badge">Contribuidor</span> • 
-  <span class="badge">Documentação & Suporte</span> • 
-  <span class="badge">Assistente de Pesquisa</span> • 
-  <span class="badge">Desenvolvedor Assistente</span> • 
-  <span class="badge">Desenvolvedor Sênior</span> • 
-  <span class="badge">Engenheiro de Software</span> • 
-  <span class="badge">Consultor Científico</span> • 
-  <span class="badge">Coordenador</span>
-</div>
+\<div class="pathway-box" style="line-height: 2;"\>
+\<strong style="display: block; margin-bottom: 8px;"\>🚀 Contribution Profile:\</strong\>
+\<span class="badge"\>Contributor\</span\> •
+\<span class="badge"\>Documentation & Support\</span\> •
+\<span class="badge"\>Research Assistant\</span\> •
+\<span class="badge"\>Assistant Developer\</span\> •
+\<span class="badge"\>Senior Developer\</span\> •
+\<span class="badge"\>Software Engineer\</span\> •
+\<span class="badge"\>Scientific Consultant\</span\> •
+\<span class="badge"\>Coordinator\</span\>
+\</div\>
 
----
+-----
 
-## 🎯 Núcleo de Liderança
+## 🎯 Leadership Core
 
-### Coordenador & Desenvolvedor Líder
+### Coordinator & Lead Developer
 
-<div class="role-card">
-<span class="badge badge-core">LIDERANÇA</span>
+\<div class="role-card"\>
+\<span class="badge badge-core"\>LEADERSHIP\</span\>
 
-**Responsabilidades:**
-- Definir a visão estratégica e roadmap técnico do projeto
-- Arquitetar a estrutura geral do pacote e APIs
-- Coordenar releases e versionamento semântico
-- Revisar e aprovar Pull Requests críticos
-- Gerenciar relacionamentos com instituições parceiras
-- Orientar desenvolvedores sêniores e científicos
+**Responsibilities:**
 
-**Requisitos:**  
-Experiência avançada em desenvolvimento de pacotes R/Python, gestão de projetos open-source, e liderança técnica. Domínio de Git, CI/CD, e metodologias ágeis.
+  - Define the strategic vision and technical roadmap of the project
+  - Architect the overall structure of the package and APIs
+  - Coordinate releases and semantic versioning
+  - Review and approve critical Pull Requests
+  - Manage relationships with partner institutions
+  - Mentor senior and scientific developers
 
-**Como se tornar um:**  
-Este papel é atribuído pelo mantenedor atual do projeto baseado em contribuições consistentes, visão estratégica demonstrada e compromisso de longo prazo.
+**Requirements:** Advanced experience in R/Python package development, open-source project management, and technical leadership. Mastery of Git, CI/CD, and agile methodologies.
 
-</div>
+**How to become one:** This role is assigned by the current project maintainer based on consistent contributions, demonstrated strategic vision, and long-term commitment.
 
----
+\</div\>
 
-## 💻 Equipe Técnica
+-----
 
-### Desenvolvedor R/Python Sênior
+## 💻 Technical Team
 
-<div class="role-card">
-<span class="badge badge-tech">TÉCNICO AVANÇADO</span>
+### Senior R/Python Developer
 
-| | |
-|:---|:---|
-| **Responsabilidades** | • Desenvolver funcionalidades complexas e módulos core<br>• Implementar otimizações de performance e escalabilidade<br>• Criar testes automatizados robustos (`testthat`, `pytest`)<br>• Revisar código de desenvolvedores juniores<br>• Documentar arquitetura técnica e APIs internas |
-| **Stack Tecnológico** | R avançado (`data.table`, `terra`, `sf`, `tidymodels`), Python (`pandas`, `xarray`, `rasterio`), Git avançado, CI/CD (GitHub Actions), Docker |
-| **Requisitos** | • 3+ anos de experiência com R ou Python<br>• Experiência com geoprocessamento e análise espacial<br>• Conhecimento de desenvolvimento de pacotes (`devtools`, `setuptools`)<br>• Capacidade de mentoria técnica |
-| **Como Contribuir** | 1. Procure Issues marcadas com `complex` ou `architecture`<br>2. Proponha melhorias de performance em funções existentes<br>3. Participe de decisões técnicas nas Discussions<br>4. Envie PRs com testes comprehensivos e documentação técnica |
-
-</div>
-
-### Engenheiro de Software
-
-<div class="role-card">
-<span class="badge badge-tech">INFRAESTRUTURA</span>
+\<div class="role-card"\>
+\<span class="badge badge-tech"\>ADVANCED TECHNICAL\</span\>
 
 | | |
 |:---|:---|
-| **Responsabilidades** | • Manter infraestrutura de CI/CD e automação<br>• Gerenciar containers e ambientes de desenvolvimento<br>• Implementar pipelines de dados e ETL<br>• Garantir qualidade de código (linting, formatação)<br>• Otimizar integração com sistemas externos (APIs, bancos de dados) |
-| **Stack Tecnológico** | GitHub Actions, Docker, Linux, SQL/NoSQL, APIs REST, Cloud (AWS/GCP), Python/R para automação |
-| **Requisitos** | • Experiência em DevOps e automação<br>• Conhecimento de boas práticas de software engineering<br>• Familiaridade com ambientes científicos de computação<br>• Capacidade de documentar processos técnicos |
-| **Como Contribuir** | 1. Melhore nossos workflows de GitHub Actions<br>2. Crie Dockerfiles para ambientes reprodutíveis<br>3. Implemente pipelines de validação de dados<br>4. Otimize a integração contínua e deploy automático |
+| **Responsibilities** | • Develop complex features and core modules<br>• Implement performance and scalability optimizations<br>• Create robust automated tests (`testthat`, `pytest`)<br>• Review junior developers' code<br>• Document technical architecture and internal APIs |
+| **Tech Stack** | Advanced R (`data.table`, `terra`, `sf`, `tidymodels`), Python (`pandas`, `xarray`, `rasterio`), Advanced Git, CI/CD (GitHub Actions), Docker |
+| **Requirements** | • 3+ years of experience with R or Python<br>• Experience with geoprocessing and spatial analysis<br>• Knowledge of package development (`devtools`, `setuptools`)<br>• Technical mentoring capability |
+| **How to Contribute** | 1. Look for Issues tagged with `complex` or `architecture`<br>2. Propose performance improvements in existing functions<br>3. Participate in technical decisions in Discussions<br>4. Submit PRs with comprehensive tests and technical documentation |
 
-</div>
+\</div\>
 
-### Desenvolvedor R/Python Assistente
+### Software Engineer
 
-<div class="role-card">
-<span class="badge badge-tech">TÉCNICO JÚNIOR</span>
-
-| | |
-|:---|:---|
-| **Responsabilidades** | • Implementar funções auxiliares e utilitários<br>• Corrigir bugs de complexidade média<br>• Escrever testes unitários<br>• Refatorar código para melhor legibilidade<br>• Criar exemplos e vignettes |
-| **Stack Tecnológico** | R intermediário (`tidyverse`, `sf` básico), Python intermediário, Git básico, RMarkdown/Quarto |
-| **Requisitos** | • 1+ ano de experiência com R ou Python<br>• Conhecimento de análise de dados<br>• Vontade de aprender desenvolvimento de pacotes<br>• Disponibilidade para receber feedback construtivo |
-| **Como Começar** | 1. Busque Issues com labels `good first issue` ou `help wanted`<br>2. Faça fork do repositório e crie branches nomeadas (`feature/descricao-curta`)<br>3. Participe do programa de mentoria com desenvolvedores sêniores<br>4. Complete tarefas de refactoring e documentação |
-
-</div>
-
----
-
-## 🔬 Equipe Científica
-
-### Consultor Científico
-
-<div class="role-card">
-<span class="badge badge-science">VALIDAÇÃO CIENTÍFICA</span>
+\<div class="role-card"\>
+\<span class="badge badge-tech"\>INFRASTRUCTURE\</span\>
 
 | | |
 |:---|:---|
-| **Responsabilidades** | • Auditar validade estatística e epidemiológica dos métodos<br>• Validar interpretação de indicadores climáticos e de saúde<br>• Revisar modelos estatísticos implementados<br>• Sugerir novas análises e métricas relevantes<br>• Co-autorar publicações e relatórios técnicos |
-| **Áreas de Expertise** | Epidemiologia, Climatologia, Saúde Pública, Estatística, Biometeorologia, Saúde Ambiental |
-| **Requisitos** | • Formação avançada (mestrado/doutorado) em área correlata<br>• Experiência com análise quantitativa de dados de saúde<br>• Conhecimento de metodologias de pesquisa climática<br>• Interesse em ciência aberta e reprodutibilidade |
-| **Como Participar** | 1. Envie email para `climasus4r.dev@example.com` com assunto "Consultoria Científica"<br>2. Anexe seu CV e descrição de expertise<br>3. Participe de reuniões mensais de validação científica<br>4. Revise Pull Requests que afetam métodos estatísticos |
+| **Responsibilities** | • Maintain CI/CD and automation infrastructure<br>• Manage containers and development environments<br>• Implement data pipelines and ETL<br>• Ensure code quality (linting, formatting)<br>• Optimize integration with external systems (APIs, databases) |
+| **Tech Stack** | GitHub Actions, Docker, Linux, SQL/NoSQL, REST APIs, Cloud (AWS/GCP), Python/R for automation |
+| **Requirements** | • Experience in DevOps and automation<br>• Knowledge of software engineering best practices<br>• Familiarity with scientific computing environments<br>• Ability to document technical processes |
+| **How to Contribute** | 1. Improve our GitHub Actions workflows<br>2. Create Dockerfiles for reproducible environments<br>3. Implement data validation pipelines<br>4. Optimize continuous integration and automatic deployment |
 
-</div>
+\</div\>
 
-### Assistente de Pesquisa (IC, Mestrado, Doutorado, Pós-Doutorado)
+### Assistant R/Python Developer
 
-<div class="role-card">
-<span class="badge badge-science">PESQUISA APLICADA</span>
-
-| | |
-|:---|:---|
-| **Responsabilidades** | • Aplicar o pacote em projetos de pesquisa acadêmica<br>• Desenvolver estudos de caso com dados reais do SUS<br>• Validar funcionalidades em cenários reais de pesquisa<br>• Reportar bugs e sugerir melhorias baseadas em uso<br>• Produzir material educacional e tutoriais |
-| **Oportunidades** | • Iniciação Científica com bolsa<br>• Dados para dissertação/tese<br>• Co-autoria em artigos científicos<br>• Networking com pesquisadores seniores |
-| **Requisitos** | • Vínculo com instituição de pesquisa<br>• Projeto relacionado a clima e saúde<br>• Disposição para documentar o uso do pacote<br>• Compromisso com ciência aberta |
-| **Como Participar** | 1. Descreva seu projeto de pesquisa em uma Discussion<br>2. Indique como o climasus4r se integra à sua pesquisa<br>3. Compartilhe resultados preliminares e feedback<br>4. Colabore na criação de vignettes baseadas em seu caso de uso |
-
-</div>
-
----
-
-## 🌟 Comunidade & Suporte
-
-### Documentação & Suporte
-
-<div class="role-card">
-<span class="badge badge-community">COMUNICAÇÃO</span>
+\<div class="role-card"\>
+\<span class="badge badge-tech"\>JUNIOR TECHNICAL\</span\>
 
 | | |
 |:---|:---|
-| **Responsabilidades** | • Manter documentação técnica atualizada (pkgdown, Quarto)<br>• Criar tutoriais, guias e materiais didáticos<br>• Responder dúvidas em Issues e Discussions<br>• Traduzir documentação (PT/EN/ES)<br>• Gerenciar website e presença em redes sociais |
-| **Habilidades** | Comunicação técnica, RMarkdown/Quarto, Git/GitHub, Design de materiais educacionais, Redes sociais acadêmicas |
-| **Requisitos** | • Excelente capacidade de escrita técnica<br>• Conhecimento básico de R (para testar exemplos)<br>• Empatia para ajudar usuários iniciantes<br>• Criatividade para comunicação científica |
-| **Como Contribuir** | 1. Melhore a documentação de funções existentes<br>2. Crie tutoriais em vídeo ou blog posts<br>3. Responda dúvidas de novos usuários<br>4. Traduza conteúdo para outros idiomas<br>5. Proponha melhorias na UX do site e documentação |
+| **Responsibilities** | • Implement helper functions and utilities<br>• Fix medium-complexity bugs<br>• Write unit tests<br>• Refactor code for better readability<br>• Create examples and vignettes |
+| **Tech Stack** | Intermediate R (`tidyverse`, basic `sf`), Intermediate Python, Basic Git, RMarkdown/Quarto |
+| **Requirements** | • 1+ year of experience with R or Python<br>• Knowledge of data analysis<br>• Willingness to learn package development<br>• Openness to receive constructive feedback |
+| **How to Start** | 1. Look for Issues with `good first issue` or `help wanted` labels<br>2. Fork the repository and create named branches (`feature/short-description`)<br>3. Participate in the mentoring program with senior developers<br>4. Complete refactoring and documentation tasks |
 
-</div>
+\</div\>
 
-### Contribuidor do Projeto
+-----
 
-<div class="role-card">
-<span class="badge badge-community">COLABORADOR</span>
+## 🔬 Scientific Team
+
+### Scientific Consultant
+
+\<div class="role-card"\>
+\<span class="badge badge-science"\>SCIENTIFIC VALIDATION\</span\>
 
 | | |
 |:---|:---|
-| **Atividades** | • Reportar bugs e sugerir features via Issues<br>• Testar novas versões e dar feedback<br>• Compartilhar casos de uso e aplicações<br>• Divulgar o pacote em eventos e redes sociais<br>• Pequenas correções (typos, links quebrados) |
-| **Perfil** | Entusiastas de dados, estudantes, profissionais de saúde, pesquisadores iniciantes — **todos são bem-vindos!** |
-| **Requisitos** | • Conta no GitHub<br>• Interesse em dados de clima e saúde<br>• Vontade de participar da comunidade |
-| **Primeiros Passos** | 1. ⭐ **Star** no repositório para acompanhar atualizações<br>2. 📖 Leia a documentação e tente os exemplos<br>3. 🐛 Encontrou um problema? Abra uma Issue!<br>4. 💡 Tem uma ideia? Inicie uma Discussion<br>5. 🗣️ Conte para colegas sobre o projeto |
+| **Responsibilities** | • Audit the statistical and epidemiological validity of methods<br>• Validate the interpretation of climate and health indicators<br>• Review implemented statistical models<br>• Suggest new relevant analyses and metrics<br>• Co-author publications and technical reports |
+| **Areas of Expertise** | Epidemiology, Climatology, Public Health, Statistics, Biometeorology, Environmental Health |
+| **Requirements** | • Advanced degree (Master's/PhD) in a related field<br>• Experience with quantitative health data analysis<br>• Knowledge of climate research methodologies<br>• Interest in open science and reproducibility |
+| **How to Participate** | 1. Send an email to `climasus4r.dev@example.com` with the subject "Scientific Consulting"<br>2. Attach your CV and a description of your expertise<br>3. Participate in monthly scientific validation meetings<br>4. Review Pull Requests that affect statistical methods |
 
-</div>
+\</div\>
 
----
+### Research Assistant (Undergrad, Master's, PhD, Post-Doc)
 
-# Como Escolher seu Perfil
+\<div class="role-card"\>
+\<span class="badge badge-science"\>APPLIED RESEARCH\</span\>
 
-<div class="callout-box">
-<strong>Ainda não sabe por onde começar?</strong><br><br>
-Responda estas perguntas rápidas:
+| | |
+|:---|:---|
+| **Responsibilities** | • Apply the package in academic research projects<br>• Develop case studies with real SUS data<br>• Validate features in real research scenarios<br>• Report bugs and suggest use-case based improvements<br>• Produce educational material and tutorials |
+| **Opportunities** | • Scientific Initiation with scholarship<br>• Data for dissertation/thesis<br>• Co-authorship in scientific papers<br>• Networking with senior researchers |
+| **Requirements** | • Affiliation with a research institution<br>• Project related to climate and health<br>• Willingness to document package usage<br>• Commitment to open science |
+| **How to Participate** | 1. Describe your research project in a Discussion<br>2. Indicate how climasus4r integrates into your research<br>3. Share preliminary results and feedback<br>4. Collaborate in creating vignettes based on your use case |
 
-<ul>
-<li><strong>Quero escrever código e tenho experiência:</strong> → Desenvolvedor Sênior ou Engenheiro de Software</li>
-<li><strong>Quero escrever código mas estou aprendendo:</strong> → Desenvolvedor Assistente</li>
-<li><strong>Sou pesquisador e quero usar o pacote:</strong> → Assistente de Pesquisa</li>
-<li><strong>Sou especialista em métodos:</strong> → Consultor Científico</li>
-<li><strong>Gosto de escrever e ajudar pessoas:</strong> → Documentação & Suporte</li>
-<li><strong>Quero ajudar sem compromisso fixo:</strong> → Contribuidor do Projeto</li>
-</ul>
-</div>
+\</div\>
 
----
+-----
 
-# Processo de Onboarding
+## 🌟 Community & Support
 
-1. **Leia o Código de Conduta** — Todos os papéis exigem respeito mútuo
-2. **Explore o Repositório** — Familiarize-se com a estrutura e documentação existente
-3. **Introduza-se** — Na aba Discussions, apresente-se e mencione seu interesse
-4. **Comece Pequeno** — Escolha uma tarefa simples para primeiro contato
-5. **Cresça Gradualmente** — À medida que ganha confiança, assuma responsabilidades maiores
+### Documentation & Support
 
----
+\<div class="role-card"\>
+\<span class="badge badge-community"\>COMMUNICATION\</span\>
 
-<div class="callout callout-tip">
-<strong>Reconhecimento:</strong><br>
-Todos os contribuidores são listados no [site climasus4r](https://github.com/ByMaxAnjos/climasus4r). Contribuições significativas são reconhecidas em releases e publicações científicas.
-</div>
+| | |
+|:---|:---|
+| **Responsibilities** | • Maintain up-to-date technical documentation (pkgdown, Quarto)<br>• Create tutorials, guides, and educational materials<br>• Answer questions in Issues and Discussions<br>• Translate documentation (PT/EN/ES)<br>• Manage the website and social media presence |
+| **Skills** | Technical communication, RMarkdown/Quarto, Git/GitHub, Educational material design, Academic social networks |
+| **Requirements** | • Excellent technical writing skills<br>• Basic R knowledge (to test examples)<br>• Empathy to help beginner users<br>• Creativity for scientific communication |
+| **How to Contribute** | 1. Improve the documentation of existing functions<br>2. Create video tutorials or blog posts<br>3. Answer new users' questions<br>4. Translate content to other languages<br>5. Propose improvements to the site's UX and documentation |
 
-**Pronto para começar?** 🚀  
-Acesse [github.com/ByMaxAnjos/climasus4r](https://github.com/ByMaxAnjos/climasus4r) e faça parte da comunidade!
+\</div\>
+
+### Project Contributor
+
+\<div class="role-card"\>
+\<span class="badge badge-community"\>COLLABORATOR\</span\>
+
+| | |
+|:---|:---|
+| **Activities** | • Report bugs and suggest features via Issues<br>• Test new versions and provide feedback<br>• Share use cases and applications<br>• Promote the package at events and on social media<br>• Minor fixes (typos, broken links) |
+| **Profile** | Data enthusiasts, students, health professionals, early-career researchers — **everyone is welcome\!** |
+| **Requirements** | • GitHub account<br>• Interest in climate and health data<br>• Desire to participate in the community |
+| **First Steps** | 1. ⭐ **Star** the repository to track updates<br>2. 📖 Read the documentation and try the examples<br>3. 🐛 Found a problem? Open an Issue\!<br>4. 💡 Have an idea? Start a Discussion<br>5. 🗣️ Tell colleagues about the project |
+
+\</div\>
+
+-----
+
+# How to Choose Your Profile
+
+\<div class="callout-box"\>
+\<strong\>Still don't know where to start?\</strong\><br><br>
+Answer these quick questions:
+
+\<ul\>
+\<li\>\<strong\>I want to write code and have experience:\</strong\> → Senior Developer or Software Engineer\</li\>
+\<li\>\<strong\>I want to write code but I'm learning:\</strong\> → Assistant Developer\</li\>
+\<li\>\<strong\>I am a researcher and want to use the package:\</strong\> → Research Assistant\</li\>
+\<li\>\<strong\>I am a methods expert:\</strong\> → Scientific Consultant\</li\>
+\<li\>\<strong\>I like to write and help people:\</strong\> → Documentation & Support\</li\>
+\<li\>\<strong\>I want to help without a fixed commitment:\</strong\> → Project Contributor\</li\>
+\</ul\>
+\</div\>
+
+-----
+
+# Onboarding Process
+
+1.  **Read the Code of Conduct** — All roles require mutual respect
+2.  **Explore the Repository** — Familiarize yourself with the structure and existing documentation
+3.  **Introduce Yourself** — In the Discussions tab, introduce yourself and mention your interest
+4.  **Start Small** — Choose a simple task for your first contact
+5.  **Grow Gradually** — As you gain confidence, take on greater responsibilities
+
+-----
+
+\<div class="callout callout-tip"\>
+\<strong\>Recognition:\</strong\><br>
+All contributors are listed on the [climasus4r website](https://github.com/ByMaxAnjos/climasus4r). Significant contributions are acknowledged in releases and scientific publications.
+\</div\>
+
+**Ready to start?** 🚀  
+Visit [github.com/ByMaxAnjos/climasus4r](https://github.com/ByMaxAnjos/climasus4r) and join the community\!
 ```

@@ -1,158 +1,170 @@
+Here is the translation of your code and text into English. I've translated the titles, descriptions, buttons, markdown text, and even the CSS comments for consistency:
+
+````html
 ---
 title: "Tutorials"
 ---
 
+```{=html}
 <style>
-  /* Container Principal */
-  .climasus-grid {
+  /* --- Climate Forest Theme: Tutorial Grid --- */
+
+  :root {
+    --cf-bg-page: #F1F8E9;         /* Page background (Soft mint) */
+    --cf-card-bg: #FFFFFF;         /* Card background */
+    --cf-primary: #2E7D32;         /* Forest Green (Titles, Borders) */
+    --cf-secondary: #558B2F;       /* Leaf Green (Icons) */
+    --cf-accent: #EF6C00;          /* Burnt Orange (Buttons/Badges) */
+    --cf-text-main: #1B5E20;       /* Dark text */
+    --cf-text-light: #52665A;      /* Description text */
+    --cf-shadow: 0 10px 30px -10px rgba(46, 125, 50, 0.15);
+  }
+
+  /* Layout */
+  .tutorial-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 24px;
-    padding: 20px 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    padding: 2rem 0;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   }
 
-  /* O Card */
-  .climasus-card {
-    position: relative;
+  /* Card Styles */
+  .tutorial-card {
+    background: var(--cf-card-bg);
     border-radius: 12px;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(46, 125, 50, 0.1);
+    border-left: 5px solid var(--cf-primary); /* Elegant side detail */
+    box-shadow: var(--cf-shadow);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
     overflow: hidden;
-    text-decoration: none;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    background-color: #fff;
+  }
+
+  .tutorial-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 15px 35px -10px rgba(46, 125, 50, 0.25);
+    border-color: var(--cf-secondary);
+  }
+
+  /* Header & Icons */
+  .card-header {
     display: flex;
-    flex-direction: column;
-    height: 320px; /* Altura fixa para uniformidade */
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.2rem;
   }
 
-  /* Efeito Hover (Ao passar o mouse) */
-  .climasus-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 12px 20px rgba(46, 125, 50, 0.25); /* Sombra Verde Floresta */
-  }
-
-  /* Imagem de Fundo */
-  .card-image {
-    height: 100%;
-    width: 100%;
-    object-fit: cover;
-    transition: transform 0.5s ease;
-  }
-
-  .climasus-card:hover .card-image {
-    transform: scale(1.05); /* Zoom suave na imagem */
-  }
-
-  /* Gradiente e Texto (Overlay) */
-  .card-overlay {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(to top, rgba(20, 50, 20, 0.95), rgba(46, 125, 50, 0.6), transparent);
-    padding: 24px;
-    color: white;
-    height: 70%;
+  .card-icon {
+    color: var(--cf-secondary);
+    background-color: #E8F5E9;
+    padding: 10px;
+    border-radius: 50%;
     display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: center;
   }
 
-  /* Tipografia */
-  .card-category {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: #A5D6A7; /* Verde claro */
-    margin-bottom: 8px;
-    font-weight: bold;
-  }
-
-  .card-title {
-    font-size: 1.25rem;
+  .card-badge {
+    background-color: var(--cf-bg-page);
+    color: var(--cf-primary);
+    font-size: 0.7rem;
     font-weight: 700;
-    margin: 0 0 6px 0;
+    letter-spacing: 0.5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    border: 1px solid rgba(46, 125, 50, 0.2);
+  }
+
+  /* Content */
+  .card-title {
+    color: var(--cf-text-main);
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin: 0 0 0.75rem 0;
     line-height: 1.2;
-    color: #ffffff;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
   }
 
-  .card-subtitle {
+  .card-description {
+    color: var(--cf-text-light);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    flex-grow: 1;
+    margin-bottom: 2rem;
+  }
+
+  /* Action Button */
+  .card-cta-button {
+    background-color: var(--cf-primary);
+    color: white !important; /* Forces white color in case the site theme overrides it */
     font-size: 0.9rem;
-    color: #E8F5E9;
-    margin: 0;
-    opacity: 0.9;
-    line-height: 1.4;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    align-self: flex-start; /* Left-aligned button */
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
   }
 
-  /* Seta de ação */
-  .card-arrow {
-    margin-top: 15px;
-    font-weight: bold;
-    color: #fff;
-    font-size: 1.1rem;
-    opacity: 0;
-    transform: translateX(-10px);
-    transition: all 0.3s ease;
+  .card-cta-button:hover {
+    background-color: var(--cf-secondary);
+    text-decoration: none;
+    transform: translateX(4px);
+  }
+  
+  /* SVG Fix */
+  .tutorial-card svg {
+    width: 24px;
+    height: 24px;
   }
 
-  .climasus-card:hover .card-arrow {
-    opacity: 1;
-    transform: translateX(0);
-  }
 </style>
 
-<div class="climasus-grid">
+<div class="tutorial-grid">
 
-  <a href="/tutoriais/data-engineering" class="climasus-card">
-    <img src="https://github.com/ByMaxAnjos/climasus4r/blob/master/inst/figures/logo.png?raw=true" alt="Data Science" class="card-image">
-    <div class="card-overlay">
-      <span class="card-category">Engenharia de Dados</span>
-      <h3 class="card-title">Fundamentos & Integração SUS</h3>
-      <p class="card-subtitle">Domine a extração do DATASUS, limpeza de dados e unificação com bases meteorológicas.</p>
-      <div class="card-arrow">Começar →</div>
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+      </div>
+      <span class="card-badge">Essential</span>
     </div>
-  </a>
+    <h3 class="card-title">Introductory Tutorial</h3>
+    <p class="card-description">Learn the complete workflow: from package installation to time series creation. Ideal for beginners with no prior experience.</p>
+    <a href="[https://bymaxanjos.github.io/climasus4r/pt/articles/tutorial_introducao.html](https://bymaxanjos.github.io/climasus4r/pt/articles/tutorial_introducao.html)" class="card-cta-button">Start Now →</a>
+  </div>
 
-  <a href="/tutoriais/case-studies" class="climasus-card">
-    <img src="https://github.com/ByMaxAnjos/climasus4r/blob/master/inst/figures/logo.png?raw=true" alt="Epidemiology Map" class="card-image">
-    <div class="card-overlay">
-      <span class="card-category">Epidemiologia Aplicada</span>
-      <h3 class="card-title">Estudos de Caso & Modelagem</h3>
-      <p class="card-subtitle">Pipelines reprodutíveis: de surtos de Dengue a análises de ondas de calor.</p>
-      <div class="card-arrow">Explorar →</div>
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.58 4 8 4s8-1.79 8-4M4 7c0-2.21 3.58-4 8-4s8 1.79 8 4m0 5c0 2.21-3.58 4-8 4s-8-1.79-8-4" /></svg>
+      </div>
+      <span class="card-badge">RAPs</span>
     </div>
-  </a>
-
-  <a href="/tutoriais/education" class="climasus-card">
-    <img src="https://github.com/ByMaxAnjos/climasus4r/blob/master/inst/figures/logo.png?raw=true" alt="Education" class="card-image">
-    <div class="card-overlay">
-      <span class="card-category">Academia</span>
-      <h3 class="card-title">Educação em Saúde Planetária</h3>
-      <p class="card-subtitle">Recursos didáticos para ensinar R, GIS e saúde ambiental na graduação e pós.</p>
-      <div class="card-arrow">Aprender →</div>
-    </div>
-  </a>
-
-  <a href="/tutoriais/public-policy" class="climasus-card">
-    <img src="https://github.com/ByMaxAnjos/climasus4r/blob/master/inst/figures/logo.png?raw=true" alt="Meeting Strategy" class="card-image">
-    <div class="card-overlay">
-      <span class="card-category">Tomada de Decisão</span>
-      <h3 class="card-title">Gestão & Políticas Públicas</h3>
-      <p class="card-subtitle">Transforme dados brutos em evidências estratégicas, relatórios e dashboards.</p>
-      <div class="card-arrow">Visualizar →</div>
-    </div>
-  </a>
+    <h3 class="card-title">Reproducible Analytical Pipelines (RAPs)</h3>
+    <p class="card-description">Presents four practical case studies demonstrating the power and flexibility of the `climasus4r` package for epidemiological analysis using RAPs.</p>
+    <a href="[https://bymaxanjos.github.io/climasus4r/pt/articles/tutorial_estudos_casos.html](https://bymaxanjos.github.io/climasus4r/pt/articles/tutorial_estudos_casos.html)" class="card-cta-button">View Tutorial →</a>
+  </div>
 
 </div>
+````
 
+-----
 
-## 🌲 Have feedback or suggestions?
-Do you have an idea for improvement or did you spot a mistake? We'd love to hear from you! Click the button below to create a new issue on GitHub and share your feedback directly with us.
+## 🌲 Do you have feedback or suggestions?
 
-<a href='https://github.com/ByMaxAnjos/climasus4r/issues/new'>
-  <button type="button" class="btn" style="background-color: #2E7D32; color: white; padding: 8px 16px; font-size: 14px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.3s;">
-    Open an issue in the Github repository
-  </button>
-</a>
+Do you have any ideas for improvement or did you find a bug? We would love to hear from you\! Click the button below to open a new *issue* on GitHub and share your suggestions directly with us.
+
+\<a href='https://github.com/ByMaxAnjos/climasus4r/issues/new'\>
+\<button type="button" class="btn" style="background-color: \#3BB273; color: white; padding: 10px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s;"\>
+Open an issue on GitHub
+\</button\>
+\</a\>
