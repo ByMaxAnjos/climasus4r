@@ -413,9 +413,9 @@ Contribuir para um projeto open-source como o `climasus4r` é uma oportunidade d
 -   **Fazer Networking:** Conecte-se com uma rede de especialistas em clima, saúde e ciência de dados.
 -   **Gerar Impacto:** Ajude a construir uma ferramenta que fortalece a vigilância em saúde e subsidia políticas públicas no Brasil.
 
-\<div class="callout callout-tip"\>
+<div class="callout callout-tip">
 **Código de Conduta:** Todas as interações em nosso projeto seguem um [Código de Conduta](https://github.com/ByMaxAnjos/climasus4r/blob/master/inst/CODE_OF_CONDUCT.md). Comprometemo-nos a manter um ambiente acolhedor, respeitoso e colaborativo para todos.
-\</div\>
+</div>
 
 ---
 
@@ -607,4 +607,5 @@ Todos os contribuidores são listados no [site climasus4r](https://github.com/By
 
 **Pronto para começar?** 🚀  
 Acesse [github.com/ByMaxAnjos/climasus4r](https://github.com/ByMaxAnjos/climasus4r) e faça parte da comunidade!
+```
 ```
