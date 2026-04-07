@@ -399,7 +399,6 @@ sus_climate_fill_gaps <- function(
         end = max(df_filled$date),
         source = source,
         imputed = TRUE,
-        evaluation = evaluation,
         target_var = target_var,
         imputation_rate = n_imputed / n_total,
         quality_threshold = quality_threshold
@@ -431,7 +430,6 @@ sus_climate_fill_gaps <- function(
         end = max(df_filled$date),
         source = source,
         imputed = TRUE,
-        evaluation = evaluation,
         target_var = target_var,
         imputation_rate = n_imputed / n_total,
         quality_threshold = quality_threshold

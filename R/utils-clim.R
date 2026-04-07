@@ -424,293 +424,404 @@ utils::globalVariables(c(
 #'
 #' @keywords internal
 #' @noRd
+# .aggregate_meteo_data <- function(
+#     data,
+#     time_unit = "day",
+#     datetime_col = "date",
+#     na.rm = TRUE) 
+#     {
+
+#   # FIX #10: Add input validation
+#   if (!is.data.frame(data)) {
+#     cli::cli_abort("{.arg data} must be a data frame.")
+#   }
+
+#   # Ensure datetime column is in correct format
+#   if (!inherits(data[[datetime_col]], "POSIXct")) {
+#     data[[datetime_col]] <- lubridate::as_datetime(data[[datetime_col]])
+#   }
+
+#   # FIX #2: Use standardized column names consistently
+#   # FIX #6: Remove duplicate aggregation rules
+#   aggregation_rules <- list(
+#     # Precipitation - sum
+#     c("rainfall_mm", "sum"),
+
+#     # Atmospheric pressure - mean
+#     c("patm_mb", "mean"),
+#     c("patm_max_mb", "mean"),
+#     c("patm_min_mb", "mean"),
+
+#     # Solar radiation - sum (daily accumulated)
+#     c("sr_kj_m2", "sum"),
+
+#     # Temperatures - appropriate statistics
+#     c("tair_dry_bulb_c", "mean"),
+#     c("tair_max_c", "max"),
+#     c("tair_min_c", "min"),
+
+#     # Dew point temperatures
+#     c("dew_tmean_c", "mean"),
+#     c("dew_tmax_c", "max"),
+#     c("dew_tmin_c", "min"),
+
+#     # Relative humidity
+#     c("rh_max_porc", "max"),
+#     c("rh_min_porc", "min"),
+#     c("rh_mean_porc", "mean"),
+
+#     # Wind
+#     c("ws_gust_m_s", "max"),     # Maximum gust
+#     c("wd_degrees", "mean"),     # Mean wind direction
+#     c("ws_2_m_s", "mean"),       # Mean wind speed
+
+#     # Geographic/metadata - keep first observation
+#     c("region", "first"),
+#     c("station_name", "first"),
+#     c("station_code", "first"),
+#     c("latitude", "first"),
+#     c("longitude", "first"),
+#     c("altitude", "first"),
+#     c("UF", "first"),
+#     c("year", "first")
+#   )
+
+#   # Create safe aggregation functions
+#   safe_sum <- function(x, na.rm = TRUE) {
+#     if (all(is.na(x))) {
+#       return(NA_real_)
+#     }
+#     sum(x, na.rm = na.rm)
+#   }
+  
+#   safe_mean <- function(x, na.rm = TRUE) {
+#     if (all(is.na(x))) {
+#       return(NA_real_)
+#     }
+#     mean(x, na.rm = na.rm)
+#   }
+  
+#   safe_max <- function(x, na.rm = TRUE) {
+#     if (all(is.na(x))) {
+#       return(NA_real_)
+#     }
+#     result <- max(x, na.rm = na.rm)
+#     if (is.infinite(result) && result < 0) {
+#       return(NA_real_)
+#     }
+#     result
+#   }
+  
+#   safe_min <- function(x, na.rm = TRUE) {
+#     if (all(is.na(x))) {
+#       return(NA_real_)
+#     }
+#     result <- min(x, na.rm = na.rm)
+#     # min() retorna Inf quando todos os valores sao NA com na.rm = TRUE
+#     if (is.infinite(result) && result > 0) {
+#       return(NA_real_)
+#     }
+#     result
+#   }
+  
+#   safe_first <- function(x) {
+#     if (length(x) == 0 || all(is.na(x))) {
+#       return(NA)
+#     }
+#     x[1]
+#   }
+
+#   # Create aggregation functions
+#   agg_funs <- list()
+#   # Lista para armazenar apenas as variaveis meteorologicas (excluindo metadados de agrupamento)
+#   meteo_vars <- character()
+  
+#   for (rule in aggregation_rules) {
+#     var_name <- rule[1]
+#     agg_type <- rule[2]
+
+#     if (var_name %in% names(data)) {
+#       if (agg_type == "sum") {
+#         agg_funs[[var_name]] <- function(x) safe_sum(x, na.rm = na.rm)
+#         meteo_vars <- c(meteo_vars, var_name)
+#       } else if (agg_type == "mean") {
+#         agg_funs[[var_name]] <- function(x) safe_mean(x, na.rm = na.rm)
+#         meteo_vars <- c(meteo_vars, var_name)
+#       } else if (agg_type == "max") {
+#         agg_funs[[var_name]] <- function(x) safe_max(x, na.rm = na.rm)
+#         meteo_vars <- c(meteo_vars, var_name)
+#       } else if (agg_type == "min") {
+#         agg_funs[[var_name]] <- function(x) safe_min(x, na.rm = na.rm)
+#         meteo_vars <- c(meteo_vars, var_name)
+#       } else if (agg_type == "first") {
+#         agg_funs[[var_name]] <- function(x) safe_first(x)
+#         if (!var_name %in% c("region", "station_name", "station_code", 
+#                             "latitude", "longitude", "altitude", "UF", "year")) {
+#           meteo_vars <- c(meteo_vars, var_name)
+#         }
+#       }
+#     }
+#   }
+
+#   # Prepare data for aggregation
+#   data_copy <- data
+
+#   # Create temporal aggregation column
+#   if (time_unit == "day") {
+#     data_copy$time_group <- as.Date(data_copy[[datetime_col]])
+#   } else if (grepl("^\\d+ days?$", time_unit, ignore.case = TRUE)) {
+#     n_days <- as.numeric(gsub("\\D", "", time_unit))
+#     data_copy$time_group <- lubridate::floor_date(
+#       data_copy[[datetime_col]],
+#       unit = paste(n_days, "days")
+#     )
+#   } else if (time_unit == "week") {
+#     data_copy$time_group <- lubridate::floor_date(
+#       data_copy[[datetime_col]],
+#       unit = "week"
+#     )
+#   } else if (grepl("^\\d+ weeks?$", time_unit, ignore.case = TRUE)) {
+#     n_weeks <- as.numeric(gsub("\\D", "", time_unit))
+#     data_copy$time_group <- lubridate::floor_date(
+#       data_copy[[datetime_col]],
+#       unit = paste(n_weeks, "weeks")
+#     )
+#   } else if (time_unit == "month") {
+#     data_copy$time_group <- lubridate::floor_date(
+#       data_copy[[datetime_col]],
+#       unit = "month"
+#     )
+#   } else if (grepl("^\\d+ months?$", time_unit, ignore.case = TRUE)) {
+#     n_months <- as.numeric(gsub("\\D", "", time_unit))
+#     data_copy$time_group <- lubridate::floor_date(
+#       data_copy[[datetime_col]],
+#       unit = paste(n_months, "months")
+#     )
+#   } else if (time_unit == "quarter") {
+#     data_copy$time_group <- lubridate::floor_date(
+#       data_copy[[datetime_col]],
+#       unit = "quarter"
+#     )
+#   } else if (time_unit == "year") {
+#     data_copy$time_group <- lubridate::floor_date(
+#       data_copy[[datetime_col]],
+#       unit = "year"
+#     )
+#   } else if (time_unit == "season") {
+#     # Define Brazilian seasons (southern hemisphere)
+#     get_brazilian_season <- function(date) {
+#       month <- lubridate::month(date)
+#       season <- dplyr::case_when(
+#         month %in% c(12, 1, 2) ~ "DJF",   # Summer
+#         month %in% c(3, 4, 5) ~ "MAM",    # Autumn
+#         month %in% c(6, 7, 8) ~ "JJA",    # Winter
+#         month %in% c(9, 10, 11) ~ "SON"   # Spring
+#       )
+#       return(season)
+#     }
+
+#     data_copy$time_group <- get_brazilian_season(data_copy[[datetime_col]])
+#   } else {
+#     cli::cli_abort("Unknown time_unit: '{time_unit}'")
+#   }
+
+#   # Aggregate data
+#   if (time_unit == "season") {
+#     # For seasons, we need year as well
+#     data_copy$year <- lubridate::year(data_copy[[datetime_col]])
+    
+#     # Verificar se station_name existe nos dados
+#     if ("station_name" %in% names(data_copy)) {
+#       aggregated_data <- data_copy %>%
+#         dplyr::group_by(.data$station_name, .data$year, .data$time_group) %>%
+#         dplyr::summarise(
+#           dplyr::across(
+#             dplyr::any_of(meteo_vars),
+#             ~ agg_funs[[dplyr::cur_column()]](.)
+#           ),
+#           # Adicionar metadados explicitamente
+#           region = agg_funs[["region"]](region),
+#           station_code = agg_funs[["station_code"]](station_code),
+#           latitude = agg_funs[["latitude"]](latitude),
+#           longitude = agg_funs[["longitude"]](longitude),
+#           altitude = agg_funs[["altitude"]](altitude),
+#           UF = agg_funs[["UF"]](UF),
+#           .groups = "drop"
+#         ) %>%
+#         dplyr::rename(date = .data$time_group)
+#     } else {
+#       aggregated_data <- data_copy %>%
+#         dplyr::group_by(.data$year, .data$time_group) %>%
+#         dplyr::summarise(
+#           dplyr::across(
+#             dplyr::any_of(meteo_vars),
+#             ~ agg_funs[[dplyr::cur_column()]](.)
+#           ),
+#           region = agg_funs[["region"]](region),
+#           station_name = if ("station_name" %in% names(data_copy)) agg_funs[["station_name"]](station_name) else NA,
+#           station_code = agg_funs[["station_code"]](station_code),
+#           latitude = agg_funs[["latitude"]](latitude),
+#           longitude = agg_funs[["longitude"]](longitude),
+#           altitude = agg_funs[["altitude"]](altitude),
+#           UF = agg_funs[["UF"]](UF),
+#           .groups = "drop"
+#         ) %>%
+#         dplyr::rename(date = .data$time_group)
+#     }
+#   } else {
+#     if ("station_name" %in% names(data_copy)) {
+#       aggregated_data <- data_copy %>%
+#         dplyr::group_by(.data$station_name, .data$time_group) %>%
+#         dplyr::summarise(
+#           dplyr::across(
+#             dplyr::any_of(meteo_vars),
+#             ~ agg_funs[[dplyr::cur_column()]](.)
+#           ),
+#           region = agg_funs[["region"]](region),
+#           station_code = agg_funs[["station_code"]](station_code),
+#           latitude = agg_funs[["latitude"]](latitude),
+#           longitude = agg_funs[["longitude"]](longitude),
+#           altitude = agg_funs[["altitude"]](altitude),
+#           UF = agg_funs[["UF"]](UF),
+#           year = agg_funs[["year"]](year),
+#           .groups = "drop"
+#         ) %>%
+#         dplyr::rename(date = .data$time_group)
+#     } else {
+#       aggregated_data <- data_copy %>%
+#         dplyr::group_by(.data$time_group) %>%
+#         dplyr::summarise(
+#           dplyr::across(
+#             dplyr::any_of(meteo_vars),
+#             ~ agg_funs[[dplyr::cur_column()]](.)
+#           ),
+#           region = agg_funs[["region"]](region),
+#           station_name = if ("station_name" %in% names(data_copy)) agg_funs[["station_name"]](station_name) else NA,
+#           station_code = agg_funs[["station_code"]](station_code),
+#           latitude = agg_funs[["latitude"]](latitude),
+#           longitude = agg_funs[["longitude"]](longitude),
+#           altitude = agg_funs[["altitude"]](altitude),
+#           UF = agg_funs[["UF"]](UF),
+#           year = agg_funs[["year"]](year),
+#           .groups = "drop"
+#         ) %>%
+#         dplyr::rename(date = .data$time_group)
+#     }
+#   }
+
+#   # FIX #8: Remove unnecessary attributes
+#   # (They can cause issues with dplyr/tidyverse operations)
+
+#   return(dplyr::as_tibble(aggregated_data))
+# }
+
+
+#' Aggregate Meteorological Data Temporally (FIXED VERSION)
+#'
+#' @importFrom dplyr mutate group_by summarise across any_of case_when rename as_tibble .data
+#' @importFrom lubridate as_datetime floor_date month year
+#' @importFrom cli cli_abort
 .aggregate_meteo_data <- function(
     data,
     time_unit = "day",
     datetime_col = "date",
-    na.rm = TRUE) 
+    na_rm = TRUE) 
     {
 
-  # FIX #10: Add input validation
+  # 1. Input validation
   if (!is.data.frame(data)) {
     cli::cli_abort("{.arg data} must be a data frame.")
   }
 
-  # Ensure datetime column is in correct format
-  if (!inherits(data[[datetime_col]], "POSIXct")) {
-    data[[datetime_col]] <- lubridate::as_datetime(data[[datetime_col]])
-  }
+  # 2. Normalize datetime column
+  data_proc <- data %>%
+    dplyr::mutate(!!datetime_col := lubridate::as_datetime(.data[[datetime_col]]))
 
-  # FIX #2: Use standardized column names consistently
-  # FIX #6: Remove duplicate aggregation rules
-  aggregation_rules <- list(
-    # Precipitation - sum
-    c("rainfall_mm", "sum"),
+  # 3. Create time grouping column
+  data_proc <- data_proc %>%
+    dplyr::mutate(time_group = dplyr::case_when(
+      time_unit == "day"   ~ as.Date(.data[[datetime_col]]),
+      
+      time_unit == "week"  ~ as.Date(lubridate::floor_date(.data[[datetime_col]], unit = "week")),
+      
+      time_unit == "month" ~ as.Date(lubridate::floor_date(.data[[datetime_col]], unit = "month")),
+      
+      time_unit == "year"  ~ as.Date(lubridate::floor_date(.data[[datetime_col]], unit = "year")),
+      
+      time_unit == "season" ~ as.Date(lubridate::floor_date(.data[[datetime_col]], unit = "month")),
+      
+      # Handle formats like "15 days" or "2 months"
+      grepl("^\\d+", time_unit) ~ as.Date(lubridate::floor_date(.data[[datetime_col]], unit = time_unit)),
+      
+      TRUE ~ as.Date(lubridate::floor_date(.data[[datetime_col]], unit = "day"))
+    ))
 
-    # Atmospheric pressure - mean
-    c("patm_mb", "mean"),
-    c("patm_max_mb", "mean"),
-    c("patm_min_mb", "mean"),
-
-    # Solar radiation - sum (daily accumulated)
-    c("sr_kj_m2", "sum"),
-
-    # Temperatures - appropriate statistics
-    c("tair_dry_bulb_c", "mean"),
-    c("tair_max_c", "max"),
-    c("tair_min_c", "min"),
-
-    # Dew point temperatures
-    c("dew_tmean_c", "mean"),
-    c("dew_tmax_c", "max"),
-    c("dew_tmin_c", "min"),
-
-    # Relative humidity
-    c("rh_max_porc", "max"),
-    c("rh_min_porc", "min"),
-    c("rh_mean_porc", "mean"),
-
-    # Wind
-    c("ws_gust_m_s", "max"),     # Maximum gust
-    c("wd_degrees", "mean"),     # Mean wind direction
-    c("ws_2_m_s", "mean"),       # Mean wind speed
-
-    # Geographic/metadata - keep first observation
-    c("region", "first"),
-    c("station_name", "first"),
-    c("station_code", "first"),
-    c("latitude", "first"),
-    c("longitude", "first"),
-    c("altitude", "first"),
-    c("UF", "first"),
-    c("year", "first")
-  )
-
-  # Create safe aggregation functions
-  safe_sum <- function(x, na.rm = TRUE) {
-    if (all(is.na(x))) {
-      return(NA_real_)
-    }
-    sum(x, na.rm = na.rm)
-  }
-  
-  safe_mean <- function(x, na.rm = TRUE) {
-    if (all(is.na(x))) {
-      return(NA_real_)
-    }
-    mean(x, na.rm = na.rm)
-  }
-  
-  safe_max <- function(x, na.rm = TRUE) {
-    if (all(is.na(x))) {
-      return(NA_real_)
-    }
-    result <- max(x, na.rm = na.rm)
-    if (is.infinite(result) && result < 0) {
-      return(NA_real_)
-    }
-    result
-  }
-  
-  safe_min <- function(x, na.rm = TRUE) {
-    if (all(is.na(x))) {
-      return(NA_real_)
-    }
-    result <- min(x, na.rm = na.rm)
-    # min() retorna Inf quando todos os valores sao NA com na.rm = TRUE
-    if (is.infinite(result) && result > 0) {
-      return(NA_real_)
-    }
-    result
-  }
-  
-  safe_first <- function(x) {
-    if (length(x) == 0 || all(is.na(x))) {
-      return(NA)
-    }
-    x[1]
-  }
-
-  # Create aggregation functions
-  agg_funs <- list()
-  # Lista para armazenar apenas as variaveis meteorologicas (excluindo metadados de agrupamento)
-  meteo_vars <- character()
-  
-  for (rule in aggregation_rules) {
-    var_name <- rule[1]
-    agg_type <- rule[2]
-
-    if (var_name %in% names(data)) {
-      if (agg_type == "sum") {
-        agg_funs[[var_name]] <- function(x) safe_sum(x, na.rm = na.rm)
-        meteo_vars <- c(meteo_vars, var_name)
-      } else if (agg_type == "mean") {
-        agg_funs[[var_name]] <- function(x) safe_mean(x, na.rm = na.rm)
-        meteo_vars <- c(meteo_vars, var_name)
-      } else if (agg_type == "max") {
-        agg_funs[[var_name]] <- function(x) safe_max(x, na.rm = na.rm)
-        meteo_vars <- c(meteo_vars, var_name)
-      } else if (agg_type == "min") {
-        agg_funs[[var_name]] <- function(x) safe_min(x, na.rm = na.rm)
-        meteo_vars <- c(meteo_vars, var_name)
-      } else if (agg_type == "first") {
-        agg_funs[[var_name]] <- function(x) safe_first(x)
-        if (!var_name %in% c("region", "station_name", "station_code", 
-                            "latitude", "longitude", "altitude", "UF", "year")) {
-          meteo_vars <- c(meteo_vars, var_name)
-        }
-      }
-    }
-  }
-
-  # Prepare data for aggregation
-  data_copy <- data
-
-  # Create temporal aggregation column
-  if (time_unit == "day") {
-    data_copy$time_group <- as.Date(data_copy[[datetime_col]])
-  } else if (grepl("^\\d+ days?$", time_unit, ignore.case = TRUE)) {
-    n_days <- as.numeric(gsub("\\D", "", time_unit))
-    data_copy$time_group <- lubridate::floor_date(
-      data_copy[[datetime_col]],
-      unit = paste(n_days, "days")
-    )
-  } else if (time_unit == "week") {
-    data_copy$time_group <- lubridate::floor_date(
-      data_copy[[datetime_col]],
-      unit = "week"
-    )
-  } else if (grepl("^\\d+ weeks?$", time_unit, ignore.case = TRUE)) {
-    n_weeks <- as.numeric(gsub("\\D", "", time_unit))
-    data_copy$time_group <- lubridate::floor_date(
-      data_copy[[datetime_col]],
-      unit = paste(n_weeks, "weeks")
-    )
-  } else if (time_unit == "month") {
-    data_copy$time_group <- lubridate::floor_date(
-      data_copy[[datetime_col]],
-      unit = "month"
-    )
-  } else if (grepl("^\\d+ months?$", time_unit, ignore.case = TRUE)) {
-    n_months <- as.numeric(gsub("\\D", "", time_unit))
-    data_copy$time_group <- lubridate::floor_date(
-      data_copy[[datetime_col]],
-      unit = paste(n_months, "months")
-    )
-  } else if (time_unit == "quarter") {
-    data_copy$time_group <- lubridate::floor_date(
-      data_copy[[datetime_col]],
-      unit = "quarter"
-    )
-  } else if (time_unit == "year") {
-    data_copy$time_group <- lubridate::floor_date(
-      data_copy[[datetime_col]],
-      unit = "year"
-    )
-  } else if (time_unit == "season") {
-    # Define Brazilian seasons (southern hemisphere)
-    get_brazilian_season <- function(date) {
-      month <- lubridate::month(date)
-      season <- dplyr::case_when(
-        month %in% c(12, 1, 2) ~ "DJF",   # Summer
-        month %in% c(3, 4, 5) ~ "MAM",    # Autumn
-        month %in% c(6, 7, 8) ~ "JJA",    # Winter
-        month %in% c(9, 10, 11) ~ "SON"   # Spring
-      )
-      return(season)
-    }
-
-    data_copy$time_group <- get_brazilian_season(data_copy[[datetime_col]])
-  } else {
-    cli::cli_abort("Unknown time_unit: '{time_unit}'")
-  }
-
-  # Aggregate data
+  # Special logic for seasons (Southern Hemisphere - Brazil)
   if (time_unit == "season") {
-    # For seasons, we need year as well
-    data_copy$year <- lubridate::year(data_copy[[datetime_col]])
+    data_proc <- data_proc %>%
+      dplyr::mutate(
+        season_label = dplyr::case_when(
+          lubridate::month(.data[[datetime_col]]) %in% c(12, 1, 2) ~ "DJF",
+          lubridate::month(.data[[datetime_col]]) %in% c(3, 4, 5)  ~ "MAM",
+          lubridate::month(.data[[datetime_col]]) %in% c(6, 7, 8)  ~ "JJA",
+          lubridate::month(.data[[datetime_col]]) %in% c(9, 10, 11) ~ "SON",
+          TRUE ~ NA_character_
+        ),
+        year = lubridate::year(.data[[datetime_col]])
+      )
     
-    # Verificar se station_name existe nos dados
-    if ("station_name" %in% names(data_copy)) {
-      aggregated_data <- data_copy %>%
-        dplyr::group_by(.data$station_name, .data$year, .data$time_group) %>%
-        dplyr::summarise(
-          dplyr::across(
-            dplyr::any_of(meteo_vars),
-            ~ agg_funs[[dplyr::cur_column()]](.)
-          ),
-          # Adicionar metadados explicitamente
-          region = agg_funs[["region"]](region),
-          station_code = agg_funs[["station_code"]](station_code),
-          latitude = agg_funs[["latitude"]](latitude),
-          longitude = agg_funs[["longitude"]](longitude),
-          altitude = agg_funs[["altitude"]](altitude),
-          UF = agg_funs[["UF"]](UF),
-          .groups = "drop"
-        ) %>%
-        dplyr::rename(date = .data$time_group)
-    } else {
-      aggregated_data <- data_copy %>%
-        dplyr::group_by(.data$year, .data$time_group) %>%
-        dplyr::summarise(
-          dplyr::across(
-            dplyr::any_of(meteo_vars),
-            ~ agg_funs[[dplyr::cur_column()]](.)
-          ),
-          region = agg_funs[["region"]](region),
-          station_name = if ("station_name" %in% names(data_copy)) agg_funs[["station_name"]](station_name) else NA,
-          station_code = agg_funs[["station_code"]](station_code),
-          latitude = agg_funs[["latitude"]](latitude),
-          longitude = agg_funs[["longitude"]](longitude),
-          altitude = agg_funs[["altitude"]](altitude),
-          UF = agg_funs[["UF"]](UF),
-          .groups = "drop"
-        ) %>%
-        dplyr::rename(date = .data$time_group)
-    }
+    group_vars <- c("season_label", "year")
   } else {
-    if ("station_name" %in% names(data_copy)) {
-      aggregated_data <- data_copy %>%
-        dplyr::group_by(.data$station_name, .data$time_group) %>%
-        dplyr::summarise(
-          dplyr::across(
-            dplyr::any_of(meteo_vars),
-            ~ agg_funs[[dplyr::cur_column()]](.)
-          ),
-          region = agg_funs[["region"]](region),
-          station_code = agg_funs[["station_code"]](station_code),
-          latitude = agg_funs[["latitude"]](latitude),
-          longitude = agg_funs[["longitude"]](longitude),
-          altitude = agg_funs[["altitude"]](altitude),
-          UF = agg_funs[["UF"]](UF),
-          year = agg_funs[["year"]](year),
-          .groups = "drop"
-        ) %>%
-        dplyr::rename(date = .data$time_group)
-    } else {
-      aggregated_data <- data_copy %>%
-        dplyr::group_by(.data$time_group) %>%
-        dplyr::summarise(
-          dplyr::across(
-            dplyr::any_of(meteo_vars),
-            ~ agg_funs[[dplyr::cur_column()]](.)
-          ),
-          region = agg_funs[["region"]](region),
-          station_name = if ("station_name" %in% names(data_copy)) agg_funs[["station_name"]](station_name) else NA,
-          station_code = agg_funs[["station_code"]](station_code),
-          latitude = agg_funs[["latitude"]](latitude),
-          longitude = agg_funs[["longitude"]](longitude),
-          altitude = agg_funs[["altitude"]](altitude),
-          UF = agg_funs[["UF"]](UF),
-          year = agg_funs[["year"]](year),
-          .groups = "drop"
-        ) %>%
-        dplyr::rename(date = .data$time_group)
-    }
+    group_vars <- "time_group"
   }
 
-  # FIX #8: Remove unnecessary attributes
-  # (They can cause issues with dplyr/tidyverse operations)
+  # 4. Aggregation rules by variable type
+  cols_sum  <- c("rainfall_mm", "sr_kj_m2")
+  
+  cols_mean <- c(
+    "patm_mb", "patm_max_mb", "patm_min_mb",
+    "tair_dry_bulb_c", "dew_tmean_c",
+    "rh_mean_porc", "wd_degrees", "ws_2_m_s"
+  )
+  
+  cols_max  <- c("tair_max_c", "dew_tmax_c", "rh_max_porc", "ws_gust_m_s")
+  
+  cols_min  <- c("tair_min_c", "dew_tmin_c", "rh_min_porc")
+  
+  # Metadata to preserve
+  meta_vars <- c(
+    "region", "station_name", "station_code",
+    "latitude", "longitude", "altitude", "uf"
+  )
+  
+  # Identify existing grouping columns
+  existing_groups <- intersect(c(meta_vars, group_vars), names(data_proc))
+
+  # 5. Safe aggregation functions
+  s_sum  <- function(x) if (all(is.na(x))) NA_real_ else sum(x, na.rm = na_rm)
+  s_mean <- function(x) if (all(is.na(x))) NA_real_ else mean(x, na.rm = na_rm)
+  s_max  <- function(x) if (all(is.na(x))) NA_real_ else max(x, na.rm = na_rm)
+  s_min  <- function(x) if (all(is.na(x))) NA_real_ else min(x, na.rm = na_rm)
+
+  # 6. Final aggregation
+  aggregated_data <- data_proc %>%
+    dplyr::group_by(dplyr::across(dplyr::any_of(existing_groups))) %>%
+    dplyr::summarise(
+      dplyr::across(dplyr::any_of(cols_sum),  s_sum),
+      dplyr::across(dplyr::any_of(cols_mean), s_mean),
+      dplyr::across(dplyr::any_of(cols_max),  s_max),
+      dplyr::across(dplyr::any_of(cols_min),  s_min),
+      .groups = "drop"
+    )
+
+  # 7. Final name cleanup
+  if ("time_group" %in% names(aggregated_data)) {
+    aggregated_data <- aggregated_data %>%
+      dplyr::rename(date = .data$time_group)
+  } else if ("season_label" %in% names(aggregated_data)) {
+    aggregated_data <- aggregated_data %>%
+      dplyr::rename(season = .data$season_label)
+  }
 
   return(dplyr::as_tibble(aggregated_data))
 }
@@ -731,89 +842,89 @@ utils::globalVariables(c(
 #' 
 #' @return Data frame with matched climate data and municipality information
 #' @noRd
-.match_spatial <- function(
-  df, 
-  spatial_obj, 
-  verbose = FALSE
-){  
-  # ----------------------------------------------------------------------------
-  # 1. VALIDACOES INICIAIS
-  # ----------------------------------------------------------------------------
-  required_cols <- c("station_name", "station_code", "latitude", "longitude", "lat", "long")
-  if (!all(required_cols %in% names(df))) {
-    cli::cli_abort("Station data must contain columns: {paste(required_cols, collapse = ', ')}")
-  }
+# .match_spatial <- function(
+#   df, 
+#   spatial_obj, 
+#   verbose = FALSE
+# ){  
+#   # ----------------------------------------------------------------------------
+#   # 1. VALIDACOES INICIAIS
+#   # ----------------------------------------------------------------------------
+#   required_cols <- c("station_name", "station_code", "latitude", "longitude", "lat", "long")
+#   if (!all(required_cols %in% names(df))) {
+#     cli::cli_abort("Station data must contain columns: {paste(required_cols, collapse = ', ')}")
+#   }
   
-  if (!"code_muni" %in% names(spatial_obj)) {
-    cli::cli_abort("spatial_obj must contain 'code_muni' column. Please use sus_join_spatial() first")
-  }
+#   if (!"code_muni" %in% names(spatial_obj)) {
+#     cli::cli_abort("spatial_obj must contain 'code_muni' column. Please use sus_join_spatial() first")
+#   }
   
-  if (verbose) {
-    cli::cli_inform("Performing spatial matching of climate stations to municipalities")
-  }
+#   if (verbose) {
+#     cli::cli_inform("Performing spatial matching of climate stations to municipalities")
+#   }
   
-  # ----------------------------------------------------------------------------
-  # 2. PREPARAR ESTACOES E MUNICIPIOS
-  # ----------------------------------------------------------------------------
-  stations <- df %>%
-    dplyr::distinct(.data$station_code, .data$station_name, .data$latitude, .data$longitude) %>%
-    sf::st_as_sf(coords = c("longitude", "latitude"), crs = 4674, remove = FALSE)
+#   # ----------------------------------------------------------------------------
+#   # 2. PREPARAR ESTACOES E MUNICIPIOS
+#   # ----------------------------------------------------------------------------
+#   stations <- df %>%
+#     dplyr::distinct(.data$station_code, .data$station_name, .data$latitude, .data$longitude) %>%
+#     sf::st_as_sf(coords = c("longitude", "latitude"), crs = 4674, remove = FALSE)
   
-  if (sf::st_crs(spatial_obj) != sf::st_crs(stations)) {
-    spatial_obj <- sf::st_transform(spatial_obj, sf::st_crs(stations))
-  }
+#   if (sf::st_crs(spatial_obj) != sf::st_crs(stations)) {
+#     spatial_obj <- sf::st_transform(spatial_obj, sf::st_crs(stations))
+#   }
   
-  # Usar Point on Surface (sempre dentro do poligono) em vez de Centroide
-  # Caso falhe (geometria invalida), tenta centroide como fallback
-  spatial_points <- tryCatch({
-    suppressWarnings(sf::st_point_on_surface(spatial_obj))
-  }, error = function(e) {
-    if (verbose) cli::cli_warn("Point on surface failed, falling back to centroid")
-    suppressWarnings(sf::st_centroid(spatial_obj))
-  })
+#   # Usar Point on Surface (sempre dentro do poligono) em vez de Centroide
+#   # Caso falhe (geometria invalida), tenta centroide como fallback
+#   spatial_points <- tryCatch({
+#     suppressWarnings(sf::st_point_on_surface(spatial_obj))
+#   }, error = function(e) {
+#     if (verbose) cli::cli_warn("Point on surface failed, falling back to centroid")
+#     suppressWarnings(sf::st_centroid(spatial_obj))
+#   })
   
-  # ----------------------------------------------------------------------------
-  # 3. CALCULO DE PROXIMIDADE (JOIN ESPACIAL OTIMIZADO)
-  # ----------------------------------------------------------------------------
-  # Encontrar Indice da estacao mais proxima
-  nearest_indices <- sf::st_nearest_feature(spatial_points, stations)
+#   # ----------------------------------------------------------------------------
+#   # 3. CALCULO DE PROXIMIDADE (JOIN ESPACIAL OTIMIZADO)
+#   # ----------------------------------------------------------------------------
+#   # Encontrar Indice da estacao mais proxima
+#   nearest_indices <- sf::st_nearest_feature(spatial_points, stations)
   
-  # Calcular distancias exatas (by element)
-  distances <- sf::st_distance(spatial_points, stations[nearest_indices, ], by_element = TRUE)
+#   # Calcular distancias exatas (by element)
+#   distances <- sf::st_distance(spatial_points, stations[nearest_indices, ], by_element = TRUE)
   
-  # Criar mapa de relacionamento (Municipio -> Estacao)
-  mun_station_map <- data.frame(
-    code_muni = spatial_obj$code_muni,
-    name_muni = spatial_obj$name_muni %||% NA_character_,
-    station_code = stations$station_code[nearest_indices],
-    distance_km = as.numeric(distances) / 1000,
-    stringsAsFactors = FALSE
-  )
+#   # Criar mapa de relacionamento (Municipio -> Estacao)
+#   mun_station_map <- data.frame(
+#     code_muni = spatial_obj$code_muni,
+#     name_muni = spatial_obj$name_muni %||% NA_character_,
+#     station_code = stations$station_code[nearest_indices],
+#     distance_km = as.numeric(distances) / 1000,
+#     stringsAsFactors = FALSE
+#   )
   
-  # ----------------------------------------------------------------------------
-  # 4. JOIN EFICIENTE DOS DADOS CLIMATICOS
-  # ----------------------------------------------------------------------------
-  # Substituimos o loop 'for' por um inner_join para performance maxima
-  matched_data <- df %>% 
-    dplyr::inner_join(mun_station_map, by = "station_code", relationship = "many-to-many")
+#   # ----------------------------------------------------------------------------
+#   # 4. JOIN EFICIENTE DOS DADOS CLIMATICOS
+#   # ----------------------------------------------------------------------------
+#   # Substituimos o loop 'for' por um inner_join para performance maxima
+#   matched_data <- df %>% 
+#     dplyr::inner_join(mun_station_map, by = "station_code", relationship = "many-to-many")
   
-  # Organizacao final de colunas
-  id_cols <- c("code_muni", "name_muni", "station_code", "station_name", "distance_km")
-  other_cols <- setdiff(names(matched_data), id_cols)
-  matched_data <- matched_data %>% 
-    dplyr::select(dplyr::all_of(id_cols), dplyr::all_of(other_cols))
+#   # Organizacao final de colunas
+#   id_cols <- c("code_muni", "name_muni", "station_code", "station_name", "distance_km")
+#   other_cols <- setdiff(names(matched_data), id_cols)
+#   matched_data <- matched_data %>% 
+#     dplyr::select(dplyr::all_of(id_cols), dplyr::all_of(other_cols))
   
-  if (verbose) {
-    dist_stats <- summary(mun_station_map$distance_km)
-    cli::cli_inform(c(
-      "v" = "Spatial matching completed:",
-      "i" = "{nrow(mun_station_map)} municipalities matched to {length(unique(stations$station_code))} stations.",
-      " " = "Distance stats (km): Min: {round(dist_stats[1],1)} | Median: {round(dist_stats[3],1)} | Max: {round(dist_stats[6],1)}"
-    ))
-  }
+#   if (verbose) {
+#     dist_stats <- summary(mun_station_map$distance_km)
+#     cli::cli_inform(c(
+#       "v" = "Spatial matching completed:",
+#       "i" = "{nrow(mun_station_map)} municipalities matched to {length(unique(stations$station_code))} stations.",
+#       " " = "Distance stats (km): Min: {round(dist_stats[1],1)} | Median: {round(dist_stats[3],1)} | Max: {round(dist_stats[6],1)}"
+#     ))
+#   }
   
-  return(matched_data)
-}
+#   return(matched_data)
+# }
 
 #' Helper function: Calculate station quality based on multiple variables
 #' @keywords internal

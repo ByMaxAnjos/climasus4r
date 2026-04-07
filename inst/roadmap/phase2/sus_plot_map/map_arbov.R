@@ -10,13 +10,16 @@ library(climasus4r)
 # ── 1. CARREGAMENTO DE DADOS BASE (Rodar apenas uma vez) ──────────────────────
 
 # 1.1 População
-pop25 <- read.dbc::read.dbc("/Users/maxanjos/Downloads/POPTBR25.dbc") %>% 
+pop25 <- readRDS("/Users/co2map/Documents/2026/CLIMASUS4r/climasus4r/inst/roadmap/phase2/pop25.rds") %>% 
   mutate(pop_25 = POPULACAO) %>% 
   select(-ANO, -POPULACAO)
 
 # 1.2 Municípios (Coordenadas e RGI)
-muni <- data.table::fread("https://raw.githubusercontent.com/mapaslivres/municipios-br/refs/heads/main/tabelas/municipios.csv",
-                          encoding = "UTF-8", showProgress = FALSE)
+# muni <- data.table::fread("https://raw.githubusercontent.com/mapaslivres/municipios-br/refs/heads/main/tabelas/municipios.csv",
+#                           encoding = "UTF-8", showProgress = FALSE)
+
+muni <- readRDS("/Users/co2map/Documents/2026/CLIMASUS4r/climasus4r/inst/roadmap/phase2/municipios_meta.rds")
+
 muni_prep <- muni %>%
   mutate(
     rgi = as.character(rgi),
@@ -26,17 +29,32 @@ muni_prep <- muni %>%
 # 1.3 Shapefiles (Geometrias)
 amazon_states <- c("AC","AM","AP","MA","MT","PA","RO","RR","TO")
 amazon_states <- "RJ"
+
+all_states <- c("AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", 
+                 "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", 
+                 "RS", "RO", "RR", "SC", "SP", "SE", "TO")
+
 # Download dinâmico do IBGE (Malha 2024)
 url <- "https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_municipais/municipio_2024/Brasil/BR_UF_2024.zip"
 temp_zip <- tempfile(fileext = ".zip")
 temp_dir <- tempdir()
-download.file(url, destfile = temp_zip, mode = "wb", quiet = TRUE)
+options(timeout = 300)
+#download.file(url, destfile = temp_zip, mode = "wb", quiet = TRUE)
+download.file(
+  url,
+  destfile = temp_zip,
+  mode = "wb",
+  quiet = TRUE,
+  method = "curl",
+  extra = "--insecure"
+)
+
 unzip(temp_zip, exdir = temp_dir)
 shp_file <- list.files(temp_dir, pattern = "\\.shp$", full.names = TRUE, recursive = TRUE)
 
 states_sf <- sf::st_read(shp_file[1], options = "ENCODING=UTF-8", quiet = TRUE) %>% 
   rename(abbrev_state = SIGLA_UF) %>% 
-  filter(abbrev_state %in% amazon_states)
+  filter(abbrev_state %in% all_states)
 
 # Centróides Projetados (Evita avisos geográficos do sf)
 state_centroids <- states_sf %>%
@@ -97,20 +115,20 @@ study_sites_rj <- tibble::tribble(
 create_disease_panel <- function(sys_name, panel_letter) {
   
   # 2.1 Importar e limpar dados
-  df_raw <- sus_data_import(year = 2025, uf = amazon_states, region = NULL, system = sys_name)
+  df_raw <- sus_data_import(year = 2025, uf = all_states, region = NULL, system = sys_name)
   
   df_stand <- df_raw %>% 
-    sus_data_clean_encoding(lang = "en") %>% 
-    sus_data_standardize(lang="en") %>% 
-    sus_create_variables(lang="en") %>% 
-    sus_data_filter_demographics(sex = c("Male", "Female"))
+    sus_data_clean_encoding(lang = "pt") %>% 
+    sus_data_standardize(lang="pt") %>% 
+    sus_create_variables(lang="pt") %>% 
+    sus_data_filter_demographics(sex = c("Masculino", "Feminino"))
   
   df_agg <- sus_data_aggregate(df_stand)
   
   # 2.2 Joins e Cálculos
   df_analysis <- df_agg %>%
-    mutate(notification_municipality_code = as.character(notification_municipality_code)) %>%
-    left_join(muni_prep, by = c("notification_municipality_code" = "code6")) %>%
+    mutate(codigo_municipio_residencia = as.character(codigo_municipio_residencia)) %>%
+    left_join(muni_prep, by = c("codigo_municipio_residencia" = "code6")) %>%
     mutate(municipio = as.factor(municipio)) %>% 
     left_join(pop25, by = c("municipio" = "MUNIC_RES")) %>%
     mutate(
@@ -120,7 +138,7 @@ create_disease_panel <- function(sys_name, panel_letter) {
   
   # 2.3 Sumarização Municipal
   df_summary <- df_analysis %>%
-    group_by(notification_municipality_code, name, uf_code, lon, lat, pop_25, is_capital) %>%
+    group_by(codigo_municipio_residencia, name, uf_code, lon, lat, pop_25, is_capital) %>%
     summarise(
       total_casos      = sum(n_casos, na.rm = TRUE),
       mean_incidencia  = mean(incidencia[incidencia > 0], na.rm = TRUE),
@@ -133,7 +151,10 @@ create_disease_panel <- function(sys_name, panel_letter) {
   
   # Capitais para Labels
   capitals <- df_summary %>%
-    filter(is_capital == TRUE | name %in% c("Manaus", "Belém", "Porto Velho", "Macapá", "Boa Vista", "Rio Branco", "Palmas", "São Luís", "Cuiabá")) %>%
+    filter(is_capital == TRUE | name %in% c("Manaus", "Belém", "Porto Velho", "Macapá", "Boa Vista", "Rio Branco", "Palmas", "São Luís", "Cuiabá", 
+        "Teresina", "Fortaleza", "Natal", "João Pessoa", "Recife", "Maceió", "Aracaju", "Salvador", 
+        "Goiânia", "Brasília", "Campo Grande", "Belo Horizonte", "Vitória", "Rio de Janeiro", 
+        "São Paulo", "Curitiba", "Florianópolis", "Porto Alegre")) %>%
     group_by(uf_code) %>%
     slice_max(total_casos, n = 1, with_ties = FALSE) %>%
     ungroup()
@@ -188,31 +209,31 @@ create_disease_panel <- function(sys_name, panel_letter) {
         override.aes = list(shape = 21, fill = "#FD8D3C", color = "white", stroke = 0.25, alpha = 0.85)
       )
     ) +
-    # Study sites
-    geom_point(
-      data = study_sites_rj,
-      aes(x = lon, y = lat),
-      shape = 24,
-      size = 4.5,
-      fill = "#2C7FB8",
-      color = "black",
-      stroke = 0.8
-    ) +
+    # # Study sites
+    # geom_point(
+    #   data = study_sites_rj,
+    #   aes(x = lon, y = lat),
+    #   shape = 24,
+    #   size = 4.5,
+    #   fill = "#2C7FB8",
+    #   color = "black",
+    #   stroke = 0.8
+    # ) +
     
-    geom_label_repel(
-      data = study_sites_rj,
-      aes(x = lon, y = lat, label = label),
-      size = 2.7,
-      fontface = "bold",
-      color = "#1A252F",
-      fill = alpha("white", 0.9),
-      label.padding = unit(0.2, "lines"),
-      label.size = 0.25,
-      box.padding = 0.7,
-      segment.color = "grey30",
-      segment.size = 0.35,
-      max.overlaps = 20
-    ) +
+    # geom_label_repel(
+    #   data = study_sites_rj,
+    #   aes(x = lon, y = lat, label = label),
+    #   size = 2.7,
+    #   fontface = "bold",
+    #   color = "#1A252F",
+    #   fill = alpha("white", 0.9),
+    #   label.padding = unit(0.2, "lines"),
+    #   label.size = 0.25,
+    #   box.padding = 0.7,
+    #   segment.color = "grey30",
+    #   segment.size = 0.35,
+    #   max.overlaps = 20
+    # ) +
     labs(title = paste(panel_letter, " ", sep="")) +
     theme_void(base_size = 12) +
     theme(
@@ -241,40 +262,24 @@ panel_C_rj <- create_disease_panel("SINAN-ZIKA", "C - Zika")
 
 # O Patchwork unifica as legendas automaticamente para publicações!
 
-
 final_plot <- (panel_A_rj + panel_B_rj + panel_C_rj) + 
   plot_layout(guides = "collect") + # Une as legendas para ganhar espaço lateral
   plot_annotation(
-    #title = "Cumulative Burden and Mean Incidence Rate of Major Arboviruses \nin the Brazilian Amazon (2025)",
-    title = "Cumulative Burden and Mean Incidence Rate of Major Arboviruses \nin the Rio de Janeiro State (2025)",
-    #subtitle = "Bubble size: total cases (log scale) \u2022 Colour: mean daily incidence per 100,000 (log scale)",
-    #subtitle = "Bubble size: total cases (log scale) • Colour: mean daily incidence per 100,000 (log scale)\nHighlighted symbols indicate ecological study sites in Acre and Rondônia.",
-    subtitle = "Bubble size: total cases (log scale) • Colour: mean daily incidence per 100,000 (log scale)\nHighlighted symbols indicate ecological study site in Rio de Janeiro State.",
-    # caption = paste0(
-    #   "Data: Notifiable Diseases Information System (SINAN) / Brazilian Ministry of Health / DATASUS. ",
-    #   "Population: IBGE 2025 estimates. ",
-    #   #"Amazon Legal region states: AC, AM, AP, MA, MT, PA, RO, RR, TO.\n",
-    #   "Shapefiles: IBGE 2020.\n",
-    #   "Incidence = (cases / population) \u00d7 100,000. ",
-    #   "Y-axis and fill use log(1+x) transformation to accommodate zero-inflated distributions.\n",
-    #   "Study sites highlighted on the map represent forest ecosystems used for biodiversity monitoring in the western Amazon: Parque Estadual Chandless (PEC),\n",
-    #   "Parque Zoobotânico da Universidade Federal do Acre (PZ-UFAC),Horto Florestal de Rio Branco (HFRB), Estação Ecológica de Cuniã (ESEC-Cuniã),\n",
-    #   "and the Universidade Federal de Rondônia campus (UNIR).\n"
-    # ),
+    title = "Cumulative Burden and Mean Incidence Rate of Major Arboviruses \nin Brazil (2025)",
+    subtitle = "Bubble size: total cases (log scale) • Colour: mean daily incidence per 100,000 (log scale)",
     caption = paste0(
       "Data: Notifiable Diseases Information System (SINAN) / Brazilian Ministry of Health / DATASUS. ",
       "Population: IBGE 2025 estimates. ",
       #"Amazon Legal region states: AC, AM, AP, MA, MT, PA, RO, RR, TO.\n",
       "Shapefiles: IBGE 2020.\n",
       "Incidence = (cases / population) \u00d7 100,000. ",
-      "Y-axis and fill use log(1+x) transformation to accommodate zero-inflated distributions.\n",
-      "Study site highlighted on the map represent Fiocruz Atlantic Forest Biological Station in the Rio de Janeiro state"
+      "Y-axis and fill use log(1+x) transformation to accommodate zero-inflated distributions.\n"
     ),
     theme = theme(
       plot.title    = element_text(size = 18, face = "bold", hjust = 0.5, margin = margin(b = 10)),
       plot.subtitle = element_text(size = 14, color = "grey30", hjust = 0.5, margin = margin(b = 15))
     )
-  ) & 
+  ) &
   theme(
     plot.caption = element_text(
       size       = 10,
@@ -291,7 +296,7 @@ final_plot <- (panel_A_rj + panel_B_rj + panel_C_rj) +
   )
 
 
-ggsave("arbovirus_burden_rio_study_area_2025.png", 
+ggsave("/Users/co2map/Documents/2026/CLIMASUS4r/climasus4r/inst/roadmap/phase2/arbovirus_burden_rio_study_area_2025.png", 
        plot = final_plot, 
        width = 31.7, 
        height = 21, 
