@@ -153,7 +153,7 @@ sus_data_filter_demographics <- function(df,
 
     # Minimum required stage
     required_stage <- "stand"
-    current_stage  <- climasus_meta(df, "stage")
+    current_stage  <- sus_meta(df, "stage")
 
     if (!is_stage_at_least(current_stage, required_stage)) {
 
@@ -196,7 +196,7 @@ sus_data_filter_demographics <- function(df,
     }
 
     # Update metadata
-    df <- climasus_meta(df, stage = "filter_demo", type  = "filter_demo")
+    df <- sus_meta(df, stage = "filter_demo", type  = "filter_demo")
   } else {
     
     # NOT climasus_df - ABORT execution
@@ -209,7 +209,7 @@ sus_data_filter_demographics <- function(df,
           "*" = "{.strong 1. Import:} {.code df <- sus_data_import(...)} or {.code sus_data_read(...)}",
           "*" = "{.strong 2. Clean:} {.code df <- sus_data_clean_encoding(df)}",
           "*" = "{.strong 3. Standardize:} {.code df <- sus_data_standardize(df)}",
-          "*" = "{.strong 4. Create:} {.code df <- sus_create_variables(...)}",
+          "*" = "{.strong 4. Create:} {.code df <- sus_data_create_variables(...)}",
           "*" = "{.strong 5. Filter demo:} {.code df <- sus_data_filter_demographics(...)}",
           " " = "",
           "v" = "Tip: If using external data, run {.fn sus_data_standardize} first."
@@ -222,7 +222,7 @@ sus_data_filter_demographics <- function(df,
           "*" = "{.strong 1. Importar:} {.code df <- sus_data_import(...)} ou {.code sus_data_read(...)}",
           "*" = "{.strong 2. Limpar:} {.code df <- sus_data_clean_encoding(df)}",
           "*" = "{.strong 3. Padronizar:} {.code df <- sus_data_standardize(df)}",
-          "*" = "{.strong 4. Create:} {.code df <- sus_create_variables(...)}",
+          "*" = "{.strong 4. Create:} {.code df <- sus_data_create_variables(...)}",
           "*" = "{.strong 5. Filtrar demo:} {.code df <- sus_data_filter_demographics(...)}",
           " " = "",
           "v" = "Dica: Se usar dados externos, execute {.fn sus_data_standardize} primeiro."
@@ -235,7 +235,7 @@ sus_data_filter_demographics <- function(df,
           "*" = "{.strong 1. Importar:} {.code df <- sus_data_import(...)} o {.code sus_data_read(...)}",
           "*" = "{.strong 2. Limpiar:} {.code df <- sus_data_clean_encoding(df)}",
           "*" = "{.strong 3. Estandarizar:} {.code df <- sus_data_standardize(df)}",
-          "*" = "{.strong 4. Create:} {.code df <- sus_create_variables(...)}",
+          "*" = "{.strong 4. Create:} {.code df <- sus_data_create_variables(...)}",
           "*" = "{.strong 5. Filtrar demo:} {.code df <- sus_data_filter_demographics(...)}",
           " " = "",
           "v" = "Consejo: Si usa datos externos, ejecute {.fn sus_data_standardize} primero."
@@ -250,7 +250,7 @@ sus_data_filter_demographics <- function(df,
   # Track filters applied
   filters_applied <- character()
   
-  system <- climasus_meta(df, "system")
+  system <- sus_meta(df, "system")
 
   ignored_codes <- c("ignorado", "ignorada", "unknown", "desconocido", "i", 
                      "9", "99", "999", "9999", "000000", "-", "", " ")
@@ -314,7 +314,7 @@ sus_data_filter_demographics <- function(df,
     age_col <- find_column(df, c("age_years"))
     
     if (is.null(age_col)) {
-      cli::cli_alert_warning("Age column not found. Skipping age filter or use sus_create_variables to create age_years e age_group columns.")
+      cli::cli_alert_warning("Age column not found. Skipping age filter or use sus_data_create_variables to create age_years e age_group columns.")
     } else {
       min_age <- age_range[1]
       max_age <- age_range[2]
@@ -492,11 +492,11 @@ sus_data_filter_demographics <- function(df,
     base_classes <- setdiff(class(df), "climasus_df")
     df <- structure(
       df,
-      climasus_meta = meta,
+      sus_meta = meta,
       class = c("climasus_df", base_classes)
     )
   } else { 
-    df <- climasus_meta(
+    df <- sus_meta(
     df,
     system = system,  # Preserve original system
     stage = "filter_demo",
@@ -577,7 +577,7 @@ sus_data_filter_demographics <- function(df,
     history_msg <- "Filtered by demographics [no filters applied]"
   }
 
-  df <- climasus_meta(df, add_history = history_msg)
+  df <- sus_meta(df, add_history = history_msg)
 
   return(df)
 }

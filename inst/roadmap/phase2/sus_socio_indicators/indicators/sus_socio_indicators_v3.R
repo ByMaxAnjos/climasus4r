@@ -3,7 +3,7 @@
 #' @description
 #' Calculates standardized health and socio-demographic indicators from a single,
 #' enriched dataframe. This function assumes the input dataframe has already been
-#' enriched with Census data (e.g., via `sus_socio_add_census`).
+#' enriched with Census data (e.g., via `sus_census_join`).
 #'
 #' @param df A dataframe (or sf object) already enriched with all necessary
 #'   columns (health aggregates, population, census variables).

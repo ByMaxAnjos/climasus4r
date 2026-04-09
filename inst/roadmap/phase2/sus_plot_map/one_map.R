@@ -11,8 +11,8 @@ library(climasus4r)
 library(dplyr)
 library(data.table)
 
-climasus4r::get_climasus_cache_info(cache_dir = "~/.climasus4r_cache/data")
-climasus4r::clear_climasus_cache(cache_dir = "~/.climasus4r_cache/data")
+climasus4r::sus_cache_infor(cache_dir = "~/.climasus4r_cache/data")
+climasus4r::sus_cache_clear(cache_dir = "~/.climasus4r_cache/data")
 dengue <- sus_data_read("/Users/maxanjos/Documents/CAROLINA/SINAN-DENGUE_amazonia_2014.parquet")
 
 
@@ -25,27 +25,27 @@ df_stand <- dengue_25 %>%
   sus_data_clean_encoding(lang = "en") %>% 
   sus_data_standardize(lang="en")
 rm(dengue_25)
-climasus_meta(df_stand, print_history = TRUE)
+sus_meta(df_stand, print_history = TRUE)
 
 #Filter by states
 #codigos_uf <- c(12, 16, 13, 15, 11, 14, 51, 21, 17)
 
 #Filter demo
 df_amazon_create <- df_stand %>% 
-  sus_create_variables(lang="en")
+  sus_data_create_variables(lang="en")
 
-climasus_meta(df_amazon_create, print_history = TRUE)
+sus_meta(df_amazon_create, print_history = TRUE)
 
 
 df_amazon_demo <- df_amazon_create %>% 
   sus_data_filter_demographics(sex = c("Male", "Female"))
 
-climasus_meta(df_amazon_demo, print_history = TRUE)
+sus_meta(df_amazon_demo, print_history = TRUE)
 
 #Aggregate daily notifications
 df_amazon_agg <- sus_data_aggregate(df_amazon_demo)
 
-climasus_meta(df_amazon_agg, print_history = TRUE)
+sus_meta(df_amazon_agg, print_history = TRUE)
 
 # =============================================================================
 

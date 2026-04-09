@@ -15,10 +15,10 @@
 #' - Warnings for extreme climate years (e.g., 2023 Amazon drought)
 #' - Better handling of edge cases in weighted windows
 #'
-#' @param health_data A `climasus_df` object produced by `sus_join_spatial()`.
+#' @param health_data A `climasus_df` object produced by `sus_spatial_join()`.
 #'   Must contain columns `date` (Date), `code_muni` (character), and geometry
 #'   column `geom`.
-#' @param climate_data A `climasus_df` object produced by `sus_climate_fill_gaps()`.
+#' @param climate_data A `climasus_df` object produced by `sus_climate_fill_inmet()`.
 #'   Must contain `date` (Date or POSIXct), `station_code`, `latitude`, `longitude`,
 #'   and climate variables.
 #' @param climate_var Character vector with climate columns to aggregate.
@@ -262,7 +262,7 @@ sus_climate_aggregate <- function(
   # 1. VALIDATION OF HEALTH DATA
   # ---------------------------------------------------------------------------
   .validate_health_input(health_data, lang, verbose)
-  system <- climasus_meta(health_data, "system")
+  system <- sus_meta(health_data, "system")
 
   # ---------------------------------------------------------------------------
   # 2. VALIDATION OF CLIMATE DATA
@@ -310,7 +310,7 @@ sus_climate_aggregate <- function(
   # ---------------------------------------------------------------------------
   if (verbose) cli::cli_progress_step(msg$aggregating)
 
-  climate_temporal_meta <- climasus_meta(climate_data, "temporal")
+  climate_temporal_meta <- sus_meta(climate_data, "temporal")
   is_hourly_meta <- !is.null(climate_temporal_meta$unit) &&
                     climate_temporal_meta$unit == "hour"
 
@@ -399,11 +399,11 @@ sus_climate_aggregate <- function(
   if (!inherits(health_data, "climasus_df")) {
     cli::cli_abort(.msg_not_climasus_df(lang, "health"))
   }
-  current_stage  <- climasus_meta(health_data, "stage")
+  current_stage  <- sus_meta(health_data, "stage")
   required_stage <- "spatial"
   if (is.null(current_stage) || current_stage != required_stage) {
     cli::cli_abort(.msg_wrong_stage(
-      lang, "health", current_stage, required_stage, "sus_join_spatial(...)"
+      lang, "health", current_stage, required_stage, "sus_spatial_join(...)"
     ))
   }
   if (verbose) cli::cli_alert_success(.msg_stage_validated(lang))
@@ -417,15 +417,15 @@ sus_climate_aggregate <- function(
   if (!inherits(climate_data, "climasus_df")) {
     cli::cli_abort(.msg_not_climasus_df(lang, "climate"))
   }
-  current_stage  <- climasus_meta(climate_data, "stage")
+  current_stage  <- sus_meta(climate_data, "stage")
   required_stage <- "climate"
   if (is.null(current_stage) || current_stage != required_stage) {
     cli::cli_abort(.msg_wrong_stage(
       lang, "climate", current_stage, required_stage,
-      "sus_climate_inmet(...) followed by sus_climate_fill_gaps(..., evaluation = FALSE)"
+      "sus_climate_inmet(...) followed by sus_climate_fill_inmet(..., evaluation = FALSE)"
     ))
   }
-  temporal_meta <- climasus_meta(climate_data, "temporal")
+  temporal_meta <- sus_meta(climate_data, "temporal")
   if (is.null(temporal_meta) || is.null(temporal_meta$source) ||
       !temporal_meta$source %in% "INMET") {
     cli::cli_abort(.msg_wrong_source(lang))
@@ -489,8 +489,8 @@ sus_climate_aggregate <- function(
 #' @keywords internal
 #' @noRd
 .validate_date_overlap <- function(health_data, climate_data, lang) {
-  health_dates  <- climasus_meta(health_data, "temporal")
-  climate_dates <- climasus_meta(climate_data, "temporal")
+  health_dates  <- sus_meta(health_data, "temporal")
+  climate_dates <- sus_meta(climate_data, "temporal")
 
   if (is.null(health_dates) || is.null(climate_dates) ||
       is.null(health_dates$start) || is.null(climate_dates$start)) {

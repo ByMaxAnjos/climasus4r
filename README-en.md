@@ -46,16 +46,16 @@ remotes::install_github("ByMaxAnjos/climasus4r", dependencies = TRUE, upgrade = 
 | | `sus_data_export()` | Exports processed data preserving metadata. |
 | **🧹 Cleaning & Standardization** | `sus_data_clean_encoding()` | Detects and corrects character encoding issues. |
 | | `sus_data_standardize()` | Standardizes SUS data column names and values. |
-| | `sus_create_variables()` | Creates derived variables for epidemiological analysis. |
+| | `sus_data_create_variables()` | Creates derived variables for epidemiological analysis. |
 | **🔍 Filters & Selection** | `sus_data_filter_cid()` | Filters by ICD-10 codes or disease groups (multilingual). |
 | | `sus_data_filter_demographics()` | Filters data by demographic variables (age, sex, race). |
-| **🗺️ Spatial & Census** | `sus_join_spatial()` | Links SUS data to Brazilian geographic boundaries. |
-| | `sus_socio_add_census()` | Enriches health data with socioeconomic variables from the Census. |
+| **🗺️ Spatial & Census** | `sus_spatial_join()` | Links SUS data to Brazilian geographic boundaries. |
+| | `sus_census_join()` | Enriches health data with socioeconomic variables from the Census. |
 | | `sus_data_aggregate()` | Aggregates health data into time series. |
 | **📊 Quality & Metadata** | `sus_data_quality_report()` | Generates detailed reports on data quality. |
 | | `list_disease_groups()` | Lists available disease groups for filtering. |
-| | `sus_census_explore()` | Interactive explorer for Census variables. |
-| **⚡ Cache** | `clear_climasus_cache()` | Manages and clears local file storage. |
+| | `sus_census_select()` | Interactive explorer for Census variables. |
+| **⚡ Cache** | `sus_cache_clear()` | Manages and clears local file storage. |
 
 
 ## Supported Systems
@@ -139,7 +139,7 @@ df_analysis <- sus_data_import(
   sus_data_clean_encoding(lang = "en") |>
   sus_data_standardize(lang = "en") |>
   sus_data_filter_cid(disease_group = "respiratory", lang = "en") |>
-  sus_create_variables(create_age_groups = TRUE, lang = "en")
+  sus_data_create_variables(create_age_groups = TRUE, lang = "en")
 ```
 ## Data Infrastructure
 
@@ -156,7 +156,7 @@ RAW DATA (DATASUS)
     ↓
 [4] sus_data_filter_cid()       → Filtering by disease
     ↓
-[5] sus_create_variables()      → Variable creation
+[5] sus_data_create_variables()      → Variable creation
     ↓
 [6] sus_data_filter_demographics() → Demographic filtering
     ↓

@@ -28,13 +28,13 @@
 #' @examples
 #' \dontrun{
 #' # Open interactive explorer
-#' sus_filter_cid_explore()
+#' sus_data_cid_select()
 #'
 #' # Explore only climate-sensitive diseases
-#' sus_filter_cid_explore(filter_climate = TRUE)
+#' sus_data_cid_select(filter_climate = TRUE)
 #'
 #' # Get disease group names for programmatic use
-#' groups <- sus_filter_cid_explore(
+#' groups <- sus_data_cid_select(
 #'   lang = "pt"
 #' )
 #'
@@ -48,7 +48,7 @@
 #' @export
 #' @importFrom cli cli_h1 cli_h2 cli_h3 cli_alert_info cli_alert_success 
 #' @importFrom cli cli_alert_warning cli_rule cli_bullets
-sus_filter_cid_explore <- function(lang = "pt",
+sus_data_cid_select <- function(lang = "pt",
                                    output = "browser",
                                    filter_climate = FALSE,
                                    verbose = TRUE) {

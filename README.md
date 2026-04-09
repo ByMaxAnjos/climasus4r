@@ -165,7 +165,7 @@ df_analise <- sus_data_import(
   sus_data_clean_encoding(lang = "pt") |>
   sus_data_standardize(lang = "pt") |>
   sus_data_filter_cid(disease_group = "respiratory", lang = "pt") |>
-  sus_create_variables(
+  sus_data_create_variables(
     create_age_groups = TRUE,
     create_calendar_vars = TRUE,
     lang = "pt"
@@ -207,7 +207,7 @@ DADOS BRUTOS (DATASUS)
     ↓
 [4] sus_data_filter_cid()       → Filtragem por doença
     ↓
-[5] sus_create_variables()      → Criação de variáveis
+[5] sus_data_create_variables()      → Criação de variáveis
     ↓
 [6] sus_data_filter_demographics() → Filtragem demográfica
     ↓
@@ -355,12 +355,12 @@ get_disease_group_details("dengue", lang = "pt")
 
 ---
 
-#### 5. `sus_create_variables()` - Criação de Variáveis Epidemiológicas
+#### 5. `sus_data_create_variables()` - Criação de Variáveis Epidemiológicas
 
 Crie automaticamente variáveis de **idade**, **calendário** e **sazonalidade** essenciais para análises de séries temporais e DLNM.
 
 ```r
-df_com_vars <- sus_create_variables(
+df_com_vars <- sus_data_create_variables(
   df,
   create_age_groups = TRUE,
   age_breaks = c(0, 5, 15, 25, 45, 65, Inf),
@@ -401,7 +401,7 @@ A função usa uma hierarquia de 3 níveis para calcular idade:
 # Criar variáveis para análise de dengue (sensível à sazonalidade)
 df_dengue <- df |>
   sus_data_filter_cid(disease_group = "dengue", lang = "pt") |>
-  sus_create_variables(
+  sus_data_create_variables(
     create_age_groups = TRUE,
     age_breaks = c(0, 15, 60, Inf),
     age_labels = c("Criancas", "Adultos", "Idosos"),
@@ -550,7 +550,7 @@ df_pentads <- sus_data_aggregate(
 ```r
 # Agregação mensal por município e faixa etária
 df_agregado <- df |>
-  sus_create_variables(age_groups = TRUE, lang = "pt") |>
+  sus_data_create_variables(age_groups = TRUE, lang = "pt") |>
   sus_data_aggregate(
     time_unit = "month",
     group_by = c("municipality_code", "age_group"),
@@ -629,7 +629,7 @@ df_resp_ped <- sus_data_import(
   sus_data_clean_encoding(lang = "pt") |>
   sus_data_standardize(lang = "pt") |>
   sus_data_filter_cid(disease_group = "respiratory", lang = "pt") |>
-  sus_create_variables(
+  sus_data_create_variables(
     create_age_groups = TRUE,
     age_breaks = c(0, 1, 5, Inf),
     age_labels = c("< 1 ano", "1-4 anos", "5+ anos"),
@@ -666,7 +666,7 @@ df_dengue <- sus_data_import(
 ) |>
   sus_data_clean_encoding(lang = "pt") |>
   sus_data_standardize(lang = "pt") |>
-  sus_create_variables(
+  sus_data_create_variables(
     create_age_groups = TRUE,
     create_calendar_vars = TRUE,
     lang = "pt"
@@ -696,7 +696,7 @@ df_cardio_idosos <- sus_data_import(
   sus_data_clean_encoding(lang = "pt") |>
   sus_data_standardize(lang = "pt") |>
   sus_data_filter_cid(disease_group = "cardiovascular", lang = "pt") |>
-  sus_create_variables(
+  sus_data_create_variables(
     create_age_groups = TRUE,
     age_breaks = c(0, 65, 75, 85, Inf),
     age_labels = c("< 65", "65-74", "75-84", "85+"),
@@ -738,7 +738,7 @@ df_calor <- sus_data_import(
   sus_data_clean_encoding(lang = "pt") |>
   sus_data_standardize(lang = "pt") |>
   sus_data_filter_cid(disease_group = "heat_related", lang = "pt") |>
-  sus_create_variables(
+  sus_data_create_variables(
     create_age_groups = TRUE,
     lang = "pt"
   ) |>

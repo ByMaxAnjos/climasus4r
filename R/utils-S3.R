@@ -3,7 +3,7 @@
 # ==============================================================================
 #
 # This implementation minimizes namespace pollution by exporting only:
-# 1. climasus_meta() - unified metadata interface
+# 1. sus_meta() - unified metadata interface
 # 2. S3 methods (required for dispatch, but invisible to users)
 #
 # All other functions are internal.
@@ -116,7 +116,7 @@ new_climasus_df <- function(x, meta = list()) {
   #base_classes <- setdiff(class(x), c("climasus_df", "tbl_df", "tbl", "data.frame"))
   structure(
     base, #new before only 'x'.
-    climasus_meta = meta,
+    sus_meta = meta,
     class = c("climasus_df", "tbl_df", "tbl", "data.frame") #new before without "tbl_df", "tbl", "data.frame"
     #class = c("climasus_df", class(x))
   )
@@ -132,9 +132,9 @@ validate_climasus_df <- function(x) {
     stop("climasus_df must inherit from data.frame", call. = FALSE)
   }
   
-  meta <- attr(x, "climasus_meta")
+  meta <- attr(x, "sus_meta")
   if (is.null(meta) || !is.list(meta)) {
-    stop("climasus_meta attribute is missing or invalid", call. = FALSE)
+    stop("sus_meta attribute is missing or invalid", call. = FALSE)
   }
   
   # Validate system
@@ -212,7 +212,7 @@ is_climasus_df <- function(x) {
 #' Get all climasus metadata
 #' @keywords internal
 #' @noRd
-get_climasus_meta_internal <- function(x) {
+get_sus_meta_internal <- function(x) {
   if (!is_climasus_df(x)) {
     stop(
       "`x` must be a <climasus_df> object. ",
@@ -221,7 +221,7 @@ get_climasus_meta_internal <- function(x) {
       call. = FALSE
     )
   }
-  attr(x, "climasus_meta") %||% list()
+  attr(x, "sus_meta") %||% list()
 }
 
 
@@ -247,7 +247,7 @@ get_climasus_field_internal <- function(x, field) {
     )
   }
   
-  meta <- get_climasus_meta_internal(x)
+  meta <- get_sus_meta_internal(x)
   meta[[field]]
 }
 
@@ -255,12 +255,12 @@ get_climasus_field_internal <- function(x, field) {
 #' Update climasus metadata
 #' @keywords internal
 #' @noRd
-update_climasus_meta_internal <- function(x, ...) {
+update_sus_meta_internal <- function(x, ...) {
   if (!is_climasus_df(x)) {
     stop("`x` must be a climasus_df object", call. = FALSE)
   }
   
-  meta_old <- get_climasus_meta_internal(x)
+  meta_old <- get_sus_meta_internal(x)
   meta_new <- utils::modifyList(meta_old, list(...))
   meta_new$modified <- Sys.time()
   
@@ -289,7 +289,7 @@ add_climasus_history_internal <- function(x, step) {
   )
   
   new_history <- c(history, timestamped_step)
-  update_climasus_meta_internal(x, history = new_history)
+  update_sus_meta_internal(x, history = new_history)
 }
 
 #' Print processing history
@@ -352,7 +352,7 @@ get_valid_values_internal <- function(field) {
 #' @export
 # print.climasus_df <- function(x, n = 10, ...) {
   
-#   meta <- attr(x, "climasus_meta") %||% list()
+#   meta <- attr(x, "sus_meta") %||% list()
   
 #   # Header
 #   cat(sprintf("<climasus_df [%d x %d]>\n", nrow(x), ncol(x)))
@@ -387,7 +387,7 @@ get_valid_values_internal <- function(field) {
 
 print.climasus_df <- function(x, n = 10, ...) {
   
-  meta <- attr(x, "climasus_meta") %||% list()
+  meta <- attr(x, "sus_meta") %||% list()
   
   # Cabecalho Principal com Estilo de Objeto
   cli::cli_h1("{.cls climasus_df} [{nrow(x)} x {ncol(x)}]")
@@ -433,7 +433,7 @@ print.climasus_df <- function(x, n = 10, ...) {
 #' @export
 `[.climasus_df` <- function(x, i, j, drop = FALSE) {
   
-  meta <- attr(x, "climasus_meta")
+  meta <- attr(x, "sus_meta")
   out <- NextMethod()
   
   if (is.data.frame(out)) {
@@ -461,7 +461,7 @@ print.climasus_df <- function(x, n = 10, ...) {
 #' @export
 `$<-.climasus_df` <- function(x, name, value) {
   
-  meta <- attr(x, "climasus_meta")
+  meta <- attr(x, "sus_meta")
   x <- NextMethod()
   meta$modified <- Sys.time()
   
@@ -486,11 +486,11 @@ rbind.climasus_df <- function(..., deparse.level = 1) {
   }
   
   first_climasus <- which(are_climasus)[1]
-  meta <- attr(objects[[first_climasus]], "climasus_meta")
+  meta <- attr(objects[[first_climasus]], "sus_meta")
   
   if (sum(are_climasus) > 1) {
-    systems <- unique(sapply(objects[are_climasus], function(o) attr(o, "climasus_meta")$system))
-    stages <- unique(sapply(objects[are_climasus], function(o) attr(o, "climasus_meta")$stage))
+    systems <- unique(sapply(objects[are_climasus], function(o) attr(o, "sus_meta")$system))
+    stages <- unique(sapply(objects[are_climasus], function(o) attr(o, "sus_meta")$stage))
     
     if (length(systems) > 1 || length(stages) > 1) {
       warning(
@@ -521,7 +521,7 @@ rbind.climasus_df <- function(..., deparse.level = 1) {
 as.data.frame.climasus_df <- function(x, ...) {
   
   class(x) <- setdiff(class(x), "climasus_df")
-  attr(x, "climasus_meta") <- NULL
+  attr(x, "sus_meta") <- NULL
   
   x
 }
@@ -585,14 +585,14 @@ ensure_climasus_df <- function(df, system = NULL, stage = NULL, type = NULL, ...
 #   df_filtered <- filter_logic(df, disease_group)
 #   
 #   # 3. Update metadata
-#   df_filtered <- climasus_meta(
+#   df_filtered <- sus_meta(
 #     df_filtered,
 #     stage = "filter_cid",
 #     type = "filter_cid"
 #   )
 #   
 #   # 4. Add to history
-#   df_filtered <- climasus_meta(
+#   df_filtered <- sus_meta(
 #     df_filtered,
 #     add_history = sprintf("Filtered by disease group: %s", disease_group)
 #   )

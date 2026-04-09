@@ -198,7 +198,7 @@ sus_data_filter_cid <- function(df,
   
   # Check if data is climasus_df
   if (inherits(df, "climasus_df")) {
-    current_stage <- climasus_meta(df, "stage")
+    current_stage <- sus_meta(df, "stage")
     required_stage <- "stand"
 
     if (!is_stage_at_least(current_stage, required_stage)) {
@@ -242,7 +242,7 @@ sus_data_filter_cid <- function(df,
     }
 
     # Update metadata
-    df <- climasus_meta(df, stage = "filter_cid", type = "filter_cid")
+    df <- sus_meta(df, stage = "filter_cid", type = "filter_cid")
 
   } else {
       
@@ -425,7 +425,7 @@ sus_data_filter_cid <- function(df,
   if (is.null(icd_column)) {
     
     # Detect health system
-    detected_system <- climasus_meta(df, "system")
+    detected_system <- sus_meta(df, "system")
     if(is.null(detected_system)) {detected_system <- detect_health_system(df)}
 
     if(lang == "en"){ 
@@ -559,7 +559,7 @@ sus_data_filter_cid <- function(df,
     cli::cli_alert_info("Percentage retained: {pct_txt}%")
   }
 }
-  filtered_df <- climasus_meta(
+  filtered_df <- sus_meta(
     filtered_df,
     system = detected_system,
     stage = "filter_cid",
@@ -592,7 +592,7 @@ sus_data_filter_cid <- function(df,
   }
 
   # Add history to metadata
-  filtered_df <- climasus_meta(filtered_df, add_history = history_msg)
+  filtered_df <- sus_meta(filtered_df, add_history = history_msg)
   
   return(filtered_df)
 }
@@ -609,7 +609,7 @@ sus_data_filter_cid <- function(df,
 #'
 #' @return A data.frame with columns: group_name, label, climate_sensitive, n_codes.
 #'
-#' @export
+#' @noRd
 #'
 #' @examples
 #' \dontrun{
@@ -685,7 +685,7 @@ list_disease_groups <- function(climate_sensitive_only = FALSE, lang = "en", ver
 #'
 #' @return A list with detailed group information.
 #'
-#' @export
+#' @noRd
 #'
 #' @examples
 #' \dontrun{

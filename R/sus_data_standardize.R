@@ -323,13 +323,13 @@ sus_data_standardize <- function(df,
     base_classes <- setdiff(class(df), "climasus_df")
     df <- structure(
       df,
-      climasus_meta = meta,
+      sus_meta = meta,
       class = c("climasus_df", base_classes)
     )
   } else {
     # Already climasus_df - update metadata
-    df <- climasus_meta(df, system = system, stage = "stand", type = "stand")
-    df <- climasus_meta(df, add_history = "Standardized column names and types")
+    df <- sus_meta(df, system = system, stage = "stand", type = "stand")
+    df <- sus_meta(df, add_history = "Standardized column names and types")
   }
   return(df)
 }

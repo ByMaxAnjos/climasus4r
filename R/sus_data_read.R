@@ -542,12 +542,12 @@ sus_data_read <- function(path,
         }
       }
       
-      final_df <- climasus_meta(final_df, add_history = history_msg)
+      final_df <- sus_meta(final_df, add_history = history_msg)
       
       # Display metadata summary if verbose
       if (verbose) {
-        current_stage <- climasus_meta(final_df, "stage")
-        current_system <- climasus_meta(final_df, "system")
+        current_stage <- sus_meta(final_df, "stage")
+        current_system <- sus_meta(final_df, "system")
         
         if (!is.null(current_stage)) {
           stage_msg <- switch(lang,

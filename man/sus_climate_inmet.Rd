@@ -76,7 +76,7 @@ A \code{climasus_df} object (subclass of \code{tibble}) with class hierarchy:
 \item{\strong{Climate variables}}{Numeric. Standardized names (see \strong{Variables})}
 }
 
-\strong{Metadata} (accessible via \code{attr(x, "climasus_meta")}):
+\strong{Metadata} (accessible via \code{attr(x, "sus_meta")}):
 \describe{
 \item{\code{version}}{Package version used}
 \item{\code{timestamp}}{Import date/time}
@@ -109,7 +109,7 @@ The function implements a \strong{comprehensive processing pipeline}:
 \itemize{
 \item \strong{Data frequency}: Always \strong{hourly}. Use \code{sus_climate_aggregate()} for daily/weekly.
 \item \strong{Timezone}: All timestamps are \strong{UTC}. Convert if needed.
-\item \strong{Missing data}: Represented as \code{NA}. Use \code{sus_climate_fill_gaps()} for imputation.
+\item \strong{Missing data}: Represented as \code{NA}. Use \code{sus_climate_fill_inmet()} for imputation.
 \item \strong{Encoding}: All strings converted to UTF-8.
 \item \strong{Decimals}: Converted from comma (\verb{,}) to point (\code{.}).
 }
@@ -210,7 +210,7 @@ climate_df \%>\%
 }
 \seealso{
 \itemize{
-\item \code{\link[=sus_climate_fill_gaps]{sus_climate_fill_gaps()}} for ML-based gap filling
-\item \code{\link[=sus_join_spatial]{sus_join_spatial()}} for preparing municipality data
+\item \code{\link[=sus_climate_fill_inmet]{sus_climate_fill_inmet()}} for ML-based gap filling
+\item \code{\link[=sus_spatial_join]{sus_spatial_join()}} for preparing municipality data
 }
 }

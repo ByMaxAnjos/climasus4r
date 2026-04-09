@@ -97,7 +97,7 @@ If \code{format = NULL}, the function automatically detects the best format:
 }
 
 \strong{Spatial Data Export}:
-When exporting \code{sf} objects (spatial data from \code{sus_join_spatial()}):
+When exporting \code{sf} objects (spatial data from \code{sus_spatial_join()}):
 \itemize{
 \item \strong{Recommended}: Use GeoParquet format for optimal performance
 \item GeoParquet preserves CRS, geometry types, and all attributes
@@ -113,7 +113,7 @@ library(climasus4r)
 sus_data_export(df_final, "output/data.rds")
 
 # Export spatial data to GeoParquet (RECOMMENDED)
-sf_result <- sus_join_spatial(df, level = "munic")
+sf_result <- sus_spatial_join(df, level = "munic")
 sus_data_export(
   sf_result,
   file_path = "output/spatial_data.geoparquet",

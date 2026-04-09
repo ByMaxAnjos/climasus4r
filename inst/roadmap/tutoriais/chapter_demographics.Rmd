@@ -271,7 +271,7 @@ df_raw$is_weekend       <- df_raw$day_of_week %in% c(6L, 7L)
 # Convert to climasus_df (mimicking the pipeline output)
 df <- structure(
   df_raw,
-  climasus_meta = list(
+  sus_meta = list(
     system   = "SINAN",
     stage    = "filter_demo",
     type     = "filter_demo",
@@ -1112,7 +1112,7 @@ df_sim <- data.frame(
 # Attach climasus_df class
 df_sim <- structure(
   df_sim,
-  climasus_meta = list(system="SIM", stage="filter_demo"),
+  sus_meta = list(system="SIM", stage="filter_demo"),
   class = c("climasus_df","data.frame")
 )
 ```
@@ -1214,7 +1214,7 @@ df_sih <- data.frame(
 
 df_sih <- structure(
   df_sih,
-  climasus_meta = list(system="SIH", stage="filter_demo"),
+  sus_meta = list(system="SIH", stage="filter_demo"),
   class = c("climasus_df","data.frame")
 )
 ```
@@ -1335,7 +1335,7 @@ df_cnes <- data.frame(
 
 df_cnes <- structure(
   df_cnes,
-  climasus_meta = list(system="CNES", stage="filter_demo"),
+  sus_meta = list(system="CNES", stage="filter_demo"),
   class = c("climasus_df","data.frame")
 )
 

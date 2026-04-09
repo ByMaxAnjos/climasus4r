@@ -270,7 +270,7 @@ sus_view_map <- function(df,
   
   # ── Detect system from climasus_df metadata (if available) ─────────────────
   system_name <- if (inherits(df, "climasus_df")) {
-    climasus_meta(df, "system") %||% "DATASUS"
+    sus_meta(df, "system") %||% "DATASUS"
   } else {
     "DATASUS"
   }

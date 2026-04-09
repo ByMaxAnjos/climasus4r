@@ -824,13 +824,13 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
       base_classes <- setdiff(class(combined_data), "climasus_df")
       combined_data <- structure(
         combined_data,
-        climasus_meta = meta,
+        sus_meta = meta,
         class = c("climasus_df", base_classes)
       )
     } else {
       # Already climasus_df - update metadata
-      combined_data <- climasus_meta(combined_data, system = system, stage = "import", type = "raw")
-      combined_data <- climasus_meta(combined_data, add_history = "Imported datasus with climasus4r")
+      combined_data <- sus_meta(combined_data, system = system, stage = "import", type = "raw")
+      combined_data <- sus_meta(combined_data, add_history = "Imported datasus with climasus4r")
     }
 
   return(combined_data)

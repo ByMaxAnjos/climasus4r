@@ -120,7 +120,7 @@ create_disease_panel <- function(sys_name, panel_letter) {
   df_stand <- df_raw %>% 
     sus_data_clean_encoding(lang = "pt") %>% 
     sus_data_standardize(lang="pt") %>% 
-    sus_create_variables(lang="pt") %>% 
+    sus_data_create_variables(lang="pt") %>% 
     sus_data_filter_demographics(sex = c("Masculino", "Feminino"))
   
   df_agg <- sus_data_aggregate(df_stand)

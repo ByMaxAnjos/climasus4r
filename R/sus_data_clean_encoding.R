@@ -151,13 +151,13 @@ sus_data_clean_encoding <- function(df, lang = "pt", verbose = TRUE) {
     base_classes <- setdiff(class(df), "climasus_df")
     df <- structure(
       df,
-      climasus_meta = meta,
+      sus_meta = meta,
       class = c("climasus_df", base_classes)
     )
   } else {
     # Already climasus_df - update metadata
-    df <- climasus_meta(df, stage = "clean", type = "clean")
-    df <- climasus_meta(df, add_history = "Cleaned character encoding (UTF-8)")
+    df <- sus_meta(df, stage = "clean", type = "clean")
+    df <- sus_meta(df, add_history = "Cleaned character encoding (UTF-8)")
   }
 
   

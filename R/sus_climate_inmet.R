@@ -74,7 +74,7 @@
 #'   \item{**Climate variables**}{Numeric. Standardized names (see **Variables**)}
 #' }
 #'
-#' **Metadata** (accessible via `attr(x, "climasus_meta")`):
+#' **Metadata** (accessible via `attr(x, "sus_meta")`):
 #' \describe{
 #'   \item{`version`}{Package version used}
 #'   \item{`timestamp`}{Import date/time}
@@ -151,14 +151,14 @@
 #' \itemize{
 #'   \item **Data frequency**: Always **hourly**. Use `sus_climate_aggregate()` for daily/weekly.
 #'   \item **Timezone**: All timestamps are **UTC**. Convert if needed.
-#'   \item **Missing data**: Represented as `NA`. Use `sus_climate_fill_gaps()` for imputation.
+#'   \item **Missing data**: Represented as `NA`. Use `sus_climate_fill_inmet()` for imputation.
 #'   \item **Encoding**: All strings converted to UTF-8.
 #'   \item **Decimals**: Converted from comma (`,`) to point (`.`).
 #' }
 #'
 #' @seealso
-#' * [sus_climate_fill_gaps()] for ML-based gap filling
-#' * [sus_join_spatial()] for preparing municipality data
+#' * [sus_climate_fill_inmet()] for ML-based gap filling
+#' * [sus_spatial_join()] for preparing municipality data
 #'
 #' @examples
 #' \dontrun{
@@ -322,12 +322,12 @@ sus_climate_inmet <- function(
     base_classes <- setdiff(class(climate_data), "climasus_df")
     climate_data <- structure(
       climate_data,
-      climasus_meta = meta,
+      sus_meta = meta,
       class = c("climasus_df", base_classes)
     )
   } else {
     # Already climasus_df - update metadata
-    climate_data <- climasus_meta(
+    climate_data <- sus_meta(
       climate_data,
       system = NULL,
       stage = "climate",
@@ -337,7 +337,7 @@ sus_climate_inmet <- function(
         end = max(climate_data$date)
       )
     )
-    climate_data <- climasus_meta(
+    climate_data <- sus_meta(
       climate_data,
       add_history = "INMET data Imported"
     )

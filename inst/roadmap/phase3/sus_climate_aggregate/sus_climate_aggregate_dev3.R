@@ -7,11 +7,11 @@
 #' (por distância euclidiana entre centroides municipais e coordenadas das
 #' estações) e, em seguida, aplica a janela temporal solicitada.
 #'
-#' @param health_data Um objeto `climasus_df` produzido por `sus_join_spatial()`.
+#' @param health_data Um objeto `climasus_df` produzido por `sus_spatial_join()`.
 #'   Deve conter as colunas `date` (Date), `code_muni` (character) e a coluna
 #'   de geometria `geom`.
 #' @param climate_data Um objeto `climasus_df` produzido por
-#'   `sus_climate_fill_gaps()`. Deve conter `date` (Date ou POSIXct),
+#'   `sus_climate_fill_inmet()`. Deve conter `date` (Date ou POSIXct),
 #'   `station_code`, `latitude`, `longitude` e as variáveis climáticas.
 #' @param climate_var Vetor de caracteres com as colunas climáticas a agregar.
 #'   Use `"all"` (padrão) para incluir todas as variáveis disponíveis.
@@ -167,7 +167,7 @@ sus_climate_aggregate <- function(
   # 1. VALIDAÇÃO DOS DADOS DE SAÚDE
   # ---------------------------------------------------------------------------
   .validate_health_input(health_data, lang, verbose)
-  system <- climasus_meta(health_data, "system")
+  system <- sus_meta(health_data, "system")
 
   # ---------------------------------------------------------------------------
   # 2. VALIDAÇÃO DOS DADOS CLIMÁTICOS
@@ -212,7 +212,7 @@ sus_climate_aggregate <- function(
   #       de ~357 para 21 dias com base 11 C, temperatura ~28 C).
   if (verbose) cli::cli_progress_step(msg$aggregating)
 
-  climate_temporal_meta <- climasus_meta(climate_data, "temporal")
+  climate_temporal_meta <- sus_meta(climate_data, "temporal")
   is_hourly_meta <- !is.null(climate_temporal_meta$unit) &&
                     climate_temporal_meta$unit == "hour"
 
@@ -294,11 +294,11 @@ sus_climate_aggregate <- function(
   if (!inherits(health_data, "climasus_df")) {
     cli::cli_abort(.msg_not_climasus_df(lang, "health"))
   }
-  current_stage  <- climasus_meta(health_data, "stage")
+  current_stage  <- sus_meta(health_data, "stage")
   required_stage <- "spatial"
   if (is.null(current_stage) || current_stage != required_stage) {
     cli::cli_abort(.msg_wrong_stage(
-      lang, "health", current_stage, required_stage, "sus_join_spatial(...)"
+      lang, "health", current_stage, required_stage, "sus_spatial_join(...)"
     ))
   }
   if (verbose) cli::cli_alert_success(.msg_stage_validated(lang))
@@ -312,15 +312,15 @@ sus_climate_aggregate <- function(
   if (!inherits(climate_data, "climasus_df")) {
     cli::cli_abort(.msg_not_climasus_df(lang, "climate"))
   }
-  current_stage  <- climasus_meta(climate_data, "stage")
+  current_stage  <- sus_meta(climate_data, "stage")
   required_stage <- "climate"
   if (is.null(current_stage) || current_stage != required_stage) {
     cli::cli_abort(.msg_wrong_stage(
       lang, "climate", current_stage, required_stage,
-      "sus_climate_inmet(...) seguido de sus_climate_fill_gaps(..., evaluation = FALSE)"
+      "sus_climate_inmet(...) seguido de sus_climate_fill_inmet(..., evaluation = FALSE)"
     ))
   }
-  temporal_meta <- climasus_meta(climate_data, "temporal")
+  temporal_meta <- sus_meta(climate_data, "temporal")
   if (is.null(temporal_meta) || is.null(temporal_meta$source) ||
       !temporal_meta$source %in% "INMET") {
     cli::cli_abort(.msg_wrong_source(lang))
@@ -333,8 +333,8 @@ sus_climate_aggregate <- function(
 #' @keywords internal
 #' @noRd
 .validate_date_overlap <- function(health_data, climate_data, lang) {
-  health_dates  <- climasus_meta(health_data, "temporal")
-  climate_dates <- climasus_meta(climate_data, "temporal")
+  health_dates  <- sus_meta(health_data, "temporal")
+  climate_dates <- sus_meta(climate_data, "temporal")
 
   if (is.null(health_dates) || is.null(climate_dates) ||
       is.null(health_dates$start) || is.null(climate_dates$start)) {
@@ -471,7 +471,7 @@ sus_climate_aggregate <- function(
     cli::cli_abort("Dados de estacao devem conter: {paste(required_cols, collapse = ', ')}")
   }
   if (!"code_muni" %in% names(spatial_obj)) {
-    cli::cli_abort("spatial_obj deve conter a coluna 'code_muni'. Execute sus_join_spatial() antes.")
+    cli::cli_abort("spatial_obj deve conter a coluna 'code_muni'. Execute sus_spatial_join() antes.")
   }
   if (verbose) cli::cli_inform("Performing spatial matching of climate stations to municipalities")
 
@@ -1041,9 +1041,9 @@ sus_climate_aggregate <- function(
       user     = list()
     )
     base_classes <- setdiff(class(df), "climasus_df")
-    structure(df, climasus_meta = meta, class = c("climasus_df", base_classes))
+    structure(df, sus_meta = meta, class = c("climasus_df", base_classes))
   } else {
-    climasus_meta(df, stage = "climate", type = "agg")
+    sus_meta(df, stage = "climate", type = "agg")
   }
 }
 
@@ -1087,7 +1087,7 @@ sus_climate_aggregate <- function(
         "  4. sus_data_filter_cid()",
         "  5. sus_data_filter_demographics()",
         "  6. sus_data_aggregate()",
-        "  7. sus_join_spatial()"
+        "  7. sus_spatial_join()"
       ),
       en = c(
         "  1. sus_data_import() or sus_data_read()",
@@ -1096,17 +1096,17 @@ sus_climate_aggregate <- function(
         "  4. sus_data_filter_cid()",
         "  5. sus_data_filter_demographics()",
         "  6. sus_data_aggregate()",
-        "  7. sus_join_spatial()"
+        "  7. sus_spatial_join()"
       )
     ),
     climate = list(
       pt = c(
         "  1. sus_climate_inmet()",
-        "  2. sus_climate_fill_gaps(evaluation = FALSE)"
+        "  2. sus_climate_fill_inmet(evaluation = FALSE)"
       ),
       en = c(
         "  1. sus_climate_inmet()",
-        "  2. sus_climate_fill_gaps(evaluation = FALSE)"
+        "  2. sus_climate_fill_inmet(evaluation = FALSE)"
       )
     )
   )

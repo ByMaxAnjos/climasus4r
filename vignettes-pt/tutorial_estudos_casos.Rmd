@@ -429,7 +429,7 @@ Um **Pipeline Analítico Reprodutível** é um conjunto de processos automatizad
 | **1. Extração** | `sus_data_import()` | Baixa dados do DATASUS |
 | **2. Transformação** | `sus_data_clean_encoding()` | Limpa caracteres |
 | **3. Transformação** | `sus_data_standardize()` | Padroniza colunas |
-| **4. Enriquecimento** | `sus_create_variables()` | Cria novas variáveis |
+| **4. Enriquecimento** | `sus_data_create_variables()` | Cria novas variáveis |
 | **5. Filtragem** | `sus_data_filter_cid()` | Filtra por doença |
 | **6. Filtragem** | `sus_data_filter_demographics()` | Filtra por perfil |
 | **7. Análise** | `sus_data_aggregate()` | Agrega por tempo |
@@ -461,7 +461,7 @@ df_resp_ped <- sus_data_import(
   sus_data_clean_encoding(lang = "pt") %>%
   sus_data_standardize(lang = "pt") %>%
   sus_data_filter_cid(disease_group = "respiratory", lang = "pt") %>%
-  sus_create_variables(
+  sus_data_create_variables(
     create_age_groups = TRUE,
     age_breaks = c(0, 1, 5, Inf), # <1, 1-4, 5+
     age_labels = c("< 1 ano", "1-4 anos", "5+ anos"),
@@ -494,7 +494,7 @@ head(df_resp_ped)
 1. **`sus_data_import`**: Baixamos dados de mortalidade de SP, RJ e MG para 2 anos com paralelismo
 2. **`sus_data_clean_encoding` e `sus_data_standardize`**: Limpeza e padronização
 3. **`sus_data_filter_cid`**: Filtro para doenças respiratórias
-4. **`sus_create_variables`**: Criação de faixas etárias pediátricas personalizadas
+4. **`sus_data_create_variables`**: Criação de faixas etárias pediátricas personalizadas
 5. **`sus_data_filter_demographics`**: Filtro para crianças < 5 anos
 6. **`sus_data_aggregate`**: Agregação mensal por faixa etária
 
@@ -523,7 +523,7 @@ df_dengue <- sus_data_import(
 ) %>%
   sus_data_clean_encoding(lang = "pt") %>%
   sus_data_standardize(lang = "pt") %>%
-  sus_create_variables(
+  sus_data_create_variables(
     create_calendar_vars = TRUE, # Essencial para criar "estacao"
     lang = "pt"
   ) %>%
@@ -547,7 +547,7 @@ head(df_dengue)
 ### 4.2. Explicação Passo a Passo
 
 1. **`sus_data_import`**: Baixamos dados de casos de dengue para o Amazonas
-2. **`sus_create_variables`**: `create_calendar_vars = TRUE` cria a coluna `estacao`
+2. **`sus_data_create_variables`**: `create_calendar_vars = TRUE` cria a coluna `estacao`
 3. **`sus_data_aggregate`**: Agregação direta por `time_unit = "season"`
 
 ---
@@ -575,7 +575,7 @@ df_cardio_idosos <- sus_data_import(
   sus_data_clean_encoding(lang = "pt") %>%
   sus_data_standardize(lang = "pt") %>%
   sus_data_filter_cid(disease_group = "cardiovascular", lang = "pt") %>%
-  sus_create_variables(
+  sus_data_create_variables(
     create_age_groups = TRUE,
     age_breaks = c(0, 65, 75, 85, Inf),
     age_labels = c("< 65", "65-74", "75-84", "85+"),
@@ -635,7 +635,7 @@ df_calor <- sus_data_import(
   sus_data_clean_encoding(lang = "pt") %>%
   sus_data_standardize(lang = "pt") %>%
   sus_data_filter_cid(disease_group = "heat_related", lang = "pt") %>%
-  sus_create_variables(
+  sus_data_create_variables(
     create_age_groups = TRUE,
     lang = "pt"
   ) %>%

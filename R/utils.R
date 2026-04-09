@@ -7,7 +7,7 @@ NULL
 
 #' Launch the climasus4r AI Assistant
 #' @export
-sus_chat_ai <- function() {
+sus_chat <- function() {
   # Isso exibe o prompt: "The package 'rstudioapi' is required. Would you like to install it?"
   rlang::check_installed("rstudioapi", reason = "para abrir a interface dentro do RStudio/Positron.")
   
@@ -740,12 +740,12 @@ get_system_description <- function(system, lang = "en") {
 #' @examples
 #' \dontrun{
 #' # Clear all cache
-#' clear_climasus_cache()
+#' sus_cache_clear()
 #'
 #' # Clear only files older than 90 days
-#' clear_climasus_cache(older_than_days = 90)
+#' sus_cache_clear(older_than_days = 90)
 #' }
-clear_climasus_cache <- function(cache_dir = "~/.climasus4r_cache", 
+sus_cache_clear <- function(cache_dir = "~/.climasus4r_cache", 
                                  older_than_days = NULL,
                                  verbose = TRUE) {
   
@@ -814,9 +814,9 @@ clear_climasus_cache <- function(cache_dir = "~/.climasus4r_cache",
 #'
 #' @examples
 #' \dontrun{
-#' cache_info <- get_climasus_cache_info()
+#' cache_info <- sus_cache_info()
 #' }
-get_climasus_cache_info <- function(cache_dir = "~/.climasus4r_cache", 
+sus_cache_info <- function(cache_dir = "~/.climasus4r_cache", 
                                     verbose = TRUE) {
   
   cache_dir <- path.expand(cache_dir)

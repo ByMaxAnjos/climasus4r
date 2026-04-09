@@ -140,7 +140,7 @@
 #' # ===== EXAMPLE 1: SIM (Mortality) - Age already calculated =====
 #' df_sim <- sus_data_import(uf = "SP", year = 2023, system = "SIM-DO") |>
 #'   sus_data_standardize(lang = "en") |>
-#'   sus_create_variables(
+#'   sus_data_create_variables(
 #'     create_age_groups = TRUE,
 #'     age_breaks = c(0, 5, 65, Inf),
 #'     age_labels = c("0-4", "5-64", "65+"),
@@ -152,7 +152,7 @@
 #' # ===== EXAMPLE 2: SINAN (Dengue) - Calculate from dates =====
 #' df_sinan <- sus_data_import(uf = "RJ", year = 2023, system = "SINAN-DENGUE") |>
 #'   sus_data_standardize(lang = "pt") |>
-#'   sus_create_variables(
+#'   sus_data_create_variables(
 #'     create_age_groups = TRUE,
 #'     age_breaks = c(0, 15, 60, Inf),
 #'     create_calendar_vars = TRUE,
@@ -163,7 +163,7 @@
 #' # ===== EXAMPLE 3: SIH (Hospitalizations) - Decode age codes =====
 #' df_sih <- sus_data_import(uf = "MG", year = 2023, system = "SIH-RD") |>
 #'   sus_data_standardize(lang = "es") |>
-#'   sus_create_variables(
+#'   sus_data_create_variables(
 #'     create_age_groups = TRUE,
 #'     age_breaks = c(0, 18, 60, Inf),
 #'     age_labels = c("0-17", "18-59", "60+"),
@@ -173,7 +173,7 @@
 #' # Decodes DATASUS age codes if dates are missing (fallback)
 #'
 #' # ===== EXAMPLE 4: Custom age groups for elderly analysis =====
-#' df_elderly <- sus_create_variables(
+#' df_elderly <- sus_data_create_variables(
 #'   df,
 #'   create_age_groups = TRUE,
 #'   age_breaks = c(60, 70, 80, 90, Inf),
@@ -182,7 +182,7 @@
 #' )
 #'
 #' # ===== EXAMPLE 5: Calendar variables and climate variables =====
-#' df_calendar_climate <- sus_create_variables(
+#' df_calendar_climate <- sus_data_create_variables(
 #'   df,
 #'   create_calendar_vars = TRUE,
 #'   create_semester = TRUE,
@@ -192,7 +192,7 @@
 #' }
 #'
 #' @export
-sus_create_variables <- function(
+sus_data_create_variables <- function(
   df,
   create_age_groups = TRUE,
   age_breaks = c(0, 5, 15, 60, Inf),
@@ -229,7 +229,7 @@ sus_create_variables <- function(
 
     # Minimum required stage
     required_stage <- "stand"
-    current_stage  <- climasus_meta(df, "stage")
+    current_stage  <- sus_meta(df, "stage")
 
     if (!is_stage_at_least(current_stage, required_stage)) {
 
@@ -272,7 +272,7 @@ sus_create_variables <- function(
     }
 
     # Update metadata
-    df <- climasus_meta(df, stage = "derive", type  = "derive")
+    df <- sus_meta(df, stage = "derive", type  = "derive")
   } else {
     
     # NOT climasus_df - ABORT execution
@@ -321,7 +321,7 @@ sus_create_variables <- function(
   # Track which variables were created
   created_vars <- character(0)
   
-  system <- climasus_meta(df, "system")
+  system <- sus_meta(df, "system")
 
   # ========================================================================
   # AGE COLUMN IDENTIFICATION AND CALCULATION
@@ -806,13 +806,13 @@ sus_create_variables <- function(
     base_classes <- setdiff(class(df), "climasus_df")
     df <- structure(
       df,
-      climasus_meta = meta,
+      sus_meta = meta,
       class = c("climasus_df", base_classes)
     )
   } else { 
-    df <- climasus_meta(
+    df <- sus_meta(
     df,
-    system = climasus_meta(df, "system"),  # Preserve original system
+    system = sus_meta(df, "system"),  # Preserve original system
     stage = "derive",
     type = "derive"
   ) 
@@ -873,7 +873,7 @@ sus_create_variables <- function(
     "No derived variables were created"
   }
     # Register metadata
-  df <- climasus_meta(df, add_history = history_msg)
+  df <- sus_meta(df, add_history = history_msg)
 
   return(df)
 }

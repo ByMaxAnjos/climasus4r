@@ -279,7 +279,7 @@ sus_view_demographics <- function(df,
   if (is.null(age_col) || is.null(sex_col)) {
     cli::cli_abort(c(
       "Population pyramid requires both age group and sex columns.",
-      "i" = "Run {.fn sus_create_variables} to create 'age_group' before visualizing."
+      "i" = "Run {.fn sus_data_create_variables} to create 'age_group' before visualizing."
     ))
   }
   

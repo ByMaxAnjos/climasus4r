@@ -77,7 +77,7 @@ extract_important_params <- function(func_name, args) {
     "sus_data_filter_cid" = c("disease_group"),
     "sus_data_filter_demographics" = c("age_range"),
     "sus_data_aggregate" = c("time_unit", "group_by"),
-    "sus_create_variables" = c("create_age_groups", "create_calendar_vars")
+    "sus_data_create_variables" = c("create_age_groups", "create_calendar_vars")
   )
   
   if (func_name %in% names(important_params_map)) {

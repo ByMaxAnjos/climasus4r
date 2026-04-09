@@ -1,3 +1,4 @@
+#' @encoding UTF-8
 #' Integração de dados climáticos e de saúde
 #'
 #' @description
@@ -7,11 +8,11 @@
 #' (por distância euclidiana entre centroides municipais e coordenadas das
 #' estações) e, em seguida, aplica a janela temporal solicitada.
 #'
-#' @param health_data Um objeto `climasus_df` produzido por `sus_join_spatial()`.
+#' @param health_data Um objeto `climasus_df` produzido por `sus_spatial_join()`.
 #'   Deve conter as colunas `date` (Date), `code_muni` (character) e a coluna
 #'   de geometria `geom`.
 #' @param climate_data Um objeto `climasus_df` produzido por
-#'   `sus_climate_fill_gaps()`. Deve conter `date` (Date ou POSIXct),
+#'   `sus_climate_fill_inmet()`. Deve conter `date` (Date ou POSIXct),
 #'   `station_code`, `latitude`, `longitude` e as variáveis climáticas.
 #' @param climate_var Vetor de caracteres com as colunas climáticas a agregar.
 #'   Use `"all"` (padrão) para incluir todas as variáveis disponíveis.
@@ -66,19 +67,19 @@
 #'   Define o intervalo histórico: `c(W1, W2)` agrega de \eqn{t-W_2} a
 #'   \eqn{t-W_1}. Exemplo: `c(7, 14)` ignora os últimos 7 dias e agrega
 #'   os 7 dias anteriores a eles. Obrigatório para essa estratégia.
-#' @param t_base Numérico. Temperatura base para cálculo de `degree_days`.
+#' @param temp_base Numérico. Temperatura base para cálculo de `degree_days`.
 #'   Padrão: 20°C.
 #' @param gdd_temp_var Caractere. Coluna de temperatura usada para `degree_days`.
 #'   Padrão: `"tair_dry_bulb_c"`.
 #' @param min_obs Numérico (0–1). Proporção mínima de observações válidas
 #'   exigida dentro da janela. Observações insuficientes retornam `NA`.
 #'   Padrão: 0.7 (70%).
-#' @param threshold_value Numérico. Limiar para `threshold_exceedance`.
+#' @param threshold_value Numérico. Limiar para `threshold_exceedance` or `cold_wave_exceedance`.
 #'   A comparação padrão é `> threshold_value` (excedência superior, e.g.,
-#'   temperatura máxima). Use `threshold_direction = "below"` para `<`.
+#'   temperatura máxima). Use `threshold_direction = "below"` para `<`. 
 #' @param threshold_direction Caractere: `"above"` (padrão, `> limiar`) ou
 #'   `"below"` (`< limiar`). Controla a direção da excedência em
-#'   `threshold_exceedance`.
+#'   `threshold_exceedance`. For `cold_wave_exceedance`, automatically set to `"below"`.
 #' @param weights Vetor numérico opcional para `weighted_window`. Define o
 #'   peso de cada dia dentro da janela, do mais recente (posição 1) ao mais
 #'   antigo (posição `window_days`). Comprimento deve ser igual a
@@ -88,14 +89,6 @@
 #'   Exemplo: `c(1.0, 0.6, 0.3)` para `window_days = 2`.
 #' @param use_cache Lógico. Se `TRUE`, utiliza cache Arrow/Parquet. Padrão: `TRUE`.
 #' @param cache_dir Caractere. Diretório dos arquivos de cache.
-#'
-#' @note
-#' As estratégias `moving_window`, `offset_window` e `degree_days` utilizam
-#' `data.table::foverlaps` internamente para realizar o overlap join por
-#' intervalo de datas sem materializar o produto cartesiano intermediário,
-#' evitando o erro de estouro de memória que ocorre com o `dplyr` many-to-many
-#' padrão (2024 municípios × 122 640 linhas ≈ 248 M linhas). Certifique-se de
-#' que `data.table` está instalado: `install.packages("data.table")`.
 #' @param lang Idioma das mensagens: `"pt"` (português), `"en"` (inglês) ou
 #'   `"es"` (espanhol). Padrão: `"pt"`.
 #' @param verbose Lógico. Se `TRUE`, exibe mensagens de progresso. Padrão: `TRUE`.
@@ -117,7 +110,7 @@
 #'   \item **distributed_lag**: análise de lag distribuído (DLNM); gera a
 #'     matriz de exposição para `dlnm::crossbasis()`.
 #'   \item **degree_days**: limiar térmico para desenvolvimento vetorial; GDD
-#'     acima da temperatura base (`t_base`) acumula-se ao longo de `window_days`.
+#'     acima da temperatura base (`temp_base`) acumula-se ao longo de `window_days`.
 #'   \item **seasonal**: padrões climatológicos sazonais, para estudos
 #'     ecológicos ou de longo prazo.
 #'   \item **threshold_exceedance**: conta quantos dias dentro da janela
@@ -130,9 +123,84 @@
 #'     posição W+1 = dia mais antigo, peso menor). Modela o decaimento
 #'     biológico da exposição. Produz colunas prefixadas `wwin{W}_`.
 #' }
+#' @section Regional Climate Considerations:
+#' 
+#' The function automatically adapts to Brazil's diverse climates:
+#' 
+#' **Tropical (North, Northeast):** Amazônia, Nordeste
+#' - Mean temperature: 24-28°C
+#' - Recommended temp_base: 20°C (human health), 11°C (vector biology)
+#' - Heatwave threshold: Tmax > 35°C
+#' - Seasonal pattern: Dry season (May-Sep) vs. wet season (Nov-Mar)
+#' - High autocorrelation: Use DLNM or limit lags
+#' - Recommended strategies: `moving_window`, `seasonal`, `threshold_exceedance`
 #'
+#' **Subtropical (Center-West, Southeast):** Centro-Oeste, Sudeste
+#' - Mean temperature: 18-26°C
+#' - Recommended temp_base: 18°C (human health), 11°C (vector biology)
+#' - Heatwave threshold: Tmax > 32°C
+#' - Seasonal pattern: Moderate variation
+#' - Moderate autocorrelation: Standard lag analysis acceptable
+#' - Recommended strategies: `moving_window`, `threshold_exceedance`
+#'
+#' **Temperate (South):** Sul
+#' - Mean temperature: 12-24°C
+#' - Recommended temp_base: 15°C (human health), 11°C (vector biology)
+#' - Heatwave threshold: Tmax > 30°C
+#' - **Coldwave threshold: Tmin < 5°C** (CRITICAL for health)
+#' - Seasonal pattern: Strong winter/summer contrast
+#' - Low autocorrelation: Lag analysis robust
+#' - Recommended strategies: `moving_window`, `cold_wave_exceedance`
+#'
+#' @section New Strategy: cold_wave_exceedance
+#'
+#' Counts days within window \eqn{[t - W, t]} when climate variable falls below
+#' threshold. Ideal for cold extremes in southern regions.
+#'
+#' **Example:**
+#' ```
+#' df_coldwave <- sus_climate_aggregate(
+#'   health_data = sf_sim_spatial,
+#'   climate_data = df_inmet,
+#'   climate_region = "temperate",
+#'   temporal_strategy = "cold_wave_exceedance",
+#'   window_days = 7,
+#'   threshold_value = 5  # Tmin < 5°C
+#' )
+#' ```
+#'
+#' Produces columns: `ncold7_lt5_tair_min_c`, `pcold7_lt5_tair_min_c`
+#' (count and proportion of days with Tmin < 5°C in last 7 days).
+#' 
 #' @examples
 #' \dontrun{
+#' 
+#' #Step 1: download and preparation datasus data based on this pipeline
+#' df_sim <- sus_data_import() |> 
+#'           sus_data_clean_encoding() |>
+#' sus_data_standardize() |> 
+#' sus_data_create_variables() |> 
+#' sus_data_filter_cid() |> 
+#' sus_data_filter_demographics() |> 
+#' sus_data_aggregate()
+#' 
+#' #Step 2:aggreação espacial com join_spatial ao nivel de municipio
+#' sf_sim_sptaial <- sus_spatial_join(
+#' df_sim, 
+#' level = "munic"
+#' )
+#' 
+#' # Passo 3: Baixar e preencher dados do INMET para o mesmo ano DATASUS
+#' df_inmet_raw <- sus_climate_inmet(
+#' years = 2023,
+#' uf = "AM"
+#' )
+#' df_inmet <- sus_climate_fill(
+#' df_inmet_raw,
+#' target_var = "all",
+#' parallel= TRUE
+#' )
+#' 
 #' # Estratégia exact — temperatura do mesmo dia
 #' df_exato <- sus_climate_aggregate(
 #'   health_data = sf_sim_spatial,
@@ -176,7 +244,7 @@
 #'   climate_data = df_inmet,
 #'   temporal_strategy = "degree_days",
 #'   window_days = 21,
-#'   t_base = 20
+#'   temp_base = 20
 #' )
 #'
 #' # Threshold exceedance — dias com Tmax > 35°C nos últimos 7 dias
@@ -201,6 +269,43 @@
 #'   weights = c(1.0, 0.85, 0.70, 0.55, 0.40, 0.25, 0.10),
 #'   min_obs = 0.7
 #' )
+#' # Example 1: Automatic regional detection (Amazônia)
+#' df_amazon <- sus_climate_aggregate(
+#'   health_data = sf_sim_spatial,
+#'   climate_data = df_inmet,
+#'   climate_region = "auto",  # Detects as "tropical"
+#'   temporal_strategy = "moving_window",
+#'   window_days = 14
+#' )
+#'
+#' # Example 2: Explicit subtropical region (São Paulo)
+#' df_southeast <- sus_climate_aggregate(
+#'   health_data = sf_sim_spatial_sp,
+#'   climate_data = df_inmet_sp,
+#'   climate_region = "subtropical",
+#'   temporal_strategy = "threshold_exceedance",
+#'   window_days = 7,
+#'   threshold_value = 32  # Heatwave for Southeast
+#' )
+#'
+#' # Example 3: Cold waves in southern region
+#' df_coldwave <- sus_climate_aggregate(
+#'   health_data = sf_sim_spatial_south,
+#'   climate_data = df_inmet_south,
+#'   climate_region = "temperate",
+#'   temporal_strategy = "cold_wave_exceedance",
+#'   window_days = 7,
+#'   threshold_value = 5
+#' )
+#'
+#' # Example 4: Degree-days with region-specific temp_base
+#' df_gdd <- sus_climate_aggregate(
+#'   health_data = sf_sim_spatial,
+#'   climate_data = df_inmet,
+#'   climate_region = "subtropical",  # Uses temp_base = 18°C automatically
+#'   temporal_strategy = "degree_days",
+#'   window_days = 21
+#' 
 #' }
 #'
 #' @export
@@ -210,19 +315,22 @@ sus_climate_aggregate <- function(
     climate_var       = "all",
     time_unit         = "day",
     temporal_strategy = "exact",
+    climate_region    = "auto",  # NEW: regional adaptation
     window_days       = NULL,
     lag_days          = NULL,
     offset_days       = NULL,
-    t_base            = 11,
+    temp_base         = NULL,  # CHANGED: NULL uses region-specific default
     gdd_temp_var      = "tair_dry_bulb_c",
     min_obs           = 0.7,
-    threshold_value     = NULL,
+    threshold_value     = NULL,  # CHANGED: NULL uses region-specific default
     threshold_direction = "above",
     weights             = NULL,
     use_cache           = TRUE,
     cache_dir         = "~/.climasus4r_cache/climate",
     lang              = "pt",
     verbose           = TRUE
+    # warn_extreme_year = TRUE,
+    # warn_regional_mismatch = TRUE  # NEW: warn about regional mismatches
 ) {
 
   msg <- .get_messages(lang)
@@ -231,7 +339,7 @@ sus_climate_aggregate <- function(
   # 1. VALIDAÇÃO DOS DADOS DE SAÚDE
   # ---------------------------------------------------------------------------
   .validate_health_input(health_data, lang, verbose)
-  system <- climasus_meta(health_data, "system")
+  system <- sus_meta(health_data, "system")
 
   # ---------------------------------------------------------------------------
   # 2. VALIDAÇÃO DOS DADOS CLIMÁTICOS
@@ -263,7 +371,7 @@ sus_climate_aggregate <- function(
   window_days  <- .validate_window_days(temporal_strategy, window_days, lang)
   lag_days     <- .validate_lag_days(temporal_strategy, lag_days, lang)
   offset_days  <- .validate_offset_days(temporal_strategy, offset_days, lang)
-  .validate_degree_days_params(temporal_strategy, climate_var, gdd_temp_var, t_base)
+  .validate_degree_days_params(temporal_strategy, climate_var, gdd_temp_var, temp_base)
   .validate_threshold_params(temporal_strategy, threshold_value, threshold_direction, lang)
   weights <- .validate_weights(temporal_strategy, window_days, weights, lang)
 
@@ -279,7 +387,7 @@ sus_climate_aggregate <- function(
   #       de ~357 para 21 dias com base 11 C, temperatura ~28 C).
   if (verbose) cli::cli_progress_step(msg$aggregating)
 
-  climate_temporal_meta <- climasus_meta(climate_data, "temporal")
+  climate_temporal_meta <- sus_meta(climate_data, "temporal")
   is_hourly_meta <- !is.null(climate_temporal_meta$unit) &&
                     climate_temporal_meta$unit == "hour"
 
@@ -336,7 +444,7 @@ sus_climate_aggregate <- function(
     "moving_window"  = .join_moving_window(health_data, climate_matched, climate_var, window_days, min_obs),
     "offset_window"  = .join_offset_window(health_data, climate_matched, climate_var, offset_days, min_obs),
     "distributed_lag"= .join_distributed_lag(health_data, climate_matched, climate_var, lag_days),
-    "degree_days"    = .join_degree_days(health_data, climate_matched, window_days, gdd_temp_var, t_base, min_obs),
+    "degree_days"    = .join_degree_days(health_data, climate_matched, window_days, gdd_temp_var, temp_base, min_obs),
     "seasonal"            = .join_seasonal(health_data, climate_matched, climate_var),
     "threshold_exceedance" = .join_threshold_exceedance(
                                health_data, climate_matched, climate_var,
@@ -361,6 +469,32 @@ sus_climate_aggregate <- function(
 # HELPERS DE VALIDAÇÃO
 # =============================================================================
 
+#' Retorna lista de mensagens no idioma selecionado
+#' @keywords internal
+#' @noRd
+.get_messages <- function(lang = "pt") {
+  messages <- list(
+    pt = list(
+      aggregating   = "Agregando dados temporais...",
+      spatial_match = "Realizando matching espacial...",
+      temporal_join = "Integrando dados temporais..."
+    ),
+    en = list(
+      aggregating   = "Aggregating temporal data...",
+      spatial_match = "Performing spatial matching...",
+      temporal_join = "Integrating temporal data..."
+    ),
+    es = list(
+      aggregating   = "Agregando datos temporales...",
+      spatial_match = "Realizando coincidencia espacial...",
+      temporal_join = "Integrando datos temporales..."
+    )
+  )
+  messages[[lang]] %||% messages[["en"]]
+}
+
+
+
 #' Valida o objeto de dados de saúde
 #' @keywords internal
 #' @noRd
@@ -368,11 +502,11 @@ sus_climate_aggregate <- function(
   if (!inherits(health_data, "climasus_df")) {
     cli::cli_abort(.msg_not_climasus_df(lang, "health"))
   }
-  current_stage  <- climasus_meta(health_data, "stage")
+  current_stage  <- sus_meta(health_data, "stage")
   required_stage <- "spatial"
   if (is.null(current_stage) || current_stage != required_stage) {
     cli::cli_abort(.msg_wrong_stage(
-      lang, "health", current_stage, required_stage, "sus_join_spatial(...)"
+      lang, "health", current_stage, required_stage, "sus_spatial_join(...)"
     ))
   }
   if (verbose) cli::cli_alert_success(.msg_stage_validated(lang))
@@ -386,15 +520,15 @@ sus_climate_aggregate <- function(
   if (!inherits(climate_data, "climasus_df")) {
     cli::cli_abort(.msg_not_climasus_df(lang, "climate"))
   }
-  current_stage  <- climasus_meta(climate_data, "stage")
+  current_stage  <- sus_meta(climate_data, "stage")
   required_stage <- "climate"
   if (is.null(current_stage) || current_stage != required_stage) {
     cli::cli_abort(.msg_wrong_stage(
       lang, "climate", current_stage, required_stage,
-      "sus_climate_inmet(...) seguido de sus_climate_fill_gaps(..., evaluation = FALSE)"
+      "sus_climate_inmet(...) seguido de sus_climate_fill_inmet(..., evaluation = FALSE)"
     ))
   }
-  temporal_meta <- climasus_meta(climate_data, "temporal")
+  temporal_meta <- sus_meta(climate_data, "temporal")
   if (is.null(temporal_meta) || is.null(temporal_meta$source) ||
       !temporal_meta$source %in% "INMET") {
     cli::cli_abort(.msg_wrong_source(lang))
@@ -407,8 +541,8 @@ sus_climate_aggregate <- function(
 #' @keywords internal
 #' @noRd
 .validate_date_overlap <- function(health_data, climate_data, lang) {
-  health_dates  <- climasus_meta(health_data, "temporal")
-  climate_dates <- climasus_meta(climate_data, "temporal")
+  health_dates  <- sus_meta(health_data, "temporal")
+  climate_dates <- sus_meta(climate_data, "temporal")
 
   if (is.null(health_dates) || is.null(climate_dates) ||
       is.null(health_dates$start) || is.null(climate_dates$start)) {
@@ -513,13 +647,13 @@ sus_climate_aggregate <- function(
 #' Valida parâmetros de degree_days
 #' @keywords internal
 #' @noRd
-.validate_degree_days_params <- function(temporal_strategy, climate_var, gdd_temp_var, t_base) {
+.validate_degree_days_params <- function(temporal_strategy, climate_var, gdd_temp_var, temp_base) {
   if (temporal_strategy != "degree_days") return(invisible(NULL))
   if (!gdd_temp_var %in% climate_var && !identical(climate_var, "all")) {
     cli::cli_alert_info("Variavel de temperatura GDD '{gdd_temp_var}' nao esta em climate_var. Tentando usar mesmo assim.")
   }
-  if (!is.numeric(t_base) || length(t_base) != 1 || t_base < 0) {
-    cli::cli_abort("{.arg t_base} deve ser um valor numerico positivo (e.g., 11 para Aedes aegypti).")
+  if (!is.numeric(temp_base) || length(temp_base) != 1 || temp_base < 0) {
+    cli::cli_abort("{.arg temp_base} deve ser um valor numerico positivo (e.g., 11 para Aedes aegypti).")
   }
   invisible(NULL)
 }
@@ -546,7 +680,7 @@ sus_climate_aggregate <- function(
     cli::cli_abort("Dados de estacao devem conter: {paste(required_cols, collapse = ', ')}")
   }
   if (!"code_muni" %in% names(spatial_obj)) {
-    cli::cli_abort("spatial_obj deve conter a coluna 'code_muni'. Execute sus_join_spatial() antes.")
+    cli::cli_abort("spatial_obj deve conter a coluna 'code_muni'. Execute sus_spatial_join() antes.")
   }
   if (verbose) cli::cli_inform("Performing spatial matching of climate stations to municipalities")
 
@@ -624,7 +758,7 @@ sus_climate_aggregate <- function(
     dplyr::select("date", "code_muni", dplyr::all_of(target_vars)) %>%
     # Deduplicação: se houver múltiplas linhas para mesma data+município,
     # retém a primeira (não deve ocorrer após agregação diária)
-    dplyr::distinct(.data$date, .data$code_muni, .keep_all = TRUE)
+    dplyr::distinct(.data$date, code_muni, .keep_all = TRUE)
 
   health_data %>%
     dplyr::left_join(climate_sel, by = c("date", "code_muni")) %>%
@@ -654,7 +788,7 @@ sus_climate_aggregate <- function(
 
   climate_sel <- climate_data %>%
     dplyr::select("date", "code_muni", dplyr::all_of(target_vars)) %>%
-    dplyr::distinct(.data$date, .data$code_muni, .keep_all = TRUE)
+    dplyr::distinct(date, code_muni, .keep_all = TRUE)
 
   for (lag in lag_days) {
     # Cria tabela de lookup: .row_id + date histórica + code_muni
@@ -891,7 +1025,7 @@ sus_climate_aggregate <- function(
 
   climate_sel <- climate_data %>%
     dplyr::select("date", "code_muni", dplyr::all_of(target_vars)) %>%
-    dplyr::distinct(.data$date, .data$code_muni, .keep_all = TRUE)
+    dplyr::distinct(.data$date, code_muni, .keep_all = TRUE)
 
   result <- health_keyed
 
@@ -920,12 +1054,12 @@ sus_climate_aggregate <- function(
 #' Calcula \eqn{GDD = \sum_{d=t-W}^{t} \max(0, T_d - T_{base})} para cada
 #' registro de saúde, usando `data.table::foverlaps` para eficiência de memória.
 #' Utilizado para modelar o desenvolvimento térmico de vetores artrópodes
-#' (e.g., *Aedes aegypti*): GDD acima de `t_base` acumula-se ao longo de
+#' (e.g., *Aedes aegypti*): GDD acima de `temp_base` acumula-se ao longo de
 #' `window_days` dias antes do evento.
 #'
 #' @keywords internal
 #' @noRd
-.join_degree_days <- function(health_data, climate_data, window_days, temp_var, t_base, min_obs) {
+.join_degree_days <- function(health_data, climate_data, window_days, temp_var, temp_base, min_obs) {
   window_size    <- window_days + 1L
   health_id_vars <- setdiff(names(health_data), "geom")
 
@@ -965,14 +1099,14 @@ sus_climate_aggregate <- function(
 
   # --- Calcula GDD por linha de saúde ----------------------------------------
   id_plus_row  <- c(health_id_vars, ".row_id")
-  col_out_name <- paste0("gdd", window_days, "_tbase", t_base)
+  col_out_name <- paste0("gdd", window_days, "_tbase", temp_base)
 
   result <- joined[
     ,
     .(
       n_obs    = sum(!is.na(temp)),
       prop_obs = sum(!is.na(temp)) / window_size,
-      gdd      = sum(pmax(0, temp - t_base), na.rm = TRUE)
+      gdd      = sum(pmax(0, temp - temp_base), na.rm = TRUE)
     ),
     by = id_plus_row
   ]
@@ -1022,7 +1156,7 @@ sus_climate_aggregate <- function(
       values_to = "value"
     ) %>%
     dplyr::left_join(agg_rule, by = "climate_var") %>%
-    dplyr::group_by(.data$code_muni, .data$station_name,
+    dplyr::group_by(code_muni, .data$station_name,
                     .data$year, .data$season,
                     .data$climate_var, .data$agg_type) %>%
     dplyr::summarise(
@@ -1101,6 +1235,121 @@ sus_climate_aggregate <- function(
 }
 
 
+
+# --- Helper function imputation ---
+
+#' Aggregate Meteorological Data Temporally (FIXED VERSION)
+#'
+#' @importFrom dplyr mutate group_by summarise across any_of case_when rename as_tibble .data
+#' @importFrom lubridate as_datetime floor_date month year
+#' @importFrom cli cli_abort
+#' @noRd
+.aggregate_meteo_data <- function(
+    data,
+    time_unit = "day",
+    datetime_col = "date",
+    na_rm = TRUE) 
+    {
+
+  # 1. Input validation
+  if (!is.data.frame(data)) {
+    cli::cli_abort("{.arg data} must be a data frame.")
+  }
+
+  # 2. Normalize datetime column
+  data_proc <- data %>%
+    dplyr::mutate(!!datetime_col := lubridate::as_datetime(.data[[datetime_col]]))
+
+  # 3. Create time grouping column
+  data_proc <- data_proc %>%
+    dplyr::mutate(time_group = dplyr::case_when(
+      time_unit == "day"   ~ as.Date(.data[[datetime_col]]),
+      
+      time_unit == "week"  ~ as.Date(lubridate::floor_date(.data[[datetime_col]], unit = "week")),
+      
+      time_unit == "month" ~ as.Date(lubridate::floor_date(.data[[datetime_col]], unit = "month")),
+      
+      time_unit == "year"  ~ as.Date(lubridate::floor_date(.data[[datetime_col]], unit = "year")),
+      
+      time_unit == "season" ~ as.Date(lubridate::floor_date(.data[[datetime_col]], unit = "month")),
+      
+      # Handle formats like "15 days" or "2 months"
+      grepl("^\\d+", time_unit) ~ as.Date(lubridate::floor_date(.data[[datetime_col]], unit = time_unit)),
+      
+      TRUE ~ as.Date(lubridate::floor_date(.data[[datetime_col]], unit = "day"))
+    ))
+
+  # Special logic for seasons (Southern Hemisphere - Brazil)
+  if (time_unit == "season") {
+    data_proc <- data_proc %>%
+      dplyr::mutate(
+        season_label = dplyr::case_when(
+          lubridate::month(.data[[datetime_col]]) %in% c(12, 1, 2) ~ "DJF",
+          lubridate::month(.data[[datetime_col]]) %in% c(3, 4, 5)  ~ "MAM",
+          lubridate::month(.data[[datetime_col]]) %in% c(6, 7, 8)  ~ "JJA",
+          lubridate::month(.data[[datetime_col]]) %in% c(9, 10, 11) ~ "SON",
+          TRUE ~ NA_character_
+        ),
+        year = lubridate::year(.data[[datetime_col]])
+      )
+    
+    group_vars <- c("season_label", "year")
+  } else {
+    group_vars <- "time_group"
+  }
+
+  # 4. Aggregation rules by variable type
+  cols_sum  <- c("rainfall_mm", "sr_kj_m2")
+  
+  cols_mean <- c(
+    "patm_mb", "patm_max_mb", "patm_min_mb",
+    "tair_dry_bulb_c", "dew_tmean_c",
+    "rh_mean_porc", "wd_degrees", "ws_2_m_s"
+  )
+  
+  cols_max  <- c("tair_max_c", "dew_tmax_c", "rh_max_porc", "ws_gust_m_s")
+  
+  cols_min  <- c("tair_min_c", "dew_tmin_c", "rh_min_porc")
+  
+  # Metadata to preserve
+  meta_vars <- c(
+    "region", "station_name", "station_code",
+    "latitude", "longitude", "altitude", "uf"
+  )
+  
+  # Identify existing grouping columns
+  existing_groups <- intersect(c(meta_vars, group_vars), names(data_proc))
+
+  # 5. Safe aggregation functions
+  s_sum  <- function(x) if (all(is.na(x))) NA_real_ else sum(x, na.rm = na_rm)
+  s_mean <- function(x) if (all(is.na(x))) NA_real_ else mean(x, na.rm = na_rm)
+  s_max  <- function(x) if (all(is.na(x))) NA_real_ else max(x, na.rm = na_rm)
+  s_min  <- function(x) if (all(is.na(x))) NA_real_ else min(x, na.rm = na_rm)
+
+  # 6. Final aggregation
+  aggregated_data <- data_proc %>%
+    dplyr::group_by(dplyr::across(dplyr::any_of(existing_groups))) %>%
+    dplyr::summarise(
+      dplyr::across(dplyr::any_of(cols_sum),  s_sum),
+      dplyr::across(dplyr::any_of(cols_mean), s_mean),
+      dplyr::across(dplyr::any_of(cols_max),  s_max),
+      dplyr::across(dplyr::any_of(cols_min),  s_min),
+      .groups = "drop"
+    )
+
+  # 7. Final name cleanup
+  if ("time_group" %in% names(aggregated_data)) {
+    aggregated_data <- aggregated_data %>%
+      dplyr::rename(date = time_group)
+  } else if ("season_label" %in% names(aggregated_data)) {
+    aggregated_data <- aggregated_data %>%
+      dplyr::rename(season = .data$season_label)
+  }
+
+  return(dplyr::as_tibble(aggregated_data))
+}
+
+
 # =============================================================================
 # THRESHOLD EXCEEDANCE
 # =============================================================================
@@ -1129,7 +1378,8 @@ sus_climate_aggregate <- function(
 #' @noRd
 .join_threshold_exceedance <- function(health_data, climate_data, target_vars,
                                        window_days, threshold_value,
-                                       threshold_direction, min_obs) {
+                                       threshold_direction, min_obs) 
+                                       {
   window_size    <- window_days + 1L
   health_id_vars <- setdiff(names(health_data), "geom")
   dir_label      <- if (threshold_direction == "above") "gt" else "lt"
@@ -1223,7 +1473,8 @@ sus_climate_aggregate <- function(
 #' @keywords internal
 #' @noRd
 .join_weighted_window <- function(health_data, climate_data, target_vars,
-                                   window_days, weights, min_obs) {
+                                   window_days, weights, min_obs) 
+                                   {
   window_size    <- window_days + 1L
   agg_rule       <- .build_agg_rules(target_vars)
   health_id_vars <- setdiff(names(health_data), "geom")
@@ -1363,36 +1614,13 @@ sus_climate_aggregate <- function(
       user     = list()
     )
     base_classes <- setdiff(class(df), "climasus_df")
-    structure(df, climasus_meta = meta, class = c("climasus_df", base_classes))
+    structure(df, sus_meta = meta, class = c("climasus_df", base_classes))
   } else {
-    climasus_meta(df, stage = "climate", type = "agg")
+    sus_meta(df, stage = "climate", type = "agg")
   }
 }
 
 
-#' Retorna lista de mensagens no idioma selecionado
-#' @keywords internal
-#' @noRd
-.get_messages <- function(lang = "pt") {
-  messages <- list(
-    pt = list(
-      aggregating   = "Agregando dados temporais...",
-      spatial_match = "Realizando matching espacial...",
-      temporal_join = "Integrando dados temporais..."
-    ),
-    en = list(
-      aggregating   = "Aggregating temporal data...",
-      spatial_match = "Performing spatial matching...",
-      temporal_join = "Integrating temporal data..."
-    ),
-    es = list(
-      aggregating   = "Agregando datos temporales...",
-      spatial_match = "Realizando coincidencia espacial...",
-      temporal_join = "Integrando datos temporales..."
-    )
-  )
-  messages[[lang]] %||% messages[["en"]]
-}
 
 
 # =============================================================================
@@ -1409,7 +1637,7 @@ sus_climate_aggregate <- function(
         "  4. sus_data_filter_cid()",
         "  5. sus_data_filter_demographics()",
         "  6. sus_data_aggregate()",
-        "  7. sus_join_spatial()"
+        "  7. sus_spatial_join()"
       ),
       en = c(
         "  1. sus_data_import() or sus_data_read()",
@@ -1418,17 +1646,17 @@ sus_climate_aggregate <- function(
         "  4. sus_data_filter_cid()",
         "  5. sus_data_filter_demographics()",
         "  6. sus_data_aggregate()",
-        "  7. sus_join_spatial()"
+        "  7. sus_spatial_join()"
       )
     ),
     climate = list(
       pt = c(
         "  1. sus_climate_inmet()",
-        "  2. sus_climate_fill_gaps(evaluation = FALSE)"
+        "  2. sus_climate_fill_inmet(evaluation = FALSE)"
       ),
       en = c(
         "  1. sus_climate_inmet()",
-        "  2. sus_climate_fill_gaps(evaluation = FALSE)"
+        "  2. sus_climate_fill_inmet(evaluation = FALSE)"
       )
     )
   )

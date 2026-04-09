@@ -46,16 +46,16 @@ remotes::install_github("ByMaxAnjos/climasus4r", dependencies = TRUE, upgrade = 
 | | `sus_data_export()` | Exporta datos procesados preservando metadatos. |
 | **🧹 Limpieza y Estandarización** | `sus_data_clean_encoding()` | Detecta y corrige problemas de codificación de caracteres. |
 | | `sus_data_standardize()` | Estandariza nombres de columnas y valores de datos del SUS. |
-| | `sus_create_variables()` | Crea variables derivadas para análisis epidemiológico. |
+| | `sus_data_create_variables()` | Crea variables derivadas para análisis epidemiológico. |
 | **🔍 Filtros y Selección** | `sus_data_filter_cid()` | Filtra por códigos CIE-10 o grupos de enfermedades (multilingüe). |
 | | `sus_data_filter_demographics()` | Filtra datos por variables demográficas (edad, sexo, raza). |
-| **🗺️ Espacial y Censo** | `sus_join_spatial()` | Vincula datos del SUS a mallas geográficas brasileñas. |
-| | `sus_socio_add_census()` | Enriquece datos de salud con variables socioeconómicas del Censo. |
+| **🗺️ Espacial y Censo** | `sus_spatial_join()` | Vincula datos del SUS a mallas geográficas brasileñas. |
+| | `sus_census_join()` | Enriquece datos de salud con variables socioeconómicas del Censo. |
 | | `sus_data_aggregate()` | Agrega datos de salud en series temporales. |
 | **📊 Calidad y Metadatos** | `sus_data_quality_report()` | Genera informes detallados sobre la calidad de los datos. |
 | | `list_disease_groups()` | Enumera los grupos de enfermedades disponibles para filtrar. |
-| | `sus_census_explore()` | Explorador interactivo de variables del Censo. |
-| **⚡ Caché** | `clear_climasus_cache()` | Gestiona y limpia el almacenamiento local de archivos. |
+| | `sus_census_select()` | Explorador interactivo de variables del Censo. |
+| **⚡ Caché** | `sus_cache_clear()` | Gestiona y limpia el almacenamiento local de archivos. |
 
 
 ## Sistemas Soportados
@@ -138,7 +138,7 @@ df_analisis <- sus_data_import(
   sus_data_clean_encoding(lang = "es") |>
   sus_data_standardize(lang = "es") |>
   sus_data_filter_cid(disease_group = "respiratory", lang = "es") |>
-  sus_create_variables(create_age_groups = TRUE, lang = "es")
+  sus_data_create_variables(create_age_groups = TRUE, lang = "es")
 ```
 ## Infraestructura de datos 
 
@@ -155,7 +155,7 @@ DATOS BRUTOS (DATASUS)
     ↓
 [4] sus_data_filter_cid()       → Filtrado por enfermedad
     ↓
-[5] sus_create_variables()      → Creación de variables
+[5] sus_data_create_variables()      → Creación de variables
     ↓
 [6] sus_data_filter_demographics() → Filtrado demográfico
     ↓

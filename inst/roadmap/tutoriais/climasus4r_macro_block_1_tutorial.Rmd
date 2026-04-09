@@ -56,7 +56,7 @@ Neste tutorial, vamos seguir o fluxo completo do **Macro-Bloco 1**, que transfor
 
 O pipeline que vamos construir é o seguinte:
 
-`sus_data_import()` → `sus_data_clean_encoding()` → `sus_data_standardize()` → `sus_create_variables()` → `sus_data_filter_cid()` → `sus_data_filter_demographics()` → `sus_data_aggregate()`
+`sus_data_import()` → `sus_data_clean_encoding()` → `sus_data_standardize()` → `sus_data_create_variables()` → `sus_data_filter_cid()` → `sus_data_filter_demographics()` → `sus_data_aggregate()`
 
 ---
 
@@ -107,12 +107,12 @@ df_std <- sus_data_standardize(df_cleaned)
 class(df_std)
 
 # Veja os metadados adicionados
-climasus_meta(df_std)
+sus_meta(df_std)
 ```
 
-# Passo 4: Criação de Variáveis (`sus_create_variables`)
+# Passo 4: Criação de Variáveis (`sus_data_create_variables`)
 
-Com os dados padronizados, podemos enriquecê-los com variáveis derivadas úteis para a análise. A função `sus_create_variables()` pode criar:
+Com os dados padronizados, podemos enriquecê-los com variáveis derivadas úteis para a análise. A função `sus_data_create_variables()` pode criar:
 
 *   **Faixas etárias:** Agrupar idades em categorias.
 *   **Variáveis de calendário:** Dia da semana, mês, estação do ano, etc.
@@ -121,7 +121,7 @@ Para nosso estudo, vamos criar faixas etárias, com um foco especial na populaç
 
 ```{r create-variables, eval=FALSE}
 # --- PASSO 4: CRIAÇÃO DE VARIÁVEIS ---
-df_vars <- sus_create_variables(
+df_vars <- sus_data_create_variables(
   df_std,
   create_age_groups = TRUE,
   age_breaks = c(0, 60, 70, 80, Inf), # Pontos de corte para as idades
@@ -184,7 +184,7 @@ Uma das grandes vantagens do `climasus4r` e do R moderno é a capacidade de enca
 final_timeseries <- sus_data_import(system = "SIM-DO", uf = "RO", year = 2018:2020, parallel = TRUE) |>
   sus_data_clean_encoding() |>
   sus_data_standardize() |>
-  sus_create_variables(age_breaks = c(0, 60, 70, 80, Inf), age_labels = c("0-59", "60-69", "70-79", "80+")) |>
+  sus_data_create_variables(age_breaks = c(0, 60, 70, 80, Inf), age_labels = c("0-59", "60-69", "70-79", "80+")) |>
   sus_data_filter_cid(disease_group = "respiratory") |>
   sus_data_filter_demographics(age_range = c(60, Inf)) |>
   sus_data_aggregate(time_unit = "month")

@@ -140,7 +140,7 @@ identify_pipeline_type <- function(steps) {
   sus_data_filter_cid          = c("disease_group"),
   sus_data_filter_demographics = c("age_range"),
   sus_data_aggregate           = c("time_unit", "group_by"),
-  sus_create_variables         = c("create_age_groups", "create_calendar_vars",
+  sus_data_create_variables         = c("create_age_groups", "create_calendar_vars",
                                     "age_breaks", "age_labels")
 )
 

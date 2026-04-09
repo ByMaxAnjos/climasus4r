@@ -30,16 +30,16 @@
 #' The function behavior depends on which arguments are provided:
 #'
 #' **Get Operations:**
-#' - `climasus_meta(x)` - Get all metadata as a list
-#' - `climasus_meta(x, "system")` - Get specific field value
+#' - `sus_meta(x)` - Get all metadata as a list
+#' - `sus_meta(x, "system")` - Get specific field value
 #'
 #' **Set Operations:**
-#' - `climasus_meta(x, system = "SIH", stage = "clean")` - Update metadata
-#' - `climasus_meta(x, add_history = "Filtered data")` - Add history entry
+#' - `sus_meta(x, system = "SIH", stage = "clean")` - Update metadata
+#' - `sus_meta(x, add_history = "Filtered data")` - Add history entry
 #'
 #' **Utility Operations:**
-#' - `climasus_meta(x, print_history = TRUE)` - Print processing history
-#' - `climasus_meta(valid_values = "system")` - Get valid system values
+#' - `sus_meta(x, print_history = TRUE)` - Print processing history
+#' - `sus_meta(valid_values = "system")` - Get valid system values
 #'
 #' @examples
 #' \dontrun{
@@ -48,30 +48,30 @@
 #' df <- new_climasus_df(df, list(system = "SIH", stage = "import"))
 #'
 #' # Get all metadata
-#' meta <- climasus_meta(df)
+#' meta <- sus_meta(df)
 #' str(meta)
 #'
 #' # Get specific field
-#' system <- climasus_meta(df, "system")  # "SIH"
-#' stage <- climasus_meta(df, "stage")    # "import"
+#' system <- sus_meta(df, "system")  # "SIH"
+#' stage <- sus_meta(df, "stage")    # "import"
 #'
 #' # Update metadata
-#' df <- climasus_meta(df, stage = "clean", type = "clean")
+#' df <- sus_meta(df, stage = "clean", type = "clean")
 #'
 #' # Add to processing history
-#' df <- climasus_meta(df, add_history = "Removed missing values")
-#' df <- climasus_meta(df, add_history = "Standardized column names")
+#' df <- sus_meta(df, add_history = "Removed missing values")
+#' df <- sus_meta(df, add_history = "Standardized column names")
 #'
 #' # Print history
-#' climasus_meta(df, print_history = TRUE)
+#' sus_meta(df, print_history = TRUE)
 #'
 #' # Get valid values (no x needed)
-#' systems <- climasus_meta(valid_values = "system")
-#' stages <- climasus_meta(valid_values = "stage")
+#' systems <- sus_meta(valid_values = "system")
+#' stages <- sus_meta(valid_values = "stage")
 #' }
 #'
 #' @export
-climasus_meta <- function(x = NULL,
+sus_meta <- function(x = NULL,
                           field = NULL,
                           add_history = NULL,
                           print_history = FALSE,
@@ -107,10 +107,10 @@ climasus_meta <- function(x = NULL,
   # Operation 5: Update metadata (if ... provided)
   dots <- list(...)
   if (length(dots) > 0) {
-    return(update_climasus_meta_internal(x, ...))
+    return(update_sus_meta_internal(x, ...))
   }
   
   # Operation 6: Get all metadata (default)
-  return(get_climasus_meta_internal(x))
+  return(get_sus_meta_internal(x))
   
 }

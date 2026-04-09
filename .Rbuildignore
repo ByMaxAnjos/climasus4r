@@ -30,3 +30,6 @@
 
 ^inst$
 ^inst/.*$
+^vignettes-en$
+^vignettes-es$
+^vignettes-pt$

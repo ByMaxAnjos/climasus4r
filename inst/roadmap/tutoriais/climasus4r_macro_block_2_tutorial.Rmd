@@ -70,7 +70,7 @@ Ao final, uniremos tudo para criar o **Dataset Integrado Final**, a base para as
 health_data <- sus_data_import(system = "SIM-DO", uf = "RO", year = 2018:2020, parallel = TRUE) |>
   sus_data_clean_encoding() |>
   sus_data_standardize() |>
-  sus_create_variables(age_breaks = c(0, 60, 70, 80, Inf), age_labels = c("0-59", "60-69", "70-79", "80+")) |>
+  sus_data_create_variables(age_breaks = c(0, 60, 70, 80, Inf), age_labels = c("0-59", "60-69", "70-79", "80+")) |>
   sus_data_filter_cid(disease_group = "respiratory") |>
   sus_data_filter_demographics(age_range = c(60, Inf)) |>
   sus_data_aggregate(time_unit = "month", group_by = "residence_municipality_code") # Agregado por município!
@@ -80,13 +80,13 @@ health_data <- sus_data_import(system = "SIM-DO", uf = "RO", year = 2018:2020, p
 
 # Fluxo 1: Integração Territorial e Socioeconômica
 
-## Passo 1.1: Adicionando Geometrias (`sus_join_spatial`)
+## Passo 1.1: Adicionando Geometrias (`sus_spatial_join`)
 
-Nosso `health_data` possui o código do município, mas não sua forma geométrica. A função `sus_join_spatial()` utiliza o pacote `geobr` para baixar os polígonos dos municípios e uni-los aos nossos dados de saúde, transformando nosso `data.frame` em um objeto `sf` (simple features).
+Nosso `health_data` possui o código do município, mas não sua forma geométrica. A função `sus_spatial_join()` utiliza o pacote `geobr` para baixar os polígonos dos municípios e uni-los aos nossos dados de saúde, transformando nosso `data.frame` em um objeto `sf` (simple features).
 
 ```{r join-spatial, eval=FALSE}
 # --- PASSO 1.1: JOIN ESPACIAL ---
-sf_health <- sus_join_spatial(
+sf_health <- sus_spatial_join(
   df = health_data,
   level = "munic" # Nível de agregação: município
 )
@@ -96,15 +96,15 @@ class(sf_health)
 glimpse(sf_health)
 ```
 
-## Passo 1.2: Adicionando Dados do Censo (`sus_socio_add_census`)
+## Passo 1.2: Adicionando Dados do Censo (`sus_census_join`)
 
-Com os dados espacializados, podemos agora enriquecê-los com informações socioeconômicas do Censo Demográfico do IBGE. A função `sus_socio_add_census()` utiliza o pacote `censobr` para baixar variáveis específicas do censo e agregá-las por município.
+Com os dados espacializados, podemos agora enriquecê-los com informações socioeconômicas do Censo Demográfico do IBGE. A função `sus_census_join()` utiliza o pacote `censobr` para baixar variáveis específicas do censo e agregá-las por município.
 
 Vamos adicionar a população total e a densidade demográfica de cada município de Rondônia, com base no Censo de 2010.
 
 ```{r add-census, eval=FALSE}
 # --- PASSO 1.2: ADICIONAR DADOS DO CENSO ---
-sf_socio <- sus_socio_add_census(
+sf_socio <- sus_census_join(
   df = sf_health,
   dataset = "population",   # Usar microdados de população
   year = 2010,
@@ -146,15 +146,15 @@ climate_raw <- sus_climate_inmet(
 glimpse(climate_raw)
 ```
 
-## Passo 2.2: Preenchendo Falhas (`sus_climate_fill_gaps`)
+## Passo 2.2: Preenchendo Falhas (`sus_climate_fill_inmet`)
 
-Dados de estações meteorológicas frequentemente possuem falhas. A função `sus_climate_fill_gaps()` utiliza um modelo de Machine Learning (XGBoost) para preencher essas lacunas de forma inteligente, usando as outras variáveis como preditores.
+Dados de estações meteorológicas frequentemente possuem falhas. A função `sus_climate_fill_inmet()` utiliza um modelo de Machine Learning (XGBoost) para preencher essas lacunas de forma inteligente, usando as outras variáveis como preditores.
 
 Vamos preencher as falhas na variável de temperatura média (`tair_dry_bulb_c`).
 
 ```{r fill-gaps, eval=FALSE}
 # --- PASSO 2.2: PREENCHIMENTO DE FALHAS ---
-climate_filled <- sus_climate_fill_gaps(
+climate_filled <- sus_climate_fill_inmet(
   df = climate_raw,
   target_var = "tair_dry_bulb_c"
 )

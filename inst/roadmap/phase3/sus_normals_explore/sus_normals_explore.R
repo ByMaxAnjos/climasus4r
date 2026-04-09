@@ -64,7 +64,7 @@ sus_normals_explore <- function(lang = "en") {
   colnames(display_df) <- lang_cols$names
   
   # --- Create Interactive DataTable ---
-  # Using the same styling and options as sus_census_explore for consistency
+  # Using the same styling and options as sus_census_select for consistency
   dt_obj <- DT::datatable(
     display_df,
     filter = 'top',

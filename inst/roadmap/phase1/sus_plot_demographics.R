@@ -83,7 +83,7 @@
 #'
 #' @section Climate & Environment Integration:
 #' When the variable \code{climate_risk_group} is present (created by
-#' \code{sus_create_variables()}), the \code{"climate"} plot type produces
+#' \code{sus_data_create_variables()}), the \code{"climate"} plot type produces
 #' a combined bar + season heatmap showing disease burden by ecological
 #' risk category, astronomical season, and biome region. This is designed
 #' for climate-health submissions to The Lancet Planetary Health.
@@ -151,7 +151,7 @@ sus_view_demographics <- function(df,
       "i" = "Run the full climasus4r pipeline first.",
       "*" = "{.code df <- sus_data_import(...)}",
       "*" = "{.code df <- sus_data_standardize(df)}",
-      "*" = "{.code df <- sus_create_variables(df)}",
+      "*" = "{.code df <- sus_data_create_variables(df)}",
       "*" = "{.code df <- sus_data_filter_demographics(df)}"
     ))
   }
@@ -173,7 +173,7 @@ sus_view_demographics <- function(df,
   
   # ── 2. Detect DATASUS system ───────────────────────────────────────────────
   system_id <- tryCatch(
-    climasus_meta(df, "system"),
+    sus_meta(df, "system"),
     error = function(e) "unknown"
   )
   
@@ -327,7 +327,7 @@ sus_view_demographics <- function(df,
   pal        <- .vd_palette(palette)
   
   if (is.null(col) || !col %in% names(df)) {
-    cli::cli_abort("Column for {.val {var}} not found. Run {.fn sus_create_variables} to generate it.")
+    cli::cli_abort("Column for {.val {var}} not found. Run {.fn sus_data_create_variables} to generate it.")
   }
   
   bar_data <- as.data.frame(table(df[[col]], useNA = "no"), stringsAsFactors = FALSE)
@@ -381,7 +381,7 @@ sus_view_demographics <- function(df,
 #   if (is.null(age_col) || is.null(sex_col)) {
 #     cli::cli_abort(c(
 #       "Population pyramid requires {.strong age group} and {.strong sex} columns.",
-#       "i" = "Run {.fn sus_create_variables} to generate {.val age_group}."
+#       "i" = "Run {.fn sus_data_create_variables} to generate {.val age_group}."
 #     ))
 #   }
 #   
@@ -471,7 +471,7 @@ sus_view_demographics <- function(df,
   if (is.null(age_col) || is.null(sex_col)) {
     cli::cli_abort(c(
       "Population pyramid requires {.strong age group} and {.strong sex} columns.",
-      "i" = "Run {.fn sus_create_variables} to generate {.val age_group}."
+      "i" = "Run {.fn sus_data_create_variables} to generate {.val age_group}."
     ))
   }
   
@@ -698,7 +698,7 @@ sus_view_demographics <- function(df,
   if (is.null(time_col)) {
     cli::cli_abort(c(
       "No column found for {.val {time_unit}}.",
-      "i" = "Run {.fn sus_create_variables} to generate temporal variables."
+      "i" = "Run {.fn sus_data_create_variables} to generate temporal variables."
     ))
   }
   
@@ -802,7 +802,7 @@ sus_view_demographics <- function(df,
   if (is.null(clim_col)) {
     cli::cli_abort(c(
       "Column {.val climate_risk_group} not found.",
-      "i" = "Run {.fn sus_create_variables} to generate climate risk variables."
+      "i" = "Run {.fn sus_data_create_variables} to generate climate risk variables."
     ))
   }
   
@@ -990,7 +990,7 @@ sus_view_demographics <- function(df,
 #       title    = .vl("dashboard_title", lang),
 #       subtitle = paste0(
 #         "N = ", format(nrow(df), big.mark = ","), " | ",
-#         tryCatch(climasus_meta(df, "system"), error = function(e) "DATASUS")
+#         tryCatch(sus_meta(df, "system"), error = function(e) "DATASUS")
 #       ),
 #       caption  = caption,
 #       tag_levels = "A",
@@ -1084,7 +1084,7 @@ sus_view_demographics <- function(df,
       title = .vl("dashboard_title", lang),
       subtitle = paste0(
         "N = ", format(nrow(df), big.mark = ","), " | ",
-        tryCatch(climasus_meta(df, "system"),
+        tryCatch(sus_meta(df, "system"),
                  error = function(e) "DATASUS")
       ),
       caption = caption,

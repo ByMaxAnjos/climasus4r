@@ -68,7 +68,7 @@
 #' }
 #'
 #' **Spatial Data Export**:
-#' When exporting `sf` objects (spatial data from `sus_join_spatial()`):
+#' When exporting `sf` objects (spatial data from `sus_spatial_join()`):
 #' \itemize{
 #'   \item **Recommended**: Use GeoParquet format for optimal performance
 #'   \item GeoParquet preserves CRS, geometry types, and all attributes
@@ -84,7 +84,7 @@
 #' sus_data_export(df_final, "output/data.rds")
 #'
 #' # Export spatial data to GeoParquet (RECOMMENDED)
-#' sf_result <- sus_join_spatial(df, level = "munic")
+#' sf_result <- sus_spatial_join(df, level = "munic")
 #' sus_data_export(
 #'   sf_result,
 #'   file_path = "output/spatial_data.geoparquet",

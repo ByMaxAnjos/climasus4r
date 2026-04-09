@@ -4,7 +4,7 @@
 #' the `censobr` package. Provides aggregation of microdata to municipality level. Supports multiple census datasets (population, households,
 #' families, mortality, emigration) with intelligent caching and optimized performance for large datasets using Arrow/Parquet format.
 #'
-#' @param df A `data.frame` or `sf` object containing health data. Typically the output from `sus_join_spatial()` function.
+#' @param df A `data.frame` or `sf` object containing health data. Typically the output from `sus_spatial_join()` function.
 #' @param dataset Character string specifying the census dataset to use. Options:
 #'   \itemize{
 #'     \item `"population"` - Population microdata (default)
@@ -16,7 +16,7 @@
 #'   }
 #' @param year Integer specifying census year. Options: `2010` (default) or `2000`.
 #'   Note: Dataset availability varies by year.
-#' @param census_vars Character vector specifying census variables to add. Use `sus_census_explore()` to select available variables.
+#' @param census_vars Character vector specifying census variables to add. Use `sus_census_select()` to select available variables.
 #'   If `NULL`, returns all available variables (not recommended for large datasets).
 #' @param aggregation_fun Character. Method to aggregate microdata to municipality level:
 #'   \itemize{
@@ -71,7 +71,7 @@
 #'   \item Uses `sfarrow` pak for spatial filtering 
 #' }
 #' **Spatial Data Support**:
-#' If `df` is an `sf` object from `sus_join_spatial()`, geometries are preserved in the output.
+#' If `df` is an `sf` object from `sus_spatial_join()`, geometries are preserved in the output.
 #'
 #' @references
 #' Pereira, Rafael H. M.; Barbosa, Rogerio J. (2023) censobr: Download Data from Brazil’s Population Census. R package version v0.4.0, https://CRAN.R-project.org/package=censobr. DOI: 10.32614/CRAN.package.censobr.
@@ -83,10 +83,10 @@
 #' # Prepare spatial health data
 #' sf_sim <- sus_data_import(uf = "SP", year = 2023, system = "SIM-DO") %>%
 #'   sus_data_standardize(lang = "pt") %>%
-#'   sus_join_spatial(level = "munic", lang = "pt")
+#'   sus_spatial_join(level = "munic", lang = "pt")
 #'
 #' # Add census population data
-#' sf_enriched <- sus_socio_add_census(
+#' sf_enriched <- sus_census_join(
 #'   df = sf_sim,
 #'   dataset = "population",
 #'   census_vars = c("V0001", "V0002"),
@@ -97,7 +97,7 @@
 #' @export
 #' @importFrom glue glue
 #' @importFrom rlang .data
-sus_socio_add_census <- function(
+sus_census_join <- function(
   df,
   dataset = "population",
   year = 2010,
@@ -165,7 +165,7 @@ sus_socio_add_census <- function(
 
     # Minimum required stage
     required_stage <- "spatial"
-    current_stage  <- climasus_meta(df, "stage")
+    current_stage  <- sus_meta(df, "stage")
 
     if (!is_stage_at_least(current_stage, required_stage)) {
 
@@ -175,21 +175,21 @@ sus_socio_add_census <- function(
           "Current stage: ", current_stage %||% "unknown", "\n",
           "Required stage: ", required_stage, "\n\n",
           "Please run:\n",
-          "  df <- sus_join_spatial(df)"
+          "  df <- sus_spatial_join(df)"
         ),
         pt = paste0(
           "Dados devem ser espacializados antes de agregar espacialmente.\n",
           "Estagio atual: ", current_stage %||% "desconhecido", "\n",
           "Estagio requerido: ", required_stage, "\n\n",
           "Por favor, execute:\n",
-          "  df <- sus_join_spatial(df)"
+          "  df <- sus_spatial_join(df)"
         ),
         es = paste0(
           "Los datos deben estar espacializado antes de agregar espacialmente.\n",
           "Etapa actual: ", current_stage %||% "desconocida", "\n",
           "Etapa requerida: ", required_stage, "\n\n",
           "Por favor, ejecute:\n",
-          "  df <- sus_join_spatial(df)"
+          "  df <- sus_spatial_join(df)"
         )
       )
 
@@ -208,7 +208,7 @@ sus_socio_add_census <- function(
     }
 
     # Update metadata
-    df <- climasus_meta(df, stage = "spatial", type = dataset)
+    df <- sus_meta(df, stage = "spatial", type = dataset)
   } else {
     
     # NOT climasus_df - ABORT execution
@@ -222,7 +222,7 @@ sus_socio_add_census <- function(
           "*" = "{.strong 2. Clean:} {.code df <- sus_data_clean_encoding(df)}",
           "*" = "{.strong 3. Standardize:} {.code df <- sus_data_standardize(df)}",
           "*" = "{.strong 4. Aggregate:} {.code df <- sus_data_aggregate(...)}",
-          "*" = "{.strong 5. spatial:} {.code df <- sus_join_spatial(...)}",
+          "*" = "{.strong 5. spatial:} {.code df <- sus_spatial_join(...)}",
           " " = "",
           "v" = "Tip: If using external data, run {.fn sus_data_standardize} first."
         ),
@@ -235,7 +235,7 @@ sus_socio_add_census <- function(
           "*" = "{.strong 2. Limpar:} {.code df <- sus_data_clean_encoding(df)}",
           "*" = "{.strong 3. Padronizar:} {.code df <- sus_data_standardize(df)}",
           "*" = "{.strong 4. Agregar:} {.code df <- sus_data_aggregate(...)}",
-          "*" = "{.strong 5. spatial:} {.code df <- sus_join_spatial(...)}",
+          "*" = "{.strong 5. spatial:} {.code df <- sus_spatial_join(...)}",
           " " = "",
           "v" = "Dica: Se usar dados externos, execute {.fn sus_data_standardize} primeiro."
         ),
@@ -248,7 +248,7 @@ sus_socio_add_census <- function(
           "*" = "{.strong 2. Limpiar:} {.code df <- sus_data_clean_encoding(df)}",
           "*" = "{.strong 3. Estandarizar:} {.code df <- sus_data_standardize(df)}",
           "*" = "{.strong 4. Agregar:} {.code df <- sus_data_aggregate(...)}",
-          "*" = "{.strong 5. spatial:} {.code df <- sus_join_spatial(...)}",
+          "*" = "{.strong 5. spatial:} {.code df <- sus_spatial_join(...)}",
           " " = "",
           "v" = "Consejo: Si usa datos externos, ejecute {.fn sus_data_standardize} primero."
         )
@@ -257,7 +257,7 @@ sus_socio_add_census <- function(
     cli::cli_abort(msg_error[[lang]])
   }
 
-  system <- climasus_meta(df, "system")
+  system <- sus_meta(df, "system")
 
   # Check if df is spatial
   is_spatial <- inherits(df, "sf")
@@ -512,11 +512,11 @@ sus_socio_add_census <- function(
     base_classes <- setdiff(class(df_enriched), "climasus_df")
     df_enriched <- structure(
       df_enriched,
-      climasus_meta = meta,
+      sus_meta = meta,
       class = c("climasus_df", base_classes)
     )
   } else { 
-    df_enriched <- climasus_meta(
+    df_enriched <- sus_meta(
     df_enriched,
     system = system,  # Preserve original system
     stage = "census",

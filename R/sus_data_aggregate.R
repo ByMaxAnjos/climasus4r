@@ -103,7 +103,7 @@
 #' df_weekly <- sus_data_aggregate(
 #'   df,
 #'   time_unit = "week",
-#'   group_by = c("age_group", "sex") #age_group comes from `sus_create_variables()`
+#'   group_by = c("age_group", "sex") #age_group comes from `sus_data_create_variables()`
 #' )
 #' }
 #' @importFrom rlang .data
@@ -167,7 +167,7 @@ sus_data_aggregate <- function(df,
    # Check if data is climasus_df
   if (inherits(df, "climasus_df")) {
     
-    current_stage <- climasus_meta(df, "stage")
+    current_stage <- sus_meta(df, "stage")
     required_stage <- "stand"
 
     if (!is_stage_at_least(current_stage, required_stage)) {
@@ -211,7 +211,7 @@ sus_data_aggregate <- function(df,
     }
 
     # Update metadata
-    df <- climasus_meta(df, stage = "aggregate", type = "agg")
+    df <- sus_meta(df, stage = "aggregate", type = "agg")
 
   } else {
       # NOT climasus_df - ABORT execution
@@ -258,8 +258,8 @@ sus_data_aggregate <- function(df,
   }
   
   #Detect system if not specified
-  system <- climasus_meta(df, "system")
-  original_meta <- attr(df, "climasus_meta")
+  system <- sus_meta(df, "system")
+  original_meta <- attr(df, "sus_meta")
 
   # Detect duplicate column names
   cols_to_keep <- !base::duplicated(names(df))
@@ -625,16 +625,27 @@ sus_data_aggregate <- function(df,
     base_classes <- setdiff(class(df_agg), "climasus_df")
     df_agg <- structure(
       df_agg,
-      climasus_meta = meta,
+      sus_meta = meta,
       class = c("climasus_df", base_classes)
     )
+    df_agg <- sus_meta(
+      df_agg, 
+      temporal = list(
+      start = min(df_agg$date, na.rm = TRUE),
+      end = max(df_agg$date, na.rm = TRUE),
+      unit = time_unit)
+    )  
    } else { 
-    df_agg <- climasus_meta(
+    df_agg <- sus_meta(
     df_agg,
     system = system,  # Preserve original system
     stage = "aggregate",
-    type = "agg"
-  )     
+    type = "agg",
+    temporal = list(
+      start = min(df_agg$date, na.rm = TRUE),
+      end = max(df_agg$date, na.rm = TRUE),
+      unit = time_unit)
+      )     
   }
     
   # Build detailed aggregation history message
@@ -714,7 +725,7 @@ sus_data_aggregate <- function(df,
   history_msg <- sprintf("Temporal Data aggregated [%s]", paste(agg_details, collapse = " | "))
 
   # Register metadata
-  df_agg <- climasus_meta(df_agg, add_history = history_msg)
+  df_agg <- sus_meta(df_agg, add_history = history_msg)
 
   return(df_agg)
 }

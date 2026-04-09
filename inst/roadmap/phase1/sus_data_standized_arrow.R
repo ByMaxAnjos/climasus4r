@@ -32,7 +32,7 @@ sus_data_standardize_arrow <- function(dataset,
   # Detect health system from metadata or schema
   system <- NULL
   if (inherits(dataset, "climasus_dataset")) {
-    meta <- attr(dataset, "climasus_meta")
+    meta <- attr(dataset, "sus_meta")
     system <- meta$system
   }
   
@@ -128,7 +128,7 @@ sus_data_standardize_arrow <- function(dataset,
   
   # Update metadata
   if (inherits(dataset, "climasus_dataset")) {
-    meta <- attr(dataset, "climasus_meta")
+    meta <- attr(dataset, "sus_meta")
     meta$stage <- "standardize"
     meta$system <- system
     meta$modified <- Sys.time()
@@ -136,7 +136,7 @@ sus_data_standardize_arrow <- function(dataset,
                       sprintf("[%s] Standardization plan prepared (%s)",
                               format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
                               toupper(lang)))
-    attr(dataset, "climasus_meta") <- meta
+    attr(dataset, "sus_meta") <- meta
   }
   
   if (verbose) {

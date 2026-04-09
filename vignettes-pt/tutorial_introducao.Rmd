@@ -347,7 +347,7 @@ A análise de dados com o `climasus4r` segue um pipeline lógico e sequencial, o
 <span class="workflow-arrow">→</span>
 <span class="workflow-step">sus_data_standardize()</span>
 <span class="workflow-arrow">→</span>
-<span class="workflow-step">sus_create_variables()</span>
+<span class="workflow-step">sus_data_create_variables()</span>
 <span class="workflow-arrow">→</span>
 <span class="workflow-step">sus_data_filter_cid()</span>
 <span class="workflow-arrow">→</span>
@@ -514,16 +514,16 @@ head(df_std)
 
 ---
 
-## 6. Criação de Variáveis com `sus_create_variables()`
+## 6. Criação de Variáveis com `sus_data_create_variables()`
 
-Antes de filtrar, frequentemente queremos criar variáveis derivadas. A função `sus_create_variables()` permite criar:
+Antes de filtrar, frequentemente queremos criar variáveis derivadas. A função `sus_data_create_variables()` permite criar:
 
 - **Faixas etárias**: Grupos personalizados ou padrão IBGE
 - **Variáveis de calendário**: Dia da semana, mês, estação do ano
 - **Outras variáveis**: Década de nascimento, etc.
 
 ```{r create-vars, eval=FALSE}
-df_vars <- sus_create_variables(
+df_vars <- sus_data_create_variables(
   df_std,
   create_age_groups = TRUE,
   create_calendar_vars = TRUE,
@@ -560,7 +560,7 @@ head(df_cid)
 
 ```{r explore-cid, eval=FALSE}
 # Abrir interface interativa de exploração
-sus_filter_cid_explore(lang = "pt")
+sus_data_cid_select(lang = "pt")
 ```
 
 **Grupos de doenças comumente usados:**
@@ -699,7 +699,7 @@ df_lido <- sus_data_read(
 )
 
 # Acessar os metadados
-climasus_meta(df_lido, print_history = TRUE)
+sus_meta(df_lido, print_history = TRUE)
 ```
 
 ### Leitura em Lote (Múltiplos Arquivos)

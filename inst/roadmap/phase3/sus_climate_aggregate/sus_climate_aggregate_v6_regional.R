@@ -6,8 +6,8 @@
 #' regional climates**. The function automatically detects or accepts regional climate
 #' classification (tropical, subtropical, temperate) and adjusts parameters accordingly.
 #'
-#' @param health_data A `climasus_df` object produced by `sus_join_spatial()`.
-#' @param climate_data A `climasus_df` object produced by  `sus_climate_inmet()` and `sus_climate_fill_gaps()`.
+#' @param health_data A `climasus_df` object produced by `sus_spatial_join()`.
+#' @param climate_data A `climasus_df` object produced by  `sus_climate_inmet()` and `sus_climate_fill_inmet()`.
 #' @param climate_var Character vector with climate columns to aggregate.
 #'   Use `"all"` (default) to include all available variables.
 #' @param time_unit Temporal aggregation unit. Options: `"day"` (default), `"week"`,
@@ -162,7 +162,7 @@
 #' }
 #'
 #' @export
-sus_climate_aggregate <- function(
+sus_climate_aggregate_test <- function(
     health_data,
     climate_data,
     climate_var       = "all",
@@ -181,9 +181,9 @@ sus_climate_aggregate <- function(
     use_cache           = TRUE,
     cache_dir         = "~/.climasus4r_cache/climate",
     lang              = "pt",
-    verbose           = TRUE,
-    warn_extreme_year = TRUE,
-    warn_regional_mismatch = TRUE  # NEW: warn about regional mismatches
+    verbose           = TRUE
+    # warn_extreme_year = TRUE,
+    # warn_regional_mismatch = TRUE  # NEW: warn about regional mismatches
 ) {
 
   msg <- .get_messages(lang)
@@ -192,7 +192,7 @@ sus_climate_aggregate <- function(
   # 1. VALIDATION OF HEALTH DATA
   # ---------------------------------------------------------------------------
   .validate_health_input(health_data, lang, verbose)
-  system <- climasus_meta(health_data, "system")
+  system <- sus_meta(health_data, "system")
 
   # ---------------------------------------------------------------------------
   # 2. VALIDATION OF CLIMATE DATA
@@ -236,9 +236,9 @@ sus_climate_aggregate <- function(
   # ---------------------------------------------------------------------------
   # 6. CHECK FOR EXTREME CLIMATE YEARS
   # ---------------------------------------------------------------------------
-  if (warn_extreme_year) {
-    .warn_extreme_climate_year(climate_data, lang, verbose)
-  }
+  # if (warn_extreme_year) {
+  #   .warn_extreme_climate_year(climate_data, lang, verbose)
+  # }
 
   # ---------------------------------------------------------------------------
   # 7. VALIDATION OF CLIMATE VARIABLES
@@ -280,7 +280,7 @@ sus_climate_aggregate <- function(
   # ---------------------------------------------------------------------------
   if (verbose) cli::cli_progress_step(msg$aggregating)
 
-  climate_temporal_meta <- climasus_meta(climate_data, "temporal")
+  climate_temporal_meta <- sus_meta(climate_data, "temporal")
   is_hourly_meta <- !is.null(climate_temporal_meta$unit) &&
                     climate_temporal_meta$unit == "hour"
 
@@ -313,6 +313,9 @@ sus_climate_aggregate <- function(
   # ---------------------------------------------------------------------------
   # 11. SPATIAL METEO STATION MATCHING
   # ---------------------------------------------------------------------------
+  '
+  This section is desgined to
+  '
   
   if (verbose) cli::cli_progress_step(msg$spatial_match)
 

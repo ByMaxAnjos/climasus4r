@@ -1,46 +1,46 @@
-#' @title Fill gaps in INMET climate time series using XGBoost
-#'
-#' @description
-#' `sus_climate_fill_inmet()` imputes missing values in **INMET automatic station data**
-#' using station-wise XGBoost models with automated feature engineering.
-#'
-#' **Key features:**
-#' \itemize{
-#'   \item **Multi-target support**: Impute one, many, or ALL numeric variables in a single call
-#'   \item **Station-wise modeling**: Separate model per station per variable
-#'   \item **Temporal features**: Automatic creation of lags and rolling statistics
-#'   \item **Quality control**: Stations with >`quality_threshold` missing are excluded
-#'   \item **Parallel processing**: Stations processed in parallel; workers resolved once and
-#'         reused across all variable iterations
-#'   \item **Evaluation mode**: Assess accuracy by creating artificial gaps
-#' }
-#' **Important: This function is designed exclusively for data imported by
-#' `sus_climate_inmet()` and works with the standard INMET variable set.**
-#'
-#' @section INMET Variable Set:
-#' The function is optimized for the following 17 INMET variables:
-#' \itemize{
-#'   \item **Atmospheric Pressure**: `patm_mb`, `patm_max_mb`, `patm_min_mb`
-#'   \item **Temperature**: `tair_dry_bulb_c`, `tair_max_c`, `tair_min_c`
-#'   \item **Dew Point**: `dew_tmean_c`, `dew_tmax_c`, `dew_tmin_c`
-#'   \item **Relative Humidity**: `rh_max_porc`, `rh_min_porc`, `rh_mean_porc`
-#'   \item **Precipitation**: `rainfall_mm`
-#'   \item **Wind**: `ws_gust_m_s`, `ws_2_m_s`, `wd_degrees`
-#'   \item **Solar Radiation**: `sr_kj_m2`
-#' }
-#' When `target_var = "all"`, the function automatically detects and imputes
-#' **only these 17 variables** if present in the data.
-#'
-#' @param df
-#'   A data frame (or tibble) containing climate data, typically from `sus_climate_inmet()`.
-#'   Must contain:
-#'   \itemize{
-#'     \item A datetime column (POSIXct or convertible)
-#'     \item A station identifier column
-#'     \item The target numeric column(s) to be imputed
-#'   }
-#'
-#' @param target_var
+  #' @title Fill gaps in INMET climate time series using XGBoost
+  #'
+  #' @description
+  #' `sus_climate_fill_inmet()` imputes missing values in **INMET automatic station data**
+  #' using station-wise XGBoost models with automated feature engineering.
+  #'
+  #' **Key features:**
+  #' \itemize{
+  #'   \item **Multi-target support**: Impute one, many, or ALL numeric variables in a single call
+  #'   \item **Station-wise modeling**: Separate model per station per variable
+  #'   \item **Temporal features**: Automatic creation of lags and rolling statistics
+  #'   \item **Quality control**: Stations with >`quality_threshold` missing are excluded
+  #'   \item **Parallel processing**: Stations processed in parallel; workers resolved once and
+  #'         reused across all variable iterations
+  #'   \item **Evaluation mode**: Assess accuracy by creating artificial gaps
+  #' }
+  #' **Important: This function is designed exclusively for data imported by
+  #' `sus_climate_inmet()` and works with the standard INMET variable set.**
+  #'
+  #' @section INMET Variable Set:
+  #' The function is optimized for the following 17 INMET variables:
+  #' \itemize{
+  #'   \item **Atmospheric Pressure**: `patm_mb`, `patm_max_mb`, `patm_min_mb`
+  #'   \item **Temperature**: `tair_dry_bulb_c`, `tair_max_c`, `tair_min_c`
+  #'   \item **Dew Point**: `dew_tmean_c`, `dew_tmax_c`, `dew_tmin_c`
+  #'   \item **Relative Humidity**: `rh_max_porc`, `rh_min_porc`, `rh_mean_porc`
+  #'   \item **Precipitation**: `rainfall_mm`
+  #'   \item **Wind**: `ws_gust_m_s`, `ws_2_m_s`, `wd_degrees`
+  #'   \item **Solar Radiation**: `sr_kj_m2`
+  #' }
+  #' When `target_var = "all"`, the function automatically detects and imputes
+  #' **only these 17 variables** if present in the data.
+  #'
+  #' @param df
+  #'   A data frame (or tibble) containing climate data, typically from `sus_climate_inmet()`.
+  #'   Must contain:
+  #'   \itemize{
+  #'     \item A datetime column (POSIXct or convertible)
+  #'     \item A station identifier column
+  #'     \item The target numeric column(s) to be imputed
+  #'   }
+  #'
+  #' @param target_var
   #'   Character vector of column name(s) to impute, **or** the special string `"all"`
   #'   to impute every numeric column that is not the datetime or station column.
   #'   Examples:
@@ -193,18 +193,18 @@
   #' # ===== EVALUATION MODE — multiple variables =====
   #' eval_multi <- sus_climate_fill_inmet(
   #'   df = climate_data,
-#'   target_var = c("tair_dry_bulb_c", "ws_2_m_s"),
-#'   run_evaluation = TRUE,
-#'   gap_percentage = 0.2
-#' )
-#' eval_multi$tair_dry_bulb_c$metrics
-#' eval_multi$ws_2_m_s$metrics
-#' }
-#'
-#' @export
-#' @importFrom rlang .data
-#' @importFrom data.table :=
-  sus_climate_fill_inmet <- function(
+  #'   target_var = c("tair_dry_bulb_c", "ws_2_m_s"),
+  #'   run_evaluation = TRUE,
+  #'   gap_percentage = 0.2
+  #' )
+  #' eval_multi$tair_dry_bulb_c$metrics
+  #' eval_multi$ws_2_m_s$metrics
+  #' }
+  #'
+  #' @export
+  #' @importFrom rlang .data
+  #' @importFrom data.table :=
+  sus_climate_fill_inmet_test <- function(
     df,
     target_var,
     datetime_col = NULL,

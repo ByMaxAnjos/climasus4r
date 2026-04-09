@@ -42,7 +42,7 @@
 #        ↓ (filtros is_national: lazy, sem collect)
 #   dplyr::filter() sobre Dataset → ainda lazy
 #        ↓
-#   return: arrow::Dataset com climasus_meta
+#   return: arrow::Dataset com sus_meta
 #
 # COMPATIBILIDADE PIPELINE
 # ─────────────────────────
@@ -164,7 +164,7 @@
 #' @param lang      Character. Idioma das mensagens: `"pt"`, `"en"`, `"es"`.
 #' @param verbose   Logical. Mostrar progresso detalhado? Default `TRUE`.
 #'
-#' @return `arrow::Dataset` com metadados `climasus_meta` como atributo.
+#' @return `arrow::Dataset` com metadados `sus_meta` como atributo.
 #'   Para consumo imediato como tibble: `dplyr::collect(resultado)`.
 #'   Para pipeline lazy (recomendado): encadeie verbos dplyr antes do collect.
 #'
@@ -711,7 +711,7 @@ dataset <- tryCatch({
 
   dataset <- structure(
     dataset,
-    climasus_meta  = meta,
+    sus_meta  = meta,
     parquet_paths  = valid_paths,
     class          = c("climasus_dataset", class(dataset))
   )
@@ -743,7 +743,7 @@ dataset <- tryCatch({
 
 #' @export
 print.climasus_dataset <- function(x, ...) {
-  meta <- attr(x, "climasus_meta")
+  meta <- attr(x, "sus_meta")
   cli::cli_h2("climasus_dataset")
   cli::cli_alert_info("Sistema  : {meta$system}")
   cli::cli_alert_info("Stage    : {meta$stage}")
@@ -761,10 +761,10 @@ print.climasus_dataset <- function(x, ...) {
 #'
 #' @param x   climasus_dataset
 #' @param ... Passado para dplyr::collect
-#' @return climasus_df (tibble com atributo climasus_meta)
+#' @return climasus_df (tibble com atributo sus_meta)
 #' @export
 collect.climasus_dataset <- function(x, ...) {
-  meta <- attr(x, "climasus_meta")
+  meta <- attr(x, "sus_meta")
   df   <- NextMethod()   # chama dplyr:::collect.arrow_dplyr_query ou similar
 
   meta$stage    <- "collected"
@@ -774,7 +774,7 @@ collect.climasus_dataset <- function(x, ...) {
                              format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
 
   structure(df,
-            climasus_meta = meta,
+            sus_meta = meta,
             class         = c("climasus_df", setdiff(class(df), "climasus_dataset")))
 }
 

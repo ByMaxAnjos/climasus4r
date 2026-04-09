@@ -233,7 +233,7 @@ sus_view_aggregate <- function(df,
 
   # ── System detection ────────────────────────────────────────────────────────
   system_name <- if (inherits(df, "climasus_df")) {
-    climasus_meta(df, "system") %||% .infer_system(df)
+    sus_meta(df, "system") %||% .infer_system(df)
   } else {
     .infer_system(df)
   }

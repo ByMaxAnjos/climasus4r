@@ -9,7 +9,7 @@ df_stand <- dengue_25 %>%
   sus_data_standardize(lang="en")
 
 df_amazon_create <- df_stand %>% 
-  sus_create_variables(lang="en")
+  sus_data_create_variables(lang="en")
 
 df_amazon_demo <- df_amazon_create %>% 
   sus_data_filter_demographics(sex = c("Male", "Female"))

@@ -608,7 +608,7 @@ summary.rap_object <- function(object, ...) sus_inspect_rap(object, ...)
   sus_funcs <- c(
     "sus_data_import", "sus_data_clean_encoding", "sus_data_standardize",
     "sus_data_filter_cid", "sus_data_filter_demographics",
-    "sus_create_variables", "sus_data_aggregate", "sus_data_export",
+    "sus_data_create_variables", "sus_data_aggregate", "sus_data_export",
     "sus_data_quality_report"
   )
 
@@ -644,7 +644,7 @@ summary.rap_object <- function(object, ...) sus_inspect_rap(object, ...)
     sus_data_filter_cid          = c("disease_group"),
     sus_data_filter_demographics = c("age_range"),
     sus_data_aggregate           = c("time_unit", "group_by"),
-    sus_create_variables         = c("create_age_groups", "create_calendar_vars")
+    sus_data_create_variables         = c("create_age_groups", "create_calendar_vars")
   )
   keys   <- keys_map[[fn]] %||% character(0L)
   result <- list()

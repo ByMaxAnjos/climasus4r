@@ -383,7 +383,7 @@ pipeline <- quote(
     disease_group = "respiratory",
     lang          = "pt"
   ) |>
-  sus_create_variables(
+  sus_data_create_variables(
     create_age_groups = TRUE,
     age_breaks        = c(0, 1, 5, Inf),
     age_labels        = c("< 1 yr", "1–4 yr", "5+ yr"),
@@ -658,7 +658,7 @@ rap$metadata$r_version
 vapply(rap$steps, `[[`, "function_name", FUN.VALUE = character(1L))
 #> [1] "sus_data_import"              "sus_data_clean_encoding"
 #> [3] "sus_data_standardize"         "sus_data_filter_cid"
-#> [5] "sus_create_variables"         "sus_data_filter_demographics"
+#> [5] "sus_data_create_variables"         "sus_data_filter_demographics"
 #> [7] "sus_data_aggregate"
 ```
 
@@ -703,7 +703,7 @@ sus_inspect_rap(rap, verbose = TRUE)
 &nbsp;&nbsp;&nbsp;&nbsp;2. sus_data_clean_encoding      lang="pt"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;3. sus_data_standardize         lang="pt"<br>
 &nbsp;&nbsp;&nbsp;&nbsp;4. sus_data_filter_cid          disease_group="respiratory"<br>
-&nbsp;&nbsp;&nbsp;&nbsp;5. sus_create_variables         create_age_groups=TRUE<br>
+&nbsp;&nbsp;&nbsp;&nbsp;5. sus_data_create_variables         create_age_groups=TRUE<br>
 &nbsp;&nbsp;&nbsp;&nbsp;6. sus_data_filter_demographics age_range=0:5<br>
 &nbsp;&nbsp;&nbsp;&nbsp;7. sus_data_aggregate           time_unit="month"
 </div>
@@ -769,7 +769,7 @@ sus_data_import(uf = "AM", year = 2020:2023, system = "SIM-DO", lang = "pt", par
 |&gt; sus_data_clean_encoding(lang = "pt")<br>
 |&gt; sus_data_standardize(lang = "pt")<br>
 |&gt; sus_data_filter_cid(disease_group = "respiratory", lang = "pt")<br>
-|&gt; sus_create_variables(create_age_groups = TRUE)<br>
+|&gt; sus_data_create_variables(create_age_groups = TRUE)<br>
 |&gt; sus_data_filter_demographics(age_range = 0:5, lang = "pt")<br>
 |&gt; sus_data_aggregate(time_unit = "month", lang = "pt")
 </div>
@@ -840,7 +840,7 @@ pipeline_dengue <- quote(
   ) |>
   sus_data_clean_encoding(lang = "pt")   |>
   sus_data_standardize(lang = "pt")      |>
-  sus_create_variables(
+  sus_data_create_variables(
     create_calendar_vars = TRUE,
     lang                 = "pt"
   ) |>

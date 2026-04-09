@@ -65,7 +65,7 @@
 #' df_sim <- sus_data_import(uf = "SP", year = 2023, system = "SIM-DO") %>%
 #'   sus_data_standardize(lang = "pt")
 #'
-#' sf_sim <- sus_join_spatial(
+#' sf_sim <- sus_spatial_join(
 #'   df = df_sim,
 #'   level = "munic",
 #'   lang = "pt"
@@ -75,14 +75,14 @@
 #' df_sih <- sus_data_import(uf = "RJ", year = 2023, system = "SIH-RD") %>%
 #'   sus_data_standardize(lang = "pt")
 #'
-#' sf_cep <- sus_join_spatial(
+#' sf_cep <- sus_spatial_join(
 #'   df = df_sih,
 #'   level = "cep",
 #'   lang = "pt"
 #' )
 #'
 #' # Example 4: Census tract level analysis
-#' sf_census <- sus_join_spatial(
+#' sf_census <- sus_spatial_join(
 #'   df = df_sim,
 #'   level = "schools",
 #'   lang = "pt"
@@ -91,7 +91,7 @@
 #' @export
 #' @importFrom glue glue
 #' @importFrom rlang .data
-sus_join_spatial <- function(
+sus_spatial_join <- function(
   df,
   level = "munic",
   join_col = NULL,
@@ -139,7 +139,7 @@ sus_join_spatial <- function(
 
     # Minimum required stage
     required_stage <- "stand"
-    current_stage  <- climasus_meta(df, "stage")
+    current_stage  <- sus_meta(df, "stage")
 
     if (!is_stage_at_least(current_stage, required_stage)) {
 
@@ -182,7 +182,7 @@ sus_join_spatial <- function(
     }
 
     # Update metadata
-    df <- climasus_meta(df, stage = "spatial", type = level)
+    df <- sus_meta(df, stage = "spatial", type = level)
   } else {
     
     # NOT climasus_df - ABORT execution
@@ -228,8 +228,8 @@ sus_join_spatial <- function(
     cli::cli_abort(msg_error[[lang]])
   }
 
-  system <- climasus_meta(df, "system")
-  original_meta <- attr(df, "climasus_meta")
+  system <- sus_meta(df, "system")
+  original_meta <- attr(df, "sus_meta")
 
   # ============================================================================
   # 2. SYSTEM-AWARE VALIDATION (CEP restriction)
@@ -816,7 +816,7 @@ sus_join_spatial <- function(
   # Remove rows with missing geometries
   #result_sf <- result_sf %>% dplyr::filter(!is.na(sf::st_dimension(.data$geom)))
 
-  time_unit <- climasus_meta(result_sf, "temporal")$resolution
+  time_unit <- sus_meta(result_sf, "temporal")$resolution
   if(is.null(time_unit)){time_unit <- "day"}
 
   if (!inherits(result_sf, "climasus_df")) {
@@ -842,11 +842,11 @@ sus_join_spatial <- function(
     base_classes <- setdiff(class(result_sf), "climasus_df")
     result_sf <- structure(
       result_sf,
-      climasus_meta = meta,
+      sus_meta = meta,
       class = c("climasus_df", base_classes)
     )
   } else { 
-    result_sf <- climasus_meta(
+    result_sf <- sus_meta(
     result_sf,
     system = system,  # Preserve original system
     stage = "spatial",

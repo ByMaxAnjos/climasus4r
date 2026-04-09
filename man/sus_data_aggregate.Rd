@@ -130,7 +130,7 @@ df_seasonal <- sus_data_aggregate(
 df_weekly <- sus_data_aggregate(
   df,
   time_unit = "week",
-  group_by = c("age_group", "sex") #age_group comes from `sus_create_variables()`
+  group_by = c("age_group", "sex") #age_group comes from `sus_data_create_variables()`
 )
 }
 }

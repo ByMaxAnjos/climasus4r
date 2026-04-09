@@ -66,7 +66,7 @@ reference:
     contents:
       - sus_data_clean_encoding
       - sus_data_standardize
-      - sus_create_variables
+      - sus_data_create_variables
 
   - title: "Filtros y Selección"
     desc: "Filtrado por códigos CIE-10, grupos de enfermedades y demografía"
@@ -78,10 +78,10 @@ reference:
     desc: "Agregación de series temporales y unión con datos geográficos y demograficas"
     contents:
       - sus_data_aggregate
-      - sus_join_spatial
-      - sus_socio_add_census
+      - sus_spatial_join
+      - sus_census_join
       - sus_climate_inmet
-      - sus_climate_fill_gaps
+      - sus_climate_fill_inmet
 
   - title: "Calidad y Metadatos"
     desc: "Informes de calidad de datos y diccionarios de enfermedades"
@@ -89,9 +89,9 @@ reference:
       - sus_data_quality_report
       - list_disease_groups
       - get_disease_group_details
-      - sus_census_explore
-      - sus_filter_cid_explore
-      - climasus_meta
+      - sus_census_select
+      - sus_data_cid_select
+      - sus_meta
       - print.climasus_df
       - "[.climasus_df"
       - "[[.climasus_df"
@@ -102,9 +102,9 @@ reference:
   - title: "AI y Gestión de Caché"
     desc: "Control del almacenamiento local de archivos descargados"
     contents:
-      - clear_climasus_cache
-      - get_climasus_cache_info
-      - sus_chat_ai
+      - sus_cache_clear
+      - sus_cache_infor
+      - sus_chat
 
 articles:
   - title: "Participa"
