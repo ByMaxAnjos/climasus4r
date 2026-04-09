@@ -87,8 +87,6 @@ reference:
     desc: "Data quality reports and disease dictionaries"
     contents:
       - sus_data_quality_report
-      - list_disease_groups
-      - get_disease_group_details
       - sus_census_select
       - sus_data_cid_select
       - sus_meta

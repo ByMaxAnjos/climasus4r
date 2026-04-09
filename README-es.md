@@ -53,7 +53,7 @@ remotes::install_github("ByMaxAnjos/climasus4r", dependencies = TRUE, upgrade = 
 | | `sus_census_join()` | Enriquece datos de salud con variables socioeconómicas del Censo. |
 | | `sus_data_aggregate()` | Agrega datos de salud en series temporales. |
 | **📊 Calidad y Metadatos** | `sus_data_quality_report()` | Genera informes detallados sobre la calidad de los datos. |
-| | `list_disease_groups()` | Enumera los grupos de enfermedades disponibles para filtrar. |
+| | `sus_data_cid_select()` | Enumera los grupos de enfermedades disponibles para filtrar. |
 | | `sus_census_select()` | Explorador interactivo de variables del Censo. |
 | **⚡ Caché** | `sus_cache_clear()` | Gestiona y limpia el almacenamiento local de archivos. |
 
