@@ -11,7 +11,7 @@ library(climasus4r)
 library(dplyr)
 library(data.table)
 
-climasus4r::sus_cache_infor(cache_dir = "~/.climasus4r_cache/data")
+climasus4r::sus_cache_info(cache_dir = "~/.climasus4r_cache/data")
 climasus4r::sus_cache_clear(cache_dir = "~/.climasus4r_cache/data")
 dengue <- sus_data_read("/Users/maxanjos/Documents/CAROLINA/SINAN-DENGUE_amazonia_2014.parquet")
 

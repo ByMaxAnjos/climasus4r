@@ -103,7 +103,7 @@ reference:
     desc: "Manage local storage of downloaded files"
     contents:
       - sus_cache_clear
-      - sus_cache_infor
+      - sus_cache_info
       - sus_chat
 
 articles:

@@ -99,7 +99,7 @@ reference:
     desc: "Controle do armazenamento local de arquivos baixados"
     contents:
       - sus_cache_clear
-      - sus_cache_infor
+      - sus_cache_info
       - sus_chat
 
 articles:

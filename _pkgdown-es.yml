@@ -103,7 +103,7 @@ reference:
     desc: "Control del almacenamiento local de archivos descargados"
     contents:
       - sus_cache_clear
-      - sus_cache_infor
+      - sus_cache_info
       - sus_chat
 
 articles:
