@@ -429,7 +429,10 @@ download_inmet <- function(
   verbose = FALSE,
   lang = "en"
 ) {
-
+  
+  old_timeout <- getOption("timeout")
+  options(timeout = max(600, old_timeout)) 
+  on.exit(options(timeout = old_timeout), add = TRUE) 
   if (is.null(workers)) {
     workers <- future::availableCores()
   }

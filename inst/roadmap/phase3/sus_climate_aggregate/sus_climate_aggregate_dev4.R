@@ -1,336 +1,185 @@
-#' @encoding UTF-8
-#' Integração de dados climáticos e de saúde
+#' Integration of Climate and Health Data
 #'
 #' @description
-#' `sus_climate_aggregate()` agrega dados meteorológicos aos dados de saúde do
-#' DATASUS utilizando estratégias temporais epidemiologicamente rigorosas.
-#' A função vincula cada registro de saúde à estação climatológica mais próxima
-#' (por distância euclidiana entre centroides municipais e coordenadas das
-#' estações) e, em seguida, aplica a janela temporal solicitada.
+#' `sus_climate_aggregate()` aggregates meteorological data to DATASUS health data
+#' using epidemiologically rigorous temporal strategies. The function links each
+#' health record to the nearest climate station (by Euclidean distance) and applies
+#' the requested temporal window.
 #'
-#' @param health_data Um objeto `climasus_df` produzido por `sus_spatial_join()`.
-#'   Deve conter as colunas `date` (Date), `code_muni` (character) e a coluna
-#'   de geometria `geom`.
-#' @param climate_data Um objeto `climasus_df` produzido por
-#'   `sus_climate_fill_inmet()`. Deve conter `date` (Date ou POSIXct),
-#'   `station_code`, `latitude`, `longitude` e as variáveis climáticas.
-#' @param climate_var Vetor de caracteres com as colunas climáticas a agregar.
-#'   Use `"all"` (padrão) para incluir todas as variáveis disponíveis.
-#' @param time_unit Unidade de agregação temporal dos dados climáticos brutos
-#'   antes do join. Opções: `"day"` (padrão), `"week"`, `"month"`,
-#'   `"quarter"`, `"year"`, `"season"`. Relevante apenas quando os dados de
-#'   entrada estão em resolução horária.
-#' @param temporal_strategy Estratégia de correspondência temporal. Opções:
+#' @param health_data A `climasus_df` object produced by `sus_spatial_join()`.
+#'   Must contain columns `date` (Date), `code_muni` (character), and geometry
+#'   column `geom`.
+#' @param climate_data A `climasus_df` object produced by `sus_climate_fill()`.
+#'   Must contain `date` (Date or POSIXct), `station_code`, `latitude`, `longitude`,
+#'   and climate variables.
+#' @param climate_var Character vector with climate columns to aggregate.
+#'   Use `"all"` (default) to include all available variables.
+#' @param time_unit Temporal aggregation unit for raw climate data before join.
+#'   Options: `"day"` (default), `"week"`, `"month"`, `"quarter"`, `"year"`,
+#'   `"season"`. Relevant only when input data are hourly resolution.
+#' @param temporal_strategy Temporal matching strategy. Options:
 #'   \describe{
-#'     \item{`"exact"`}{Correspondência exata de data (e.g., insolação no mesmo
-#'       dia do óbito por golpe de calor). Produz uma coluna por variável.}
-#'     \item{`"discrete_lag"`}{Busca o valor climático exatamente \eqn{t - L}
-#'       dias antes do evento. Produz colunas prefixadas `lag{L}_`. Evita
-#'       viés de look-ahead.}
-#'     \item{`"moving_window"`}{Média/soma da janela deslizante
-#'       \eqn{[t - W, t]}. Produz colunas prefixadas `mvwin{W}_`.}
-#'     \item{`"offset_window"`}{Agrega o intervalo histórico
-#'       \eqn{[t - W_2, t - W_1]}, ignorando os dias mais recentes. Ideal
-#'       para períodos de incubação. Produz colunas `off{W1}to{W2}_`.}
-#'     \item{`"distributed_lag"`}{Cria uma matriz de defasagens de 0 a L para
-#'       modelagem DLNM. Produz colunas `{var}_lag{0..L}`.}
-#'     \item{`"degree_days"`}{Calcula Graus-Dia de Desenvolvimento (GDD) para
-#'       biologia vetorial. Produz coluna `gdd{W}_tbase{T}`.}
-#'     \item{`"seasonal"`}{Correspondência pela estação climatológica (DJF,
-#'       MAM, JJA, SON). Produz colunas prefixadas `season_`. Adapted to regional seasonality}
-#'     \item{`"threshold_exceedance"`}{Counts days exceeding threshold.
-#'       **Note:** Uses region-specific heatwave and rainfull thresholds}
-#'     \item{`"cold_wave_exceedance"`}{**Note:** Counts days below threshold.
-#'       Ideal for cold extremes in southern regions. Produces columns
-#'       `ncold{W}_lt{threshold}_`.}
+#'     \item{`"exact"`}{Exact date match (same-day temperature for acute heat-related mortality).}
+#'     \item{`"discrete_lag"`}{Climate value exactly L days before event.}
+#'     \item{`"moving_window"`}{Mean/sum of sliding window [t-W, t]. **RECOMMENDED** for cumulative exposure.}
+#'     \item{`"offset_window"`}{Aggregates historical interval [t-W2, t-W1], ignoring recent days.}
+#'     \item{`"distributed_lag"`}{Creates lag matrix 0 to L for DLNM modeling.}
+#'     \item{`"degree_days"`}{Calculates Growing Degree Days (GDD) for thermal stress.}
+#'     \item{`"seasonal"`}{Aggregates by climate season (DJF, MAM, JJA, SON).}
+#'     \item{`"threshold_exceedance"`}{Counts days exceeding threshold (e.g., heatwaves).}
+#'     \item{`"cold_wave_exceedance"`}{Counts days below threshold (e.g., cold extremes in southern regions).}
 #'     \item{`"weighted_window"`}{Weighted mean with decay function.}
 #'   }
 #' @param climate_region Character. Climate classification for parameter adaptation.
-#'   Options:
-#'   \describe{
-#'     \item{`"auto"`}{Automatically detects based on latitude (default).}
-#'     \item{`"tropical"`}{North, Northeast (Amazônia, Nordeste). Tbase=20°C.}
-#'     \item{`"subtropical"`}{Center-West, Southeast (Centro-Oeste, Sudeste). Tbase=18°C.}
-#'     \item{`"temperate"`}{South (Sul). Tbase=15°C. Includes cold wave analysis.}
-#'   }
-#'   When `"auto"`, detection uses: latitude > -5° → tropical; -5° to -20° → subtropical;
-#'   < -20° → temperate.
-#' @param window_days Inteiro. Número de dias da janela para `moving_window`
-#'   (e.g., `14` = média dos últimos 14 dias incluindo o dia do evento) ou
-#'   período de acumulação para `degree_days`. Obrigatório para essas
-#'   estratégias.
-#' @param lag_days Vetor inteiro. Defasagens específicas para `discrete_lag`
-#'   (e.g., `c(7, 14, 21)` cria três colunas), ou defasagem máxima para
-#'   `distributed_lag` (e.g., `21` cria lags 0 a 21). Obrigatório para
-#'   essas estratégias.
-#' @param offset_days Vetor inteiro de comprimento 2 para `offset_window`.
-#'   Define o intervalo histórico: `c(W1, W2)` agrega de \eqn{t-W_2} a
-#'   \eqn{t-W_1}. Exemplo: `c(7, 14)` ignora os últimos 7 dias e agrega
-#'   os 7 dias anteriores a eles. Obrigatório para essa estratégia.
-#' @param temp_base Numérico. Temperatura base para cálculo de `degree_days`.
-#'   Padrão: 20°C.
-#' @param gdd_temp_var Caractere. Coluna de temperatura usada para `degree_days`.
-#'   Padrão: `"tair_dry_bulb_c"`.
-#' @param min_obs Numérico (0–1). Proporção mínima de observações válidas
-#'   exigida dentro da janela. Observações insuficientes retornam `NA`.
-#'   Padrão: 0.7 (70%).
-#' @param threshold_value Numérico. Limiar para `threshold_exceedance` or `cold_wave_exceedance`.
-#'   A comparação padrão é `> threshold_value` (excedência superior, e.g.,
-#'   temperatura máxima). Use `threshold_direction = "below"` para `<`. 
-#' @param threshold_direction Caractere: `"above"` (padrão, `> limiar`) ou
-#'   `"below"` (`< limiar`). Controla a direção da excedência em
-#'   `threshold_exceedance`. For `cold_wave_exceedance`, automatically set to `"below"`.
-#' @param weights Vetor numérico opcional para `weighted_window`. Define o
-#'   peso de cada dia dentro da janela, do mais recente (posição 1) ao mais
-#'   antigo (posição `window_days`). Comprimento deve ser igual a
-#'   `window_days + 1` (inclui o dia do evento, posição 1 = dia `t`).
-#'   Se `NULL`, pesos lineares decrescentes são gerados automaticamente
-#'   de 1.0 (dia do evento) a 0.1 (dia mais antigo).
-#'   Exemplo: `c(1.0, 0.6, 0.3)` para `window_days = 2`.
-#' @param use_cache Lógico. Se `TRUE`, utiliza cache Arrow/Parquet. Padrão: `TRUE`.
-#' @param cache_dir Caractere. Diretório dos arquivos de cache.
-#' @param lang Idioma das mensagens: `"pt"` (português), `"en"` (inglês) ou
-#'   `"es"` (espanhol). Padrão: `"pt"`.
-#' @param verbose Lógico. Se `TRUE`, exibe mensagens de progresso. Padrão: `TRUE`.
+#'   Options: `"auto"` (default, auto-detect by latitude), `"tropical"` (North, Northeast),
+#'   `"subtropical"` (Center-West, Southeast), `"temperate"` (South).
+#' @param window_days Integer. Number of days in window for `moving_window`,
+#'   `offset_window`, `degree_days`, `threshold_exceedance`, `cold_wave_exceedance`,
+#'   or `weighted_window`. Required for these strategies.
+#' @param lag_days Integer vector. Specific lags for `discrete_lag` or maximum lag
+#'   for `distributed_lag`. Required for these strategies.
+#' @param offset_days Integer vector of length 2 for `offset_window`.
+#'   Defines historical interval: `c(W1, W2)` aggregates from t-W2 to t-W1.
+#' @param temp_base Numeric. Temperature base for `degree_days` calculation.
+#'   If `NULL` (default), uses region-specific default: 20°C (tropical), 18°C (subtropical),
+#'   15°C (temperate). Use 11°C for *Aedes aegypti* development, 10°C for *Plasmodium*.
+#' @param gdd_temp_var Character. Temperature column for `degree_days`.
+#'   Default: `"tair_dry_bulb_c"`.
+#' @param min_obs Numeric (0–1). Minimum proportion of valid observations required
+#'   within window. Default: 0.7 (70%).
+#' @param threshold_value Numeric. Threshold for `threshold_exceedance` or
+#'   `cold_wave_exceedance`. If `NULL`, uses region-specific default.
+#' @param threshold_direction Character: `"above"` (default, > threshold) or
+#'   `"below"` (< threshold). For `cold_wave_exceedance`, automatically set to `"below"`.
+#' @param weights Numeric vector (optional) for `weighted_window`. Defines weight
+#'   for each day within window, from most recent (position 1) to oldest (position W+1).
+#'   If `NULL`, linear decreasing weights are generated automatically.
+#' @param lang Language for messages: `"pt"` (Portuguese), `"en"` (English), or
+#'   `"es"` (Spanish). Default: `"pt"`.
+#' @param verbose Logical. If `TRUE`, displays progress messages. Default: `TRUE`.
 #'
-#' @return Um objeto `climasus_df` (tibble) com os dados de saúde originais e
-#'   as variáveis climáticas integradas como novas colunas. A geometria é
-#'   preservada caso o objeto de entrada seja um `sf`.
+#' @return A `climasus_df` (tibble) with original health data and integrated climate
+#'   variables as new columns. Geometry is preserved if input is `sf`.
 #'
-#' @section Estratégias temporais — fundamentos epidemiológicos:
-#' A escolha da estratégia deve refletir o mecanismo biológico hipotético:
-#' \itemize{
-#'   \item **exact**: efeitos imediatos (golpe de calor, AVC hemorrágico).
-#'   \item **discrete_lag**: efeito retardado conhecido (e.g., temperatura 7
-#'     dias antes influencia dengue via ciclo extrínseco do vírus).
-#'   \item **moving_window**: exposição acumulada sem lag específico (e.g.,
-#'     onda de calor dos últimos 14 dias).
-#'   \item **offset_window**: período de incubação definido (e.g., temperatura
-#'     entre 14 e 7 dias antes do óbito).
-#'   \item **distributed_lag**: análise de lag distribuído (DLNM); gera a
-#'     matriz de exposição para `dlnm::crossbasis()`.
-#'   \item **degree_days**: limiar térmico para desenvolvimento vetorial; GDD
-#'     acima da temperatura base (`temp_base`) acumula-se ao longo de `window_days`.
-#'   \item **seasonal**: padrões climatológicos sazonais, para estudos
-#'     ecológicos ou de longo prazo.
-#'   \item **threshold_exceedance**: conta quantos dias dentro da janela
-#'     `[t - W, t]` a variável climática ultrapassou o limiar definido por
-#'     `threshold_value`. Ideal para ondas de calor ("dias com Tmax > 35°C")
-#'     e eventos extremos de precipitação ("dias com chuva > 50mm").
-#'     Produz colunas prefixadas `nexc{W}_{dir}{limiar}_`.
-#'   \item **weighted_window**: média ponderada da janela `[t - W, t]`
-#'     aplicando o vetor `weights` (posição 1 = dia do evento, peso maior;
-#'     posição W+1 = dia mais antigo, peso menor). Modela o decaimento
-#'     biológico da exposição. Produz colunas prefixadas `wwin{W}_`.
-#' }
-#' @section Regional Climate Considerations:
-#' 
+#' @details
+#' ## Temporal Strategies — Epidemiological Foundations
+#'
+#' The choice of strategy should reflect the hypothesized biological mechanism:
+#'
+#' - **exact**: Immediate effects (heat stroke, hemorrhagic stroke)
+#' - **discrete_lag**: Known delayed effect (e.g., temperature 7 days before influences dengue)
+#' - **moving_window**: Cumulative exposure without specific lag. **RECOMMENDED for elderly mortality**.
+#' - **offset_window**: Defined incubation period (e.g., temperature 14-7 days before death)
+#' - **distributed_lag**: Distributed lag analysis (DLNM); generates exposure matrix for `dlnm::crossbasis()`
+#' - **degree_days**: Thermal threshold for vector development. GDD above temperature base accumulates over window_days.
+#' - **seasonal**: Seasonal climate patterns for ecological or long-term studies
+#' - **threshold_exceedance**: Counts days exceeding threshold (ideal for heatwaves)
+#' - **cold_wave_exceedance**: Counts days below threshold (ideal for cold extremes in southern regions)
+#' - **weighted_window**: Weighted mean modeling biological decay of exposure
+#'
+#' ## Regional Climate Considerations
+#'
 #' The function automatically adapts to Brazil's diverse climates:
-#' 
-#' **Tropical (North, Northeast):** Amazônia, Nordeste
-#' - Mean temperature: 24-28°C
-#' - Recommended temp_base: 20°C (human health), 11°C (vector biology)
-#' - Heatwave threshold: Tmax > 35°C
-#' - Seasonal pattern: Dry season (May-Sep) vs. wet season (Nov-Mar)
-#' - High autocorrelation: Use DLNM or limit lags
-#' - Recommended strategies: `moving_window`, `seasonal`, `threshold_exceedance`
 #'
-#' **Subtropical (Center-West, Southeast):** Centro-Oeste, Sudeste
-#' - Mean temperature: 18-26°C
-#' - Recommended temp_base: 18°C (human health), 11°C (vector biology)
-#' - Heatwave threshold: Tmax > 32°C
-#' - Seasonal pattern: Moderate variation
-#' - Moderate autocorrelation: Standard lag analysis acceptable
-#' - Recommended strategies: `moving_window`, `threshold_exceedance`
+#' **Tropical (North, Northeast):** Mean temperature 24-28°C, recommended temp_base 20°C (human health),
+#' heatwave threshold Tmax > 35°C, high autocorrelation.
 #'
-#' **Temperate (South):** Sul
-#' - Mean temperature: 12-24°C
-#' - Recommended temp_base: 15°C (human health), 11°C (vector biology)
-#' - Heatwave threshold: Tmax > 30°C
-#' - **Coldwave threshold: Tmin < 5°C** (CRITICAL for health)
-#' - Seasonal pattern: Strong winter/summer contrast
-#' - Low autocorrelation: Lag analysis robust
-#' - Recommended strategies: `moving_window`, `cold_wave_exceedance`
+#' **Subtropical (Center-West, Southeast):** Mean temperature 18-26°C, recommended temp_base 18°C,
+#' heatwave threshold Tmax > 32°C, moderate autocorrelation.
 #'
-#' @section New Strategy: cold_wave_exceedance
+#' **Temperate (South):** Mean temperature 12-24°C, recommended temp_base 15°C,
+#' heatwave threshold Tmax > 30°C, **coldwave threshold Tmin < 5°C** (critical),
+#' low autocorrelation.
 #'
-#' Counts days within window \eqn{[t - W, t]} when climate variable falls below
-#' threshold. Ideal for cold extremes in southern regions.
+#' ## Causal Inference & Look-Ahead Bias
 #'
-#' **Example:**
-#' ```
-#' df_coldwave <- sus_climate_aggregate(
-#'   health_data = sf_sim_spatial,
-#'   climate_data = df_inmet,
-#'   climate_region = "temperate",
-#'   temporal_strategy = "cold_wave_exceedance",
-#'   window_days = 7,
-#'   threshold_value = 5  # Tmin < 5°C
-#' )
-#' ```
+#' This function uses **retroactive windows** [t-W, t], never symmetric windows [t-W, t+W].
+#' The climate of day t+7 cannot cause a health event on day t. This design prevents
+#' look-ahead bias, a common methodological error in environmental epidemiology.
 #'
-#' Produces columns: `ncold7_lt5_tair_min_c`, `pcold7_lt5_tair_min_c`
-#' (count and proportion of days with Tmin < 5°C in last 7 days).
-#' 
+#' ## Autocorrelation in Tropical Regions
+#'
+#' Temperature exhibits strong autocorrelation in tropical regions (e.g., Amazon).
+#' When using `discrete_lag` or `distributed_lag` strategies, verify multicolinearities
+#' in epidemiological models using `car::vif()`. If VIF > 5, consider using DLNM
+#' or reducing the number of lags.
+#'
+#' @references
+#' Gasparrini, A. (2011). Distributed lag linear and non-linear models in R: the package dlnm.
+#' *Journal of Statistical Software*, 43(8), 1-20.
+#'
+#' Silveira, I. H., et al. (2023). Heat waves and mortality in the Brazilian Amazon.
+#' *International Journal of Hygiene and Environmental Health*, 248, 114109.
+#'
+#' Marengo, J. A., et al. (2023). A cold wave of winter 2021 in central South America.
+#' *Climate Dynamics*, 61, 3-4.
+#'
 #' @examples
 #' \dontrun{
-#' 
-#' #Step 1: download and preparation datasus data based on this pipeline
-#' df_sim <- sus_data_import() |> 
-#'           sus_data_clean_encoding() |>
-#' sus_data_standardize() |> 
-#' sus_data_create_variables() |> 
-#' sus_data_filter_cid() |> 
-#' sus_data_filter_demographics() |> 
-#' sus_data_aggregate()
-#' 
-#' #Step 2:aggreação espacial com join_spatial ao nivel de municipio
-#' sf_sim_sptaial <- sus_spatial_join(
-#' df_sim, 
-#' level = "munic"
-#' )
-#' 
-#' # Passo 3: Baixar e preencher dados do INMET para o mesmo ano DATASUS
-#' df_inmet_raw <- sus_climate_inmet(
-#' years = 2023,
-#' uf = "AM"
-#' )
-#' df_inmet <- sus_climate_fill(
-#' df_inmet_raw,
-#' target_var = "all",
-#' parallel= TRUE
-#' )
-#' 
-#' # Estratégia exact — temperatura do mesmo dia
-#' df_exato <- sus_climate_aggregate(
-#'   health_data = sf_sim_spatial,
-#'   climate_data = df_inmet,
-#'   climate_var  = "tair_dry_bulb_c",
-#'   temporal_strategy = "exact",
-#'   lang = "pt",
-#'   verbose = TRUE
+#' # Prepare data
+#' df_health <- sus_data_import() |>
+#'   sus_data_clean_encoding() |>
+#'   sus_data_standardize() |>
+#'   sus_spatial_join(level = "munic")
+#'
+#' df_climate <- sus_climate_inmet(years = 2023, uf = "AM") |>
+#'   sus_climate_fill()
+#'
+#' # Example 1: Exact match (same-day temperature)
+#' df_exact <- sus_climate_aggregate(
+#'   health_data = df_health,
+#'   climate_data = df_climate,
+#'   climate_var = "tair_dry_bulb_c",
+#'   temporal_strategy = "exact"
 #' )
 #'
-#' # Discrete lag — temperatura a 7, 14 e 21 dias antes
-#' df_lag <- sus_climate_aggregate(
-#'   health_data = sf_sim_spatial,
-#'   climate_data = df_inmet,
-#'   climate_var  = "tair_dry_bulb_c",
-#'   temporal_strategy = "discrete_lag",
-#'   lag_days = c(7, 14, 21),
-#'   lang = "pt",
-#'   verbose = TRUE
-#' )
-#'
-#' # Moving window — média dos últimos 14 dias
-#' df_win <- sus_climate_aggregate(
-#'   health_data = sf_sim_spatial,
-#'   climate_data = df_inmet,
+#' # Example 2: Moving window (cumulative exposure, RECOMMENDED)
+#' df_moving <- sus_climate_aggregate(
+#'   health_data = df_health,
+#'   climate_data = df_climate,
 #'   temporal_strategy = "moving_window",
 #'   window_days = 14
 #' )
 #'
-#' # Offset window — temperatura entre 14 e 7 dias antes
-#' df_off <- sus_climate_aggregate(
-#'   health_data = sf_sim_spatial,
-#'   climate_data = df_inmet,
-#'   temporal_strategy = "offset_window",
-#'   offset_days = c(7, 14)
-#' )
-#'
-#' # Graus-dia — acumulado dos últimos 21 dias, base 11°C
-#' df_gdd <- sus_climate_aggregate(
-#'   health_data = sf_sim_spatial,
-#'   climate_data = df_inmet,
-#'   temporal_strategy = "degree_days",
-#'   window_days = 21,
-#'   temp_base = 20
-#' )
-#'
-#' # Threshold exceedance — dias com Tmax > 35°C nos últimos 7 dias
-#' df_thr <- sus_climate_aggregate(
-#'   health_data = sf_sim_spatial,
-#'   climate_data = df_inmet,
-#'   climate_var  = "tair_max_c",
+#' # Example 3: Regional adaptation (auto-detect)
+#' df_regional <- sus_climate_aggregate(
+#'   health_data = df_health,
+#'   climate_data = df_climate,
+#'   climate_region = "auto",
 #'   temporal_strategy = "threshold_exceedance",
-#'   window_days = 7,
-#'   threshold_value = 35,
-#'   threshold_direction = "above",
-#'   min_obs = 0.7
+#'   window_days = 7
 #' )
 #'
-#' # Weighted window — média ponderada dos últimos 7 dias (pesos lineares automáticos)
-#' df_wwin <- sus_climate_aggregate(
-#'   health_data = sf_sim_spatial,
-#'   climate_data = df_inmet,
-#'   climate_var  = "tair_dry_bulb_c",
-#'   temporal_strategy = "weighted_window",
-#'   window_days = 7,
-#'   weights = c(1.0, 0.85, 0.70, 0.55, 0.40, 0.25, 0.10),
-#'   min_obs = 0.7
-#' )
-#' # Example 1: Automatic regional detection (Amazônia)
-#' df_amazon <- sus_climate_aggregate(
-#'   health_data = sf_sim_spatial,
-#'   climate_data = df_inmet,
-#'   climate_region = "auto",  # Detects as "tropical"
-#'   temporal_strategy = "moving_window",
-#'   window_days = 14
-#' )
-#'
-#' # Example 2: Explicit subtropical region (São Paulo)
-#' df_southeast <- sus_climate_aggregate(
-#'   health_data = sf_sim_spatial_sp,
-#'   climate_data = df_inmet_sp,
-#'   climate_region = "subtropical",
-#'   temporal_strategy = "threshold_exceedance",
-#'   window_days = 7,
-#'   threshold_value = 32  # Heatwave for Southeast
-#' )
-#'
-#' # Example 3: Cold waves in southern region
+#' # Example 4: Cold waves (southern regions)
 #' df_coldwave <- sus_climate_aggregate(
-#'   health_data = sf_sim_spatial_south,
-#'   climate_data = df_inmet_south,
+#'   health_data = df_health_south,
+#'   climate_data = df_climate_south,
 #'   climate_region = "temperate",
 #'   temporal_strategy = "cold_wave_exceedance",
 #'   window_days = 7,
 #'   threshold_value = 5
 #' )
-#'
-#' # Example 4: Degree-days with region-specific temp_base
-#' df_gdd <- sus_climate_aggregate(
-#'   health_data = sf_sim_spatial,
-#'   climate_data = df_inmet,
-#'   climate_region = "subtropical",  # Uses temp_base = 18°C automatically
-#'   temporal_strategy = "degree_days",
-#'   window_days = 21
-#' 
 #' }
 #'
 #' @export
 sus_climate_aggregate <- function(
     health_data,
     climate_data,
-    climate_var       = "all",
+    climate_var       = "all",  # FIXED: Changed from "tair_dry_bulb_c"
     time_unit         = "day",
     temporal_strategy = "exact",
-    climate_region    = "auto",  # NEW: regional adaptation
+    climate_region    = "auto",
     window_days       = NULL,
     lag_days          = NULL,
     offset_days       = NULL,
-    temp_base         = NULL,  # CHANGED: NULL uses region-specific default
+    temp_base         = NULL,  # FIXED: Changed from 24
     gdd_temp_var      = "tair_dry_bulb_c",
     min_obs           = 0.7,
-    threshold_value     = NULL,  # CHANGED: NULL uses region-specific default
+    threshold_value   = NULL,
     threshold_direction = "above",
-    weights             = NULL,
-    use_cache           = TRUE,
-    cache_dir         = "~/.climasus4r_cache/climate",
+    weights           = NULL,
     lang              = "pt",
     verbose           = TRUE
-    # warn_extreme_year = TRUE,
-    # warn_regional_mismatch = TRUE  # NEW: warn about regional mismatches
 ) {
 
   msg <- .get_messages(lang)
@@ -357,6 +206,42 @@ sus_climate_aggregate <- function(
   climate_var <- .validate_climate_var(climate_data, climate_var, lang)
 
   # ---------------------------------------------------------------------------
+  # DETECT OR VALIDATE CLIMATE REGION
+  # ---------------------------------------------------------------------------
+  climate_region <- .detect_climate_region(climate_data, climate_region, verbose, lang)
+  
+  if (verbose) {
+    cli::cli_alert_info("Climate region: {climate_region}")
+  }
+
+  # ---------------------------------------------------------------------------
+  # 4. NEW: GET REGION-SPECIFIC DEFAULTS
+  # ---------------------------------------------------------------------------
+  region_defaults <- .get_region_defaults(climate_region)
+  
+  # Apply region-specific defaults if user didn't specify
+  if (is.null(temp_base)) {
+    temp_base <- region_defaults$temp_base_health
+    if (verbose) {
+      cli::cli_alert_info("Using region-specific temp_base = {temp_base}°C for human health")
+    }
+  }
+  
+  if (is.null(threshold_value) && temporal_strategy %in% c("threshold_exceedance", "cold_wave_exceedance")) {
+    threshold_value <- region_defaults$heatwave_threshold
+    if (verbose && temporal_strategy == "threshold_exceedance") {
+      cli::cli_alert_info("Using region-specific heatwave threshold = {threshold_value}°C")
+    }
+  }
+
+   # ---------------------------------------------------------------------------
+  # 9. NEW: VALIDATE REGIONAL APPROPRIATENESS
+  # ---------------------------------------------------------------------------
+    .validate_regional_appropriateness(
+      temporal_strategy, climate_region, temp_base, threshold_value, 
+      region_defaults, verbose, lang
+    )
+  # ---------------------------------------------------------------------------
   # 5. VALIDAÇÃO DA ESTRATÉGIA E SEUS PARÂMETROS
   # ---------------------------------------------------------------------------
   temporal_strategy <- match.arg(
@@ -364,7 +249,7 @@ sus_climate_aggregate <- function(
     choices = c(
       "exact", "discrete_lag", "moving_window",
       "offset_window", "distributed_lag", "degree_days", "seasonal",
-      "threshold_exceedance", "weighted_window"
+      "threshold_exceedance", "weighted_window", "cold_wave_exceedance"
     )
   )
 
@@ -374,6 +259,7 @@ sus_climate_aggregate <- function(
   .validate_degree_days_params(temporal_strategy, climate_var, gdd_temp_var, temp_base)
   .validate_threshold_params(temporal_strategy, threshold_value, threshold_direction, lang)
   weights <- .validate_weights(temporal_strategy, window_days, weights, lang)
+
 
   # ---------------------------------------------------------------------------
   # 6. PRE-AGREGACAO TEMPORAL (hora -> dia, se necessario)
@@ -388,8 +274,7 @@ sus_climate_aggregate <- function(
   if (verbose) cli::cli_progress_step(msg$aggregating)
 
   climate_temporal_meta <- sus_meta(climate_data, "temporal")
-  is_hourly_meta <- !is.null(climate_temporal_meta$unit) &&
-                    climate_temporal_meta$unit == "hour"
+  is_hourly_meta <- !is.null(climate_temporal_meta$unit) && climate_temporal_meta$unit == "hour"
 
   is_hourly_structural <- FALSE
   if (!is_hourly_meta) {
@@ -413,10 +298,7 @@ sus_climate_aggregate <- function(
   if (!identical(time_unit, "day")) {
     climate_data <- .aggregate_meteo_data(climate_data, time_unit = time_unit)
   }
-
-  # Garante que a coluna de data seja Date (nao POSIXct) para joins seguros
-  climate_data <- dplyr::mutate(climate_data, date = as.Date(.data$date))
-
+  
   if (verbose) cli::cli_progress_done()
 
   # ---------------------------------------------------------------------------
@@ -437,7 +319,7 @@ sus_climate_aggregate <- function(
   # ---------------------------------------------------------------------------
   if (verbose) cli::cli_progress_step(msg$temporal_join)
 
-  df <- switch(
+  df_agg <- switch(
     temporal_strategy,
     "exact"          = .join_exact(health_data, climate_matched, climate_var),
     "discrete_lag"   = .join_discrete_lag(health_data, climate_matched, climate_var, lag_days),
@@ -449,19 +331,140 @@ sus_climate_aggregate <- function(
     "threshold_exceedance" = .join_threshold_exceedance(
                                health_data, climate_matched, climate_var,
                                window_days, threshold_value, threshold_direction, min_obs),
+    "cold_wave_exceedance" = .join_cold_wave_exceedance(
+                               health_data, climate_matched, climate_var,
+                               window_days, threshold_value, min_obs),
     "weighted_window"      = .join_weighted_window(
                                health_data, climate_matched, climate_var,
                                window_days, weights, min_obs)
   )
 
   if (verbose) cli::cli_progress_done()
+  
+  # ---------------------------------------------------------------------------
+  # 9. CONSTRUÇÃO DO HISTÓRICO DE METADADOS
+  # ---------------------------------------------------------------------------
+  agg_details <- c()
+  
+  # Temporal strategy (principal)
+  agg_details <- c(agg_details, sprintf("Strategy: %s", temporal_strategy))
+  
+  # Climate variables
+  if (length(climate_var) <= 3) {
+    agg_details <- c(
+      agg_details,
+      sprintf("Variables: %s", paste(climate_var, collapse = ", "))
+    )
+  } else {
+    agg_details <- c(
+      agg_details,
+      sprintf(
+        "Variables: %s and %d more",
+        paste(utils::head(climate_var, 3), collapse = ", "),
+        length(climate_var) - 3
+      )
+    )
+  }
+  
+  # Climate region
+  agg_details <- c(
+    agg_details,
+    sprintf("Climate region: %s (%s)", 
+            climate_region,
+            region_defaults$description)
+  )
+  
+  # Time unit
+  if (!is.null(time_unit) && time_unit != "day") {
+    agg_details <- c(agg_details, sprintf("Time unit: %s", time_unit))
+  }
+  
+  # Strategy-specific parameters
+  if (temporal_strategy %in% c("moving_window", "degree_days", 
+                                "threshold_exceedance", "weighted_window", 
+                                "cold_wave_exceedance") && !is.null(window_days)) {
+    agg_details <- c(agg_details, sprintf("Window: %d day(s)", window_days))
+  }
+  
+  if (temporal_strategy == "discrete_lag" && !is.null(lag_days)) {
+    if (length(lag_days) <= 3) {
+      agg_details <- c(
+        agg_details,
+        sprintf("Lags: %s", paste(lag_days, collapse = ", "))
+      )
+    } else {
+      agg_details <- c(
+        agg_details,
+        sprintf("Lags: %s and %d more", 
+                paste(utils::head(lag_days, 3), collapse = ", "),
+                length(lag_days) - 3)
+      )
+    }
+  }
+  
+  if (temporal_strategy == "distributed_lag" && !is.null(lag_days)) {
+    agg_details <- c(agg_details, sprintf("Max lag: %d day(s)", max(lag_days)))
+  }
+  
+  if (temporal_strategy == "offset_window" && !is.null(offset_days)) {
+    agg_details <- c(
+      agg_details,
+      sprintf("Offset window: [t-%d, t-%d]", offset_days[2], offset_days[1])
+    )
+  }
+  
+  if (temporal_strategy == "degree_days") {
+    agg_details <- c(
+      agg_details,
+      sprintf("GDD temp base: %.1f°C (var: %s)", temp_base, gdd_temp_var)
+    )
+  }
+  
+  if (temporal_strategy == "threshold_exceedance" && !is.null(threshold_value)) {
+    dir_symbol <- if (threshold_direction == "above") ">" else "<"
+    agg_details <- c(
+      agg_details,
+      sprintf("Threshold: %s %.1f", dir_symbol, threshold_value)
+    )
+  }
+  
+  if (temporal_strategy == "cold_wave_exceedance" && !is.null(threshold_value)) {
+    agg_details <- c(
+      agg_details,
+      sprintf("Cold wave threshold: < %.1f°C", threshold_value)
+    )
+  }
+  
+  if (temporal_strategy == "weighted_window" && !is.null(weights)) {
+    agg_details <- c(
+      agg_details,
+      sprintf("Weighted window: %d weights provided", length(weights))
+    )
+  }
+  
+  # Minimum observations
+  if (min_obs != 0.7) {
+    agg_details <- c(agg_details, sprintf("Min obs: %.0f%%", min_obs * 100))
+  }
+  
+  # Hourly aggregation note
+  if (is_hourly_meta || is_hourly_structural) {
+    agg_details <- c(agg_details, "Hourly data aggregated to daily")
+  }
+  
+  # Create history message
+  history_msg <- sprintf(
+    "Climate aggregation [%s]",
+    paste(agg_details, collapse = " | ")
+  )
+  
 
   # ---------------------------------------------------------------------------
   # 9. ATUALIZAÇÃO DE METADADOS
   # ---------------------------------------------------------------------------
-  df <- .set_climate_agg_meta(df, system)
+  df_agg <- .set_climate_agg_meta(df_agg, system, history_msg = history_msg)
 
-  return(df)
+  return(df_agg)
 }
 
 
@@ -588,6 +591,196 @@ sus_climate_aggregate <- function(
   }
   if (length(climate_var) == 0) cli::cli_abort(.msg_no_valid_climate_vars(lang))
   return(climate_var)
+}
+
+#' NEW: Detect climate region based on latitude
+#' @keywords internal
+#' @noRd
+.detect_climate_region <- function(climate_data, climate_region, verbose, lang) {
+  if (climate_region != "auto") {
+    # Validate specified region
+    if (!climate_region %in% c("tropical", "subtropical", "temperate")) {
+      cli::cli_abort(
+        "{.arg climate_region} must be 'auto', 'tropical', 'subtropical', or 'temperate'."
+      )
+    }
+    return(climate_region)
+  }
+  
+  # Auto-detect based on latitude
+  mean_lat <- mean(climate_data$latitude, na.rm = TRUE)
+  
+  if (mean_lat > -5) {
+    detected <- "tropical"
+  } else if (mean_lat > -20) {
+    detected <- "subtropical"
+  } else {
+    detected <- "temperate"
+  }
+  
+  if (verbose) {
+    cli::cli_alert_info(
+      "Auto-detecting climate region based on latitude ({round(mean_lat, 1)}°): {detected}"
+    )
+  }
+  
+  detected
+}
+
+
+#' NEW: Get region-specific defaults
+#' @keywords internal
+#' @noRd
+.get_region_defaults <- function(climate_region) {
+  defaults <- list(
+    tropical = list(
+      temp_base_health = 20,
+      temp_base_vector = 11,
+      heatwave_threshold = 35,
+      coldwave_threshold = NA,
+      description = "Tropical (North, Northeast)"
+    ),
+    subtropical = list(
+      temp_base_health = 18,
+      temp_base_vector = 11,
+      heatwave_threshold = 32,
+      coldwave_threshold = 10,
+      description = "Subtropical (Center-West, Southeast)"
+    ),
+    temperate = list(
+      temp_base_health = 15,
+      temp_base_vector = 11,
+      heatwave_threshold = 30,
+      coldwave_threshold = 5,
+      description = "Temperate (South)"
+    )
+  )
+  
+  defaults[[climate_region]]
+}
+
+
+#' NEW: Validate regional appropriateness of parameters
+#' @keywords internal
+#' @noRd
+.validate_regional_appropriateness <- function(
+    temporal_strategy, climate_region, temp_base, threshold_value,
+    region_defaults, verbose, lang
+) {
+  if (temporal_strategy == "degree_days") {
+    recommended_base <- region_defaults$temp_base_health
+    
+    if (abs(temp_base - recommended_base) > 3) {
+      cli::cli_alert_warning(
+        "temp_base = {temp_base}°C may be inappropriate for {climate_region} region. ",
+        "Recommended: {recommended_base}°C. ",
+        "Proceed with caution or override with explicit justification."
+      )
+    }
+  }
+  
+  if (temporal_strategy == "threshold_exceedance") {
+    recommended_threshold <- region_defaults$heatwave_threshold
+    
+    if (abs(threshold_value - recommended_threshold) > 3) {
+      cli::cli_alert_warning(
+        "Heatwave threshold = {threshold_value}°C may be inappropriate for {climate_region} region. ",
+        "Recommended: {recommended_threshold}°C."
+      )
+    }
+  }
+  
+  if (temporal_strategy == "cold_wave_exceedance" && is.na(region_defaults$coldwave_threshold)) {
+    cli::cli_alert_warning(
+      "cold_wave_exceedance strategy not recommended for {climate_region} region. ",
+      "Cold extremes are not a major health concern in this region."
+    )
+  }
+}
+
+
+#' NEW: Join for cold wave exceedance (counts days below threshold)
+#'
+#' @description
+#' Similar to `threshold_exceedance`, but counts days when climate variable
+#' falls BELOW threshold. Ideal for cold extremes in southern regions.
+#'
+#' @keywords internal
+#' @noRd
+.join_cold_wave_exceedance <- function(
+    health_data, climate_data, climate_var,
+    window_days, threshold_value, min_obs
+) {
+  window_size    <- window_days + 1L
+  health_id_vars <- setdiff(names(health_data), "geom")
+
+  # For each climate variable, count days below threshold
+  result_list <- list()
+
+  for (var in climate_var) {
+    if (!var %in% names(climate_data)) {
+      cli::cli_warn("Variable '{var}' not found in climate data. Skipping.")
+      next
+    }
+
+    climate_dt <- data.table::as.data.table(
+      dplyr::select(climate_data, "code_muni", "date", value = dplyr::all_of(var))
+    )
+    climate_dt[, date_int  := as.integer(date)]
+    climate_dt[, date_int2 := date_int]
+    climate_dt[, date := NULL]
+
+    health_dt <- data.table::as.data.table(
+      dplyr::select(sf::st_drop_geometry(health_data),
+                    dplyr::all_of(health_id_vars))
+    )
+    health_dt[, .row_id        := .I]
+    health_dt[, .win_start_int := as.integer(date) - window_days]
+    health_dt[, .win_end_int   := as.integer(date)]
+
+    data.table::setkeyv(climate_dt, c("code_muni", "date_int", "date_int2"))
+    data.table::setkeyv(health_dt,  c("code_muni", ".win_start_int", ".win_end_int"))
+
+    joined <- data.table::foverlaps(
+      health_dt, climate_dt,
+      by.x    = c("code_muni", ".win_start_int", ".win_end_int"),
+      by.y    = c("code_muni", "date_int",        "date_int2"),
+      type    = "any",
+      mult    = "all",
+      nomatch = NA
+    )
+
+    id_plus_row <- c(health_id_vars, ".row_id")
+    col_n_name  <- paste0("ncold", window_days, "_lt", threshold_value, "_", var)
+    col_p_name  <- paste0("pcold", window_days, "_lt", threshold_value, "_", var)
+
+    result <- joined[
+      ,
+      .(
+        n_obs    = sum(!is.na(value)),
+        prop_obs = sum(!is.na(value)) / window_size,
+        n_below  = sum(value < threshold_value, na.rm = TRUE),
+        p_below  = sum(value < threshold_value, na.rm = TRUE) / sum(!is.na(value))
+      ),
+      by = id_plus_row
+    ]
+
+    result[prop_obs < min_obs, c(col_n_name, col_p_name) := NA_real_]
+    result[prop_obs >= min_obs, c(col_n_name, col_p_name) := .(n_below, p_below)]
+    result[, c("n_obs", "prop_obs", "n_below", "p_below", ".row_id") := NULL]
+
+    result_list[[var]] <- result
+  }
+
+  # Combine all results
+  if (length(result_list) == 0) {
+    cli::cli_abort("No valid climate variables for cold_wave_exceedance.")
+  }
+
+  result_combined <- Reduce(function(x, y) merge(x, y, by = health_id_vars, all = TRUE),
+                            result_list)
+
+  tibble::as_tibble(result_combined)
 }
 
 
@@ -925,14 +1118,13 @@ sus_climate_aggregate <- function(
     ),
     by = id_plus_row
   ]
-
   # Renomeia com prefixo e remove .row_id
   old_nms <- target_vars
   new_nms <- paste0("mvwin", window_days, "_", target_vars)
   data.table::setnames(result, old_nms, new_nms)
   result[, .row_id := NULL]
-
-  tibble::as_tibble(result)
+  .set_climate_agg_meta(result, system = NULL, history_msg = NULL)
+  #dplyr::as_tibble(result)
 }
 
 
@@ -1001,7 +1193,7 @@ sus_climate_aggregate <- function(
   data.table::setnames(result, old_nms, new_nms)
   result[, .row_id := NULL]
 
-  tibble::as_tibble(result)
+  .set_climate_agg_meta(result, system = NULL, history_msg = NULL)
 }
 
 
@@ -1117,7 +1309,7 @@ sus_climate_aggregate <- function(
   result[, .row_id  := NULL]
   data.table::setnames(result, "gdd", col_out_name)
 
-  tibble::as_tibble(result)
+  .set_climate_agg_meta(result, system = NULL, history_msg = NULL)
 }
 
 
@@ -1189,8 +1381,6 @@ sus_climate_aggregate <- function(
 }
 
 
-
-
 #' Valida parametros de threshold_exceedance
 #' @keywords internal
 #' @noRd
@@ -1233,8 +1423,6 @@ sus_climate_aggregate <- function(
   }
   weights
 }
-
-
 
 # --- Helper function imputation ---
 
@@ -1435,7 +1623,7 @@ sus_climate_aggregate <- function(
   ]
 
   result[, .row_id := NULL]
-  tibble::as_tibble(result)
+  .set_climate_agg_meta(result, system = NULL, history_msg = NULL)
 }
 
 
@@ -1550,7 +1738,7 @@ sus_climate_aggregate <- function(
   data.table::setnames(result, old_nms, new_nms)
   result[, .row_id := NULL]
 
-  tibble::as_tibble(result)
+  .set_climate_agg_meta(result, system = NULL, history_msg = NULL)
 }
 
 # =============================================================================
@@ -1597,10 +1785,30 @@ sus_climate_aggregate <- function(
 }
 
 
-#' Atualiza metadados do objeto climasus_df após agregação
-#' @keywords internal
-#' @noRd
-.set_climate_agg_meta <- function(df, system) {
+# #' Atualiza metadados do objeto climasus_df após agregação
+# #' @keywords internal
+# #' @noRd
+# .set_climate_agg_meta <- function(df, system) {
+#   if (!inherits(df, "climasus_df")) {
+#     meta <- list(
+#       system   = system,
+#       stage    = "climate",
+#       type     = "agg",
+#       spatial  = inherits(df, "sf"),
+#       temporal = NULL,
+#       created  = Sys.time(),
+#       modified = Sys.time(),
+#       history  = sprintf("[%s] Climate aggregation", format(Sys.time(), "%Y-%m-%d %H:%M:%S")),
+#       user     = list()
+#     )
+#     base_classes <- setdiff(class(df), "climasus_df")
+#     structure(df, sus_meta = meta, class = c("climasus_df", base_classes))
+#   } else {
+#     sus_meta(df, stage = "climate", type = "agg")
+#   }
+# }
+
+.set_climate_agg_meta <- function(df, system, history_msg = NULL) {
   if (!inherits(df, "climasus_df")) {
     meta <- list(
       system   = system,
@@ -1613,15 +1821,24 @@ sus_climate_aggregate <- function(
       history  = sprintf("[%s] Climate aggregation", format(Sys.time(), "%Y-%m-%d %H:%M:%S")),
       user     = list()
     )
+    
+    # Add detailed history if provided
+    if (!is.null(history_msg)) {
+      meta$history <- c(meta$history, history_msg)
+    }
+    
     base_classes <- setdiff(class(df), "climasus_df")
-    structure(df, sus_meta = meta, class = c("climasus_df", base_classes))
+    df <- structure(df, sus_meta = meta, class = c("climasus_df", base_classes))
   } else {
-    sus_meta(df, stage = "climate", type = "agg")
+    # Update existing climasus_df
+    if (!is.null(history_msg)) {
+      df <- sus_meta(df, add_history = history_msg)
+    }
+    df <- sus_meta(df, stage = "climate", type = "agg")
   }
+  
+  return(df)
 }
-
-
-
 
 # =============================================================================
 # HELPERS DE MENSAGENS DE ERRO
