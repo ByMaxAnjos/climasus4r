@@ -21,8 +21,8 @@
 #'   \describe{
 #'     \item{`"exact"`}{Exact date match (same-day temperature for acute heat-related mortality).}
 #'     \item{`"discrete_lag"`}{Climate value exactly L days before event.}
-#'     \item{`"moving_window"`}{Mean/sum of sliding window [t-W, t]. **RECOMMENDED** for cumulative exposure.}
-#'     \item{`"offset_window"`}{Aggregates historical interval [t-W2, t-W1], ignoring recent days.}
+#'     \item{`"moving_window"`}{Mean/sum of sliding window (t-W, t). **RECOMMENDED** for cumulative exposure.}
+#'     \item{`"offset_window"`}{Aggregates historical interval (t-W2, t-W1), ignoring recent days.}
 #'     \item{`"distributed_lag"`}{Creates lag matrix 0 to L for DLNM modeling.}
 #'     \item{`"degree_days"`}{Calculates Growing Degree Days (GDD) for thermal stress.}
 #'     \item{`"seasonal"`}{Aggregates by climate season (DJF, MAM, JJA, SON).}
@@ -45,7 +45,7 @@
 #'   15°C (temperate). Use 11°C for *Aedes aegypti* development, 10°C for *Plasmodium*.
 #' @param gdd_temp_var Character. Temperature column for `degree_days`.
 #'   Default: `"tair_dry_bulb_c"`.
-#' @param min_obs Numeric (0–1). Minimum proportion of valid observations required
+#' @param min_obs Numeric (0 to 1). Minimum proportion of valid observations required
 #'   within window. Default: 0.7 (70%).
 #' @param threshold_value Numeric. Threshold for `threshold_exceedance` or
 #'   `cold_wave_exceedance`. If `NULL`, uses region-specific default.
@@ -62,7 +62,7 @@
 #'   variables as new columns. Geometry is preserved if input is `sf`.
 #'
 #' @details
-#' ## Temporal Strategies — Epidemiological Foundations
+#' ## Temporal Strategies Epidemiological Foundations
 #'
 #' The choice of strategy should reflect the hypothesized biological mechanism:
 #'
@@ -93,7 +93,7 @@
 #'
 #' ## Causal Inference & Look-Ahead Bias
 #'
-#' This function uses **retroactive windows** [t-W, t], never symmetric windows [t-W, t+W].
+#' This function uses **retroactive windows** (t-W, t), never symmetric windows (t-W, t+W).
 #' The climate of day t+7 cannot cause a health event on day t. This design prevents
 #' look-ahead bias, a common methodological error in environmental epidemiology.
 #'
@@ -265,8 +265,8 @@ sus_climate_aggregate <- function(
   # 6. TEMPORAL PRE-AGGREGATION (hour -> day, if needed)
   # ---------------------------------------------------------------------------
   # Hourly resolution detection occurs at two levels:
-  #   (a) temporal$unit == "hour" metadata — primary source.
-  #   (b) structural inspection — fallback when metadata is missing.
+  #   (a) temporal$unit == "hour" metadata  primary source.
+  #   (b) structural inspection  fallback when metadata is missing.
   #       Criteria: if (n_rows / n_unique_dates / n_stations) > 2, the data
   #       is sub-daily. Without this fallback, hourly data would pass directly
   #       to the join and produce ~24x inflated values.
@@ -301,7 +301,7 @@ sus_climate_aggregate <- function(
   if (verbose) cli::cli_progress_done()
 
   # ---------------------------------------------------------------------------
-  # 7. SPATIAL MATCHING (stations → municipalities)
+  # 7. SPATIAL MATCHING (stations -> municipalities)
   # ---------------------------------------------------------------------------
   if (verbose) cli::cli_progress_step(msg$spatial_match)
 
@@ -967,7 +967,7 @@ sus_climate_aggregate <- function(
   nearest_idx <- sf::st_nearest_feature(mun_points, stations)
   distances   <- sf::st_distance(mun_points, stations[nearest_idx, ], by_element = TRUE)
 
-  # Unique municipality → station map (no municipality duplicates)
+  # Unique municipality -> station map (no municipality duplicates)
   mun_station_map <- dplyr::tibble(
     code_muni    = spatial_sf$code_muni,
     station_code = stations$station_code[nearest_idx],
@@ -988,7 +988,7 @@ sus_climate_aggregate <- function(
 
   # Replicate climate data by municipality:
   # each climate row gets N municipality columns (via left_join on map).
-  # Relationship is many-to-many (many days × many municipalities per station),
+  # Relationship is many-to-many (many days vs many municipalities per station),
   # but it's expected and controlled because the map has exactly 1 row per
   # municipality.
   matched <- df %>%
@@ -1078,7 +1078,7 @@ sus_climate_aggregate <- function(
 }
 
 
-#' Distributed Lag: lag matrix 0…L for DLNM
+#' Distributed Lag: lag matrix 0 ... L for DLNM
 #'
 #' @description
 #' Generates columns `{var}_lag0`, `{var}_lag1`, …, `{var}_lag{L}` for direct
@@ -1103,7 +1103,7 @@ sus_climate_aggregate <- function(
   result <- health_keyed
 
   for (l in seq(0L, as.integer(max_lag))) {
-    # Shift climate calendar +l days → aligns with event
+    # Shift climate calendar +l days -> aligns with event
     climate_shifted <- climate_sel %>%
       dplyr::mutate(date = .data$date + l)
 
@@ -1198,7 +1198,7 @@ sus_climate_aggregate <- function(
 #'
 #' Standard dplyr (`left_join` by `code_muni` + subsequent filter) would need to
 #' allocate the full table before filtering:
-#'   2024 municipalities × 122,640 climate rows ≈ 248 M rows → OOM crash.
+#'   2024 municipalities x 122,640 climate rows ≈ 248 M rows -> OOM crash.
 #'
 #' `foverlaps` uses a binary index on climate intervals, running in O(n log n)
 #' and allocating only rows that satisfy the temporal filter.
@@ -1238,7 +1238,7 @@ sus_climate_aggregate <- function(
 }
 
 
-#' Moving Window: right sliding window [t - W, t]
+#' Moving Window: right sliding window (t - W, t)
 #'
 #' @description
 #' Aggregates the `W + 1` immediately preceding days (inclusive) to the event,
@@ -1280,10 +1280,10 @@ sus_climate_aggregate <- function(
   
   all_res <- Reduce(function(x,y) merge(x,y, by=".row_id", all=TRUE), result_list)
   final <- health_work %>% dplyr::left_join(all_res, by=".row_id") %>% dplyr::select(-.row_id)
-  return(tibble::as_tibble(final))
+  return(dplyr::as_tibble(final))
 }
 
-#' Offset Window: aggregates historical interval [t - W2, t - W1]
+#' Offset Window: aggregates historical interval (t - W2, t - W1)
 #'
 #' @description
 #' Ignores the most recent `W1` days and aggregates the `(W2 - W1 + 1)` days
@@ -1314,7 +1314,7 @@ sus_climate_aggregate <- function(
     # Return original dataframe with result columns filled with NA
     new_cols <- paste0("off", w1, "to", w2, "_", target_vars)
     for(nc in new_cols) health_work[[nc]] <- NA_real_
-    return(tibble::as_tibble(health_work) %>% dplyr::select(-.row_id))
+    return(dplyr::as_tibble(health_work) %>% dplyr::select(-.row_id))
   }
 
   # --- Prepare climate data.table -------------------------------------------
@@ -1383,7 +1383,7 @@ sus_climate_aggregate <- function(
     final_df <- .set_climate_agg_meta(final_df, type=NULL, system = NULL, history_msg = NULL)
   }
 
-  return(tibble::as_tibble(final_df))
+  return(dplyr::as_tibble(final_df))
 }
 
 #' Degree Days: Accumulated Growing Degree Days
@@ -1419,14 +1419,14 @@ sus_climate_aggregate <- function(
   data.table::setnames(res, "gdd", paste0("gdd_w", window_days))
   
   final <- health_work %>% dplyr::left_join(res, by=".row_id") %>% dplyr::select(-.row_id)
-  return(tibble::as_tibble(final))
+  return(dplyr::as_tibble(final))
 }
 
-#' Threshold Exceedance: counts days of extreme events in window [t - W, t]
+#' Threshold Exceedance: counts days of extreme events in window (t - W, t)
 #'
 #' @description
 #' For each health record, counts the number of days within the window
-#' \eqn{[t - W, t]} in which the climate variable exceeded the threshold
+#' \eqn{(t - W, t)} in which the climate variable exceeded the threshold
 #' \code{threshold_value} in the specified direction.
 #'
 #' This metric captures the frequency of extreme exposure, which often
@@ -1473,7 +1473,7 @@ sus_climate_aggregate <- function(
   
   all_res <- Reduce(function(x,y) merge(x,y, by=".row_id", all=TRUE), result_list)
   final <- health_work %>% dplyr::left_join(all_res, by=".row_id") %>% dplyr::select(-.row_id)
-  return(tibble::as_tibble(final))
+  return(dplyr::as_tibble(final))
 }
 
 #' Weighted Window: weighted mean with temporal decay
@@ -1496,7 +1496,7 @@ sus_climate_aggregate <- function(
 #' }
 #'
 #' For sum variables (rainfall_mm, sr_kj_m2), the function calculates
-#' \emph{weighted sum} instead of weighted mean — epidemiologically correct
+#' \emph{weighted sum} instead of weighted mean , epidemiologically correct
 #' behavior (recent precipitation weighs more on runoff).
 #' For \code{wd_degrees}, uses weighted circular mean (von Mises).
 #'
@@ -1523,7 +1523,7 @@ sus_climate_aggregate <- function(
   if (nrow(health_valid) == 0) {
     new_cols <- paste0("wwin", window_days, "_", target_vars)
     for(nc in new_cols) health_work[[nc]] <- NA_real_
-    return(tibble::as_tibble(health_work) %>% dplyr::select(-.row_id))
+    return(dplyr::as_tibble(health_work) %>% dplyr::select(-.row_id))
   }
 
   # --- Prepare climate data.table ------------------------------------------
@@ -1622,7 +1622,7 @@ sus_climate_aggregate <- function(
     final_df <- .set_climate_agg_meta(final_df, type = NULL, system = NULL, history_msg = NULL)
   }
 
-  return(tibble::as_tibble(final_df))
+  return(dplyr::as_tibble(final_df))
 }
 
 #' NEW: Join for cold wave exceedance (counts days below threshold)
@@ -1655,7 +1655,7 @@ sus_climate_aggregate <- function(
       health_work[[paste0("ncold", window_days, "_lt", threshold_value, "_", var)]] <- NA_real_
       health_work[[paste0("pcold", window_days, "_lt", threshold_value, "_", var)]] <- NA_real_
     }
-    return(tibble::as_tibble(health_work) %>% dplyr::select(-.row_id))
+    return(dplyr::as_tibble(health_work) %>% dplyr::select(-.row_id))
   }
   
   result_list <- list()
@@ -1721,7 +1721,7 @@ sus_climate_aggregate <- function(
     dplyr::left_join(all_results, by = ".row_id") %>%
     dplyr::select(-.row_id)
   
-  return(tibble::as_tibble(final_df))
+  return(dplyr::as_tibble(final_df))
 }
 
 # =============================================================================
@@ -1733,8 +1733,8 @@ sus_climate_aggregate <- function(
 #' @description
 #' Defines whether each variable should be summed (`sum`), calculated as
 #' arithmetic mean (`mean`) or circular mean (`mean_circular`):
-#' - `rainfall_mm`, `sr_kj_m2`: additive quantities → sum.
-#' - `wd_degrees`: circular angle → vector mean (von Mises).
+#' - `rainfall_mm`, `sr_kj_m2`: additive quantities -> sum.
+#' - `wd_degrees`: circular angle -> vector mean (von Mises).
 #' - Other variables: arithmetic means.
 #'
 #' @keywords internal
@@ -1755,7 +1755,7 @@ sus_climate_aggregate <- function(
 #'
 #' @description
 #' Calculates vector mean of angles in degrees using sine/cosine decomposition.
-#' Avoids the arithmetic mean artifact of angles (e.g., mean of 1° and 359° should be 0°, not 180°).
+#' Avoids the arithmetic mean artifact of angles (e.g., mean of 1° and 359° should be 0°C, not 180°).
 #'
 #' @keywords internal
 #' @noRd

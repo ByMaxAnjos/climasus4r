@@ -82,6 +82,7 @@ reference:
       - sus_census_join
       - sus_climate_inmet
       - sus_climate_fill_inmet
+      - sus_climate_aggregate
 
   - title: "Calidad y Metadatos"
     desc: "Informes de calidad de datos y diccionarios de enfermedades"

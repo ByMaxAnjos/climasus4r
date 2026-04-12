@@ -46,7 +46,12 @@
   "pop_arrangements", "health_facilities", "neighborhood",
   
   #census
-  "population", "households", "families", "mortality", "emigration", "tracts"
+  "population", "households", "families", "mortality", "emigration", "tracts",
+
+  #Temporal strategy-climate aggregate
+  "exact", "discrete_lag", "moving_window",
+  "offset_window", "distributed_lag", "degree_days", "seasonal",
+  "threshold_exceedance", "weighted_window", "cold_wave_exceedance"
     
 )
 

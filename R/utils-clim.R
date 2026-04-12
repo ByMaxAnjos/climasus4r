@@ -31,7 +31,11 @@ utils::globalVariables(c(
   "target_vars",
    "dayofyear", "hour", "quarter", "season", "wday_tmp", "weekday", "weekofyear",
    "month", ".join_key", ".hour", ".is_night", "date", "codigo", "sigla",
-   "df_ufs_brasil", "evaluation", "is_imputed"                             # target variables
+   "df_ufs_brasil", "evaluation", "is_imputed",
+   #Climate aggregate
+   ".SD", ".lag", ".row_id", ".win_end_int", ".win_start_int", "d1", "d2", "date_int", "date_int2",
+    "n_below", "prop", "start", "temp"
+
 ))
 # ============================================================================
 # INMET HELPER FUNCTIONS
@@ -313,7 +317,7 @@ utils::globalVariables(c(
     large_diff <- dt[!is.na(dew_diff) & dew_diff > 3, .N]
     
     if (large_diff > 0 && verbose) {
-      cli::cli_alert_warning("{large_diff} rows with dew point inconsistency > 3\u00b0CC")
+      cli::cli_alert_warning("{large_diff} rows with dew point inconsistency > 3\u00b0C")
 
       dt[!is.na(dew_diff) & dew_diff > 3, dew_tmean_c := NA_real_]
     }
