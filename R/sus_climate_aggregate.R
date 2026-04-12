@@ -938,73 +938,121 @@ sus_climate_aggregate <- function(
 .match_spatial <- function(df, spatial_obj, verbose = FALSE) {
   required_cols <- c("station_name", "station_code", "latitude", "longitude")
   if (!all(required_cols %in% names(df))) {
-    cli::cli_abort("Station data must contain: {paste(required_cols, collapse = ', ')}")
+    cli::cli_abort("Dados de estacao devem conter: {paste(required_cols, collapse = ', ')}")
   }
   if (!"code_muni" %in% names(spatial_obj)) {
-    cli::cli_abort("spatial_obj must contain column 'code_muni'. Run sus_spatial_join() first.")
+    cli::cli_abort("spatial_obj deve conter a coluna 'code_muni'. Execute sus_spatial_join() antes.")
   }
   if (verbose) cli::cli_inform("Performing spatial matching of climate stations to municipalities")
-
-  # Unique stations as sf
+ 
+  # ------------------------------------------------------------------
+  # Estacoes unicas como sf
+  # ------------------------------------------------------------------
   stations <- df %>%
     dplyr::distinct(.data$station_code, .data$station_name,
                     .data$latitude, .data$longitude) %>%
     sf::st_as_sf(coords = c("longitude", "latitude"), crs = 4674, remove = FALSE)
-
-  # Ensure compatible CRS
+ 
+  # ------------------------------------------------------------------
+  # MUNICIPIOS UNICOS
+  # ------------------------------------------------------------------
+  # health_data tem UMA LINHA POR EVENTO (obito/caso), nao por municipio.
+  # Porto Velho com 120 obitos em 2023 gera 120 linhas com o mesmo
+  # code_muni e a mesma geometria.
+  #
+  # Se usarmos spatial_obj diretamente no st_nearest_feature, o
+  # mun_station_map tera 2 024 linhas (= nrow(health_data)) em vez de
+  # N_municipios_unicos linhas.  O left_join subsequente
+  #   climate_data (365 dias x 14 estacoes = 5 110 linhas)
+  #   x mun_station_map (2 024 linhas, com code_muni repetidos)
+  # explode para 365 x 2 024 x (eventos_por_municipio) linhas - o
+  # exato bug observado (2 024 -> 212 298 no exact).
+  #
+  # Solucao: deduplica por code_muni ANTES do calculo espacial.
+  # A geometria de um municipio e identica em todas as linhas (e o
+  # poligono do municipio, nao do evento), entao st_union ou first
+  # produzem o mesmo resultado.  Usamos dplyr::slice(1) apos
+  # distinct(code_muni) para preservar o sfc sem acionar
+  # summarise() que exigiria sf::st_union (mais lento).
   spatial_sf <- sf::st_as_sf(spatial_obj)
   if (!identical(sf::st_crs(spatial_sf), sf::st_crs(stations))) {
     spatial_sf <- sf::st_transform(spatial_sf, sf::st_crs(stations))
   }
-
-  # Centroid of each municipality (prefer point within polygon)
+ 
+  # Um poligono por code_muni - descarta linhas de eventos duplicados
+  geom_col   <- attr(spatial_sf, "sf_column") %||% "geom"
+  munic_unique <- spatial_sf |>
+    dplyr::group_by(.data$code_muni) |>
+    dplyr::slice(1L) |>
+    dplyr::ungroup() |>
+    dplyr::select(
+      "code_muni",
+      dplyr::any_of("name_muni"),
+      dplyr::all_of(geom_col)
+    )
+ 
+  # ------------------------------------------------------------------
+  # Centroide de cada municipio unico
+  # ------------------------------------------------------------------
   mun_points <- tryCatch(
-    suppressWarnings(sf::st_point_on_surface(spatial_sf)),
-    error = function(e) suppressWarnings(sf::st_centroid(spatial_sf))
+    suppressWarnings(sf::st_point_on_surface(munic_unique)),
+    error = function(e) suppressWarnings(sf::st_centroid(munic_unique))
   )
-
-  # Index of nearest station for each municipality
+ 
+  # Indice da estacao mais proxima para cada municipio unico
   nearest_idx <- sf::st_nearest_feature(mun_points, stations)
   distances   <- sf::st_distance(mun_points, stations[nearest_idx, ], by_element = TRUE)
-
-  # Unique municipality -> station map (no municipality duplicates)
+ 
+  # ------------------------------------------------------------------
+  # Mapa 1-para-1: code_muni -> station_code  (N_municipios linhas)
+  # ------------------------------------------------------------------
   mun_station_map <- dplyr::tibble(
-    code_muni    = spatial_sf$code_muni,
+    code_muni    = munic_unique$code_muni,
     station_code = stations$station_code[nearest_idx],
     distance_km  = as.numeric(distances) / 1000
   )
-  if ("name_muni" %in% names(spatial_sf)) {
-    mun_station_map$name_muni <- spatial_sf$name_muni
+  if ("name_muni" %in% names(munic_unique)) {
+    mun_station_map$name_muni <- munic_unique$name_muni
   }
-
+ 
   if (verbose) {
     d <- mun_station_map$distance_km
+    n_munic   <- nrow(mun_station_map)
+    n_station <- dplyr::n_distinct(stations$station_code)
     cli::cli_inform(c(
       "v" = "Spatial matching completed:",
-      "i" = "{nrow(mun_station_map)} municipalities linked to {dplyr::n_distinct(stations$station_code)} stations.",
-      " " = "Distance (km): Min={round(min(d),1)} | Median={round(stats::median(d),1)} | Max={round(max(d),1)}"
+      "i" = "{n_munic} municipio(s) unico(s) vinculados a {n_station} estacao(oes).",
+      " " = "Distancia (km): Min={round(min(d),1)} | Mediana={round(stats::median(d),1)} | Max={round(max(d),1)}"
     ))
   }
-
-  # Replicate climate data by municipality:
-  # each climate row gets N municipality columns (via left_join on map).
-  # Relationship is many-to-many (many days vs many municipalities per station),
-  # but it's expected and controlled because the map has exactly 1 row per
-  # municipality.
+ 
+  # ------------------------------------------------------------------
+  # Expande o clima: cada dia de cada estacao recebe todos os municipios
+  # que apontam para ela.
+  #
+  # Cardinalidade esperada:
+  #   climate_matched = N_dias x N_municipios_unicos
+  #   (ex.: 365 dias x 2 024 municipios unicos -> 5 110 linhas se 14
+  #   estacoes cobrindo 2 024 municipios diferentes)
+  #
+  # A relacao e many-to-many CONTROLADA:
+  #   - climate_data: muitos dias por station_code  (m linhas/estacao)
+  #   - mun_station_map: muitos municipios por station_code  (k mun/estacao)
+  # Resultado: m x k linhas por estacao - correto e esperado.
+  # ------------------------------------------------------------------
   matched <- df %>%
     dplyr::left_join(mun_station_map, by = "station_code",
                      relationship = "many-to-many")
-
-  # Reorder ID columns for easier inspection
+ 
+  # Reordena colunas de identificacao para facilitar inspecao
   id_cols <- intersect(
     c("code_muni", "name_muni", "station_code", "station_name", "distance_km"),
     names(matched)
   )
   matched <- dplyr::select(matched, dplyr::all_of(id_cols), dplyr::everything())
-
+ 
   return(matched)
 }
-
 
 # =============================================================================
 # TEMPORAL STRATEGY IMPLEMENTATIONS
@@ -1014,15 +1062,35 @@ sus_climate_aggregate <- function(
 #' @keywords internal
 #' @noRd
 .join_exact <- function(health_data, climate_data, target_vars) {
-  # health_data$date is Date; climate_data$date was converted to Date above
-  climate_sel <- climate_data %>%
-    dplyr::select("date", "code_muni", dplyr::all_of(target_vars)) %>%
-    # Deduplication: if multiple rows for same date+municipality,
-    # keep first (should not occur after daily aggregation)
-    dplyr::distinct(.data$date, code_muni, .keep_all = TRUE)
-
-  health_data %>%
-    dplyr::left_join(climate_sel, by = c("date", "code_muni")) %>%
+ 
+  agg_rule <- .build_agg_rules(target_vars)
+ 
+  # Agrega climate_matched para 1 linha por (date, code_muni),
+  # aplicando a regra correta por tipo de variavel.
+  climate_sel <- climate_data |>
+    dplyr::select("date", "code_muni", dplyr::all_of(target_vars)) |>
+    dplyr::group_by(.data$date, .data$code_muni) |>
+    dplyr::summarise(
+      dplyr::across(
+        dplyr::all_of(target_vars),
+        .fns = function(x) {
+          # Identifica a regra para esta variavel pelo nome da coluna
+          # (dplyr::across passa o nome via cur_column())
+          rule <- agg_rule$agg_type[agg_rule$climate_var == dplyr::cur_column()]
+          if (length(rule) == 0L) rule <- "mean"
+          switch(
+            rule,
+            sum           = sum(x, na.rm = TRUE),
+            mean_circular = .circular_mean(x),
+            mean(x, na.rm = TRUE)   # "mean" e qualquer outro
+          )
+        }
+      ),
+      .groups = "drop"
+    )
+ 
+  health_data |>
+    dplyr::left_join(climate_sel, by = c("date", "code_muni")) |>
     dplyr::relocate(dplyr::any_of(c("date", "code_muni")))
 }
 
@@ -1043,37 +1111,56 @@ sus_climate_aggregate <- function(
 #' @keywords internal
 #' @noRd
 .join_discrete_lag <- function(health_data, climate_data, target_vars, lag_days) {
-  # Surrogate key to uniquely identify each row of health_data
+  # Chave surrogate para identificar cada linha do health_data univocamente
   health_keyed <- dplyr::mutate(health_data, .row_id = dplyr::row_number())
   result <- health_keyed
-
-  climate_sel <- climate_data %>%
-    dplyr::select("date", "code_muni", dplyr::all_of(target_vars)) %>%
-    dplyr::distinct(date, code_muni, .keep_all = TRUE)
-
+ 
+  # Agrega para 1 linha por (date, code_muni) usando as regras de tipo de
+  # variavel - mesma logica de .join_exact() para evitar selecao arbitraria
+  # de estacap quando um municipio esta equidistante de duas estacoes.
+  agg_rule_lag <- .build_agg_rules(target_vars)
+  climate_sel <- climate_data |>
+    dplyr::select("date", "code_muni", dplyr::all_of(target_vars)) |>
+    dplyr::group_by(.data$date, .data$code_muni) |>
+    dplyr::summarise(
+      dplyr::across(
+        dplyr::all_of(target_vars),
+        .fns = function(x) {
+          rule <- agg_rule_lag$agg_type[agg_rule_lag$climate_var == dplyr::cur_column()]
+          if (length(rule) == 0L) rule <- "mean"
+          switch(rule,
+            sum           = sum(x, na.rm = TRUE),
+            mean_circular = .circular_mean(x),
+            mean(x, na.rm = TRUE)
+          )
+        }
+      ),
+      .groups = "drop"
+    )
+ 
   for (lag in lag_days) {
-    # Create lookup table: .row_id + historical date + code_muni
+    # Cria tabela de lookup: .row_id + date historica + code_muni
     lookup <- health_keyed %>%
       dplyr::select(".row_id", "date", "code_muni") %>%
       dplyr::mutate(.hist_date = .data$date - lag)
-
-    # Join by pair (code_muni, .hist_date)
+ 
+    # Join pelo par (code_muni, .hist_date)
     joined <- lookup %>%
       dplyr::left_join(
         dplyr::rename(climate_sel, .hist_date = "date"),
         by = c("code_muni", ".hist_date")
       ) %>%
       dplyr::select(".row_id", dplyr::all_of(target_vars))
-
-    # Rename columns with lag prefix
+ 
+    # Renomeia colunas com prefixo de lag
     new_names <- stats::setNames(target_vars, paste0("lag", lag, "_", target_vars))
     joined <- dplyr::rename(joined, !!!new_names)
-
-    # Join by surrogate key (1-to-1)
+ 
+    # Join por chave surrogate (1-para-1)
     result <- dplyr::left_join(result, joined, by = ".row_id")
   }
-
-  # Remove surrogate key
+ 
+  # Remove chave surrogate
   dplyr::select(result, -".row_id")
 }
 
@@ -1095,31 +1182,49 @@ sus_climate_aggregate <- function(
 #' @noRd
 .join_distributed_lag <- function(health_data, climate_data, target_vars, max_lag) {
   health_keyed <- dplyr::mutate(health_data, .row_id = dplyr::row_number())
-
-  climate_sel <- climate_data %>%
-    dplyr::select("date", "code_muni", dplyr::all_of(target_vars)) %>%
-    dplyr::distinct(.data$date, code_muni, .keep_all = TRUE)
-
+ 
+  # Agrega para 1 linha por (date, code_muni) — mesma regra usada em
+  # .join_exact() e .join_discrete_lag() para consistencia de pipeline.
+  agg_rule_dl <- .build_agg_rules(target_vars)
+  climate_sel <- climate_data |>
+    dplyr::select("date", "code_muni", dplyr::all_of(target_vars)) |>
+    dplyr::group_by(.data$date, .data$code_muni) |>
+    dplyr::summarise(
+      dplyr::across(
+        dplyr::all_of(target_vars),
+        .fns = function(x) {
+          rule <- agg_rule_dl$agg_type[agg_rule_dl$climate_var == dplyr::cur_column()]
+          if (length(rule) == 0L) rule <- "mean"
+          switch(rule,
+            sum           = sum(x, na.rm = TRUE),
+            mean_circular = .circular_mean(x),
+            mean(x, na.rm = TRUE)
+          )
+        }
+      ),
+      .groups = "drop"
+    )
+ 
   result <- health_keyed
-
+ 
   for (l in seq(0L, as.integer(max_lag))) {
-    # Shift climate calendar +l days -> aligns with event
+    # Desloca o calendario climatico +l dias -> alinha com o evento
     climate_shifted <- climate_sel %>%
       dplyr::mutate(date = .data$date + l)
-
+ 
     joined <- health_keyed %>%
       dplyr::select(".row_id", "date", "code_muni") %>%
       dplyr::left_join(climate_shifted, by = c("date", "code_muni")) %>%
       dplyr::select(".row_id", dplyr::all_of(target_vars))
-
+ 
     new_names <- stats::setNames(target_vars, paste0(target_vars, "_lag", l))
     joined <- dplyr::rename(joined, !!!new_names)
     result <- dplyr::left_join(result, joined, by = ".row_id")
   }
-
+ 
   dplyr::select(result, -".row_id")
 }
-
+ 
 
 #' Seasonal: matching by climatological season (DJF/MAM/JJA/SON)
 #'
@@ -1444,38 +1549,75 @@ sus_climate_aggregate <- function(
 #'
 #' @keywords internal
 #' @noRd
-.join_threshold_exceedance <- function(health_data, climate_data, climate_var, window_days, threshold_value, threshold_direction, min_obs) {
-  window_size <- window_days + 1L
-  health_work <- health_data %>% dplyr::mutate(.row_id = dplyr::row_number())
-  health_valid <- health_work[!is.na(health_work$date), ]
-  
-  result_list <- list()
-  for (var in climate_var) {
-    climate_dt <- data.table::as.data.table(climate_data[, c("code_muni", "date", var)])
-    data.table::setnames(climate_dt, var, "value")
-    climate_dt[, `:=`(d1 = as.integer(date), d2 = as.integer(date))]
-    
-    health_dt <- data.table::as.data.table(sf::st_drop_geometry(health_valid[, c("code_muni", "date", ".row_id")]))
-    health_dt[, `:=`(start = as.integer(date) - window_days, end = as.integer(date))]
-    health_dt <- health_dt[!is.na(start)]
-    
-    data.table::setkey(climate_dt, code_muni, d1, d2)
-    joined <- data.table::foverlaps(health_dt, climate_dt, by.x=c("code_muni", "start", "end"), by.y=c("code_muni", "d1", "d2"))
-    
-    res <- joined[, {
-      is_exceed <- if(threshold_direction == "above") value > threshold_value else value < threshold_value
-      .(n = if(sum(!is.na(value))/window_size >= min_obs) sum(is_exceed, na.rm=TRUE) else NA_real_)
-    }, by = .row_id]
-    
-    data.table::setnames(res, "n", paste0("n_exceed_", var))
-    result_list[[var]] <- res
-  }
-  
-  all_res <- Reduce(function(x,y) merge(x,y, by=".row_id", all=TRUE), result_list)
-  final <- health_work %>% dplyr::left_join(all_res, by=".row_id") %>% dplyr::select(-.row_id)
-  return(dplyr::as_tibble(final))
+.join_threshold_exceedance <- function(health_data, climate_data, target_vars,
+                                       window_days, threshold_value,
+                                       threshold_direction, min_obs) 
+                                       {
+  window_size    <- window_days + 1L
+  health_id_vars <- setdiff(names(health_data), "geom")
+  dir_label      <- if (threshold_direction == "above") "gt" else "lt"
+  thr_label      <- gsub("\\.", "p", as.character(threshold_value))
+ 
+  # --- Prepara data.table do clima ------------------------------------------
+  climate_dt <- data.table::as.data.table(
+    dplyr::select(climate_data, "code_muni", "date", dplyr::all_of(target_vars))
+  )
+  climate_dt[, date_int  := as.integer(date)]
+  climate_dt[, date_int2 := date_int]
+  climate_dt[, date := NULL]
+ 
+  # --- Prepara data.table de saude com janela [t-W, t] ----------------------
+  health_dt <- data.table::as.data.table(
+    dplyr::select(sf::st_drop_geometry(health_data), dplyr::all_of(health_id_vars))
+  )
+  health_dt[, .row_id        := .I]
+  health_dt[, .win_start_int := as.integer(date) - window_days]
+  health_dt[, .win_end_int   := as.integer(date)]
+ 
+  # --- Overlap join ----------------------------------------------------------
+  joined <- .foverlaps_window(health_dt, climate_dt, target_vars)
+ 
+  # --- Conta excedencias por variavel ---------------------------------------
+  id_plus_row <- c(health_id_vars, ".row_id")
+ 
+  result <- joined[
+    ,
+    {
+      out_list <- list()
+      for (v in target_vars) {
+        vals         <- get(v)
+        n_obs        <- sum(!is.na(vals))
+        prop_obs_val <- n_obs / window_size
+ 
+        # All output values are forced to double to guarantee type consistency
+        # across groups in data.table. sum(logical) returns integer in R, which
+        # conflicts with NA_real_ used for the below-min_obs branch, causing:
+        #   "Column N of result for group K is type double but expecting integer"
+        # Casting explicitly to double eliminates all type ambiguity.
+        if (prop_obs_val < min_obs) {
+          n_exc <- NA_real_
+          p_exc <- NA_real_
+        } else {
+          exc   <- if (threshold_direction == "above") vals > threshold_value
+                   else vals < threshold_value
+          n_exc <- as.double(sum(exc, na.rm = TRUE))
+          p_exc <- n_exc / n_obs
+        }
+ 
+        exc_col  <- paste0("nexc",  window_days, "_", dir_label, thr_label, "_", v)
+        prop_col <- paste0("pexc",  window_days, "_", dir_label, thr_label, "_", v)
+        out_list[[exc_col]]  <- n_exc
+        out_list[[prop_col]] <- round(p_exc, 4L)
+      }
+      out_list
+    },
+    by = id_plus_row
+  ]
+ 
+  result[, .row_id := NULL]
+  .set_climate_agg_meta(result, system = NULL, history_msg = NULL)
 }
-
+ 
 #' Weighted Window: weighted mean with temporal decay
 #'
 #' @description
@@ -1595,12 +1737,13 @@ sus_climate_aggregate <- function(
         rule <- agg_rule$agg_type[agg_rule$climate_var == v]
         
         val_w <- if (length(rule) > 0 && identical(rule, "sum")) {
-          sum(v_ok * w_ok)
+          as.double(sum(v_ok * w_ok))
         } else if (length(rule) > 0 && identical(rule, "mean_circular")) {
           rad <- v_ok * pi / 180
-          atan2(sum(w_ok * sin(rad)), sum(w_ok * cos(rad))) * 180 / pi
+          result <- atan2(sum(w_ok * sin(rad)), sum(w_ok * cos(rad))) * 180 / pi
+          as.double(result) 
         } else {
-          sum(v_ok * w_ok) / sum(w_ok)
+           as.double(sum(v_ok * w_ok) / sum(w_ok))
         }
         out_list[[v]] <- val_w
       }
@@ -1608,6 +1751,12 @@ sus_climate_aggregate <- function(
     },
     by = .(.row_id)
   ]
+
+  for (v in target_vars) {
+    if (v %in% names(result_dt)) {
+      data.table::set(result_dt, j = v, value = as.double(result_dt[[v]]))
+    }
+  }
 
   # --- Formatting and Reintegration --------------------------------------------
   new_nms <- paste0("wwin", window_days, "_", target_vars)
@@ -1697,9 +1846,13 @@ sus_climate_aggregate <- function(
     col_p <- paste0("pcold", window_days, "_lt", threshold_value, "_", var)
     
     # Aggregation by original row ID
+    # res <- joined[, .(
+    #   n_below = sum(value < threshold_value, na.rm = TRUE),
+    #   n_obs   = sum(!is.na(value))
+    # ), by = .(.row_id)]
     res <- joined[, .(
-      n_below = sum(value < threshold_value, na.rm = TRUE),
-      n_obs   = sum(!is.na(value))
+      n_below = as.double(sum(value < threshold_value, na.rm = TRUE)),  # Forcar double
+      n_obs   = as.double(sum(!is.na(value)))                           # Forcar double
     ), by = .(.row_id)]
     
     # Apply quality criteria (min_obs)
@@ -1707,6 +1860,10 @@ sus_climate_aggregate <- function(
     res[prop >= min_obs, (col_n) := as.numeric(n_below)]
     res[prop >= min_obs, (col_p) := n_below / n_obs]
     
+    # Para grupos que nao atendem min_obs, definir como NA_real_
+    res[prop < min_obs, (col_n) := NA_real_]
+    res[prop < min_obs, (col_p) := NA_real_]
+
     # Keep only columns of interest for merging
     result_list[[var]] <- res[, .SD, .SDcols = c(".row_id", col_n, col_p)]
   }
@@ -1715,6 +1872,14 @@ sus_climate_aggregate <- function(
   # Merge results from all climate variables
   all_results <- Reduce(function(x, y) merge(x, y, by = ".row_id", all = TRUE), result_list)
   
+  if (!is.null(all_results) && nrow(all_results) > 0) {
+    for (col in setdiff(names(all_results), ".row_id")) {
+      if (is.integer(all_results[[col]])) {
+        all_results[[col]] <- as.double(all_results[[col]])
+      }
+    }
+  }
+
   # 5. REINSERTION INTO ORIGINAL OBJECT (Preserving geometry and rows without date)
   final_df <- health_data %>%
     dplyr::mutate(.row_id = dplyr::row_number()) %>%

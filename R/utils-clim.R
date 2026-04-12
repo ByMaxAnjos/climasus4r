@@ -34,7 +34,7 @@ utils::globalVariables(c(
    "df_ufs_brasil", "evaluation", "is_imputed",
    #Climate aggregate
    ".SD", ".lag", ".row_id", ".win_end_int", ".win_start_int", "d1", "d2", "date_int", "date_int2",
-    "n_below", "prop", "start", "temp"
+    "n_below", "prop", "start", "temp", ".I"
 
 ))
 # ============================================================================
