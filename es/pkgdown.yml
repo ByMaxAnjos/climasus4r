@@ -1,0 +1,10 @@
+pandoc: 3.1.11
+pkgdown: 2.2.0
+pkgdown_sha: ~
+articles:
+  contributing: contributing.html
+  tutorials: tutorials.html
+last_built: 2026-04-12T23:18Z
+urls:
+  reference: https://bymaxanjos.github.io/climasus4r/es/reference
+  article: https://bymaxanjos.github.io/climasus4r/es/articles
