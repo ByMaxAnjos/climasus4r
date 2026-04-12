@@ -1615,7 +1615,7 @@ sus_climate_aggregate <- function(
   ]
  
   result[, .row_id := NULL]
-  .set_climate_agg_meta(result, system = NULL, history_msg = NULL)
+  .set_climate_agg_meta(result, type = NULL, system = NULL, history_msg = NULL)
 }
  
 #' Weighted Window: weighted mean with temporal decay
