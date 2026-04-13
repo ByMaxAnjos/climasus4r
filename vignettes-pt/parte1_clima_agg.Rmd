@@ -336,10 +336,11 @@ As estratégias de alinhamento funcionam como **filtros que permitem aos modelos
 
 ::: callout-info
 **Definição** — O alinhamento por Match Exato associa o evento de saúde à exposição climática ocorrida no exato dia do registro. Esta estratégia fundamenta-se na hipótese de que o estressor ambiental possui uma energia cinética biológica capaz de desencadear uma resposta sistêmica imediata.
-
-**Fórmula:** $Y_t \leftarrow X_t$
-
 :::
+
+<div class="equation">
+**Modelo Matemático:** $Y_t \leftarrow X_t$
+</div>
 
 
 ### Mecanismo Fisiológico
@@ -385,10 +386,11 @@ Embora poderosa para identificar o risco imediato, esta estratégia pode ignorar
 
 ::: callout-info
 **Definição** — A estratégia de Defasagem Discreta avalia o efeito das condições meteorológicas ocorridas em um dia específico no passado, permitindo que o pesquisador identifique qual dia de exposição possui a maior força de associação com o desfecho de saúde.
-
-**Fórmula:** $Y_t \leftarrow X_{t-L}$
-Desloca a busca as condições meteorológicas em $L$ dias no passado. Se você define `lag_days = c(7, 14, 21)`, a função cria três novas colunas no seu banco de dados.
 :::
+
+<div class="equation">
+**Modelo Matemático:** $Y_t \leftarrow X_{t-L}$
+</div>
 
 ### Mecanismo de Latência
 
@@ -436,11 +438,11 @@ A principal limitação reside na **multicolinearidade**. As temperaturas de dia
 
 ::: callout-scientific
 **Definição** — O Modelo de Defasagem Distribuída cria uma matriz de defasagens que permite capturar o efeito de uma exposição ao longo de um período contínuo. Quando combinado com funções não-lineares, surge o **DLNM (Distributed Lag Non-linear Model)** , o padrão ouro para analisar a relação entre temperatura e mortalidade. Preparação estrita para modelos DLNM (pacote `dlnm` no R)
-
-**Fórmula:** $Y_t \leftarrow [X_t, X_{t-1}, X_{t-2}, \dots, X_{t-L}]$
-
-**Conceito:** Cria uma coluna para cada dia de defasagem até o limite $L$.
 :::
+
+<div class="equation">
+**Modelo Matemático:** $\log(E) = \alpha + \sum_{j=0}^{L} f(x_{t-j}, j) + \text{covariáveis}$
+</div>
 
 ### Lógica do Modelo
 
@@ -522,14 +524,16 @@ Mortalidade
 
 ::: callout-info
 **Definição** — A Janela Móvel calcula uma métrica central (média, máximo ou mínimo) de uma variável climática durante um período recente definido. Diferente das defasagens individuais, trata a exposição como um **fardo cumulativo**.
+:::
 
-**Fórmula (Média):** $Y_t \leftarrow \frac{1}{W+1} \sum_{i=t-W}^{t} X_i$
+<div class="equation">
+**Média:** $Y_t \leftarrow \frac{1}{W+1} \sum_{i=t-W}^{t} X_i$
 
-**Fórmula (Soma - ex: chuva):** $Y_t \leftarrow \sum_{i=t-W}^{t} X_i$
+**Soma (chuva):** $Y_t \leftarrow \sum_{i=t-W}^{t} X_i$
+</div>
 
 **Por que não Janela Simétrica ($\pm W$)?** 
 Em muitos pacotes estatísticos, usa-se uma janela simétrica $[t-W, t+W]$. **Isso é um erro fatal em epidemiologia**, conhecido como *Look-Ahead Bias* (Viés de Olhar para o Futuro). O condições de tempo do dia $t+7$ não pode causar um evento no dia $t$. O `climasus4r` usa exclusivamente a janela *móvel retroativa* $[t-W, t]$ para manter a integridade causal.
-:::
 
 ### Fisiopatologia da Exaustão Adaptativa
 
@@ -582,14 +586,20 @@ TEMPO:                    Hoje (t)
 
 ::: callout-info
 **Definição** — A Janela Deslocada isola um período específico no passado, **excluindo deliberadamente os dias mais recentes**. Fundamental para doenças infecciosas, onde o alinhamento temporal deve considerar os períodos de incubação no vetor e no humano.
-
-**Fórmula:** $Y_t \leftarrow \frac{1}{(W_2 - W_1) + 1} \sum_{i=t-W_2}^{t-W_1} X_i$
-Ignora os dias recentes e agrega estritamente um gap histórico.
-
-**Quando usar:** Modelos de transmissão vetorial (Dengue, Zika, Malária) onde você quer isolar o período de incubação extrínseca (desenvolvimento do mosquito) separado do período de transmissão recente.
 :::
 
+<div class="equation">
+**Modelo:** $Y_t \leftarrow \frac{1}{(W_2 - W_1) + 1} \sum_{i=t-W_2}^{t-W_1} X_i$
+</div>
+
 ### Componentes do Atraso na Dengue
+
+| Componente | Duração (Dias) | Influência do Clima |
+|------------|---------------|---------------------|
+| Desenvolvimento Larvário | 7 - 10 | Temperatura e precipitação (criadouros) |
+| Incubação no Mosquito (PIE) | 8 - 12 | Temperatura (acelera a replicação viral) |
+| Incubação no Humano | 3 - 7 | Independente do clima |
+| Atraso de Notificação | 2 - 5 | Fatores administrativos/acesso |
 
 <div class="figure-container">
 **Figura 7: Cadeia de Transmissão da Dengue**
@@ -637,11 +647,20 @@ Ignora os dias recentes e agrega estritamente um gap histórico.
 
 ::: callout-scientific
 **Definição** — O conceito de Graus-Dia baseia-se na **teoria do tempo térmico**, que postula que o desenvolvimento de organismos ectotérmicos (insetos, parasitas) não é governado pelo tempo cronológico, mas pela acumulação de calor acima de um limiar basal.
-
-**Fórmula:** $GDD = \sum_{i=t-W}^{t} \max(0, T_i - T_{base})$
-O desenvolvimento de vetores não depende da temperatura média, mas do **acúmulo de calor acima de um limiar**.
-
 :::
+
+<div class="equation">
+**Graus-Dia:** $GDD = \sum_{i=t-W}^{t} \max(0, T_i - T_{base})$
+</div>
+
+### Limiares Térmicos por Espécie
+
+| Organismo | Tbase (°C) | GDD para Desenvolvimento | Aplicação |
+|-----------|------------|--------------------------|-----------|
+| *Aedes aegypti* | 11 | 100-150 | Transmissão de dengue |
+| *Anopheles gambiae* | 18 | 80-120 | Transmissão de malária |
+| *Triatoma infestans* | 16 | 200-300 | Doença de Chagas |
+| *Humano (estresse)* | 20 | - | Morbidade cardiovascular |
 
 ### Teoria do Tempo Térmico
 
@@ -689,15 +708,6 @@ Faltam 41 GDD → aproximadamente +3 dias
 <div class="figure-caption">**Esquema:** A área sob a curva de temperatura acima do limiar basal representa os Graus-Dia acumulados.</div>
 </div>
 
-### Limiares Térmicos por Espécie
-
-| Organismo | Tbase (°C) | GDD para Desenvolvimento | Aplicação |
-|-----------|------------|--------------------------|-----------|
-| *Aedes aegypti* | 11 | 100-150 | Transmissão de dengue |
-| *Anopheles gambiae* | 18 | 80-120 | Transmissão de malária |
-| *Triatoma infestans* | 16 | 200-300 | Doença de Chagas |
-
-Para estresse térmico humano, use `20` ou `24`, a depender do tipo climático.
 
 ---
 
@@ -768,13 +778,13 @@ Para estresse térmico humano, use `20` ou `24`, a depender do tipo climático.
 
 ::: callout-warning
 **Definição** — A estratégia de Excedência de Limiar foca no impacto de eventos climáticos que ultrapassam valores críticos, reconhecendo que a relação entre clima e saúde é muitas vezes governada por **"pontos de ruptura"** onde a mortalidade dispara exponencialmente.
+:::
 
-**Fórmula:**
-$$
-N_{\text{exc}}(t, W, \tau) =
-\sum_{d=0}^{W} \mathbf{1}\!\left[X_{t-d} \triangleright \tau\right]
-\cdot \mathbf{1}\!\left[X_{t-d} \neq \text{NA}\right]
-$$
+### Definição de Limiares
+
+<div class="equation">
+**Contagem de Excedência:** $N_{\text{exc}} = \sum_{d=0}^{W} \mathbf{1}[X_{t-d} > \tau]$
+</div>
 
 Transforma uma variável contínua em uma contagem de **eventos discretos** dentro de uma janela temporal, capturando a *frequência* de exposição extrema.
 
@@ -783,7 +793,8 @@ O `climasus4r` adapta os limiares automaticamente com base na região climática
 - **Tropical (Norte, Nordeste):** Onda de calor Tmax > 35°C
 - **Subtropical (Centro-Oeste, Sudeste):** Onda de calor Tmax > 32°C
 - **Temperado (Sul):** Onda de calor Tmax > 30°C, Onda de frio Tmin < 5°C
-:::
+
+
 
 ### Curva em "U" ou "J" da Mortalidade
 
@@ -820,13 +831,14 @@ Risco Relativo
 <div class="figure-caption">**Fonte:** Adaptado de Basu & Samet (2002) - Epidemiologic Reviews</div>
 </div>
 
-### Limiares e suas Implicações
+### Limiares por Região e Aplicação
 
 | Tipo de Limiar | Definição | Implicação em Saúde Pública |
 |----------------|-----------|----------------------------|
-| **Cardiovascular** | Percentil 95 das temperaturas máximas | Ativação de alertas hospitalares |
-| **Estresse Térmico** | Índice de Calor > 41°C | Suspensão de atividades externas |
-| **Mortalidade Mínima** | Ponto de menor risco na curva em U | Referência para políticas de adaptação |
+| Cardiovascular | Percentil 95 das temperaturas máximas | Ativação de alertas hospitalares |
+| Estresse Térmico | Índice de Calor > 41°C | Suspensão de atividades externas |
+| Mortalidade Mínima | Ponto de menor risco na curva em U | Referência para políticas de adaptação |
+| Precipitação Extrema | > 50mm em 24h | Alerta para leptospirose |
 
 ---
 
@@ -834,16 +846,20 @@ Risco Relativo
 
 ::: callout-scientific
 **Definição** — A Janela Ponderada aplica pesos diferenciados aos dias de exposição dentro de um período, modelando o fato biológico de que o **impacto de um evento diminui conforme o tempo passa**.
-
-**Fórmula:**
-$$
-\bar{X}_{\text{weighted}}(t, W, \mathbf{w}) =
-\frac{\sum_{d=0}^{W} w_d \cdot X_{t-d} \cdot \mathbf{1}\!\left[X_{t-d} \neq \text{NA}\right]}
-{\sum_{d=0}^{W} w_d \cdot \mathbf{1}\!\left[X_{t-d} \neq \text{NA}\right]}
-$$
-
-Aplica uma função de decaimento (linear, exponencial ou customizada) aos dias dentro da janela, modelando a meia-vida biológica da exposição.
 :::
+
+### Funções de Decaimento
+
+<div class="equation">
+**Média Ponderada:** $\bar{X}_{\text{weighted}} = \frac{\sum_{d=0}^{W} w_d \cdot X_{t-d}}{\sum_{d=0}^{W} w_d}$
+</div>
+
+| Tipo de Decaimento | Função | Meia-vida | Aplicação |
+|--------------------|--------|-----------|------------|
+| Linear | $w_d = 1 - \frac{d}{W+1}$ | Variável | Efeitos genéricos |
+| Exponencial | $w_d = e^{-\lambda d}$ | $\ln(2)/\lambda$ | Poluição do ar |
+| Gaussiano | $w_d = e^{-(d-\mu)^2/(2\sigma^2)}$ | $\sigma\sqrt{2\ln2}$ | Período de incubação |
+
 
 ### Funções de Decaimento
 

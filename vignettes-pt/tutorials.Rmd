@@ -151,8 +151,6 @@ title: "Tutoriais"
     <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/tutorial_estudos_casos.html" class="card-cta-button">Ver Tutorial →</a>
   </div>
 
-  <div class="tutorial-grid">
-
   <div class="tutorial-card">
     <div class="card-header">
       <div class="card-icon">
@@ -165,7 +163,7 @@ title: "Tutoriais"
     <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/parte1_clima_agg.html" class="card-cta-button">Começar Agora →</a>
   </div>
 
-  <div class="tutorial-card">
+ <div class="tutorial-card">
     <div class="card-header">
       <div class="card-icon">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.58 4 8 4s8-1.79 8-4M4 7c0-2.21 3.58-4 8-4s8 1.79 8 4m0 5c0 2.21-3.58 4-8 4s-8-1.79-8-4" /></svg>

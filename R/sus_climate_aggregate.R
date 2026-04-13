@@ -337,6 +337,10 @@ sus_climate_aggregate <- function(
                                window_days, weights, min_obs)
   )
 
+  if(temporal_strategy != "exact"){
+     df_agg <- suppressMessages(.join_exact(df_agg, climate_matched, climate_var)) 
+  }
+
   if (verbose) cli::cli_progress_done()
   
   # ---------------------------------------------------------------------------
@@ -1521,7 +1525,7 @@ sus_climate_aggregate <- function(
     gdd = if(sum(!is.na(temp))/window_size >= min_obs) sum(pmax(temp - temp_base, 0), na.rm=TRUE) else NA_real_
   ), by = .row_id]
   
-  data.table::setnames(res, "gdd", paste0("gdd_w", window_days))
+  data.table::setnames(res, "gdd", paste0("gdd_w", window_days, "tbase", temp_base))
   
   final <- health_work %>% dplyr::left_join(res, by=".row_id") %>% dplyr::select(-.row_id)
   return(dplyr::as_tibble(final))

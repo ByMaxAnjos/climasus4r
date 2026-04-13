@@ -569,8 +569,7 @@ df_distributed <- sus_climate_aggregate(
 )
 
 # Verificar estrutura da matriz
-lag_cols <- names(df_distributed)[grep("_lag", names(df_distributed))]
-head(df_distributed[lag_cols[1:5]])
+head(df_distributed)
 
 ```
 
@@ -605,10 +604,9 @@ df_compare <- df_exact %>%
     dplyr::select(date, tair_dry_bulb_c) %>%
     dplyr::left_join(
       df_moving %>% dplyr::select(date, tair_dry_bulb_c_mean_w14),
-      by = "date"
+      by = "date", relationship = "many-to-many"
     ) %>%
     tidyr::pivot_longer(-date, names_to = "metric", values_to = "temperature")
-  
   ggplot(df_compare, aes(x = date, y = temperature, color = metric)) +
     geom_line(alpha = 0.7) +
     labs(
@@ -643,6 +641,7 @@ df_offset <- sus_climate_aggregate(
   verbose = TRUE
 )
 
+head(df_offset)
 ```
 
 ::: callout-note
@@ -655,6 +654,7 @@ df_offset <- sus_climate_aggregate(
 
 **Objetivo:** Acumular calor acima de uma temperatura base.
 **Aplicação:** Desenvolvimento de vetores (Aedes aegypti), estresse térmico.
+
 
 ```{r step4_degree_days, eval=FALSE}
 # ============================================================================
@@ -673,6 +673,7 @@ df_gdd <- sus_climate_aggregate(
   verbose = TRUE
 )
 
+head(df_gdd)
 
 # Exemplo com temperatura base para Aedes aegypti (11°C)
 df_gdd_aedes <- sus_climate_aggregate(
@@ -686,7 +687,17 @@ df_gdd_aedes <- sus_climate_aggregate(
   verbose = TRUE
 )
 
+head(df_gdd_aedes)
 ```
+
+### Limiares Térmicos por Espécie
+
+| Organismo | Tbase (temp_base) (°C) | GDD para Desenvolvimento | Aplicação |
+|-----------|------------|--------------------------|-----------|
+| *Aedes aegypti* | 11 | 100-150 | Transmissão de dengue |
+| *Anopheles gambiae* | 18 | 80-120 | Transmissão de malária |
+| *Triatoma infestans* | 16 | 200-300 | Doença de Chagas |
+| *Humano (estresse)* | 20 | - | Morbidade cardiovascular |
 
 ---
 
@@ -708,6 +719,7 @@ df_seasonal <- sus_climate_aggregate(
   verbose = TRUE
 )
 
+head(df_seasonal)
 ```
 
 ---
@@ -734,6 +746,8 @@ df_threshold <- sus_climate_aggregate(
   lang = "pt",
   verbose = TRUE
 )
+
+head(df_threshold)
 
 ```
 
@@ -762,6 +776,8 @@ df_wlin <- sus_climate_aggregate(
   verbose = TRUE
 )
 
+head(df_wlin)
+
 # Caso 2: Pesos exponenciais (decaimento rápido)
 lambda <- 0.3
 W <- 7
@@ -780,6 +796,8 @@ df_wexp <- sus_climate_aggregate(
   verbose = TRUE
 )
 
+head(df_wexp)
+
 # Caso 3: Pesos gaussianos (pico no meio da janela)
 mu <- 3          # Pico no dia t-3
 sigma <- 1.5     # Largura da janela
@@ -797,6 +815,7 @@ df_wgaus <- sus_climate_aggregate(
   lang = "pt",
   verbose = TRUE
 )
+head(df_wgaus)
 
 ```
 
