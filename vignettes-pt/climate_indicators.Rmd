@@ -1,0 +1,1225 @@
+---
+title: "Índices Bioclimáticos para Saúde Pública"
+subtitle: "Teoria e Pipeline INMET → Preenchimento → Indicadores Térmicos | `sus_climate_compute_indicators()`"
+author:
+  - name: "Max Anjos"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* ── Variáveis de Cores Modernas ────────────────── */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 18px;
+  color: var(--text-main);
+  background-color: #fff;
+  line-height: 1.6;
+}
+
+/* ── Títulos com Inter-spacing ─────────────────── */
+h1, h2, h3, h4 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  color: var(--dark-green);
+}
+
+h1.title {
+  font-size: 2.8em;
+  border-bottom: 4px solid var(--primary-color);
+  padding-bottom: 10px;
+  margin-bottom: 1.5rem;
+}
+
+h2 {
+  margin-top: 2rem;
+  border-left: 4px solid var(--primary-color);
+  padding-left: 1rem;
+}
+
+/* ── Code Blocks Estilizados ────────────────────── */
+pre.r, pre.sourceCode {
+  background-color: var(--code-bg);
+  border: 1px solid #e1e1e1;
+  border-left: 5px solid var(--primary-color) !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  padding: 1rem;
+}
+
+/* ── Custom Callouts (Estilo Quarto) ────────────── */
+.callout {
+  padding: 1.2em 1.5em;
+  margin: 1.5em 0;
+  border-radius: 8px;
+  border-left: 6px solid;
+  background-color: var(--bg-light);
+}
+
+.callout-note {
+  background-color: #f0f7ff;
+  border-color: #007bff;
+}
+
+.callout-tip {
+  background-color: #e8f5e9;
+  border-color: #1D9E75;
+}
+
+.callout-warning {
+  background-color: #fff3e0;
+  border-color: #ff9800;
+}
+
+.callout-info {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+}
+
+/* ── Workflow container ─────────────────────────── */
+.workflow-container {
+  background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  border: 1px solid var(--fc-border);
+  overflow-x: auto;
+}
+
+.workflow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'Inter', monospace;
+  font-size: 0.8rem;
+}
+
+.workflow-step {
+  background: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.workflow-arrow {
+  color: var(--primary-color);
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+/* ── Feature cards ───────────────────────────────── */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.feature-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e1e1e1;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-align: center;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.feature-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+  margin-top: 0;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
+
+.feature-card p {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  margin-bottom: 0;
+}
+
+/* ── Table styling ───────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+th {
+  background-color: var(--bg-light);
+  font-weight: 600;
+  color: var(--dark-green);
+}
+
+tr:hover {
+  background-color: var(--bg-light);
+}
+
+/* ── Figure styling ─────────────────────────────── */
+.figure {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.figure img {
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  max-width: 100%;
+  height: auto;
+}
+
+.figure .caption {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* ── Botão GitHub aprimorado ───────────────────── */
+.github-feedback-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #24292e;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-family: sans-serif;
+  transition: background-color 0.2s;
+  margin-top: 1rem;
+}
+
+.github-feedback-btn:hover {
+  background-color: #2c3e50;
+  color: white;
+  text-decoration: none;
+}
+
+/* ── Responsive ─────────────────────────────────── */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+  
+  h1.title {
+    font-size: 2rem;
+  }
+  
+  .workflow-steps {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .workflow-arrow {
+    transform: rotate(90deg);
+  }
+  
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  th, td {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-card,
+  .github-feedback-btn {
+    transition: none;
+  }
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  eval    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  comment = "#>",
+  fig.align = "center",
+  out.width = "80%",
+  fig.retina = 2
+)
+```
+
+
+::: {.callout-box}
+**Sobre este tutorial**  
+Este documento demonstra o pipeline completo do pacote **climasus4r** para geração de
+índices bioclimáticos a partir de dados horários INMET: download → preenchimento de
+lacunas → cálculo de 15 indicadores → visualização e categorização regional de risco
+térmico.
+:::
+
+---
+
+# Fundamentos Teóricos
+
+## Por que índices bioclimáticos?
+
+Temperatura do ar isoladamente é um preditor incompleto de estresse térmico humano.
+O corpo humano responde à **combinação** de temperatura, umidade, vento e radiação solar —
+variáveis capturadas pelos índices implementados nesta função.
+
+## 📊 Indicadores Bioclimáticos e de Estresse Térmico
+
+| Código | Nome | Variáveis | Domínio de Aplicação | Referência |
+|--------|------|-----------|----------------------|------------|
+| `wbgt` | Wet Bulb Globe Temperature | T, RH, SR, WS | Qualquer T | Liljegren et al. (2008) |
+| `hi` | Heat Index | T, RH | T ≥ 24–26.7 °C | Rothfusz (1990) |
+| `thi` | Temperature-Humidity Index | T, RH | Qualquer T | Thom (1959) |
+| `wcet` | Wind Chill Equivalent Temperature (CA) | T, WS | T ≤ 10 °C | Environment Canada (2001) |
+| `wct` | Wind Chill Temperature (NWS) | T, WS | T ≤ 10 °C | NWS (2001) |
+| `et` | Effective Temperature | T, RH, WS | Qualquer T | Missenard (1937) |
+| `utci` | Universal Thermal Climate Index | T, RH, WS, SR | −60 a +50 °C | Bröde et al. (2012) |
+| `pet` | Physiological Equivalent Temperature | T, RH, WS, SR | Qualquer T | Matzarakis et al. (1999) |
+| `cdd` | Cooling Degree Days | T | T > base (18°C) | ASHRAE |
+| `hdd` | Heating Degree Days | T | T < base (18°C) | ASHRAE |
+| `gdd` | Growing Degree Days | T | Base a limite superior | Climatologia agrícola |
+| `diurnal_range` | Amplitude Térmica Diurna | T (diário) | Qualquer T | Epidemiologia ambiental |
+| `vapor_pressure` | Pressão de Vapor | T, RH | Qualquer T | Magnus-Tetens (1930) |
+| `heat_stress_risk` | Risco de Estresse Térmico | T, RH, WS, SR | Categórico | OSHA/ACGIH (WBGT-base) |
+| `koppen_humidity` | Classificação de Umidade (Köppen) | RH | Categórico | Köppen-Geiger |
+
+
+## Fórmulas Matemáticas
+
+### WBGT — Wet Bulb Globe Temperature {-}
+
+::: {.formula-box}
+**WBGT** (outdoor) = 0.7 × T~nwb~ + 0.2 × T~g~ + 0.1 × T~db~
+
+**T~nwb~** (média de dois métodos para robustez numérica):  
+• *Liljegren*: T × atan(0.16 × √(e~a~ + 0.1)) + 3.0  
+• *Bernard & Pourmoghani (1999)*: T + 0.33 × (RH/100) × exp(0.0514 × T) − 4.0  
+T~nwb~ = (método₁ + método₂) / 2
+
+**T~g~** (Temperatura de globo):  
+T~g~ = T + 0.0144 × max(G₀, 0)^0.6^ / WS^0.2^ − 2.0  
+onde G₀ = irradiância em W/m² (SR~kJ/m²~ / 3.6)
+
+**Coeficientes de ponderação** (0.7, 0.2, 0.1): contribuição relativa do  
+bulbo úmido, globo (carga radiante) e bulbo seco ao estresse térmico fisiológico.
+:::
+
+::: {.ref-box}
+📚 Liljegren et al. (2008) *J. Occup. Environ. Hyg.* 5(10):645–655 |
+Bernard & Pourmoghani (1999) *AIHAJ* 60(1):32–37 |
+OSHA Outdoor WBGT Calculator
+:::
+
+### Heat Index (HI) — Rothfusz/NWS {-}
+
+::: {.formula-box}
+**HI~°F~** = −42.379 + 2.04901523·T + 10.14333127·RH − 0.22475541·T·RH  
+         − 0.00683783·T² − 0.05481717·RH² + 0.00122874·T²·RH  
+         + 0.00085282·T·RH² − 0.00000199·T²·RH²
+
+**Ajuste umidade baixa** (RH < 13%, 80 ≤ T~°F~ ≤ 112):  
+HI = HI − (13 − RH)/4 × √(max(17 − |T − 95|, 0) / 17)
+
+**Ajuste umidade alta** (RH > 85%, 80 ≤ T~°F~ ≤ 87):  
+HI = HI + (RH − 85)/10 × (87 − T)/5
+
+**Limiar de validade**: T ≥ 26.7°C (padrão) ou 24–26°C (regiões tropicais)
+:::
+
+::: {.ref-box}
+📚 Rothfusz (1990) *NWS Technical Attachment SR/SSD 90-23* |
+NWS Weather Prediction Center
+:::
+
+### UTCI — Aproximação Polinomial Fiala {-}
+
+::: {.formula-box}
+**T~mrt~** = T + 0.07 × G₀ − 1.5   *(temperatura radiante média)*  
+**VP** = 0.6108 × exp(17.27T / (T + 237.3)) × RH/100   *(pressão vapor, kPa)*  
+**WS~10m~** = max(WS × 1.5, 0.5)   *(velocidade a 10m de altura)*
+
+**UTCI** = T  
+  + 0.048 × (VP×1000 − 1000)/100   *(efeito vapor)*  
+  − 0.29 × ln(WS~10m~ + 0.1)       *(efeito vento, log)*  
+  + 0.016 × ΔT~mrt~                *(radiação linear)*  
+  + 0.010 × ΔT~mrt~²/10            *(radiação não-linear)*  
+  − 6×10⁻⁵ × ΔT~mrt~² × WS~10m~   *(interação vento×radiação)*  
+  + δ~regional~                     *(correção bioma)*
+
+Limites físicos: −60 ≤ UTCI ≤ 50°C
+:::
+
+::: {.ref-box}
+📚 Bröde et al. (2012) *Int. J. Biometeorol.* 56(4):481–494 |
+Nota: aproximação simplificada; erros de 3–5°C vs. polinômio completo (210+ termos)
+:::
+
+### PET — Aproximação MEMI {-}
+
+::: {.formula-box}
+**clo~sazonal~** = fator_vestuário × {0.5 (verão) | 0.7 (outono/primavera) | 0.9 (inverno)}  
+*(clo = resistência térmica da roupa, regional × sazonalmente ajustado)*
+
+**PET** = T  
+  + 0.10 × (RH − 50)/10       *(efeito umidade)*  
+  − 0.30 × WS~eff~             *(resfriamento pelo vento)*  
+  + 0.05 × (T~mrt~ − T)       *(efeito radiação)*  
+  + 0.50 × (1 − clo)           *(efeito vestuário)*  
+  + δ~regional~                *(correção bioma)*
+:::
+
+::: {.ref-box}
+📚 Matzarakis, Mayer & Iziomon (1999) *Int. J. Biometeorol.* 43:76–84 |
+Modelo MEMI completo em RayMan Pro (Freiburg)
+:::
+
+### Graus-Dia {-}
+
+::: {.formula-box}
+**CDD** = max(T − T~base~, 0)   *(resfriamento; T~base~ regional = 18–20°C)*  
+**HDD** = max(T~base~ − T, 0)   *(aquecimento; T~base~ regional = 14–18°C)*  
+**GDD** = min(max(T, T~base~), T~upper~) − T~base~   *(crescimento agrícola)*  
+*(T~base~ = 8–15°C; T~upper~ = 30–35°C — ambos ajustados por bioma)*
+:::
+
+---
+
+# Pipeline Completo
+
+## Passo 1 · Importação INMET
+
+```{r step1-inmet, eval=FALSE}
+library(climasus4r)
+library(dplyr)
+# ── Pipeline para 4 biomas representativos ───────────────────────────────────
+# Amazônia (AM), Caatinga (CE), Mata Atlântica (SP), Pampa (RS)
+
+df_am <- sus_climate_inmet(
+  years   = 2023,
+  uf      = "AM",          # Amazônia
+  parallel = TRUE,
+  workers  = 4,
+  verbose  = TRUE
+)
+
+df_ce <- sus_climate_inmet(years = 2023, uf = "CE")   # Caatinga
+df_sp <- sus_climate_inmet(years = 2023, uf = "SP")   # Mata Atlântica
+df_rs <- sus_climate_inmet(years = 2023, uf = "RS")   # Pampa
+
+# Inspecionar estrutura
+head(df_am)
+```
+
+## Passo 2 · Preenchimento de Lacunas
+
+```{r step2-fill, eval=FALSE}
+# ── XGBoost gap-filling — todas as variáveis ─────────────────────────────────
+df_am_filled <- df_am |>
+  sus_climate_fill_inmet(
+    target_var        = "all",
+    quality_threshold = 0.4,
+    parallel          = TRUE,
+    workers           = 4,
+    verbose           = TRUE
+  )
+
+df_ce_filled <- df_ce |> sus_climate_fill_inmet(target_var = "all")
+df_sp_filled <- df_sp |> sus_climate_fill_inmet(target_var = "all")
+df_rs_filled <- df_rs |> sus_climate_fill_inmet(target_var = "all")
+```
+
+
+## Passo 3 · Cálculo dos Indicadores
+
+```{r step3-indicators, eval=FALSE}
+# ── Carregar função ───────────────────────────────────────────────────────────
+# Em produção: já disponível via library(climasus4r)
+# Aqui: source do arquivo do pacote
+# source("sus_climate_compute_indicators.R")  # descomente se necessário
+
+# ── Configuração de indicadores por bioma ────────────────────────────────────
+
+# Amazônia — adaptação tropical, foco em estresse por calor e umidade
+ind_am <- df_am_filled |>
+  sus_climate_compute_indicators(
+    region           = "amazon",
+    confidence_flags = TRUE,
+    verify_physics   = TRUE,
+    verbose          = FALSE
+  )
+
+# Caatinga — semiárido, limiares rebaixados para RH
+ind_ce <- df_ce_filled |>
+  sus_climate_compute_indicators(
+    region           = "caatinga",
+    confidence_flags = TRUE,
+    verbose          = FALSE
+  )
+
+# Mata Atlântica — subtropical úmido
+ind_sp <- df_sp_filled |>
+  sus_climate_compute_indicators(
+    region           = "atlantic_forest",
+    confidence_flags = TRUE,
+    verbose          = FALSE
+  )
+
+# Pampa — subtropical temperado, wind chill relevante no inverno
+ind_rs <- df_rs_filled |>
+  sus_climate_compute_indicators(
+    region           = "pampa",
+    confidence_flags = TRUE,
+    verbose          = FALSE
+  )
+
+# ── Combinar todos os biomas ──────────────────────────────────────────────────
+ind_all <- bind_rows(
+  mutate(ind_am, bioma = "Amazônia",      regiao = "Norte"),
+  mutate(ind_ce, bioma = "Caatinga",      regiao = "Nordeste"),
+  mutate(ind_sp, bioma = "Mata Atlântica",regiao = "Sudeste"),
+  mutate(ind_rs, bioma = "Pampa",         regiao = "Sul")
+)
+
+glimpse(ind_all |> select(date, bioma, wbgt_c, hi_c, thi_c, utci_c,
+                           pet_c, heat_stress_risk, koppen_humidity))
+```
+
+---
+
+# Visualizações
+
+## 4.1 Visão Geral dos Indicadores
+
+```{r vis-overview, fig.height=9, eval=FALSE}
+# ── Distribuições dos principais índices por bioma ───────────────────────────
+library(tidyr)
+library(ggplot2)
+library(ggridges)
+library(patchwork)
+library(scales)
+
+
+bioma_colors <- c(
+  "Amazônia"       = "#1a7a4a",
+  "Caatinga"       = "#c0392b",
+  "Mata Atlântica" = "#2471a3",
+  "Pampa"          = "#7d3c98"
+)
+
+ind_long <- ind_all |>
+  select(date, bioma, wbgt_c, hi_c, thi_c, utci_c, pet_c, et_c) |>
+  pivot_longer(
+    cols      = c(wbgt_c, hi_c, thi_c, utci_c, pet_c, et_c),
+    names_to  = "indice",
+    values_to = "valor"
+  ) |>
+  filter(!is.na(valor)) |>
+  mutate(indice = recode(indice,
+    wbgt_c = "WBGT (°C)",
+    hi_c   = "Heat Index (°C)",
+    thi_c  = "THI (°C)",
+    utci_c = "UTCI (°C)",
+    pet_c  = "PET (°C)",
+    et_c   = "ET (°C)"
+  ))
+
+ggplot(ind_long, aes(x = valor, y = bioma, fill = bioma)) +
+  ggridges::geom_density_ridges(
+    alpha = 0.75, scale = 0.9,
+    quantile_lines = TRUE, quantiles = c(0.25, 0.5, 0.75),
+    quantile_fun = function(x, ...) quantile(x, ...)
+  ) +
+  scale_fill_manual(values = bioma_colors, guide = "none") +
+  facet_wrap(~indice, scales = "free_x", ncol = 3) +
+  labs(
+    title    = "Distribuição dos Índices Bioclimáticos por Bioma — 2023",
+    subtitle = "Linhas internas = quartis (Q1, mediana, Q3)",
+    x = "Valor do índice", y = NULL,
+    caption  = "Fonte: INMET / climasus4r | Dados horários 2023"
+  ) +
+  theme(strip.background = element_rect(fill = "#eaf4fb", colour = "grey80"))
+```
+
+*Nota: o bloco acima usa `ggridges`; instale com `install.packages("ggridges")` se necessário.*
+
+```{r vis-overview-fallback, fig.height=8, eval=FALSE}
+# Versão alternativa sem ggridges
+ggplot(ind_long |> filter(!is.na(valor)),
+       aes(x = valor, colour = bioma, fill = bioma)) +
+  geom_density(alpha = 0.35, linewidth = 0.9) +
+  scale_fill_manual(values  = bioma_colors, name = "Bioma") +
+  scale_colour_manual(values = bioma_colors, name = "Bioma") +
+  facet_wrap(~indice, scales = "free", ncol = 3) +
+  labs(
+    title   = "Distribuição dos Índices Bioclimáticos — 2023",
+    x = "Valor do índice (°C equiv.)", y = "Densidade",
+    caption = "Fonte: INMET / climasus4r"
+  )
+```
+
+## 4.2 Série Temporal Sazonal
+
+```{r vis-temporal, fig.height=8, eval=FALSE}
+# ── Média diária de WBGT por bioma ───────────────────────────────────────────
+diario <- ind_all |>
+  mutate(data_d = as.Date(date)) |>
+  group_by(bioma, data_d) |>
+  summarise(
+    wbgt_med  = mean(wbgt_c,  na.rm = TRUE),
+    utci_med  = mean(utci_c,  na.rm = TRUE),    .groups   = "drop"
+  )
+
+# Bandas de risco WBGT (OSHA/ACGIH)
+bandas_wbgt <- tibble(
+  ymin  = c(-Inf, 20, 25, 28, 30, 33),
+  ymax  = c(20,   25, 28, 30, 33, Inf),
+  risco = factor(
+    c("Nenhum","Baixo","Moderado","Alto","Muito Alto","Extremo"),
+    levels = c("Nenhum","Baixo","Moderado","Alto","Muito Alto","Extremo")
+  )
+)
+cores_risco <- c(
+  "Nenhum"    = "#d5f5e3",
+  "Baixo"     = "#a9dfbf",
+  "Moderado"  = "#f9e79f",
+  "Alto"      = "#f0b27a",
+  "Muito Alto"= "#ec7063",
+  "Extremo"   = "#922b21"
+)
+
+p1 <- ggplot() +
+  geom_rect(
+    data = bandas_wbgt,
+    aes(xmin = as.Date("2022-12-31"), xmax = as.Date("2024-01-01"),
+        ymin = ymin, ymax = ymax, fill = risco),
+    alpha = 0.25
+  ) +
+  scale_fill_manual(values = cores_risco, name = "Risco WBGT") +
+  #new_scale_fill() +
+  geom_line(data = diario,
+            aes(x = data_d, y = wbgt_med, colour = bioma), linewidth = 0.8) +
+  scale_colour_manual(values = bioma_colors, name = "Bioma") +
+  scale_x_date(date_labels = "%b", date_breaks = "1 month") +
+  labs(
+    title    = "WBGT Médio Diário — Biomas Brasileiros 2023",
+    subtitle = "Bandas de risco: OSHA/ACGIH (adaptadas por bioma)",
+    x = NULL, y = "WBGT (°C)",
+    caption  = "Zonas de risco: Baixo = 20–25°C | Moderado = 25–28°C | Alto = 28–30°C | Muito Alto = 30–33°C | Extremo > 33°C"
+  )
+
+# UTCI e WBGT sobrepostos para Caatinga
+p2 <- diario |>
+  filter(bioma == "Caatinga") |>
+  pivot_longer(c(wbgt_med, utci_med),
+               names_to = "var", values_to = "val") |>
+  mutate(var = recode(var,
+    wbgt_med = "WBGT", utci_med = "UTCI")) |>
+  ggplot(aes(data_d, val, colour = var)) +
+  geom_line(linewidth = 0.9) +
+  scale_colour_manual(values = c("WBGT"="#c0392b","UTCI"="#8e44ad","T ar"="#2980b9"),
+                      name = "Índice") +
+  scale_x_date(date_labels = "%b", date_breaks = "2 months") +
+  labs(
+    title    = "Caatinga — WBGT vs UTCI vs T ar",
+    subtitle = "WBGT e UTCI consistentemente acima da temperatura seca",
+    x = NULL, y = "°C"
+  )
+
+p1 / p2
+```
+
+
+## 4.4 Categorias de Risco Regional
+
+```{r vis-risco, fig.height=7, eval=FALSE}
+# ── Distribuição mensal das categorias de risco por bioma ────────────────────
+risco_mensal <- ind_all |>
+  mutate(mes = month(date, label = TRUE, abbr = TRUE, locale = "pt_BR.UTF-8")) |>
+  group_by(bioma, mes) |>
+  count(heat_stress_risk) |>
+  mutate(pct = n / sum(n) * 100) |>
+  ungroup() |>
+  mutate(
+    heat_stress_risk = factor(heat_stress_risk,
+      levels = c("None","Low","Moderate","High","Very High","Extreme")),
+    risco_label = recode(heat_stress_risk,
+      "None"      = "Nenhum",
+      "Low"       = "Baixo",
+      "Moderate"  = "Moderado",
+      "High"      = "Alto",
+      "Very High" = "Muito Alto",
+      "Extreme"   = "Extremo"
+    ),
+    risco_label = factor(risco_label,
+      levels = c("Nenhum","Baixo","Moderado","Alto","Muito Alto","Extremo"))
+  )
+
+ggplot(risco_mensal, aes(mes, pct, fill = risco_label)) +
+  geom_col(position = "stack", width = 0.85, colour = "white", linewidth = 0.2) +
+  scale_fill_manual(
+    values = c(
+      "Nenhum"    = "#abebc6",
+      "Baixo"     = "#82e0aa",
+      "Moderado"  = "#f9e79f",
+      "Alto"      = "#f0b27a",
+      "Muito Alto"= "#ec7063",
+      "Extremo"   = "#7b241c"
+    ),
+    name = "Risco\ntérmico"
+  ) +
+  scale_y_continuous(labels = percent_format(scale = 1)) +
+  facet_wrap(~bioma, ncol = 2) +
+  labs(
+    title    = "Composição Mensal do Risco de Estresse Térmico (WBGT-base)",
+    subtitle = "Adaptado por bioma: limiares OSHA/ACGIH + correção regional",
+    x = NULL, y = "% horas por categoria",
+    caption  = paste("Caatinga: pico de risco Extremo em set–out (seca)",
+                     "| Amazônia: risco Alto-Muito Alto persistente",
+                     "| Pampa: dominado por Nenhum no inverno",
+                     sep = "\n")
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## 4.5 Graus-Dia Agrícolas
+
+```{r vis-gdd, fig.height=5, eval=FALSE}
+# ── Acumulado de GDD, CDD e HDD por bioma ────────────────────────────────────
+grausdia <- ind_all |>
+  mutate(data_d = as.Date(date)) |>
+  group_by(bioma, data_d) |>
+  summarise(
+    cdd = sum(cdd_c, na.rm = TRUE),
+    hdd = sum(hdd_c, na.rm = TRUE),
+    gdd = sum(gdd_c, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  group_by(bioma) |>
+  arrange(data_d) |>
+  mutate(
+    cdd_acum = cumsum(cdd),
+    hdd_acum = cumsum(hdd),
+    gdd_acum = cumsum(gdd)
+  ) |>
+  ungroup()
+
+p_gdd1 <- grausdia |>
+  select(bioma, data_d, cdd_acum, hdd_acum) |>
+  pivot_longer(c(cdd_acum, hdd_acum), names_to = "tipo", values_to = "val") |>
+  mutate(tipo = recode(tipo,
+    cdd_acum = "CDD (resfriamento)",
+    hdd_acum = "HDD (aquecimento)"
+  )) |>
+  ggplot(aes(data_d, val, colour = bioma, linetype = tipo)) +
+  geom_line(linewidth = 0.9) +
+  scale_colour_manual(values = bioma_colors, name = "Bioma") +
+  scale_linetype_manual(values = c("solid","dashed"), name = NULL) +
+  scale_x_date(date_labels = "%b") +
+  labs(
+    title = "Graus-dia Acumulados — CDD e HDD",
+    subtitle = "Base regional (ASHRAE adaptado): 18–20°C para CDD | 14–18°C para HDD",
+    x = NULL, y = "Graus-dia acumulados"
+  )
+
+p_gdd2 <- grausdia |>
+  ggplot(aes(data_d, gdd_acum, colour = bioma)) +
+  geom_line(linewidth = 0.9) +
+  scale_colour_manual(values = bioma_colors, name = "Bioma") +
+  scale_x_date(date_labels = "%b") +
+  labs(
+    title = "GDD Acumulados — Potencial Agrícola",
+    subtitle = "Base 8–15°C (regional) | Limite superior 30–35°C",
+    x = NULL, y = "GDD acumulados"
+  )
+
+p_gdd1 | p_gdd2
+```
+
+
+## 4.7 Amplitude Térmica e Vapor
+
+```{r vis-diurnal-vapor, fig.height=5, eval=FALSE}
+vapor_dtr <- ind_all |>
+  mutate(
+    mes = month(date),
+    trimestre = case_when(
+      mes %in% 1:3  ~ "T1 (Jan–Mar)",
+      mes %in% 4:6  ~ "T2 (Abr–Jun)",
+      mes %in% 7:9  ~ "T3 (Jul–Set)",
+      TRUE          ~ "T4 (Out–Dez)"
+    )
+  ) |>
+  filter(!is.na(diurnal_range_c), !is.na(vapor_pressure_kpa))
+
+p_vap <- ggplot(vapor_dtr,
+       aes(diurnal_range_c, vapor_pressure_kpa, colour = bioma)) +
+  geom_point(alpha = 0.08, size = 0.6) +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 1.1) +
+  scale_colour_manual(values = bioma_colors, name = "Bioma") +
+  scale_y_continuous(labels = label_number(suffix = " kPa")) +
+  labs(
+    title    = "Amplitude Térmica Diurna × Pressão de Vapor Atual",
+    subtitle = "Caatinga: alta amplitude + baixa pressão de vapor (aridez)\nAmazônia: baixa amplitude + alta pressão (carga evaporativa máxima)",
+    x = "DTR — Amplitude Diurna (°C)", y = "Pressão de vapor ea (kPa)"
+  ) +
+  facet_wrap(~bioma, ncol = 2) +
+  theme(legend.position = "none")
+
+p_vap
+```
+
+## 4.8 Classificações Categóricas
+
+```{r vis-categorias, fig.height=5, eval=FALSE}
+# ── Köppen Humidity e Heat Stress Risk — proporção anual por bioma ────────────
+
+koppen_prop <- ind_all |>
+  count(bioma, koppen_humidity) |>
+  group_by(bioma) |>
+  mutate(pct = n / sum(n) * 100) |>
+  ungroup()
+
+risk_anual <- ind_all |>
+  count(bioma, heat_stress_risk) |>
+  group_by(bioma) |>
+  mutate(
+    pct = n / sum(n) * 100,
+    heat_stress_risk = factor(heat_stress_risk,
+      levels = c("None","Low","Moderate","High","Very High","Extreme"))
+  ) |>
+  ungroup()
+
+p_kopp <- ggplot(koppen_prop, aes(bioma, pct, fill = koppen_humidity)) +
+  geom_col(width = 0.7, colour = "white", linewidth = 0.3) +
+  scale_fill_manual(
+    values = c("Arid"="#f0b27a","Semi-arid"="#f9e79f",
+               "Humid"="#82e0aa","Perhumid"="#2ecc71"),
+    name = "Classe Köppen"
+  ) +
+  scale_y_continuous(labels = percent_format(scale = 1)) +
+  coord_flip() +
+  labs(
+    title = "Classificação Köppen de Umidade",
+    subtitle = "% horas anuais por classe",
+    x = NULL, y = "% horas"
+  )
+
+p_risk <- ggplot(risk_anual, aes(bioma, pct, fill = heat_stress_risk)) +
+  geom_col(width = 0.7, colour = "white", linewidth = 0.3) +
+  scale_fill_manual(
+    values = c(
+      "None"      = "#abebc6",
+      "Low"       = "#82e0aa",
+      "Moderate"  = "#f9e79f",
+      "High"      = "#f0b27a",
+      "Very High" = "#ec7063",
+      "Extreme"   = "#7b241c"
+    ),
+    name = "Risco Térmico\n(WBGT-base)"
+  ) +
+  scale_y_continuous(labels = percent_format(scale = 1)) +
+  coord_flip() +
+  labs(
+    title = "Risco de Estresse Térmico (OSHA/ACGIH)",
+    subtitle = "% horas anuais por nível de risco",
+    x = NULL, y = "% horas"
+  )
+
+p_kopp | p_risk
+```
+
+---
+
+## Efeito do Limiar Regional no HI
+
+```{r regional-hi-effect, fig.height=5, eval=FALSE}
+# ── Demonstração do efeito do limiar regional no HI ──────────────────────────
+t_seq  <- seq(22, 38, 0.2)
+rh_val <- 65
+
+calc_hi_vec <- function(airT, rh, min_temp) {
+  tf <- (airT * 9/5) + 32
+  hi_f <- -42.379 + 2.04901523*tf + 10.14333127*rh - 0.22475541*tf*rh -
+           6.83783e-3*tf^2 - 5.481717e-2*rh^2 + 1.22874e-3*tf^2*rh +
+           8.5282e-4*tf*rh^2 - 1.99e-6*tf^2*rh^2
+  hi_c <- (hi_f - 32) * 5 / 9
+  ifelse(airT < min_temp, NA, hi_c)
+}
+
+df_hi_reg <- tibble(
+  airT = rep(t_seq, 3),
+  bioma = rep(c("Sul/Pampa (26°C)","Padrão (26.7°C)","Amazônia (24°C)"), each = length(t_seq)),
+  hi    = c(
+    calc_hi_vec(t_seq, rh_val, 26.0),
+    calc_hi_vec(t_seq, rh_val, 26.7),
+    calc_hi_vec(t_seq, rh_val, 24.0)
+  )
+)
+
+ggplot(df_hi_reg, aes(airT, hi, colour = bioma)) +
+  geom_line(linewidth = 1.3, na.rm = TRUE) +
+  geom_vline(xintercept = c(24.0, 26.0, 26.7),
+             linetype = "dotted", colour = c("#1a7a4a","#7d3c98","#2471a3"),
+             linewidth = 0.8) +
+  annotate("text", x = c(24.2, 26.2, 26.9), y = 22,
+           label = c("Amazônia\n24°C","Sul\n26°C","Padrão\n26.7°C"),
+           hjust = 0, size = 3, colour = c("#1a7a4a","#7d3c98","#2471a3")) +
+  scale_colour_manual(
+    values = c("Sul/Pampa (26°C)"="#7d3c98",
+               "Padrão (26.7°C)"="#2471a3",
+               "Amazônia (24°C)"="#1a7a4a"),
+    name = "Limiar regional"
+  ) +
+  labs(
+    title    = "Impacto do Limiar Regional no Heat Index (RH = 65%)",
+    subtitle = "Populações tropicais aclimatadas percebem desconforto a T mais baixas",
+    x = "Temperatura do ar (°C)", y = "Heat Index (°C)",
+    caption  = "Rothfusz (1990) — limiar padrão 26.7°C | adaptado: 24–26°C para trópicos"
+  )
+```
+
+---
+
+# Uncertainty & Flags de Confiança
+
+## Estimativa de Incerteza (Monte Carlo)
+
+```{r uncertainty-demo, eval=FALSE}
+# ── Incerteza para São Paulo — 200 simulações ─────────────────────────────────
+ind_sp_unc <- df_sp_filled |>
+  sus_climate_compute_indicators(
+    indicators          = c("wbgt", "hi", "utci"),
+    region              = "atlantic_forest",
+    compute_uncertainty = TRUE,      # ← 200 simulações MC
+    confidence_flags    = TRUE,
+    verbose             = TRUE
+  )
+
+# Colunas geradas: wbgt_c, wbgt_c_ci_low, wbgt_c_ci_high
+# Interpretação: IC 95% propagando incertezas T±0.5°C, RH±3%, WS±0.3 m/s, SR±10%
+
+ind_sp_unc |>
+  filter(!is.na(wbgt_c_ci_low)) |>
+  mutate(ci_width = wbgt_c_ci_high - wbgt_c_ci_low) |>
+  summary()
+```
+
+
+## Flags de Confiança
+
+```{r flags-demo, fig.height=4, eval=FALSE}
+# ── Visualizar os flags gerados ───────────────────────────────────────────────
+flags_summary <- ind_all |>
+  select(bioma, date, wbgt_c,
+         wbgt_c_flag_extreme, wbgt_c_flag_high, wbgt_c_flag_low) |>
+  group_by(bioma) |>
+  summarise(
+    pct_extreme = 100 * mean(wbgt_c_flag_extreme, na.rm = TRUE),
+    pct_high    = 100 * mean(wbgt_c_flag_high,    na.rm = TRUE),
+    pct_low     = 100 * mean(wbgt_c_flag_low,     na.rm = TRUE),
+    .groups     = "drop"
+  ) |>
+  pivot_longer(-bioma, names_to = "flag", values_to = "pct") |>
+  mutate(
+    flag = recode(flag,
+      pct_extreme = "Flag: Extremo (> 31°C)",
+      pct_high    = "Flag: Alto (> 28°C)",
+      pct_low     = "Flag: Frio (< 15°C)"
+    )
+  )
+
+ggplot(flags_summary, aes(bioma, pct, fill = flag)) +
+  geom_col(position = "dodge", width = 0.7,
+           colour = "white", linewidth = 0.3) +
+  scale_fill_manual(
+    values = c("Flag: Extremo (> 31°C)"="#922b21",
+               "Flag: Alto (> 28°C)"   ="#e67e22",
+               "Flag: Frio (< 15°C)"  ="#2980b9"),
+    name = NULL
+  ) +
+  scale_y_continuous(labels = percent_format(scale = 1)) +
+  labs(
+    title    = "Frequência dos Flags de Confiança WBGT por Bioma",
+    subtitle = "Flags: _flag_extreme | _flag_high | _flag_low — gerados automaticamente",
+    x = NULL, y = "% horas com flag ativo",
+    caption  = paste("Limiares adaptados por bioma:",
+                     "Amazônia: extremo>31°C | Caatinga: extremo>33°C | Sul: frio<15°C",
+                     sep = "\n")
+  )
+```
+
+---
+
+# Padrões de Uso Avançados
+
+## Integração completa no pipeline SUS
+
+```{r pipeline-completo, eval=FALSE}
+# ── Pipeline de produção para análise epidemiológica ─────────────────────────
+
+library(climasus4r)
+
+# 1. Download multi-UF, multi-ano
+df_raw <- sus_climate_inmet(
+  years    = 2020:2023,
+  uf       = c("AM","PA","CE","BA","SP","MG","RS"),
+  parallel = TRUE,
+  workers  = 6
+)
+
+# 2. Preenchimento XGBoost
+df_filled <- df_raw |>
+  sus_climate_fill_inmet(
+    target_var        = "all",
+    quality_threshold = 0.40,
+    parallel          = TRUE,
+    workers           = 6
+  )
+
+# 3. Indicadores com adaptação regional automática
+df_indicators <- df_filled |>
+  sus_climate_compute_indicators(
+    region              = "auto",       # detecta bioma por UF/latitude
+    confidence_flags    = TRUE,
+    verify_physics      = TRUE,
+    compute_uncertainty = FALSE,        # TRUE para análise de sensibilidade
+    keep_source_vars    = FALSE
+  )
+
+# 4. Resumo mensal por estação — para linkage com dados de mortalidade SIM
+resumo_mensal <- df_indicators |>
+  mutate(
+    ano_mes = format(date, "%Y-%m"),
+    station = station_code
+  ) |>
+  group_by(station, ano_mes) |>
+  summarise(
+    across(c(wbgt_c, hi_c, utci_c, pet_c, thi_c),
+           list(med = ~mean(.x, na.rm=TRUE),
+                p90 = ~quantile(.x, 0.90, na.rm=TRUE),
+                p95 = ~quantile(.x, 0.95, na.rm=TRUE)),
+           .names = "{.col}_{.fn}"),
+    horas_risco_alto    = sum(heat_stress_risk %in% c("High","Very High","Extreme"),
+                              na.rm = TRUE),
+    horas_risco_extremo = sum(heat_stress_risk == "Extreme", na.rm = TRUE),
+    cdd_acum            = sum(cdd_c, na.rm = TRUE),
+    gdd_acum            = sum(gdd_c, na.rm = TRUE),
+    .groups             = "drop"
+  )
+```
+
+## Custom Thresholds para Pesquisa
+
+```{r custom-thresholds, eval=FALSE}
+# ── Thresholds customizados para estudo específico ───────────────────────────
+ind_custom <- df_am_filled |>
+  sus_climate_compute_indicators(
+    region = "amazon",
+    custom_thresholds = list(
+      hi_min_temp = 22.0,   # limiar ainda mais conservador
+      hi_min_rh   = 35,
+      cdd_base    = 22,     # base climática local calibrada
+      gdd_base    = 18,
+      gdd_upper   = 33
+    ),
+    confidence_flags = TRUE
+  )
+```
+
+## Apenas Indicadores Selecionados
+
+```{r selected-indicators, eval=FALSE}
+# ── Cálculo seletivo — mais eficiente para análises focadas ──────────────────
+
+# Só indicadores de saúde pública ocupacional
+ind_ocupacional <- df_ce_filled |>
+  sus_climate_compute_indicators(
+    indicators       = c("wbgt", "utci", "heat_stress_risk"),
+    region           = "caatinga",
+    confidence_flags = TRUE,
+    verbose          = FALSE
+  )
+
+# Só graus-dia para modelagem energética/agrícola
+ind_energia <- df_rs_filled |>
+  sus_climate_compute_indicators(
+    indicators = c("cdd", "hdd", "gdd", "diurnal_range"),
+    region     = "pampa",
+    verbose    = FALSE
+  )
+
+# Só indicadores que não dependem de radiação solar (dados incompletos)
+ind_sem_sr <- df_sp_filled |>
+  sus_climate_compute_indicators(
+    indicators = c("hi", "thi", "et", "vapor_pressure", "koppen_humidity"),
+    region     = "atlantic_forest",
+    verbose    = FALSE
+  )
+
+cat("Colunas geradas (ocupacional):", names(ind_ocupacional), "\n")
+```
+
+---
+
+# Tabela de Referência de Categorias de Risco
+
+### 🌡️ Classificação de Risco Térmico por Índices Bioclimáticos
+
+| Índice | Categoria | Limiar (°C) | Significado Fisiológico | Fonte |
+|--------|----------|-------------|--------------------------|-------|
+| WBGT | Nenhum | < 20 | Sem risco térmico perceptível | OSHA/ACGIH |
+| WBGT | Baixo | 20–25 | Leve estresse em atividade intensa | OSHA/ACGIH |
+| WBGT | Moderado | 25–28 | Pausas recomendadas para trabalhadores | OSHA/ACGIH |
+| WBGT | Alto | 28–30 | Risco real de distúrbios térmicos | OSHA/ACGIH |
+| WBGT | Muito Alto | 30–33 | Redução severa do tempo de trabalho | OSHA/ACGIH |
+| WBGT | Extremo | > 33 | Risco de colapso por calor | OSHA/ACGIH |
+| UTCI | Frio extremo | < −27 | Hipotermia iminente | Bröde et al. (2012) |
+| UTCI | Neutro | 9–26 | Zona de conforto térmico | Bröde et al. (2012) |
+| UTCI | Calor leve | 26–32 | Estresse leve por calor | Bröde et al. (2012) |
+| UTCI | Calor forte | 32–38 | Estresse moderado por calor | Bröde et al. (2012) |
+| UTCI | Calor extremo | > 46 | Estresse térmico extremo | Bröde et al. (2012) |
+| PET | Frio extremo | < 4 | Desconforto térmico por frio | Matzarakis et al. (1999) |
+| PET | Conforto | 18–23 | Zona térmica neutra | Matzarakis et al. (1999) |
+| PET | Calor leve | 23–29 | Leve desconforto por calor | Matzarakis et al. (1999) |
+| PET | Calor extremo | > 41 | Estresse térmico muito forte | Matzarakis et al. (1999) |
+| HI | Cautela | 27–32 | Fadiga possível com exposição prolongada | NWS |
+| HI | Extremo perigo | > 54 | Insolação altamente provável | NWS |
+---
+
+# Considerações Científicas e Limitações
+
+::: {.warning-box}
+**⚠️ Limitações Importantes a Reportar**
+
+1. **UTCI e PET são aproximações** — o UTCI completo (Fiala) exige um polinômio de
+   210+ termos; esta implementação pode divergir 3–5°C em condições extremas
+   (Bröde et al., 2012). Para estudos epidemiológicos críticos, use `reticulate` +
+   `pythermalcomfort` para o UTCI completo.
+
+2. **Radiação solar noturna = 0** — valores NA em `sr_kj_m2` durante a noite
+   são imputados como 0 (sem carga solar). WBGT noturno reflete apenas
+   temperatura, umidade e vento — fisicamente correto.
+
+3. **PET e vestuário** — o modelo simplificado assume vestuário médio sazonal
+   (clo 0.5–0.9); populações com hábitos muito distintos (ex: mineradores,
+   trabalhadores rurais) requerem calibração específica.
+
+4. **Adaptações regionais são empíricas** — os offsets (+1.5°C Amazônia,
+   −0.5°C Caatinga etc.) refletem consenso bibliográfico; validação local
+   contra medições de globo termômetro é recomendada para publicações.
+
+5. **Dados INMET** — estações automáticas apresentam problemas de manutenção;
+   o gap-filling XGBoost reduz lacunas mas não elimina incerteza de medição.
+   Use `compute_uncertainty = TRUE` para propagar esta incerteza.
+:::
+
+---
+
+# Referências
+
+::: {.ref-box}
+**WBGT**  
+Liljegren, J.C. et al. (2008). Modeling the wet bulb globe temperature using standard
+meteorological measurements. *J. Occup. Environ. Hyg.* 5(10):645–655.  
+Bernard, T.E. & Pourmoghani, M. (1999). Prediction of workplace wet bulb global
+temperature. *AIHAJ* 60(1):32–37.  
+OSHA (2017). *Protecting Workers from the Effects of Heat.* OSHA 3154.
+
+**Heat Index**  
+Rothfusz, L.P. (1990). *The heat index equation.* NWS Technical Attachment SR/SSD 90-23.  
+NWS Weather Prediction Center. *Heat Index.* www.wpc.ncep.noaa.gov/html/heatindex_equation.shtml
+
+**THI**  
+Thom, E.C. (1959). The discomfort index. *Weatherwise* 12(2):57–59.
+
+**Wind Chill**  
+Environment Canada (2001). *Wind chill index.* Meteorological Service of Canada.  
+NWS (2001). *NWS Wind Chill Temperature Index.*
+
+**Effective Temperature**  
+Missenard, A. (1937). *Température sensible.* In Auliciems & Szokolay (2007).
+
+**UTCI**  
+Bröde, P. et al. (2012). Deriving the operational procedure for the Universal
+Thermal Climate Index (UTCI). *Int. J. Biometeorol.* 56(4):481–494.  
+www.utci.org
+
+**PET**  
+Matzarakis, A., Mayer, H. & Iziomon, M.G. (1999). Applications of a universal
+thermal index: physiological equivalent temperature. *Int. J. Biometeorol.* 43:76–84.
+
+**Pressure de Vapor**  
+Magnus, G. (1844). *Versuche über die Spannkräfte des Wasserdampfs.* Berlin.  
+Tetens, O. (1930). Über einige meteorologische Begriffe. *Z. Geophys.* 6:297–309.
+
+**Graus-Dia**  
+ASHRAE (2021). *ASHRAE Handbook — Fundamentals.* Chapter 14.  
+McMaster, G.S. & Wilhelm, W.W. (1997). Growing degree-days: one equation, two
+interpretations. *Agric. For. Meteorol.* 87:291–300.
+
+**Biomas Brasileiros**  
+MMA/IBGE (2019). *Mapa de Biomas do Brasil.* 1:250.000.
+
+**climasus4r**  
+climasus4r Development Team (2024). *climasus4r: Climate Data Tools for Brazilian
+Public Health.* R package. github.com/susdev/climasus4r
+:::
+
+---
+
+## 🌲 Tem feedback ou sugestões?
+
+Você tem alguma ideia de melhoria ou encontrou algum erro? Clique no botão abaixo para abrir uma nova *issue* no GitHub e compartilhar suas sugestões diretamente conosco.
+
+```{=html}
+<a href='https://github.com/ByMaxAnjos/climasus4r/issues/new' class="github-feedback-btn">
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+  </svg>
+  Abrir issue no GitHub
+</a>

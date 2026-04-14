@@ -182,6 +182,15 @@ sus_climate_aggregate <- function(
     verbose           = TRUE
 ) {
 
+  if (verbose) {
+    title_msg <- switch(lang,
+      "en" = "climasus4r - Integration of Climate and Health Data",
+      "pt" = "climasus4r - Integra\u00e7\u00e3o de Dados Clim\u00e1ticos e de Sa\u00fade",
+      "es" = "climasus4r - Integraci\u00f3n de Datos Clim\u00e1ticos y de Salud"
+    )
+    cli::cli_h1(title_msg)
+  }
+  
   msg <- .get_messages(lang)
 
   # ===========================================================================

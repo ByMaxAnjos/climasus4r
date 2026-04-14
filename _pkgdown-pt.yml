@@ -81,6 +81,7 @@ reference:
       - sus_climate_inmet
       - sus_climate_fill_inmet
       - sus_climate_aggregate
+      - sus_climate_compute_indicators
 
   - title: "Qualidade e Metadados"
     desc: "Relatórios de qualidade de dados e dicionários de doenças"
@@ -114,5 +115,7 @@ articles:
       - tutorial_estudos_casos
       - parte1_clima_agg
       - parte2_clima_agg
+      - climate_indicators
+
 
       

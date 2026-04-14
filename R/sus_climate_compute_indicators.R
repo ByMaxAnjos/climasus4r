@@ -11,36 +11,30 @@
 #   WCET   : Environment Canada (2001)
 #   WCT    : NWS (2001)
 #   ET     : Missenard (1937) via Auliciems & Szokolay (2007)
-#   UTCI   : Bröde et al. (2012) — Fiala-based polynomial approximation
-#   PET    : Matzarakis et al. (1999) — MEMI-based approximation
+#   UTCI   : Brode et al. (2012) - Fiala-based polynomial approximation
+#   PET    : Matzarakis et al. (1999) - MEMI-based approximation
 #   CDD/HDD/GDD : Standard degree-day methods
 #   Vapor pressure : Magnus-Tetens formula
 # =============================================================================
-
 
 # ============================================================================
 # PACKAGE-LEVEL PHYSICS CONSTANTS
 # ============================================================================
 
-.SUS_PHYSICS <- list(
-  solar_constant        = 1361,      # W/m²
-  stefan_boltzmann      = 5.67e-8,   # W/m²/K⁴
-  g                     = 9.81,      # m/s²
-  R_air                 = 287.05,    # J/(kg·K)
-  cp                    = 1004,      # J/(kg·K)
-  latent_heat_vap       = 2.501e6,   # J/kg
-  psychrometric_cst     = 0.066,     # kPa/K at sea level
-  emissivity_skin       = 0.95,
-  solar_absorption      = 0.70,
-  standard_pressure_kpa = 101.325
-)
+  .SUS_PHYSICS <- list(
+    solar_constant        = 1361,      # W/m2
+    stefan_boltzmann      = 5.67e-8,   # W/m2/K4
+    g                     = 9.81,      # m/s4
+    R_air                 = 287.05,    # J/(kg.K)
+    cp                    = 1004,      # J/(kg.K)
+    latent_heat_vap       = 2.501e6,   # J/kg
+    psychrometric_cst     = 0.066,     # kPa/K at sea level
+    emissivity_skin       = 0.95,
+    solar_absorption      = 0.70,
+    standard_pressure_kpa = 101.325
+  )
 
-
-# ============================================================================
-# MAIN FUNCTION
-# ============================================================================
-
-#' @title Compute Bioclimatic and Thermal Stress Indicators
+#' Compute Bioclimatic and Thermal Stress Indicators
 #'
 #' @description
 #' `sus_climate_compute_indicators()` calculates a comprehensive set of
@@ -50,18 +44,18 @@
 #' **Scientific robustness highlights:**
 #' \itemize{
 #'   \item WBGT uses a dual wet-bulb estimate (Liljegren + Bernard/Pourmoghani)
-#'         averaged for numerical robustness; solar radiation NA treated as 0
+#'         averaged for numerical robustness; solar radiation `NA` treated as 0
 #'         (no solar load at night) so all hours yield a valid value.
 #'   \item HI implements full Rothfusz (1990) regression with both NWS humidity
 #'         adjustments and a regionally adapted validity threshold.
 #'   \item UTCI uses a Fiala-polynomial-inspired multi-term regression (vapour
 #'         pressure, logarithmic wind, radiation linear + non-linear,
-#'         wind×radiation interaction).
+#'         wind vs radiation interaction).
 #'   \item PET is based on a MEMI-style energy-balance approximation with
 #'         seasonal clothing adjustment and regional correction.
 #'   \item Solar radiation undergoes optional physical consistency verification
 #'         against extraterrestrial radiation limits.
-#'   \item Diurnal range is a true daily aggregate (Tmax−Tmin per calendar day)
+#'   \item Diurnal range is a true daily aggregate (Tmax - Tmin per calendar day)
 #'         broadcast to all hourly rows of that day.
 #'   \item Multi-level confidence flags (`_flag_extreme`, `_flag_high`,
 #'         `_flag_low`) replace a single `_out_of_range` flag.
@@ -69,34 +63,34 @@
 #' }
 #'
 #' **Available indicators:**
-#' \tabular{lll}{
-#'   **Code**           \tab **Output column**     \tab **Requires** \cr
-#'   `wbgt`             \tab `wbgt_c`              \tab T, RH, SR, WS \cr
-#'   `hi`               \tab `hi_c`                \tab T, RH \cr
-#'   `thi`              \tab `thi_c`               \tab T, RH \cr
-#'   `wcet`             \tab `wcet_c`              \tab T, WS \cr
-#'   `wct`              \tab `wct_c`               \tab T, WS \cr
-#'   `et`               \tab `et_c`                \tab T, RH, WS \cr
-#'   `utci`             \tab `utci_c`              \tab T, RH, WS, SR \cr
-#'   `pet`              \tab `pet_c`               \tab T, RH, WS, SR \cr
-#'   `cdd`              \tab `cdd_c`               \tab T \cr
-#'   `hdd`              \tab `hdd_c`               \tab T \cr
-#'   `gdd`              \tab `gdd_c`               \tab T \cr
-#'   `diurnal_range`    \tab `diurnal_range_c`     \tab T (daily agg.) \cr
-#'   `vapor_pressure`   \tab `vapor_pressure_kpa`  \tab T, RH \cr
-#'   `heat_stress_risk` \tab `heat_stress_risk`    \tab T, RH, WS, SR \cr
-#'   `koppen_humidity`  \tab `koppen_humidity`     \tab RH
-#' }
-#' (T=`tair_dry_bulb_c`, RH=`rh_mean_porc`, SR=`sr_kj_m2`, WS=`ws_2_m_s`)
 #'
-#' @param df Data frame / tibble from `sus_climate_inmet()` or
-#'   `sus_climate_fill()`.
-#' @param indicators Character vector of codes or `"all"` (default).
-#' @param region Character. `"none"` (default, standard thresholds) or a
-#'   Brazilian biome: `"auto"`, `"amazon"`, `"cerrado"`, `"caatinga"`,
+#' | Code | Output column | Requires |
+#' | :--- | :--- | :--- |
+#' | `wbgt` | `wbgt_c` | T, RH, SR, WS |
+#' | `hi` | `hi_c` | T, RH |
+#' | `thi` | `thi_c` | T, RH |
+#' | `wcet` | `wcet_c` | T, WS |
+#' | `wct` | `wct_c` | T, WS |
+#' | `et` | `et_c` | T, RH, WS |
+#' | `utci` | `utci_c` | T, RH, WS, SR |
+#' | `pet` | `pet_c` | T, RH, WS, SR |
+#' | `cdd` | `cdd_c` | T |
+#' | `hdd` | `hdd_c` | T |
+#' | `gdd` | `gdd_c` | T |
+#' | `diurnal_range` | `diurnal_range_c` | T (daily agg.) |
+#' | `vapor_pressure` | `vapor_pressure_kpa` | T, RH |
+#' | `heat_stress_risk` | `heat_stress_risk` | T, RH, WS, SR |
+#' | `koppen_humidity` | `koppen_humidity` | RH |
+#' 
+#' *(Where: T=`tair_dry_bulb_c`, RH=`rh_mean_porc`, SR=`sr_kj_m2`, WS=`ws_2_m_s`)*
+#'
+#' @param df Data frame or tibble from `sus_climate_inmet()` or `sus_climate_fill()`.
+#' @param indicators Character vector of indicator codes or `"all"` (default).
+#' @param region Character. `"auto"` (default, standard thresholds) or a
+#'   Brazilian biome: `"amazon"`, `"cerrado"`, `"caatinga"`,
 #'   `"atlantic_forest"`, `"pampa"`, `"pantanal"`, `"southeast"`, `"south"`.
-#' @param datetime_col  Character or NULL (auto-detected).
-#' @param station_col   Character or NULL (auto-detected).
+#' @param datetime_col Character or `NULL` (auto-detected).
+#' @param station_col Character or `NULL` (auto-detected).
 #' @param apply_validity_mask Logical (default `TRUE`). When `region=="none"`,
 #'   masks HI, WCET, WCT outside their valid meteorological domains with `NA`.
 #' @param confidence_flags Logical. Add `_flag_extreme`, `_flag_high`,
@@ -105,12 +99,12 @@
 #' @param keep_source_vars Logical (default `FALSE`).
 #' @param verify_physics Logical (default `TRUE`). Check solar radiation
 #'   against extraterrestrial limits; requires `latitude` column.
-#' @param compute_uncertainty Logical (default `FALSE`). Monte Carlo 95 % CI.
+#' @param compute_uncertainty Logical (default `FALSE`). Monte Carlo 95% CI.
 #' @param verbose Logical (default `TRUE`).
 #' @param lang Character: `"pt"` (default), `"en"`, `"es"`.
 #'
-#' @return `tibble` with class `climasus_df` containing indicator columns,
-#'   optional flag / CI columns, and a `sus_meta` attribute.
+#' @return A `tibble` of class `climasus_df` containing indicator columns,
+#'   optional flag/CI columns, and a `sus_meta` attribute.
 #'
 #' @section Scientific References:
 #' \itemize{
@@ -119,10 +113,13 @@
 #'   \item Rothfusz (1990) NWS Tech. Attachment SR/SSD 90-23.
 #'   \item Thom (1959) \emph{Weatherwise} 12(2):57-59.
 #'   \item Environment Canada (2001) Wind Chill Index.
-#'   \item Bröde et al. (2012) \emph{Int. J. Biometeorol.} 56(4):481-494.
+#'   \item Brode et al. (2012) \emph{Int. J. Biometeorol.} 56(4):481-494.
 #'   \item Matzarakis et al. (1999) \emph{Int. J. Biometeorol.} 43:76-84.
 #'   \item Magnus (1844) / Tetens (1930) saturation vapour pressure.
 #' }
+#'
+#' @export
+#' @importFrom rlang .data
 #'
 #' @examples
 #' \dontrun{
@@ -144,13 +141,10 @@
 #'   sus_climate_fill(target_var = "all") |>
 #'   sus_climate_compute_indicators(indicators = c("wbgt", "hi", "utci"))
 #' }
-#'
-#' @export
-#' @importFrom rlang .data
 sus_climate_compute_indicators <- function(
   df,
   indicators          = "all",
-  region              = "none",
+  region              = "auto",
   datetime_col        = NULL,
   station_col         = NULL,
   apply_validity_mask = TRUE,
@@ -163,24 +157,133 @@ sus_climate_compute_indicators <- function(
   lang                = "pt"
 ) {
 
-  # ── 0. Defaults ────────────────────────────────────────────────────────────
+  if (verbose) {
+    title_msg <- switch(lang,
+      "en" = "climasus4r - Bioclimatic and Thermal Stress Indicators",
+      "pt" = "climasus4r - Indicadores Bioclim\u00e1ticos e de Estresse T\u00e9rmico",
+      "es" = "climasus4r - Indicadores Bioclim\u00e1ticos y de Estr\u00e9s T\u00e9rmico"
+    )
+    cli::cli_h1(title_msg)
+  }
+  
+  # ===========================================================================
+  # VALID DF
+  # ===========================================================================
+  if (inherits(df, "climasus_df")) {
+    
+    current_stage <- sus_meta(df, "stage")
+    required_stage <- "climate"
+
+    if (!is_stage_at_least(current_stage, required_stage)) {
+
+      msg_error <- list(
+        en = paste0(
+          "Data must be filtered before aggregation.\n",
+          "Current stage: ", current_stage %||% "unknown", "\n",
+          "Required stage: ", required_stage, "\n\n",
+          "Please run:\n",
+          "  1. sus_climate_inmet(...)",
+          "  2. sus_climate_fill_inmet(evaluation = FALSE)"
+        ),
+        pt = paste0(
+          "Dados devem ser filtrados antes da agregacao.\n",
+          "Estagio atual: ", current_stage %||% "desconhecido", "\n",
+          "Estagio requerido: ", required_stage, "\n\n",
+          "Por favor, execute:\n",
+          "  1. sus_climate_inmet(...)",
+          "  2. sus_climate_fill_inmet(evaluation = FALSE)"
+        ),
+        es = paste0(
+          "Los datos deben ser filtrados antes de la agregacion.\n",
+          "Etapa actual: ", current_stage %||% "desconocida", "\n",
+          "Etapa requerida: ", required_stage, "\n\n",
+          "Por favor, ejecute:\n",
+          "  1. sus_climate_inmet(...)",
+          "  2. sus_climate_fill_inmet(evaluation = FALSE)"
+        )
+      )
+
+      cli::cli_abort(msg_error[[lang]] %||% msg_error[["en"]])
+    }
+
+    # Stage validated
+    if (verbose) {
+      msg_stage_ok <- list(
+         en = "Data stage validated: aggregation allowed",
+        pt = "Estagio de dados validado: agregacao permitida",
+        es = "Etapa de datos validada: agregacion permitida"
+      )
+
+      cli::cli_alert_success(msg_stage_ok[[lang]] %||% msg_stage_ok[["en"]])
+    }
+
+    # Update metadata
+    df <- sus_meta(df, stage = "climate", type = "indicators")
+
+  } else {
+      # NOT climasus_df - ABORT execution
+      msg_error <- list(
+        en = c(
+          "{.red {cli::symbol$cross} Input is not a {.cls climasus_df} object.}",
+          "i" = "This function requires data formatted by the {.pkg climasus4r} pipeline.",
+          " " = "",
+          "Please prepare your data first:",
+          "*" = "{.strong 1. Import INMET Data:} {.code df <- sus_climate_inmet(...)}",
+          "*" = "{.strong 2. Filling gaps:} {.code df <- sus_climate_fill(...)}"
+        ),
+        pt = c(
+          "{.red {cli::symbol$cross} A entrada como nao objeto {.cls climasus_df}.}",
+          "i" = "Esta funcao requer dados processados pelo pipeline {.pkg climasus4r}.",
+          " " = "",
+          "Por favor, prepare seus dados primeiro:",
+          "*" = "{.strong 1. Importar Dados do INMET:} {.code df <- sus_climate_inmet(...)}",
+          "*" = "{.strong 2. Preencher falhas:} {.code df <- sus_climate_fill(...)}"
+        ),
+        es = c(
+          "{.red {cli::symbol$cross} La entrada no es un objeto {.cls climasus_df}.}",
+          "i" = "Esta funcion requiere datos procesados por el pipeline {.pkg climasus4r}.",
+          " " = "",
+          "Por favor, prepare sus datos primero:",
+          "*" = "{.strong 1. Importar Dados del INMET:} {.code df <- sus_climate_inmet(...)}",
+          "*" = "{.strong 2. Preencher falhas:} {.code df <- sus_climate_fill(...)}"
+        )
+      )
+      cli::cli_abort(msg_error[[lang]])
+  }
+  
+  # ===========================================================================
+  # DEFAULT
+  # ===========================================================================
+  
   region     <- tolower(trimws(region))
   use_region <- region != "none"
   if (is.null(confidence_flags)) confidence_flags <- use_region
 
-  # ── 1. Registry ───────────────────────────────────────────────────────────
+  # ===========================================================================
+  # 1. REGISTRY
+  # ===========================================================================
+  
   .reg       <- .build_indicator_registry()
   .all_codes <- names(.reg)
 
-  # ── 2. Messages ───────────────────────────────────────────────────────────
+  # ===========================================================================
+  # 2. MESSAGES
+  # ===========================================================================
+  
   msgs <- .get_indicators_messages(lang)
 
-  # ── 3. Column detection ───────────────────────────────────────────────────
+  # ===========================================================================
+  # COLUMN DETECTION
+  # ===========================================================================
+  
   source_sys   <- .detect_data_source(df)
   datetime_col <- .detect_datetime_column(df, datetime_col, verbose, msgs)
   station_col  <- .detect_station_column(df, station_col, source_sys, verbose, msgs)
 
-  # ── 4. Resolve indicators ─────────────────────────────────────────────────
+  # ===========================================================================
+  # RESOLVE INDICATIORS
+  # ===========================================================================
+  
   if (identical(tolower(indicators), "all")) {
     indicators <- .all_codes
   } else {
@@ -197,12 +300,19 @@ sus_climate_compute_indicators <- function(
                                 length(indicators),
                                 paste(toupper(indicators), collapse = ", ")))
 
-  # ── 5. Regional parameters ────────────────────────────────────────────────
+  
+  # ===========================================================================
+  # REGIONAL PARAMETERS
+  # ===========================================================================
+  
   region_params <- .resolve_region_params(
     region, df, station_col, custom_thresholds, verbose, lang
   )
 
-  # ── 6. Working data frame ────────────────────────────────────────────────
+  # ===========================================================================
+  # WORKING DATA FRAME
+  # ===========================================================================
+  
   df_work      <- df
   renamed_date <- FALSE
   if (!is.null(datetime_col) && datetime_col != "date") {
@@ -219,12 +329,18 @@ sus_climate_compute_indicators <- function(
   if (verify_physics && "sr_kj_m2" %in% colnames(df_work))
     df_work <- .verify_solar_radiation(df_work, verbose, lang)
 
-  # ── 7. Initialise result ──────────────────────────────────────────────────
+  # ===========================================================================
+  # Initialise result
+  # ===========================================================================
+  
   id_cols <- intersect(c("date", station_col), colnames(df_work))
   result  <- dplyr::select(df_work, dplyr::all_of(id_cols))
   indicator_stats <- list()
 
-  # ── 8. Compute indicators ────────────────────────────────────────────────
+  # ===========================================================================
+  # Compute indicators
+  # ===========================================================================
+  
   for (ind in indicators) {
 
     reg     <- .reg[[ind]]
@@ -289,7 +405,10 @@ sus_climate_compute_indicators <- function(
                                      round(n_valid / n_total * 100, 1)))
   }
 
-  # ── 9. Source variables ───────────────────────────────────────────────────
+  # ===========================================================================
+  # Source variables
+  # ===========================================================================
+  
   if (keep_source_vars) {
     src_cols <- intersect(all_required, colnames(df_work))
     if (length(src_cols) > 0)
@@ -300,12 +419,18 @@ sus_climate_compute_indicators <- function(
       )
   }
 
-  # ── 10. Restore datetime name ─────────────────────────────────────────────
+  # ===========================================================================
+  # 10. Restore datetime name
+  # ===========================================================================
+  
   if (renamed_date && !is.null(datetime_col))
     result <- dplyr::rename(result, !!rlang::sym(datetime_col) := date)
   date_col_final <- if (renamed_date && !is.null(datetime_col)) datetime_col else "date"
 
-  # ── 11. sus_meta + S3 class ───────────────────────────────────────────────
+ # ===========================================================================
+ # 11. sus_meta + S3 class
+ # ===========================================================================
+ 
   meta <- list(
     system  = NULL,
     stage   = "climate",
@@ -450,13 +575,12 @@ sus_climate_compute_indicators <- function(
       thresholds = list()
     ),
     koppen_humidity = list(
-      label = "Köppen Humidity Classification", out_col = "koppen_humidity",
+      label = "Koppen Humidity Classification", out_col = "koppen_humidity",
       requires = c("rh_mean_porc"),
       thresholds = list()
     )
   )
 }
-
 
 # ============================================================================
 # REGIONAL PARAMETERS
@@ -555,8 +679,8 @@ sus_climate_compute_indicators <- function(
     region <- .detect_region_from_data(df, station_col, verbose)
     if (verbose)
       cli::cli_alert_info(switch(lang,
-        pt = sprintf("Região auto-detectada: %s", tbl[[region]]$name %||% region),
-        es = sprintf("Región detectada: %s",       tbl[[region]]$name %||% region),
+        pt = sprintf("Regiao auto-detectada: %s", tbl[[region]]$name %||% region),
+        es = sprintf("Region detectada: %s",       tbl[[region]]$name %||% region),
              sprintf("Auto-detected region: %s",   tbl[[region]]$name %||% region)
       ))
   }
@@ -666,7 +790,7 @@ sus_climate_compute_indicators <- function(
 # COMPUTATION FUNCTIONS
 # ============================================================================
 
-#' WBGT — Liljegren + Bernard/Pourmoghani dual wet-bulb average
+#' WBGT-Liljegren + Bernard/Pourmoghani dual wet-bulb average
 #' @keywords internal
 #' @noRd
 .compute_wbgt <- function(airT, rh, sr_kj_m2, ws) {
@@ -678,7 +802,7 @@ sus_climate_compute_indicators <- function(
   e_a  <- (rh / 100) * es
   tnw1 <- airT * atan(0.16 * sqrt(pmax(e_a, 0.01) + 0.1)) + 3.0
 
-  # Method 2: Bernard & Pourmoghani (1999) — numerically stable
+  # Method 2: Bernard & Pourmoghani (1999)- numerically stable
   tnw2 <- airT + 0.33 * (rh / 100) * exp(0.0514 * airT) - 4.0
 
   tnw  <- (tnw1 + tnw2) / 2                                   # average
@@ -688,7 +812,7 @@ sus_climate_compute_indicators <- function(
 }
 
 
-#' HI — Rothfusz (1990) with both NWS humidity adjustments
+#' HI-Rothfusz (1990) with both NWS humidity adjustments
 #' @keywords internal
 #' @noRd
 .compute_hi <- function(airT, rh, apply_mask = TRUE,
@@ -701,13 +825,13 @@ sus_climate_compute_indicators <- function(
     + 1.22874e-3*tf^2*rh + 8.5282e-4*tf*rh^2 - 1.99e-6*tf^2*rh^2
   )
 
-  # Low-humidity adjustment (RH < 13 %, 80 ≤ Tf ≤ 112)
+  # Low-humidity adjustment (RH < 13 %, 80 <= Tf <= 112)
   sqrt_arg <- pmax(17 - abs(tf - 95), 0)
   adj_l    <- (13 - rh) / 4 * sqrt(sqrt_arg / 17)
   mask_l   <- !is.na(rh) & rh < 13 & tf >= 80 & tf <= 112
   hi_f     <- ifelse(mask_l, hi_f - adj_l, hi_f)
 
-  # High-humidity adjustment (RH > 85 %, 80 ≤ Tf ≤ 87)
+  # High-humidity adjustment (RH > 85 %, 80 <= Tf <= 87)
   adj_h  <- (rh - 85) / 10 * ((87 - tf) / 5)
   mask_h <- !is.na(rh) & rh > 85 & tf >= 80 & tf <= 87
   hi_f   <- ifelse(mask_h, hi_f + adj_h, hi_f)
@@ -721,7 +845,7 @@ sus_climate_compute_indicators <- function(
 }
 
 
-#' THI — Thom (1959)
+#' THI-Thom (1959)
 #' @keywords internal
 #' @noRd
 .compute_thi <- function(airT, rh) {
@@ -729,7 +853,7 @@ sus_climate_compute_indicators <- function(
 }
 
 
-#' WCET — Environment Canada (2001)
+#' WCET-Environment Canada (2001)
 #' @keywords internal
 #' @noRd
 .compute_wcet <- function(airT, ws, apply_mask = TRUE) {
@@ -742,7 +866,7 @@ sus_climate_compute_indicators <- function(
 }
 
 
-#' WCT — NWS (2001)
+#' WCT-NWS (2001)
 #' @keywords internal
 #' @noRd
 .compute_wct <- function(airT, ws, apply_mask = TRUE) {
@@ -755,7 +879,7 @@ sus_climate_compute_indicators <- function(
 }
 
 
-#' ET — Missenard (1937); NA wind treated as calm
+#' ET-Missenard (1937); NA wind treated as calm
 #' @keywords internal
 #' @noRd
 .compute_et <- function(airT, rh, ws) {
@@ -765,12 +889,12 @@ sus_climate_compute_indicators <- function(
 }
 
 
-#' UTCI — Fiala polynomial approximation (Bröde et al. 2012)
+#' UTCI-Fiala polynomial approximation (Brode et al. 2012)
 #'
 #' Full UTCI requires >200-term polynomial; this uses a validated multi-term
 #' regression capturing: vapour pressure, logarithmic wind, radiation linear,
-#' radiation non-linear, and wind×radiation interaction.
-#' NA solar → 0; NA wind → calm.
+#' radiation non-linear, and wind vs radiation interaction.
+#' NA solar -> 0; NA wind -> calm.
 #'
 #' @keywords internal
 #' @noRd
@@ -795,10 +919,10 @@ sus_climate_compute_indicators <- function(
 }
 
 
-#' PET — MEMI-based approximation (Matzarakis et al. 1999)
+#' PET-MEMI-based approximation (Matzarakis et al. 1999)
 #'
 #' Seasonal clothing (clo) adjustment + regional correction.
-#' NA solar → 0; NA wind → calm.
+#' NA solar -> 0; NA wind -> calm.
 #'
 #' @keywords internal
 #' @noRd
@@ -812,7 +936,7 @@ sus_climate_compute_indicators <- function(
   else
     rep(6L, length(airT))
 
-  # Southern hemisphere: austral summer = Dec/Jan/Feb → low clo
+  # Southern hemisphere: austral summer = Dec/Jan/Feb -> low clo
   clo <- dplyr::case_when(
     month_num %in% c(12L, 1L, 2L)               ~ 0.5 * clothing_factor,
     month_num %in% c(3L, 4L, 5L, 9L, 10L, 11L) ~ 0.7 * clothing_factor,
@@ -846,17 +970,17 @@ sus_climate_compute_indicators <- function(
   round(pmax(base_temp - airT, 0), 1)
 
 
-#' GDD — modified with upper threshold
+#' GDD-modified with upper threshold
 #' @keywords internal
 #' @noRd
 .compute_gdd <- function(airT, base_temp = 10, upper_temp = 30)
   round(pmin(pmax(airT, base_temp), upper_temp) - base_temp, 1)
 
 
-#' Diurnal Temperature Range — true daily aggregate broadcast to hourly rows
+#' Diurnal Temperature Range-true daily aggregate broadcast to hourly rows
 #'
 #' Uses tair_max_c / tair_min_c if they represent genuine daily extremes
-#' (day-to-day SD > 0.5 °C); otherwise derives from tair_dry_bulb_c.
+#' (day-to-day SD > 0.5 C); otherwise derives from tair_dry_bulb_c.
 #'
 #' @keywords internal
 #' @noRd
@@ -886,7 +1010,7 @@ sus_climate_compute_indicators <- function(
 }
 
 
-#' Vapour pressure — Magnus-Tetens (±1 % in 0–40 °C)
+#' Vapour pressure - Magnus-Tetens (±1 % in 0-40 °C)
 #' @keywords internal
 #' @noRd
 .compute_vapor_pressure <- function(airT, rh) {
@@ -895,7 +1019,7 @@ sus_climate_compute_indicators <- function(
 }
 
 
-#' Heat Stress Risk — WBGT-based, OSHA/ACGIH classification
+#' Heat Stress Risk- WBGT-based, OSHA/ACGIH classification
 #' @keywords internal
 #' @noRd
 .compute_heat_stress_risk <- function(airT, rh, ws, sr_kj_m2) {
@@ -911,7 +1035,7 @@ sus_climate_compute_indicators <- function(
 }
 
 
-#' Köppen humidity classification (simplified)
+#' Koppen humidity classification (simplified)
 #' @keywords internal
 #' @noRd
 .compute_koppen_humidity <- function(rh) {
@@ -925,7 +1049,7 @@ sus_climate_compute_indicators <- function(
 
 
 # ============================================================================
-# PHYSICAL CONSISTENCY — SOLAR RADIATION
+# PHYSICAL CONSISTENCY-SOLAR RADIATION
 # ============================================================================
 
 #' Verify solar radiation against extraterrestrial limits
@@ -953,15 +1077,15 @@ sus_climate_compute_indicators <- function(
 
   G0_kj <- .SUS_PHYSICS$solar_constant *
             (1 + 0.033 * cos(2 * pi * doy / 365)) *
-            pmax(sin_elev, 0) * 3.6     # W/m² → kJ/m² (hourly)
+            pmax(sin_elev, 0) * 3.6     # W/m2 -> kJ/m2 (hourly)
 
   n_flag <- sum(!is.na(df_work[["sr_kj_m2"]]) &
                   df_work[["sr_kj_m2"]] > G0_kj * 1.1, na.rm = TRUE)
 
   if (n_flag > 0 && verbose)
     cli::cli_alert_warning(switch(lang,
-      pt = sprintf("Consistência física: %d valores de SR > 110%% da irradiância extraterrestre.", n_flag),
-      es = sprintf("Consistencia física: %d valores de SR > 110%% de la irradiancia extraterrestre.", n_flag),
+      pt = sprintf("Consistencia fisica: %d valores de SR > 110%% da irradiancia extraterrestre.", n_flag),
+      es = sprintf("Consistencia fisica: %d valores de SR > 110%% de la irradiancia extraterrestre.", n_flag),
            sprintf("Physical consistency: %d SR values exceed 110%% of extraterrestrial irradiance.", n_flag)
     ))
 
@@ -1140,8 +1264,8 @@ sus_climate_compute_indicators <- function(
       unknown_indicators    = "Indicador(es) desconhecido(s): %s. Opcoes validas: %s.",
       computing_indicators  = "Calculando %d indicador(es): %s",
       missing_vars_global   = "Variaveis ausentes no dataframe (alguns indicadores serao NA): %s",
-      skipping_indicator    = "Indicador %s ignorado — variavel(is) ausente(s): %s",
-      indicator_done        = "OK %s (%s) → coluna '%s': %d/%d valores validos (%.1f%%)",
+      skipping_indicator    = "Indicador %s ignorado-variavel(is) ausente(s): %s",
+      indicator_done        = "OK %s (%s) -> coluna '%s': %d/%d valores validos (%.1f%%)",
       done                  = "Concluido: %d/%d indicadores calculados com sucesso."
     ),
     en = list(
@@ -1151,8 +1275,8 @@ sus_climate_compute_indicators <- function(
       unknown_indicators    = "Unknown indicator code(s): %s. Valid options: %s.",
       computing_indicators  = "Computing %d indicator(s): %s",
       missing_vars_global   = "Variables absent from data frame (some indicators will be NA): %s",
-      skipping_indicator    = "Skipping indicator %s — missing variable(s): %s",
-      indicator_done        = "OK %s (%s) → column '%s': %d/%d valid values (%.1f%%)",
+      skipping_indicator    = "Skipping indicator %s-missing variable(s): %s",
+      indicator_done        = "OK %s (%s) -> column '%s': %d/%d valid values (%.1f%%)",
       done                  = "Done: %d/%d indicators computed successfully."
     ),
     es = list(
@@ -1162,8 +1286,8 @@ sus_climate_compute_indicators <- function(
       unknown_indicators    = "Codigo(s) de indicador desconocido(s): %s. Opciones validas: %s.",
       computing_indicators  = "Calculando %d indicador(es): %s",
       missing_vars_global   = "Variables ausentes en el dataframe (algunos indicadores seran NA): %s",
-      skipping_indicator    = "Indicador %s omitido — variable(s) ausente(s): %s",
-      indicator_done        = "OK %s (%s) → columna '%s': %d/%d valores validos (%.1f%%)",
+      skipping_indicator    = "Indicador %s omitido-variable(s) ausente(s): %s",
+      indicator_done        = "OK %s (%s) -> columna '%s': %d/%d valores validos (%.1f%%)",
       done                  = "Completado: %d/%d indicadores calculados correctamente."
     )
   )

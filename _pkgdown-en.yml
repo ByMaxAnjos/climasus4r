@@ -83,6 +83,7 @@ reference:
       - sus_climate_inmet
       - sus_climate_fill_inmet
       - sus_climate_aggregate
+      - sus_climate_compute_indicators 
 
   - title: "Quality & Metadata"
     desc: "Data quality reports and disease dictionaries"
