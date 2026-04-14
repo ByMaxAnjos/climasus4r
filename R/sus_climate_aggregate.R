@@ -12,8 +12,59 @@
 #' @param climate_data A `climasus_df` object produced by `sus_climate_fill()`.
 #'   Must contain `date` (Date or POSIXct), `station_code`, `latitude`, `longitude`,
 #'   and climate variables.
-#' @param climate_var Character vector with climate columns to aggregate.
+#' @param climate_var Character vector with climate variables to aggregate.
 #'   Use `"all"` (default) to include all available variables.
+#'
+#'   Available variables are grouped as follows:
+#'
+#'   **Atmospheric pressure:**
+#'   - `"patm_mb"`, `"patm_max_mb"`, `"patm_min_mb"`
+#'
+#'   **Air temperature:**
+#'   - `"tair_dry_bulb_c"`, `"tair_max_c"`, `"tair_min_c"`
+#'
+#'   **Dew point temperature:**
+#'   - `"dew_tmean_c"`, `"dew_tmax_c"`, `"dew_tmin_c"`
+#'
+#'   **Relative humidity:**
+#'   - `"rh_mean_porc"`, `"rh_max_porc"`, `"rh_min_porc"`
+#'
+#'   **Precipitation:**
+#'   - `"rainfall_mm"`
+#'
+#'   **Wind:**
+#'   - `"ws_2_m_s"` (mean wind speed),
+#'   - `"ws_gust_m_s"` (wind gust),
+#'   - `"wd_degrees"` (wind direction)
+#'
+#'   **Solar radiation:**
+#'   - `"sr_kj_m2"`
+#'
+#'   **Biometeorological indices:**
+#'   - `"wbgt_c"` (Wet Bulb Globe Temperature)
+#'   - `"hi_c"` (Heat Index)
+#'   - `"thi_c"` (Temperature-Humidity Index)
+#'   - `"wcet_c"` (Wind Chill Equivalent Temperature)
+#'   - `"wct_c"` (Wind Chill Temperature)
+#'   - `"et_c"` (Effective Temperature)
+#'   - `"utci_c"` (Universal Thermal Climate Index)
+#'   - `"pet_c"` (Physiological Equivalent Temperature)
+#'
+#'   **Thermal indices (degree-days):**
+#'   - `"cdd_c"` (Cooling Degree Days)
+#'   - `"hdd_c"` (Heating Degree Days)
+#'   - `"gdd_c"` (Growing Degree Days)
+#'
+#'   **Derived variables:**
+#'   - `"diurnal_range_c"` (daily temperature range)
+#'   - `"vapor_pressure_kpa"` (saturation vapor pressure)
+#'
+#'   @section Notes:
+#'   - Not all variables may be available in `climate_data`. Use `names(climate_data)`
+#'     to inspect available columns.
+#'   - When `"all"` is used, only existing variables in the dataset are selected.
+#'   - Derived and index variables depend on prior processing with
+#'     `sus_climate_fill()` or feature engineering steps.
 #' @param time_unit Temporal aggregation unit for raw climate data before join.
 #'   Options: `"day"` (default), `"week"`, `"month"`, `"quarter"`, `"year"`,
 #'   `"season"`. Relevant only when input data are hourly resolution.
@@ -68,7 +119,7 @@
 #'
 #' - **exact**: Immediate effects (heat stroke, hemorrhagic stroke)
 #' - **discrete_lag**: Known delayed effect (e.g., temperature 7 days before influences dengue)
-#' - **moving_window**: Cumulative exposure without specific lag. **RECOMMENDED for elderly mortality**.
+#' - **moving_window**: Cumulative exposure without specific lag.
 #' - **offset_window**: Defined incubation period (e.g., temperature 14-7 days before death)
 #' - **distributed_lag**: Distributed lag analysis (DLNM); generates exposure matrix for `dlnm::crossbasis()`
 #' - **degree_days**: Thermal threshold for vector development. GDD above temperature base accumulates over window_days.
@@ -97,12 +148,6 @@
 #' The climate of day t+7 cannot cause a health event on day t. This design prevents
 #' look-ahead bias, a common methodological error in environmental epidemiology.
 #'
-#' ## Autocorrelation in Tropical Regions
-#'
-#' Temperature exhibits strong autocorrelation in tropical regions (e.g., Amazon).
-#' When using `discrete_lag` or `distributed_lag` strategies, verify multicolinearities
-#' in epidemiological models using `car::vif()`. If VIF > 5, consider using DLNM
-#' or reducing the number of lags.
 #'
 #' @references
 #' Gasparrini, A. (2011). Distributed lag linear and non-linear models in R: the package dlnm.
@@ -123,7 +168,7 @@
 #'   sus_spatial_join(level = "munic")
 #'
 #' df_climate <- sus_climate_inmet(years = 2023, uf = "AM") |>
-#'   sus_climate_fill()
+#'   sus_climate_fill(target_var = "all", parallel = TRUE)
 #'
 #' # Example 1: Exact match (same-day temperature)
 #' df_exact <- sus_climate_aggregate(
@@ -539,7 +584,7 @@ sus_climate_aggregate <- function(
   if (is.null(current_stage) || current_stage != required_stage) {
     cli::cli_abort(.msg_wrong_stage(
       lang, "climate", current_stage, required_stage,
-      "sus_climate_inmet(...) followed by sus_climate_fill_inmet(..., evaluation = FALSE)"
+      "sus_climate_inmet(...) followed by sus_climate_fill_inmet(..., evaluation = FALSE) and sus_climate_compute_indicators(...)"
     ))
   }
   temporal_meta <- sus_meta(climate_data, "temporal")
@@ -585,11 +630,21 @@ sus_climate_aggregate <- function(
 #' @noRd
 .validate_climate_var <- function(climate_data, climate_var, lang) {
   known_climate_cols <- c(
+    #Variavies INMET
     "patm_mb", "patm_max_mb", "patm_min_mb",
     "tair_dry_bulb_c", "tair_max_c", "tair_min_c",
     "dew_tmean_c", "dew_tmax_c", "dew_tmin_c",
     "rh_max_porc", "rh_min_porc", "rh_mean_porc",
-    "rainfall_mm", "ws_gust_m_s", "ws_2_m_s", "wd_degrees", "sr_kj_m2"
+    "rainfall_mm", "ws_gust_m_s", "ws_2_m_s", "wd_degrees", "sr_kj_m2",
+    #indices biometeorologicos
+    "wbgt_c", "hi_c", "thi_c", "wcet_c", "wct_c",
+    "et_c", "utci_c", "pet_c",
+    # indices termicos acumulados
+    "cdd_c", "hdd_c", "gdd_c",
+    # Derivadas
+    "diurnal_range_c",
+    #Umidade derivada
+    "vapor_pressure_kpa" 
   )
   available <- intersect(known_climate_cols, colnames(climate_data))
   if (length(available) == 0) cli::cli_abort(.msg_no_climate_vars(lang))

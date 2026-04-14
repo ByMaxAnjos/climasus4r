@@ -102,6 +102,10 @@
 #' @param compute_uncertainty Logical (default `FALSE`). Monte Carlo 95% CI.
 #' @param verbose Logical (default `TRUE`).
 #' @param lang Character: `"pt"` (default), `"en"`, `"es"`.
+#' @param use_cache Logical. If `TRUE` (default), uses cached spatial data to avoid
+#'   re-downloads and improve performance.
+#' @param cache_dir Character string specifying the directory to store cached files.
+#'   Default is `"~/.climasus4r_cache/spatial"`.
 #'
 #' @return A `tibble` of class `climasus_df` containing indicator columns,
 #'   optional flag/CI columns, and a `sus_meta` attribute.
@@ -154,7 +158,9 @@ sus_climate_compute_indicators <- function(
   verify_physics      = TRUE,
   compute_uncertainty = FALSE,
   verbose             = TRUE,
-  lang                = "pt"
+  lang                = "pt",
+  use_cache = TRUE,
+  cache_dir = "~/.climasus4r_cache/spatial"
 ) {
 
   if (verbose) {
@@ -427,9 +433,21 @@ sus_climate_compute_indicators <- function(
     result <- dplyr::rename(result, !!rlang::sym(datetime_col) := date)
   date_col_final <- if (renamed_date && !is.null(datetime_col)) datetime_col else "date"
 
- # ===========================================================================
- # 11. sus_meta + S3 class
- # ===========================================================================
+  # ===========================================================================
+  # 10.1 Join station meta
+  # ===========================================================================
+
+  station_meta <- get_spatial_station_cache(
+      cache_dir = cache_dir,
+      use_cache = use_cache,
+      lang = lang,
+      verbose = verbose) %>%
+    sf::st_drop_geometry()
+  
+  result <- dplyr::left_join(result, station_meta, by = c("station_code"))
+  # ===========================================================================
+  # 11. sus_meta + S3 class
+  # ===========================================================================
  
   meta <- list(
     system  = NULL,
@@ -472,7 +490,6 @@ sus_climate_compute_indicators <- function(
 
   result
 }
-
 
 # ============================================================================
 # INDICATOR REGISTRY
@@ -700,6 +717,147 @@ sus_climate_compute_indicators <- function(
   params
 }
 
+
+# ===========================================================================
+# Get spatial station meta
+# ===========================================================================
+
+#' Get Spatial Station Data with Caching
+#'
+#' Retrieves spatial station data from INMET with intelligent caching to improve performance.
+#' Spatial data is cached as Parquet files for fast reloading.
+#' @param cache_dir Cache directory path
+#' @param use_cache Whether to use cache
+#'
+#' @return sf object with spatial data
+#' @keywords internal
+#' @noRd
+get_spatial_station_cache <- function(
+  cache_dir,
+  use_cache,
+  lang,
+  verbose
+) {
+  msg <- get_spatial_station_messages(lang)
+
+  if ((requireNamespace("sfarrow", quietly = TRUE))) { 
+  # Define cache file name
+  cache_file <- file.path(
+    cache_dir,
+    paste0("station_meta.parquet")
+  )
+  } else { 
+  # Define cache file name
+  cache_file <- file.path(
+    cache_dir,
+    paste0("station_meta.gpkg")
+  )
+  }
+
+  # Try to load from cache
+  if (use_cache && file.exists(cache_file)) {
+    if (verbose) {
+      cli::cli_alert_success(paste0(msg$loading_cache, basename(cache_file)))
+    }
+
+    tryCatch(
+      {
+        if ((requireNamespace("sfarrow", quietly = TRUE))) { 
+          spatial_df <- sfarrow::st_read_parquet(cache_file)
+        } else { 
+          spatial_df <- sf::st_read(cache_file)
+          spatial_df <- sf::st_as_sf(spatial_df)
+        }
+        return(spatial_df)
+      },
+      error = function(e) {
+        if (verbose) {
+          cli::cli_alert_warning(msg$cache_error)
+        }
+      }
+    )
+  }
+
+  # Download from IBGE
+  if (verbose) {
+    cli::cli_alert_info(msg$downloading_data)
+  }
+
+  spatial_df <- suppressMessages(sfarrow::st_read_parquet("https://github.com/ByMaxAnjos/climasus4r/raw/refs/heads/master/inst/data_4r/station_meta.parquet"))
+
+  # Save to cache
+  if (use_cache) {
+    if (verbose) {
+      cli::cli_alert_info(msg$saving_cache)
+    }
+    tryCatch(
+      { 
+        if ((requireNamespace("sfarrow", quietly = TRUE))) { 
+          sfarrow::st_write_parquet(obj = spatial_df, dsn = cache_file)
+        } else {
+          sf::st_write(spatial_df, cache_file, driver = "GPKG", quiet = TRUE, delete_dsn = TRUE, append = TRUE)
+         }
+        if (verbose) {
+          cli::cli_alert_success(msg$cache_saved)
+        }
+      },
+      error = function(e) {
+        if (verbose) {
+          cli::cli_alert_warning(paste0(msg$cache_save_error, e$message))
+        }
+      }
+    )
+  }
+
+  return(spatial_df)
+}
+
+
+#' Get Multilingual Messages for Spatial Operations
+#'
+#' Returns user interface messages in the specified language for spatial join operations.
+#'
+#' @param lang Character. Language code: "en", "pt", "es"
+#'
+#' @return List of translated UI messages
+#' @keywords internal
+#' @noRd
+get_spatial_station_messages <- function(lang) {
+  messages <- list(
+    en = list(
+      creating_cache = "Creating cache directory: ",
+      cache_enabled = "Cache: ENABLED",
+      loading_cache = "Loading from cache: ",
+      cache_error = "Cache loading failed. Downloading fresh data...",
+      downloading_data = "Downloading spatial data from climasus Data Center...",
+      saving_cache = "Saving to cache...",
+      cache_saved = "Spatial data cached successfully.",
+      cache_save_error = "Failed to save cache: "
+    ),
+    pt = list(
+      creating_cache = "Criando diretorio de cache: ",
+      cache_enabled = "Cache: ATIVADO",
+      loading_cache = "Carregando do cache: ",
+      cache_error = "Falha ao carregar cache. Baixando dados novos...",
+      downloading_data = "Baixando dados espaciais do climasus Data Center ...",
+      saving_cache = "Salvando no cache...",
+      cache_saved = "Dados espaciais armazenados em cache com sucesso.",
+      cache_save_error = "Falha ao salvar cache: "
+    ),
+    es = list(
+      creating_cache = "Creando directorio de cache: ",
+      cache_enabled = "Cache: ACTIVADO",
+      loading_cache = "Cargando desde cache: ",
+      cache_error = "Fallo al cargar cache. Descargando datos nuevos...",
+      downloading_data = "Descargando datos espaciales del climasus Data Center...",
+      saving_cache = "Guardando en cache...",
+      cache_saved = "Datos espaciales almacenados en cache con exito.",
+      cache_save_error = "Fallo al guardar cache: "
+    )
+  )
+  
+  return(messages[[lang]])
+}
 
 # ============================================================================
 # DISPATCH

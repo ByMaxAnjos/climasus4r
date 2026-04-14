@@ -2,7 +2,7 @@
 title: "Índices Bioclimáticos para Saúde Pública"
 subtitle: "Teoria e Pipeline INMET → Preenchimento → Indicadores Térmicos | `sus_climate_compute_indicators()`"
 author:
-  - name: "Max Anjos"
+  - name: "Max Anjos & João Gobo"
 date: "`r format(Sys.Date(), '%d %B, %Y')`"
 output:
   html_document:
@@ -304,128 +304,104 @@ térmico.
 
 ## Por que índices bioclimáticos?
 
-Temperatura do ar isoladamente é um preditor incompleto de estresse térmico humano.
-O corpo humano responde à **combinação** de temperatura, umidade, vento e radiação solar —
-variáveis capturadas pelos índices implementados nesta função.
+A temperatura do ar (`T`) isoladamente é um preditor insuficiente de estresse térmico humano. O sistema termorregulatório responde a um **balanço energético complexo** que integra:
+
+*   **Temperatura do ar** (`T`, °C)
+*   **Umidade relativa** (`RH`, %): afeta a eficiência da evaporação do suor.
+*   **Velocidade do vento** (`WS`, m/s): modifica a camada limite de convecção.
+*   **Radiação solar** (`SR`, W/m²): adiciona carga térmica radiante.
+
+Índices como WBGT, UTCI e PET traduzem essa interação em um valor escalar com significado fisiológico direto, sendo ferramentas padrão em saúde ocupacional, vigilância de ondas de calor e planejamento urbano.
 
 ## 📊 Indicadores Bioclimáticos e de Estresse Térmico
 
-| Código | Nome | Variáveis | Domínio de Aplicação | Referência |
-|--------|------|-----------|----------------------|------------|
-| `wbgt` | Wet Bulb Globe Temperature | T, RH, SR, WS | Qualquer T | Liljegren et al. (2008) |
-| `hi` | Heat Index | T, RH | T ≥ 24–26.7 °C | Rothfusz (1990) |
-| `thi` | Temperature-Humidity Index | T, RH | Qualquer T | Thom (1959) |
-| `wcet` | Wind Chill Equivalent Temperature (CA) | T, WS | T ≤ 10 °C | Environment Canada (2001) |
-| `wct` | Wind Chill Temperature (NWS) | T, WS | T ≤ 10 °C | NWS (2001) |
-| `et` | Effective Temperature | T, RH, WS | Qualquer T | Missenard (1937) |
-| `utci` | Universal Thermal Climate Index | T, RH, WS, SR | −60 a +50 °C | Bröde et al. (2012) |
-| `pet` | Physiological Equivalent Temperature | T, RH, WS, SR | Qualquer T | Matzarakis et al. (1999) |
-| `cdd` | Cooling Degree Days | T | T > base (18°C) | ASHRAE |
-| `hdd` | Heating Degree Days | T | T < base (18°C) | ASHRAE |
-| `gdd` | Growing Degree Days | T | Base a limite superior | Climatologia agrícola |
-| `diurnal_range` | Amplitude Térmica Diurna | T (diário) | Qualquer T | Epidemiologia ambiental |
-| `vapor_pressure` | Pressão de Vapor | T, RH | Qualquer T | Magnus-Tetens (1930) |
-| `heat_stress_risk` | Risco de Estresse Térmico | T, RH, WS, SR | Categórico | OSHA/ACGIH (WBGT-base) |
-| `koppen_humidity` | Classificação de Umidade (Köppen) | RH | Categórico | Köppen-Geiger |
+| Código | Nome | Variáveis de Entrada | Domínio de Validade | Referência Principal |
+|:---|:---|:---|:---|:---|
+| `wbgt` | *Wet-Bulb Globe Temperature* | T, RH, SR, WS | Geral | Liljegren *et al.* (2008) |
+| `hi` | *Heat Index* | T, RH | T ≥ 26.7 °C | Rothfusz (1990); NWS |
+| `thi` | *Temperature-Humidity Index* | T, RH | Geral | Thom (1959) |
+| `wcet` | *Wind Chill Equivalent Temp.* (CA) | T, WS | T ≤ 0 °C | Environment Canada (2001) |
+| `wct` | *Wind Chill Temp.* (NWS) | T, WS | T ≤ 10 °C | NWS (2001) |
+| `et` | *Effective Temperature* | T, RH, WS | Geral | Missenard (1937) *apud* Auliciems (2007) |
+| `utci` | *Universal Thermal Climate Index* | T, RH, WS, SR | -60 a +50 °C | Bröde *et al.* (2012) |
+| `pet` | *Physiological Equivalent Temp.* | T, RH, WS, SR | Geral | Matzarakis *et al.* (1999) |
+| `cdd` | *Cooling Degree Days* | T | T > T_base | ASHRAE (2021) |
+| `hdd` | *Heating Degree Days* | T | T < T_base | ASHRAE (2021) |
+| `gdd` | *Growing Degree Days* | T | T_base < T < T_upper | McMaster & Wilhelm (1997) |
+| `diurnal_range` | Amplitude Térmica Diurna | T (min, max) | Geral | - |
+| `vapor_pressure` | Pressão de Vapor Atual | T, RH | Geral | Magnus-Tetens (1930) |
+| `heat_stress_risk` | Risco de Estresse Térmico | WBGT, UTCI | Categórico | OSHA/ACGIH (2017) |
+| `koppen_humidity` | Classe de Umidade (Köppen) | RH | Categórico | Köppen (1936) |
 
 
 ## Fórmulas Matemáticas
 
-### WBGT — Wet Bulb Globe Temperature {-}
+### 1. WBGT (*Wet-Bulb Globe Temperature*)
 
-::: {.formula-box}
-**WBGT** (outdoor) = 0.7 × T~nwb~ + 0.2 × T~g~ + 0.1 × T~db~
+Modelo implementado para ambiente externo sob carga solar direta.
 
-**T~nwb~** (média de dois métodos para robustez numérica):  
-• *Liljegren*: T × atan(0.16 × √(e~a~ + 0.1)) + 3.0  
-• *Bernard & Pourmoghani (1999)*: T + 0.33 × (RH/100) × exp(0.0514 × T) − 4.0  
-T~nwb~ = (método₁ + método₂) / 2
+<div class="equation-card">
 
-**T~g~** (Temperatura de globo):  
-T~g~ = T + 0.0144 × max(G₀, 0)^0.6^ / WS^0.2^ − 2.0  
-onde G₀ = irradiância em W/m² (SR~kJ/m²~ / 3.6)
+**WBGT<sub>out</sub>** = 0.7 × T<sub>nwb</sub> + 0.2 × T<sub>g</sub> + 0.1 × T<sub>db</sub>
 
-**Coeficientes de ponderação** (0.7, 0.2, 0.1): contribuição relativa do  
-bulbo úmido, globo (carga radiante) e bulbo seco ao estresse térmico fisiológico.
-:::
+Onde:
 
-::: {.ref-box}
-📚 Liljegren et al. (2008) *J. Occup. Environ. Hyg.* 5(10):645–655 |
-Bernard & Pourmoghani (1999) *AIHAJ* 60(1):32–37 |
-OSHA Outdoor WBGT Calculator
-:::
+*   **T<sub>db</sub>** = Temperatura de bulbo seco (°C).
+*   **T<sub>nwb</sub>** = Temperatura de bulbo úmido natural (°C). Para robustez numérica, utiliza-se a média de duas estimações:
+    *   *Liljegren*: `T_nwb_lilj = T * atan(0.16 * sqrt(e_a + 0.1)) + 3.0`
+    *   *Bernard & Pourmoghani*: `T_nwb_bp = T + 0.33 * (RH/100) * exp(0.0514 * T) - 4.0`
+    *   `T_nwb = (T_nwb_lilj + T_nwb_bp) / 2`
+    *   Onde `e_a` é a pressão de vapor atual (kPa), calculada a partir de T e RH.
+*   **T<sub>g</sub>** = Temperatura de globo (°C), que modela a carga radiante:
+    *   `T_g = T + 0.0144 * max(G_0, 0)^0.6 / WS^0.2 - 2.0`
+    *   `G_0` é a irradiância solar em W/m², convertida de SR (kJ/m²) por `SR / 3.6`.
 
-### Heat Index (HI) — Rothfusz/NWS {-}
+**Ponderação:** Os coeficientes 0.7, 0.2 e 0.1 representam a contribuição relativa do resfriamento evaporativo (bulbo úmido), da carga radiante (globo) e do calor sensível (bulbo seco) para o estresse térmico em trabalhadores ao ar livre.
+</div>
 
-::: {.formula-box}
-**HI~°F~** = −42.379 + 2.04901523·T + 10.14333127·RH − 0.22475541·T·RH  
-         − 0.00683783·T² − 0.05481717·RH² + 0.00122874·T²·RH  
-         + 0.00085282·T·RH² − 0.00000199·T²·RH²
+### 2. *Heat Index* (HI)
 
-**Ajuste umidade baixa** (RH < 13%, 80 ≤ T~°F~ ≤ 112):  
-HI = HI − (13 − RH)/4 × √(max(17 − |T − 95|, 0) / 17)
+Implementação do modelo de regressão polinomial do *National Weather Service* (NWS), com ajustes para condições de umidade extrema.
 
-**Ajuste umidade alta** (RH > 85%, 80 ≤ T~°F~ ≤ 87):  
-HI = HI + (RH − 85)/10 × (87 − T)/5
+<div class="equation-card">
 
-**Limiar de validade**: T ≥ 26.7°C (padrão) ou 24–26°C (regiões tropicais)
-:::
+**HI<sub>°F</sub>** = −42.379 + 2.04901523·T + 10.14333127·RH − 0.22475541·T·RH − 0.00683783·T² − 0.05481717·RH² + 0.00122874·T²·RH + 0.00085282·T·RH² − 0.00000199·T²·RH²
 
-::: {.ref-box}
-📚 Rothfusz (1990) *NWS Technical Attachment SR/SSD 90-23* |
-NWS Weather Prediction Center
-:::
+O valor final é convertido para Celsius: `HI = (HI°F - 32) * 5/9`.
 
-### UTCI — Aproximação Polinomial Fiala {-}
+**Limiar de Validade Adaptado por Bioma:**
+*   Padrão: T ≥ 26.7 °C.
+*   Regiões tropicais (Amazônia, Mata Atlântica): T ≥ 24.0 °C, devido à aclimatação das populações locais.
 
-::: {.formula-box}
-**T~mrt~** = T + 0.07 × G₀ − 1.5   *(temperatura radiante média)*  
-**VP** = 0.6108 × exp(17.27T / (T + 237.3)) × RH/100   *(pressão vapor, kPa)*  
-**WS~10m~** = max(WS × 1.5, 0.5)   *(velocidade a 10m de altura)*
+**Ajustes Pós-Cálculo:**
+*   Se RH < 13% e 26.7 ≤ T ≤ 44.4 °C: `HI = HI - ((13 - RH)/4) * sqrt((17 - |T - 95|) / 17)`.
+*   Se RH > 85% e 26.7 ≤ T ≤ 30.6 °C: `HI = HI + ((RH - 85)/10) * ((87 - T)/5)`.
+</div>
 
-**UTCI** = T  
-  + 0.048 × (VP×1000 − 1000)/100   *(efeito vapor)*  
-  − 0.29 × ln(WS~10m~ + 0.1)       *(efeito vento, log)*  
-  + 0.016 × ΔT~mrt~                *(radiação linear)*  
-  + 0.010 × ΔT~mrt~²/10            *(radiação não-linear)*  
-  − 6×10⁻⁵ × ΔT~mrt~² × WS~10m~   *(interação vento×radiação)*  
-  + δ~regional~                     *(correção bioma)*
+### 3. *Universal Thermal Climate Index* (UTCI)
 
-Limites físicos: −60 ≤ UTCI ≤ 50°C
-:::
+Aproximação polinomial do modelo de referência Fiala, otimizada para aplicações operacionais em larga escala.
 
-::: {.ref-box}
-📚 Bröde et al. (2012) *Int. J. Biometeorol.* 56(4):481–494 |
-Nota: aproximação simplificada; erros de 3–5°C vs. polinômio completo (210+ termos)
-:::
+<div class="equation-card">
 
-### PET — Aproximação MEMI {-}
+1.  **Temperatura Radiante Média (T<sub>mrt</sub>):** `T_mrt = T + 0.07 * G_0 - 1.5` (aproximação para radiação de ondas curtas).
+2.  **Pressão de Vapor (VP, kPa):** `VP = 0.6108 * exp(17.27 * T / (T + 237.3)) * (RH / 100)` @Tetens1930.
+3.  **Velocidade do Vento a 10 m (WS<sub>10m</sub>):** `WS_10m = max(WS * 1.5, 0.5)` (conversão da altura padrão de 2m para 10m).
 
-::: {.formula-box}
-**clo~sazonal~** = fator_vestuário × {0.5 (verão) | 0.7 (outono/primavera) | 0.9 (inverno)}  
-*(clo = resistência térmica da roupa, regional × sazonalmente ajustado)*
+**UTCI (°C) = T + 0.048 * ((VP*1000) - 1000)/100 - 0.29 * ln(WS_10m + 0.1) + 0.016 * ΔT_mrt + 0.010 * (ΔT_mrt²/10) - 6e-5 * ΔT_mrt² * WS_10m + δ<sub>regional</sub>**
 
-**PET** = T  
-  + 0.10 × (RH − 50)/10       *(efeito umidade)*  
-  − 0.30 × WS~eff~             *(resfriamento pelo vento)*  
-  + 0.05 × (T~mrt~ − T)       *(efeito radiação)*  
-  + 0.50 × (1 − clo)           *(efeito vestuário)*  
-  + δ~regional~                *(correção bioma)*
-:::
+Onde `ΔT_mrt = T_mrt - T`. O termo `δ<sub>regional</sub>` é uma correção empírica calibrada para biomas brasileiros.
+</div>
 
-::: {.ref-box}
-📚 Matzarakis, Mayer & Iziomon (1999) *Int. J. Biometeorol.* 43:76–84 |
-Modelo MEMI completo em RayMan Pro (Freiburg)
-:::
+### 4. Graus-Dia (CDD, HDD, GDD)
 
-### Graus-Dia {-}
+<div class="equation-card">
 
-::: {.formula-box}
-**CDD** = max(T − T~base~, 0)   *(resfriamento; T~base~ regional = 18–20°C)*  
-**HDD** = max(T~base~ − T, 0)   *(aquecimento; T~base~ regional = 14–18°C)*  
-**GDD** = min(max(T, T~base~), T~upper~) − T~base~   *(crescimento agrícola)*  
-*(T~base~ = 8–15°C; T~upper~ = 30–35°C — ambos ajustados por bioma)*
-:::
+*   **CDD** (*Cooling Degree Days*): `CDD = max(0, T - T_base_cdd)`. Base regional: 18–20 °C.
+*   **HDD** (*Heating Degree Days*): `HDD = max(0, T_base_hdd - T)`. Base regional: 14–18 °C.
+*   **GDD** (*Growing Degree Days*): `GDD = max(0, min(T, T_upper) - T_base_gdd)`. Base regional: 8–15 °C. Limite superior regional: 30–35 °C.
+
+</div>
 
 ---
 
@@ -1162,59 +1138,57 @@ cat("Colunas geradas (ocupacional):", names(ind_ocupacional), "\n")
 
 # Referências
 
-::: {.ref-box}
-**WBGT**  
-Liljegren, J.C. et al. (2008). Modeling the wet bulb globe temperature using standard
-meteorological measurements. *J. Occup. Environ. Hyg.* 5(10):645–655.  
-Bernard, T.E. & Pourmoghani, M. (1999). Prediction of workplace wet bulb global
-temperature. *AIHAJ* 60(1):32–37.  
-OSHA (2017). *Protecting Workers from the Effects of Heat.* OSHA 3154.
+- Liljegren, J. C., Carhart, R. A., Lawday, P., Tschopp, S., & Sharp, R. (2008).  
+  Modeling the wet bulb globe temperature using standard meteorological measurements. *Journal of Occupational and Environmental Hygiene, 5*(10), 645–655.  
 
-**Heat Index**  
-Rothfusz, L.P. (1990). *The heat index equation.* NWS Technical Attachment SR/SSD 90-23.  
-NWS Weather Prediction Center. *Heat Index.* www.wpc.ncep.noaa.gov/html/heatindex_equation.shtml
+- Bernard, T. E., & Pourmoghani, M. (1999).  
+  Prediction of workplace wet bulb globe temperature. *AIHAJ, 60*(1), 32–37.  
 
-**THI**  
-Thom, E.C. (1959). The discomfort index. *Weatherwise* 12(2):57–59.
+- Occupational Safety and Health Administration. (2017).  
+  *Protecting workers from the effects of heat* (OSHA 3154).  
 
-**Wind Chill**  
-Environment Canada (2001). *Wind chill index.* Meteorological Service of Canada.  
-NWS (2001). *NWS Wind Chill Temperature Index.*
+- International Organization for Standardization. (1989).  
+  *ISO 7243: Hot environments—Estimation of the heat stress on working man based on the WBGT-index*.  
 
-**Effective Temperature**  
-Missenard, A. (1937). *Température sensible.* In Auliciems & Szokolay (2007).
+- Rothfusz, L. P. (1990).  
+  *The heat index equation* (Technical Attachment SR/SSD 90-23). National Weather Service.  
 
-**UTCI**  
-Bröde, P. et al. (2012). Deriving the operational procedure for the Universal
-Thermal Climate Index (UTCI). *Int. J. Biometeorol.* 56(4):481–494.  
-www.utci.org
+- National Weather Service. (n.d.).  
+  Heat index equation. https://www.wpc.ncep.noaa.gov/html/heatindex_equation.shtml  
 
-**PET**  
-Matzarakis, A., Mayer, H. & Iziomon, M.G. (1999). Applications of a universal
-thermal index: physiological equivalent temperature. *Int. J. Biometeorol.* 43:76–84.
+- Thom, E. C. (1959).  
+  The discomfort index. *Weatherwise, 12*(2), 57–59.  
 
-**Pressure de Vapor**  
-Magnus, G. (1844). *Versuche über die Spannkräfte des Wasserdampfs.* Berlin.  
-Tetens, O. (1930). Über einige meteorologische Begriffe. *Z. Geophys.* 6:297–309.
+- Joint Action Group for Temperature Indices. (2001).  
+  Development of the wind chill temperature index.  
 
-**Graus-Dia**  
-ASHRAE (2021). *ASHRAE Handbook — Fundamentals.* Chapter 14.  
-McMaster, G.S. & Wilhelm, W.W. (1997). Growing degree-days: one equation, two
-interpretations. *Agric. For. Meteorol.* 87:291–300.
+- Missenard, A. (1937).  
+  *Température sensible*.  
 
-**Biomas Brasileiros**  
-MMA/IBGE (2019). *Mapa de Biomas do Brasil.* 1:250.000.
+- Bröde, P., Fiala, D., Błażejczyk, K., Holmér, I., Jendritzky, G., Kampmann, B., et al. (2012).  
+  Deriving the operational procedure for the Universal Thermal Climate Index (UTCI). *International Journal of Biometeorology, 56*(4), 481–494.  
 
-**climasus4r**  
-climasus4r Development Team (2024). *climasus4r: Climate Data Tools for Brazilian
-Public Health.* R package. github.com/susdev/climasus4r
-:::
+- Matzarakis, A., Mayer, H., & Iziomon, M. G. (1999).  
+  Applications of a universal thermal index: Physiological equivalent temperature. *International Journal of Biometeorology, 43*, 76–84.  
+
+- Magnus, G. (1844).  
+  *Versuche über die spannkräfte des wasserdampfs*.  
+
+- Tetens, O. (1930).  
+  Über einige meteorologische Begriffe. *Zeitschrift für Geophysik, 6*, 297–309.  
+
+- Alduchov, O. A., & Eskridge, R. E. (1996).  
+  Improved Magnus form approximation of saturation vapor pressure. *Journal of Applied Meteorology, 35*, 601–609.  
+
+- McMaster, G. S., & Wilhelm, W. W. (1997).  
+  Growing degree-days: One equation, two interpretations. *Agricultural and Forest Meteorology, 87*, 291–300.  
 
 ---
 
 ## 🌲 Tem feedback ou sugestões?
 
 Você tem alguma ideia de melhoria ou encontrou algum erro? Clique no botão abaixo para abrir uma nova *issue* no GitHub e compartilhar suas sugestões diretamente conosco.
+
 
 ```{=html}
 <a href='https://github.com/ByMaxAnjos/climasus4r/issues/new' class="github-feedback-btn">
@@ -1223,3 +1197,4 @@ Você tem alguma ideia de melhoria ou encontrou algum erro? Clique no botão aba
   </svg>
   Abrir issue no GitHub
 </a>
+```

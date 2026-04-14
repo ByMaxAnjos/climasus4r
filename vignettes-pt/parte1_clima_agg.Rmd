@@ -1060,6 +1060,7 @@ A integração dessas estratégias em modelos híbridos e sistemas de vigilânci
 
 Você tem alguma ideia de melhoria ou encontrou algum erro? Clique no botão abaixo para abrir uma nova *issue* no GitHub e compartilhar suas sugestões diretamente conosco.
 
+
 ```{=html}
 <a href='https://github.com/ByMaxAnjos/climasus4r/issues/new' class="github-feedback-btn">
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -1067,3 +1068,4 @@ Você tem alguma ideia de melhoria ou encontrou algum erro? Clique no botão aba
   </svg>
   Abrir issue no GitHub
 </a>
+```

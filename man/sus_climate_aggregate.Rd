@@ -33,8 +33,81 @@ column \code{geom}.}
 Must contain \code{date} (Date or POSIXct), \code{station_code}, \code{latitude}, \code{longitude},
 and climate variables.}
 
-\item{climate_var}{Character vector with climate columns to aggregate.
-Use \code{"all"} (default) to include all available variables.}
+\item{climate_var}{Character vector with climate variables to aggregate.
+Use \code{"all"} (default) to include all available variables.
+
+Available variables are grouped as follows:
+
+\strong{Atmospheric pressure:}
+\itemize{
+\item \code{"patm_mb"}, \code{"patm_max_mb"}, \code{"patm_min_mb"}
+}
+
+\strong{Air temperature:}
+\itemize{
+\item \code{"tair_dry_bulb_c"}, \code{"tair_max_c"}, \code{"tair_min_c"}
+}
+
+\strong{Dew point temperature:}
+\itemize{
+\item \code{"dew_tmean_c"}, \code{"dew_tmax_c"}, \code{"dew_tmin_c"}
+}
+
+\strong{Relative humidity:}
+\itemize{
+\item \code{"rh_mean_porc"}, \code{"rh_max_porc"}, \code{"rh_min_porc"}
+}
+
+\strong{Precipitation:}
+\itemize{
+\item \code{"rainfall_mm"}
+}
+
+\strong{Wind:}
+\itemize{
+\item \code{"ws_2_m_s"} (mean wind speed),
+\item \code{"ws_gust_m_s"} (wind gust),
+\item \code{"wd_degrees"} (wind direction)
+}
+
+\strong{Solar radiation:}
+\itemize{
+\item \code{"sr_kj_m2"}
+}
+
+\strong{Biometeorological indices:}
+\itemize{
+\item \code{"wbgt_c"} (Wet Bulb Globe Temperature)
+\item \code{"hi_c"} (Heat Index)
+\item \code{"thi_c"} (Temperature-Humidity Index)
+\item \code{"wcet_c"} (Wind Chill Equivalent Temperature)
+\item \code{"wct_c"} (Wind Chill Temperature)
+\item \code{"et_c"} (Effective Temperature)
+\item \code{"utci_c"} (Universal Thermal Climate Index)
+\item \code{"pet_c"} (Physiological Equivalent Temperature)
+}
+
+\strong{Thermal indices (degree-days):}
+\itemize{
+\item \code{"cdd_c"} (Cooling Degree Days)
+\item \code{"hdd_c"} (Heating Degree Days)
+\item \code{"gdd_c"} (Growing Degree Days)
+}
+
+\strong{Derived variables:}
+\itemize{
+\item \code{"diurnal_range_c"} (daily temperature range)
+\item \code{"vapor_pressure_kpa"} (saturation vapor pressure)
+}
+
+@section Notes:
+\itemize{
+\item Not all variables may be available in \code{climate_data}. Use \code{names(climate_data)}
+to inspect available columns.
+\item When \code{"all"} is used, only existing variables in the dataset are selected.
+\item Derived and index variables depend on prior processing with
+\code{sus_climate_fill()} or feature engineering steps.
+}}
 
 \item{time_unit}{Temporal aggregation unit for raw climate data before join.
 Options: \code{"day"} (default), \code{"week"}, \code{"month"}, \code{"quarter"}, \code{"year"},
@@ -110,7 +183,7 @@ The choice of strategy should reflect the hypothesized biological mechanism:
 \itemize{
 \item \strong{exact}: Immediate effects (heat stroke, hemorrhagic stroke)
 \item \strong{discrete_lag}: Known delayed effect (e.g., temperature 7 days before influences dengue)
-\item \strong{moving_window}: Cumulative exposure without specific lag. \strong{RECOMMENDED for elderly mortality}.
+\item \strong{moving_window}: Cumulative exposure without specific lag.
 \item \strong{offset_window}: Defined incubation period (e.g., temperature 14-7 days before death)
 \item \strong{distributed_lag}: Distributed lag analysis (DLNM); generates exposure matrix for \code{dlnm::crossbasis()}
 \item \strong{degree_days}: Thermal threshold for vector development. GDD above temperature base accumulates over window_days.
@@ -142,14 +215,6 @@ This function uses \strong{retroactive windows} (t-W, t), never symmetric window
 The climate of day t+7 cannot cause a health event on day t. This design prevents
 look-ahead bias, a common methodological error in environmental epidemiology.
 }
-
-\subsection{Autocorrelation in Tropical Regions}{
-
-Temperature exhibits strong autocorrelation in tropical regions (e.g., Amazon).
-When using \code{discrete_lag} or \code{distributed_lag} strategies, verify multicolinearities
-in epidemiological models using \code{car::vif()}. If VIF > 5, consider using DLNM
-or reducing the number of lags.
-}
 }
 \examples{
 \dontrun{
@@ -160,7 +225,7 @@ df_health <- sus_data_import() |>
   sus_spatial_join(level = "munic")
 
 df_climate <- sus_climate_inmet(years = 2023, uf = "AM") |>
-  sus_climate_fill()
+  sus_climate_fill(target_var = "all", parallel = TRUE)
 
 # Example 1: Exact match (same-day temperature)
 df_exact <- sus_climate_aggregate(

@@ -7,7 +7,7 @@
 sus_climate_compute_indicators(
   df,
   indicators = "all",
-  region = "none",
+  region = "auto",
   datetime_col = NULL,
   station_col = NULL,
   apply_validity_mask = TRUE,
@@ -17,7 +17,9 @@ sus_climate_compute_indicators(
   verify_physics = TRUE,
   compute_uncertainty = FALSE,
   verbose = TRUE,
-  lang = "pt"
+  lang = "pt",
+  use_cache = TRUE,
+  cache_dir = "~/.climasus4r_cache/spatial"
 )
 }
 \arguments{
@@ -25,8 +27,8 @@ sus_climate_compute_indicators(
 
 \item{indicators}{Character vector of indicator codes or \code{"all"} (default).}
 
-\item{region}{Character. \code{"none"} (default, standard thresholds) or a
-Brazilian biome: \code{"auto"}, \code{"amazon"}, \code{"cerrado"}, \code{"caatinga"},
+\item{region}{Character. \code{"auto"} (default, standard thresholds) or a
+Brazilian biome: \code{"amazon"}, \code{"cerrado"}, \code{"caatinga"},
 \code{"atlantic_forest"}, \code{"pampa"}, \code{"pantanal"}, \code{"southeast"}, \code{"south"}.}
 
 \item{datetime_col}{Character or \code{NULL} (auto-detected).}
@@ -51,6 +53,12 @@ against extraterrestrial limits; requires \code{latitude} column.}
 \item{verbose}{Logical (default \code{TRUE}).}
 
 \item{lang}{Character: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+
+\item{use_cache}{Logical. If \code{TRUE} (default), uses cached spatial data to avoid
+re-downloads and improve performance.}
+
+\item{cache_dir}{Character string specifying the directory to store cached files.
+Default is \code{"~/.climasus4r_cache/spatial"}.}
 }
 \value{
 A \code{tibble} of class \code{climasus_df} containing indicator columns,

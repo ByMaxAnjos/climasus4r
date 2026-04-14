@@ -77,8 +77,8 @@
   "derive",
   "aggregate",
   "spatial",
-  "climate",
-  "census"
+  "census",
+  "climate"
 )
 #' Funcao hierarquia oficial de estagios
 #' @keywords internal
