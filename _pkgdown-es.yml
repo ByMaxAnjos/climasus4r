@@ -84,6 +84,7 @@ reference:
       - sus_climate_fill_inmet
       - sus_climate_aggregate
       - sus_climate_compute_indicators
+      - sus_climate_plot_fill
 
   - title: "Calidad y Metadatos"
     desc: "Informes de calidad de datos y diccionarios de enfermedades"

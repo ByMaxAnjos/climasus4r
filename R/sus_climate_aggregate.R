@@ -92,8 +92,8 @@
 #' @param offset_days Integer vector of length 2 for `offset_window`.
 #'   Defines historical interval: `c(W1, W2)` aggregates from t-W2 to t-W1.
 #' @param temp_base Numeric. Temperature base for `degree_days` calculation.
-#'   If `NULL` (default), uses region-specific default: 20°C (tropical), 18°C (subtropical),
-#'   15°C (temperate). Use 11°C for *Aedes aegypti* development, 10°C for *Plasmodium*.
+#'   If `NULL` (default), uses region-specific default: 20degC (tropical), 18degC (subtropical),
+#'   15degC (temperate). Use 11 degC for *Aedes aegypti* development, 10degC for *Plasmodium*.
 #' @param gdd_temp_var Character. Temperature column for `degree_days`.
 #'   Default: `"tair_dry_bulb_c"`.
 #' @param min_obs Numeric (0 to 1). Minimum proportion of valid observations required
@@ -132,14 +132,14 @@
 #'
 #' The function automatically adapts to Brazil's diverse climates:
 #'
-#' **Tropical (North, Northeast):** Mean temperature 24-28°C, recommended temp_base 20°C (human health),
-#' heatwave threshold Tmax > 35°C, high autocorrelation.
+#' **Tropical (North, Northeast):** Mean temperature 24-28degC, recommended temp_base 20degC (human health),
+#' heatwave threshold Tmax > 35degC, high autocorrelation.
 #'
-#' **Subtropical (Center-West, Southeast):** Mean temperature 18-26°C, recommended temp_base 18°C,
-#' heatwave threshold Tmax > 32°C, moderate autocorrelation.
+#' **Subtropical (Center-West, Southeast):** Mean temperature 18-26degC, recommended temp_base 18degC,
+#' heatwave threshold Tmax > 32degC, moderate autocorrelation.
 #'
-#' **Temperate (South):** Mean temperature 12-24°C, recommended temp_base 15°C,
-#' heatwave threshold Tmax > 30°C, **coldwave threshold Tmin < 5°C** (critical),
+#' **Temperate (South):** Mean temperature 12-24degC, recommended temp_base 15degC,
+#' heatwave threshold Tmax > 30degC, **coldwave threshold Tmin < 5degC** (critical),
 #' low autocorrelation.
 #'
 #' ## Causal Inference & Look-Ahead Bias
@@ -277,14 +277,14 @@ sus_climate_aggregate <- function(
   if (is.null(temp_base)) {
     temp_base <- region_defaults$temp_base_health
     if (verbose) {
-      cli::cli_alert_info("Using region-specific temp_base = {temp_base}°C for human health")
+      cli::cli_alert_info("Using region-specific temp_base = {temp_base}degC for human health")
     }
   }
   
   if (is.null(threshold_value) && temporal_strategy %in% c("threshold_exceedance", "cold_wave_exceedance")) {
     threshold_value <- region_defaults$heatwave_threshold
     if (verbose && temporal_strategy == "threshold_exceedance") {
-      cli::cli_alert_info("Using region-specific heatwave threshold = {threshold_value}°C")
+      cli::cli_alert_info("Using region-specific heatwave threshold = {threshold_value}degC")
     }
   }
 
@@ -472,7 +472,7 @@ sus_climate_aggregate <- function(
   if (temporal_strategy == "degree_days") {
     agg_details <- c(
       agg_details,
-      sprintf("GDD temp base: %.1f°C (var: %s)", temp_base, gdd_temp_var)
+      sprintf("GDD temp base: %.1fdegC (var: %s)", temp_base, gdd_temp_var)
     )
   }
   
@@ -487,7 +487,7 @@ sus_climate_aggregate <- function(
   if (temporal_strategy == "cold_wave_exceedance" && !is.null(threshold_value)) {
     agg_details <- c(
       agg_details,
-      sprintf("Cold wave threshold: < %.1f°C", threshold_value)
+      sprintf("Cold wave threshold: < %.1fdegC", threshold_value)
     )
   }
   
@@ -587,10 +587,20 @@ sus_climate_aggregate <- function(
       "sus_climate_inmet(...) followed by sus_climate_fill_inmet(..., evaluation = FALSE) and sus_climate_compute_indicators(...)"
     ))
   }
+  # Aceita dados provenientes de sus_climate_fill() (source = "INMET") ou
+  # sus_climate_compute_indicators() (source = "compute_indicators" ou NULL).
+  # Quando os metadados temporais estão ausentes ou o source é desconhecido,
+  # emite aviso em vez de abortar — compatibilidade com pipelines externos.
   temporal_meta <- sus_meta(climate_data, "temporal")
-  if (is.null(temporal_meta) || is.null(temporal_meta$source) ||
-      !temporal_meta$source %in% "INMET") {
-    cli::cli_abort(.msg_wrong_source(lang))
+  valid_sources <- c("INMET", "compute_indicators", "indicators")
+  if (!is.null(temporal_meta) &&
+      !is.null(temporal_meta$source) &&
+      !temporal_meta$source %in% valid_sources) {
+    cli::cli_warn(paste0(
+      "climate_data source '", temporal_meta$source, "' is not in the ",
+      "recognized list (", paste(valid_sources, collapse = ", "), "). ",
+      "Proceeding with caution."
+    ))
   }
   if (verbose) cli::cli_alert_success(.msg_stage_validated(lang))
 }
@@ -686,7 +696,7 @@ sus_climate_aggregate <- function(
   
   if (verbose) {
     cli::cli_alert_info(
-      "Auto-detecting climate region based on latitude ({round(mean_lat, 1)}°): {detected}"
+      "Auto-detecting climate region based on latitude ({round(mean_lat, 1)}deg): {detected}"
     )
   }
   
@@ -738,8 +748,8 @@ sus_climate_aggregate <- function(
     
     if (abs(temp_base - recommended_base) > 3) {
       cli::cli_alert_warning(
-        "temp_base = {temp_base}°C may be inappropriate for {climate_region} region. ",
-        "Recommended: {recommended_base}°C. ",
+        "temp_base = {temp_base}degC may be inappropriate for {climate_region} region. ",
+        "Recommended: {recommended_base}degC. ",
         "Proceed with caution or override with explicit justification."
       )
     }
@@ -750,8 +760,8 @@ sus_climate_aggregate <- function(
     
     if (abs(threshold_value - recommended_threshold) > 3) {
       cli::cli_alert_warning(
-        "Heatwave threshold = {threshold_value}°C may be inappropriate for {climate_region} region. ",
-        "Recommended: {recommended_threshold}°C."
+        "Heatwave threshold = {threshold_value}degC may be inappropriate for {climate_region} region. ",
+        "Recommended: {recommended_threshold}degC."
       )
     }
   }
@@ -937,17 +947,51 @@ sus_climate_aggregate <- function(
   }
 
   # 4. Aggregation rules by variable type
-  cols_sum  <- c("rainfall_mm", "sr_kj_m2")
-  
+  # INMET base variables
+  cols_sum  <- c("rainfall_mm", "sr_kj_m2",
+                 # Degree-day indices (sus_climate_compute_indicators)
+                 "cdd_c", "hdd_c", "gdd_c")
+
   cols_mean <- c(
     "patm_mb", "patm_max_mb", "patm_min_mb",
     "tair_dry_bulb_c", "dew_tmean_c",
-    "rh_mean_porc", "wd_degrees", "ws_2_m_s"
+    "rh_mean_porc", "wd_degrees", "ws_2_m_s",
+    # Derived variables (sus_climate_compute_indicators)
+    "vapor_pressure_kpa", "diurnal_range_c"
   )
-  
-  cols_max  <- c("tair_max_c", "dew_tmax_c", "rh_max_porc", "ws_gust_m_s")
-  
-  cols_min  <- c("tair_min_c", "dew_tmin_c", "rh_min_porc")
+
+  # Heat-stress indices -> daily MAXIMUM (sus_climate_compute_indicators)
+  # wbgt_c: Wet Bulb Globe Temperature-represents peak heat stress
+  # hi_c:   Heat Index-peak perceived temperature
+  # thi_c:  Temperature-Humidity Index-peak discomfort
+  # et_c:   Effective Temperature-peak thermal sensation
+  # utci_c: Universal Thermal Climate Index-peak physiological stress
+  # pet_c:  Physiological Equivalent Temperature-peak thermal load
+  cols_max  <- c(
+    "tair_max_c", "dew_tmax_c", "rh_max_porc", "ws_gust_m_s",
+    "wbgt_c", "hi_c", "thi_c", "et_c", "utci_c", "pet_c"
+  )
+
+  # Cold-stress indices → daily MINIMUM (sus_climate_compute_indicators)
+  # wcet_c: Wind Chill Equivalent Temperature-minimum thermal comfort
+  # wct_c:  Wind Chill Temperature-minimum perceived temperature
+  cols_min  <- c(
+    "tair_min_c", "dew_tmin_c", "rh_min_porc",
+    "wcet_c", "wct_c"
+  )
+
+  # Any numeric column from sus_climate_compute_indicators not covered above
+  # is aggregated by mean. This prevents silent column loss when new
+  # indicators are added to the pipeline.
+  all_known <- c(cols_sum, cols_mean, cols_max, cols_min,
+                 "date", "station_code", "station_name",
+                 "latitude", "longitude", "altitude", "uf", "region",
+                 "year", "time_group", "season_label")
+  numeric_cols <- names(data_proc)[vapply(data_proc, is.numeric, logical(1))]
+  cols_mean_extra <- setdiff(numeric_cols, all_known)
+  if (length(cols_mean_extra) > 0) {
+    cols_mean <- c(cols_mean, cols_mean_extra)
+  }
   
   # Metadata to preserve
   meta_vars <- c(
@@ -1004,9 +1048,62 @@ sus_climate_aggregate <- function(
 #' @keywords internal
 #' @noRd
 .match_spatial <- function(df, spatial_obj, verbose = FALSE) {
-  required_cols <- c("station_name", "station_code", "latitude", "longitude")
-  if (!all(required_cols %in% names(df))) {
-    cli::cli_abort("Dados de estacao devem conter: {paste(required_cols, collapse = ', ')}")
+  # Colunas obrigatorias para o matching espacial.
+  # sus_climate_compute_indicators() pode nao incluir latitude/longitude
+  # diretamente nesse caso tentamos recupera-las de um atributo salvo
+  # ou de uma tabela de estacoes armazenada no objeto.
+  required_core   <- c("station_code")
+  required_coords <- c("latitude", "longitude")
+  required_name   <- c("station_name")
+
+  if (!all(required_core %in% names(df))) {
+    cli::cli_abort(
+      "climate_data must contain 'station_code'. ",
+      "Received columns: {paste(names(df), collapse = ', ')}"
+    )
+  }
+
+  # Se latitude/longitude ou station_name estao ausentes, tenta recuperar
+  # de atributos do objeto (padrao de sus_climate_compute_indicators)
+  if (!all(c(required_coords, required_name) %in% names(df))) {
+    station_meta <- attr(df, "station_metadata")
+    if (!is.null(station_meta) &&
+        all(c("station_code", "latitude", "longitude") %in% names(station_meta))) {
+      df <- dplyr::left_join(
+        df,
+        dplyr::select(station_meta, dplyr::any_of(
+          c("station_code", "station_name", "latitude", "longitude", "altitude")
+        )),
+        by = "station_code"
+      )
+      if (verbose)
+        cli::cli_alert_info(
+          "Recovered station coordinates from 'station_metadata' attribute."
+        )
+    }
+  }
+
+  # Se ainda faltam lat/lon, nao e possível fazer o matching — aborta com
+  # mensagem informativa sobre como fornecer os metadados de estacao.
+  missing_cols <- setdiff(c("station_code", "latitude", "longitude"), names(df))
+  if (length(missing_cols) > 0) {
+    cli::cli_abort(paste0(
+      "climate_data is missing required columns for spatial matching: ",
+      paste(missing_cols, collapse = ", "), ". \n",
+      "If using sus_climate_compute_indicators(), ensure the output retains \n",
+      "latitude, longitude, and station_name columns from the original INMET data, \n",
+      "or attach them via: \n",
+      "  attr(indicators_data, 'station_metadata') <- station_coords_df"
+    ))
+  }
+
+  # station_name pode ser missing-usa station_code como fallback
+  if (!"station_name" %in% names(df)) {
+    df <- dplyr::mutate(df, station_name = .data$station_code)
+    if (verbose)
+      cli::cli_alert_info(
+        "station_name not found. Using station_code as station name."
+      )
   }
   if (!"code_muni" %in% names(spatial_obj)) {
     cli::cli_abort("spatial_obj deve conter a coluna 'code_muni'. Execute sus_spatial_join() antes.")
@@ -1130,9 +1227,7 @@ sus_climate_aggregate <- function(
 #' @keywords internal
 #' @noRd
 .join_exact <- function(health_data, climate_data, target_vars) {
- 
   agg_rule <- .build_agg_rules(target_vars)
- 
   # Agrega climate_matched para 1 linha por (date, code_muni),
   # aplicando a regra correta por tipo de variavel.
   climate_sel <- climate_data |>
@@ -1156,7 +1251,6 @@ sus_climate_aggregate <- function(
       ),
       .groups = "drop"
     )
- 
   health_data |>
     dplyr::left_join(climate_sel, by = c("date", "code_muni")) |>
     dplyr::relocate(dplyr::any_of(c("date", "code_muni")))
@@ -1236,12 +1330,12 @@ sus_climate_aggregate <- function(
 #' Distributed Lag: lag matrix 0 ... L for DLNM
 #'
 #' @description
-#' Generates columns `{var}_lag0`, `{var}_lag1`, …, `{var}_lag{L}` for direct
+#' Generates columns `{var}_lag0`, `{var}_lag1`, `{var}_lag{L}` for direct
 #' use in `dlnm::crossbasis()`. The logic is: for lag `l`, look up the
 #' climate value at `t - l` (i.e., *l* days before the event). This is
 #' implemented by adding `l` days to the climate date column, so that
 #' the climate date `t_clim` aligns with the event date `t` when
-#' `t_clim = t - l ⟺ t_clim + l = t`.
+#' `t_clim = t - l <-> t_clim + l = t`.
 #'
 #' Fix from previous version: the sign was correct (+ days(l)),
 #' but `bind_cols` accumulated duplicate columns. Now uses `.row_id`.
@@ -1251,7 +1345,7 @@ sus_climate_aggregate <- function(
 .join_distributed_lag <- function(health_data, climate_data, target_vars, max_lag) {
   health_keyed <- dplyr::mutate(health_data, .row_id = dplyr::row_number())
  
-  # Agrega para 1 linha por (date, code_muni) — mesma regra usada em
+  # Agrega para 1 linha por (date, code_muni)-mesma regra usada em
   # .join_exact() e .join_discrete_lag() para consistencia de pipeline.
   agg_rule_dl <- .build_agg_rules(target_vars)
   climate_sel <- climate_data |>
@@ -1371,7 +1465,7 @@ sus_climate_aggregate <- function(
 #'
 #' Standard dplyr (`left_join` by `code_muni` + subsequent filter) would need to
 #' allocate the full table before filtering:
-#'   2024 municipalities x 122,640 climate rows ≈ 248 M rows -> OOM crash.
+#'   2024 municipalities x 122,640 climate rows aprox. 248 M rows -> OOM crash.
 #'
 #' `foverlaps` uses a binary index on climate intervals, running in O(n log n)
 #' and allocating only rows that satisfy the temporal filter.
@@ -1419,7 +1513,7 @@ sus_climate_aggregate <- function(
 #' This avoids materializing the cartesian product that caused memory overflow
 #' in the original dplyr `many-to-many` implementation.
 #'
-#' Complexity: O(n log n) instead of O(n × m).
+#' Complexity: O(n log n) instead of O(n x m).
 #'
 #' @keywords internal
 #' @noRd
@@ -1501,7 +1595,7 @@ sus_climate_aggregate <- function(
   )]
   data.table::setkey(climate_dt, code_muni, date_int, date_int2)
 
-  # --- Prepare health data.table (only valid rows) -------------------------
+  # Prepare health data.table (only valid rows)
   health_dt <- data.table::as.data.table(
     sf::st_drop_geometry(health_valid)
   )
@@ -1515,7 +1609,7 @@ sus_climate_aggregate <- function(
   # Final guarantee against NAs in foverlaps search columns
   health_dt <- health_dt[!is.na(.win_start_int) & !is.na(.win_end_int)]
 
-  # --- Overlap join ----------------------------------------------------------
+  # Overlap join 
   # Using internal helper if it exists, or foverlaps directly
   joined <- data.table::foverlaps(
     health_dt, climate_dt,
@@ -1524,7 +1618,7 @@ sus_climate_aggregate <- function(
     type = "any", mult = "all", nomatch = NA
   )
 
-  # --- Aggregate by .row_id ----------------------------------------------------
+  # Aggregate by .row_id 
   result_dt <- joined[, lapply(
     stats::setNames(target_vars, target_vars),
     function(v) {
@@ -1542,7 +1636,7 @@ sus_climate_aggregate <- function(
     }
   ), by = .(.row_id)]
 
-  # --- Final Formatting ------------------------------------------------------
+  #  Final Formatting 
   new_nms <- paste0("off", w1, "to", w2, "_", target_vars)
   data.table::setnames(result_dt, target_vars, new_nms)
 
@@ -1626,7 +1720,7 @@ sus_climate_aggregate <- function(
   dir_label      <- if (threshold_direction == "above") "gt" else "lt"
   thr_label      <- gsub("\\.", "p", as.character(threshold_value))
  
-  # --- Prepara data.table do clima ------------------------------------------
+  # Prepara data.table do clima 
   climate_dt <- data.table::as.data.table(
     dplyr::select(climate_data, "code_muni", "date", dplyr::all_of(target_vars))
   )
@@ -1634,7 +1728,7 @@ sus_climate_aggregate <- function(
   climate_dt[, date_int2 := date_int]
   climate_dt[, date := NULL]
  
-  # --- Prepara data.table de saude com janela [t-W, t] ----------------------
+  # Prepara data.table de saude com janela [t-W, t] 
   health_dt <- data.table::as.data.table(
     dplyr::select(sf::st_drop_geometry(health_data), dplyr::all_of(health_id_vars))
   )
@@ -1642,10 +1736,10 @@ sus_climate_aggregate <- function(
   health_dt[, .win_start_int := as.integer(date) - window_days]
   health_dt[, .win_end_int   := as.integer(date)]
  
-  # --- Overlap join ----------------------------------------------------------
+  #  Overlap join 
   joined <- .foverlaps_window(health_dt, climate_dt, target_vars)
  
-  # --- Conta excedencias por variavel ---------------------------------------
+  # Conta excedencias por variavel
   id_plus_row <- c(health_id_vars, ".row_id")
  
   result <- joined[
@@ -1736,7 +1830,7 @@ sus_climate_aggregate <- function(
     return(dplyr::as_tibble(health_work) %>% dplyr::select(-.row_id))
   }
 
-  # --- Prepare climate data.table ------------------------------------------
+  # Prepare climate data.table 
   climate_dt <- data.table::as.data.table(
     dplyr::select(climate_data, "code_muni", "date", dplyr::all_of(target_vars))
   )
@@ -1747,7 +1841,7 @@ sus_climate_aggregate <- function(
   )]
   data.table::setkey(climate_dt, code_muni, date_int, date_int2)
 
-  # --- Prepare health data.table ------------------------------------------
+  #  Prepare health data.table 
   health_dt <- data.table::as.data.table(
     sf::st_drop_geometry(health_valid)
   )
@@ -1760,7 +1854,7 @@ sus_climate_aggregate <- function(
   # Additional guarantee against NAs in interval columns
   health_dt <- health_dt[!is.na(.win_start_int) & !is.na(.win_end_int)]
 
-  # --- Overlap join ----------------------------------------------------------
+  #  Overlap join 
   # If .foverlaps_window is your function that handles NAs, you can use it.
   # Otherwise, direct foverlaps is safer:
   joined <- data.table::foverlaps(
@@ -1773,7 +1867,7 @@ sus_climate_aggregate <- function(
   # Calculate lag of each climate observation relative to event day
   joined[, .lag := .win_end_int - date_int]
 
-  # --- Weighted mean/sum by variable using .row_id ---------------------
+  # Weighted mean/sum by variable using .row_id 
   result_dt <- joined[
     ,
     {
@@ -1826,7 +1920,7 @@ sus_climate_aggregate <- function(
     }
   }
 
-  # --- Formatting and Reintegration --------------------------------------------
+  # Formatting and Reintegration 
   new_nms <- paste0("wwin", window_days, "_", target_vars)
   data.table::setnames(result_dt, target_vars, new_nms)
 
@@ -1988,7 +2082,7 @@ sus_climate_aggregate <- function(
 #'
 #' @description
 #' Calculates vector mean of angles in degrees using sine/cosine decomposition.
-#' Avoids the arithmetic mean artifact of angles (e.g., mean of 1° and 359° should be 0°C, not 180°).
+#' Avoids the arithmetic mean artifact of angles (e.g., mean of 1 deg and 359 deg should be 0 degC, not 180 deg).
 #'
 #' @keywords internal
 #' @noRd

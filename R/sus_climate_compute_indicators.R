@@ -458,15 +458,7 @@ sus_climate_compute_indicators <- function(
       start                = min(result[[date_col_final]], na.rm = TRUE),
       end                  = max(result[[date_col_final]], na.rm = TRUE),
       source               = source_sys,
-      indicators_requested = indicators,
-      indicator_stats      = indicator_stats,
-      keep_source_vars     = keep_source_vars,
-      apply_validity_mask  = apply_validity_mask,
-      confidence_flags     = confidence_flags,
-      compute_uncertainty  = compute_uncertainty,
-      verify_physics       = verify_physics,
-      region_adaptation    = if (use_region) region else "none",
-      region_params        = region_params
+      indicators_requested = indicators
     ),
     created  = Sys.time(),
     modified = Sys.time(),

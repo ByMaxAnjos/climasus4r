@@ -61,6 +61,13 @@ Suggests:
     xgboost,
     zoo,
     MASS,
-    rstudioapi
+    rstudioapi,
+    DT,
+    ggplot2,
+    ggsci,
+    htmltools,
+    patchwork,
+    plotly,
+    htmlwidgets
 URL: https://github.com/ByMaxAnjos/climasus4r
 BugReports: https://github.com/ByMaxAnjos/climasus4r/issues

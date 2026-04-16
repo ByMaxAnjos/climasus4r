@@ -142,8 +142,8 @@ for \code{distributed_lag}. Required for these strategies.}
 Defines historical interval: \code{c(W1, W2)} aggregates from t-W2 to t-W1.}
 
 \item{temp_base}{Numeric. Temperature base for \code{degree_days} calculation.
-If \code{NULL} (default), uses region-specific default: 20°C (tropical), 18°C (subtropical),
-15°C (temperate). Use 11°C for \emph{Aedes aegypti} development, 10°C for \emph{Plasmodium}.}
+If \code{NULL} (default), uses region-specific default: 20degC (tropical), 18degC (subtropical),
+15degC (temperate). Use 11 degC for \emph{Aedes aegypti} development, 10degC for \emph{Plasmodium}.}
 
 \item{gdd_temp_var}{Character. Temperature column for \code{degree_days}.
 Default: \code{"tair_dry_bulb_c"}.}
@@ -198,14 +198,14 @@ The choice of strategy should reflect the hypothesized biological mechanism:
 
 The function automatically adapts to Brazil's diverse climates:
 
-\strong{Tropical (North, Northeast):} Mean temperature 24-28°C, recommended temp_base 20°C (human health),
-heatwave threshold Tmax > 35°C, high autocorrelation.
+\strong{Tropical (North, Northeast):} Mean temperature 24-28degC, recommended temp_base 20degC (human health),
+heatwave threshold Tmax > 35degC, high autocorrelation.
 
-\strong{Subtropical (Center-West, Southeast):} Mean temperature 18-26°C, recommended temp_base 18°C,
-heatwave threshold Tmax > 32°C, moderate autocorrelation.
+\strong{Subtropical (Center-West, Southeast):} Mean temperature 18-26degC, recommended temp_base 18degC,
+heatwave threshold Tmax > 32degC, moderate autocorrelation.
 
-\strong{Temperate (South):} Mean temperature 12-24°C, recommended temp_base 15°C,
-heatwave threshold Tmax > 30°C, \strong{coldwave threshold Tmin < 5°C} (critical),
+\strong{Temperate (South):} Mean temperature 12-24degC, recommended temp_base 15degC,
+heatwave threshold Tmax > 30degC, \strong{coldwave threshold Tmin < 5degC} (critical),
 low autocorrelation.
 }
 
