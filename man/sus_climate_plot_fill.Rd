@@ -2,7 +2,7 @@
 % Please edit documentation in R/sus_climate_plot_fill.R
 \name{sus_climate_plot_fill}
 \alias{sus_climate_plot_fill}
-\title{Preenchimento de falhas series temporais com Machine Learnig}
+\title{Visualise time-series gap-filling from sus_climate_fill()}
 \usage{
 sus_climate_plot_fill(
   df_filled,
@@ -20,45 +20,52 @@ sus_climate_plot_fill(
 )
 }
 \arguments{
-\item{df_filled}{Output of \code{sus_climate_fill()}}
+\item{df_filled}{Output of \code{sus_climate_fill()}. In production mode this is a
+\verb{<climasus_df>} tibble; in evaluation mode it is the named list returned by
+\code{sus_climate_fill(evaluation = TRUE)}.}
 
-\item{df_original}{Raw data before gap filling (\code{sus_climate_inmet()})}
+\item{df_original}{Raw data before gap filling, e.g. from \code{sus_climate_inmet()}.
+Required in production mode; ignored in evaluation mode.}
 
-\item{target_var}{Character vector of variable(s) to visualise}
+\item{target_var}{Character vector of variable(s) to visualise.}
 
-\item{interactive}{Logical. If TRUE, uses plotly; if FALSE, uses ggplot2 (default: TRUE)}
+\item{interactive}{Logical. \code{TRUE} → plotly; \code{FALSE} → ggplot2 (default: \code{TRUE}).}
 
-\item{output_type}{What to return: "plot", "table", "metrics", or "all" (default: "all")}
+\item{output_type}{What to return: \code{"plot"}, \code{"table"}, \code{"metrics"}, or \code{"all"}
+(default: \code{"all"}).}
 
-\item{save_plot}{Optional file path to save the plot (e.g., "plot.png" or "plot.html")}
+\item{save_plot}{Optional file path to save the plot (e.g. \code{"plot.png"} or
+\code{"plot.html"}).}
 
-\item{lang}{Language: "en", "pt", or "es" (default: "en")}
+\item{lang}{Language: \code{"en"}, \code{"pt"}, or \code{"es"} (default: \code{"en"}).}
 
-\item{color_palette}{ggsci palette name. Options: "npg" (default), "aaas", "nejm", "lancet", "jama", "bmj", "jco", "frontiers", "gsea", "uchicago", "primer", "atlassian", "observable", "d3", "igv", "cosmic", "locuszoom", "ucscgb", "startrek", "tron", "futurama", "rickandmorty", "simpsons", "flatui", "bs5", "material", "tw3"}
+\item{color_palette}{ggsci palette name (default: \code{"npg"}).}
 
-\item{verbose}{Print diagnostic information}
+\item{verbose}{Print diagnostic information (default: \code{FALSE}).}
 }
 \value{
-Depending on \code{output_type}, returns the plot, table, metrics, or a list of all.
+Depending on \code{output_type}, returns the plot, table, metrics, or a
+named list containing all four components: \code{plot}, \code{table}, \code{metrics}, \code{data}.
 }
 \description{
-Unified visualization function for gap-filling outputs. Automatically detects
-\strong{production mode} (filled tibble) vs \strong{evaluation mode} (list with
-\code{data} and \code{metrics} components) and renders appropriate interactive (plotly)
-or static (ggplot2) plots plus DT metric tables.
+Unified visualisation for gap-filling outputs of the \code{climasus4r} pipeline.
+Automatically detects \strong{production mode} (filled tibble) vs \strong{evaluation
+mode} (list with \code{data} and \code{metrics} components) and renders appropriate
+interactive (plotly) or static (ggplot2) plots plus DT metric tables.
 
 \strong{Production mode} displays:
 \itemize{
-\item Time-series of observed (with gaps) vs imputed series
-\item Imputed points as distinct markers connected by dotted line
-\item Interactive range slider with zoom presets
+\item Time-series of observed (with gaps) vs imputed series.
+\item Imputed segments as distinct markers.  Consecutive imputed blocks are
+connected by a dotted line; isolated single points appear as dots only.
+\item Interactive range-slider with zoom presets (plotly only).
 }
 
-\strong{Evaluation mode} displays a 2x2 dashboard:
+\strong{Evaluation mode} displays a 2×2 diagnostic dashboard:
 \itemize{
-\item Observed vs Predicted scatter with 1:1 reference line
-\item Residual distribution histogram
-\item Residuals over time (diagnostic for temporal autocorrelation)
-\item Residuals vs observed (diagnostic for heteroscedasticity)
+\item Observed vs Predicted scatter with 1:1 reference line.
+\item Residual distribution histogram.
+\item Residuals over time (temporal-autocorrelation diagnostic).
+\item Residuals vs observed (heteroscedasticity diagnostic).
 }
 }

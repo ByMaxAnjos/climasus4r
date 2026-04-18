@@ -7,6 +7,7 @@
 sus_climate_inmet(
   years = NULL,
   uf = NULL,
+  station_code = NULL,
   use_cache = TRUE,
   cache_dir = "~/.climasus4r_cache/climate",
   parallel = TRUE,
@@ -23,6 +24,12 @@ Must be between 2000 and current year. If \code{NULL}, imports last 2 years.}
 \item{uf}{Character vector of Brazilian state codes (e.g., \code{"AM"},
 \code{c("RJ", "MG")}). Case insensitive. If \code{NULL} (default), imports
 \strong{all 27 states} (may be slow - see \strong{Performance}).}
+
+\item{station_code}{Character vector of INMET station codes to filter
+(e.g., \code{c("A101", "A122")}). Optional. If provided, the function downloads
+data for the requested \code{years}/\code{uf} and then filters to include only the
+specified stations. If \code{NULL} (default), all stations in the selected
+states are returned. Station codes are matched case-insensitively.}
 
 \item{use_cache}{Logical. If \code{TRUE} (default), implements two-level caching:
 \itemize{
@@ -83,6 +90,7 @@ A \code{climasus_df} object (subclass of \code{tibble}) with class hierarchy:
 \item{\code{source}}{"INMET"}
 \item{\code{years}}{Years imported}
 \item{\code{ufs}}{States imported}
+\item{\code{station_codes}}{Station codes filtered (or NULL if all)}
 \item{\code{cache_used}}{Whether cache was used}
 \item{\code{qc_stats}}{List with quality control statistics}
 \item{\code{n_stations}}{Number of unique stations}
@@ -185,6 +193,12 @@ climate_am <- sus_climate_inmet(
   uf = "AM"
 )
 
+# Filter by specific station codes
+climate_sp <- sus_climate_inmet(
+  years = 2023,
+  uf = "SP",
+  station_code = c("A701", "A711")
+)
 
 # Multi-year import with parallel processing
 climate_sp <- sus_climate_inmet(
@@ -201,9 +215,8 @@ climate_se <- sus_climate_inmet(
   verbose = TRUE
 )
 
-
 # Inspect available stations
-climate_df \%>\%
+climate_df |>
   dplyr::distinct(station_code, station_name, latitude, longitude)
 }
 

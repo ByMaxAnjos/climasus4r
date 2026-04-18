@@ -4,6 +4,20 @@
 #' @name utils
 NULL
 
+#' Launch the INMET Station Map
+#' @noRd
+sus_climate_inmet_select <- function() {
+  # Isso exibe o prompt: "The package 'rstudioapi' is required. Would you like to install it?"
+  rlang::check_installed("rstudioapi", reason = "para abrir a interface dentro do RStudio/Positron.")
+  
+  url <- "https://mapas.inmet.gov.br/"
+  
+  if (rstudioapi::isAvailable()) {
+    rstudioapi::viewer(url)
+  } else {
+    utils::browseURL(url)
+  }
+}
 
 #' Launch the climasus4r AI Assistant
 #' @export
