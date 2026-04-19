@@ -9,7 +9,7 @@
 #' @param health_data A `climasus_df` object produced by `sus_spatial_join()`.
 #'   Must contain columns `date` (Date), `code_muni` (character), and geometry
 #'   column `geom`.
-#' @param climate_data A `climasus_df` object produced by `sus_climate_fill()`.
+#' @param climate_data A `climasus_df` object produced by `sus_climate_fill_inmet()`.
 #'   Must contain `date` (Date or POSIXct), `station_code`, `latitude`, `longitude`,
 #'   and climate variables.
 #' @param climate_var Character vector with climate variables to aggregate.
@@ -64,7 +64,7 @@
 #'     to inspect available columns.
 #'   - When `"all"` is used, only existing variables in the dataset are selected.
 #'   - Derived and index variables depend on prior processing with
-#'     `sus_climate_fill()` or feature engineering steps.
+#'     `sus_climate_fill_inmet()` or feature engineering steps.
 #' @param time_unit Temporal aggregation unit for raw climate data before join.
 #'   Options: `"day"` (default), `"week"`, `"month"`, `"quarter"`, `"year"`,
 #'   `"season"`. Relevant only when input data are hourly resolution.
@@ -168,7 +168,7 @@
 #'   sus_spatial_join(level = "munic")
 #'
 #' df_climate <- sus_climate_inmet(years = 2023, uf = "AM") |>
-#'   sus_climate_fill(target_var = "all", parallel = TRUE)
+#'   sus_climate_fill_inmet(target_var = "all", parallel = TRUE)
 #'
 #' # Example 1: Exact match (same-day temperature)
 #' df_exact <- sus_climate_aggregate(

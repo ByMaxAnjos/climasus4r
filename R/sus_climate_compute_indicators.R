@@ -39,7 +39,7 @@
 #' @description
 #' `sus_climate_compute_indicators()` calculates a comprehensive set of
 #' bioclimatic and thermal-stress indices from INMET station data (output of
-#' `sus_climate_inmet()` or `sus_climate_fill()`).
+#' `sus_climate_inmet()` or `sus_climate_fill_inmet()`).
 #'
 #' **Scientific robustness highlights:**
 #' \itemize{
@@ -84,7 +84,7 @@
 #' 
 #' *(Where: T=`tair_dry_bulb_c`, RH=`rh_mean_porc`, SR=`sr_kj_m2`, WS=`ws_2_m_s`)*
 #'
-#' @param df Data frame or tibble from `sus_climate_inmet()` or `sus_climate_fill()`.
+#' @param df Data frame or tibble from `sus_climate_inmet()` or `sus_climate_fill_inmet()`.
 #' @param indicators Character vector of indicator codes or `"all"` (default).
 #' @param region Character. `"auto"` (default, standard thresholds) or a
 #'   Brazilian biome: `"amazon"`, `"cerrado"`, `"caatinga"`,
@@ -142,7 +142,7 @@
 #' )
 #'
 #' df_clima |>
-#'   sus_climate_fill(target_var = "all") |>
+#'   sus_climate_fill_inmet(target_var = "all") |>
 #'   sus_climate_compute_indicators(indicators = c("wbgt", "hi", "utci"))
 #' }
 sus_climate_compute_indicators <- function(
@@ -235,7 +235,7 @@ sus_climate_compute_indicators <- function(
           " " = "",
           "Please prepare your data first:",
           "*" = "{.strong 1. Import INMET Data:} {.code df <- sus_climate_inmet(...)}",
-          "*" = "{.strong 2. Filling gaps:} {.code df <- sus_climate_fill(...)}"
+          "*" = "{.strong 2. Filling gaps:} {.code df <- sus_climate_fill_inmet(...)}"
         ),
         pt = c(
           "{.red {cli::symbol$cross} A entrada como nao objeto {.cls climasus_df}.}",
@@ -243,7 +243,7 @@ sus_climate_compute_indicators <- function(
           " " = "",
           "Por favor, prepare seus dados primeiro:",
           "*" = "{.strong 1. Importar Dados do INMET:} {.code df <- sus_climate_inmet(...)}",
-          "*" = "{.strong 2. Preencher falhas:} {.code df <- sus_climate_fill(...)}"
+          "*" = "{.strong 2. Preencher falhas:} {.code df <- sus_climate_fill_inmet(...)}"
         ),
         es = c(
           "{.red {cli::symbol$cross} La entrada no es un objeto {.cls climasus_df}.}",
@@ -251,7 +251,7 @@ sus_climate_compute_indicators <- function(
           " " = "",
           "Por favor, prepare sus datos primero:",
           "*" = "{.strong 1. Importar Dados del INMET:} {.code df <- sus_climate_inmet(...)}",
-          "*" = "{.strong 2. Preencher falhas:} {.code df <- sus_climate_fill(...)}"
+          "*" = "{.strong 2. Preencher falhas:} {.code df <- sus_climate_fill_inmet(...)}"
         )
       )
       cli::cli_abort(msg_error[[lang]])

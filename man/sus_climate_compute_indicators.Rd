@@ -23,7 +23,7 @@ sus_climate_compute_indicators(
 )
 }
 \arguments{
-\item{df}{Data frame or tibble from \code{sus_climate_inmet()} or \code{sus_climate_fill()}.}
+\item{df}{Data frame or tibble from \code{sus_climate_inmet()} or \code{sus_climate_fill_inmet()}.}
 
 \item{indicators}{Character vector of indicator codes or \code{"all"} (default).}
 
@@ -67,7 +67,7 @@ optional flag/CI columns, and a \code{sus_meta} attribute.
 \description{
 \code{sus_climate_compute_indicators()} calculates a comprehensive set of
 bioclimatic and thermal-stress indices from INMET station data (output of
-\code{sus_climate_inmet()} or \code{sus_climate_fill()}).
+\code{sus_climate_inmet()} or \code{sus_climate_fill_inmet()}).
 
 \strong{Scientific robustness highlights:}
 \itemize{
@@ -143,7 +143,7 @@ result <- sus_climate_compute_indicators(
 )
 
 df_clima |>
-  sus_climate_fill(target_var = "all") |>
+  sus_climate_fill_inmet(target_var = "all") |>
   sus_climate_compute_indicators(indicators = c("wbgt", "hi", "utci"))
 }
 }

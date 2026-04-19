@@ -1,6 +1,6 @@
 ---
 title: "Download Automático, Preenchimento de Falhas de Dados Meteorológicos do INMET com Machine Learning"
-subtitle: "sus_climate_inmet • sus_climate_fill • sus_climate_plot_fill"
+subtitle: "sus_climate_inmet • sus_climate_fill_inmet • sus_climate_plot_fill"
 author:
   - name: "Max Anjos"
 date: "`r format(Sys.Date(), '%d de %B de %Y')`"
@@ -154,7 +154,7 @@ O Instituto Nacional de Meteorologia (INMET) mantém uma rede de estações auto
 O pacote **climasus4r** resolve exatamente esse problema. Ele oferece um pipeline integrado que vai desde o download automático dos dados brutos do INMET até a visualização diagnóstica da qualidade da imputação. Três funções formam o núcleo desse pipeline:
 
 - **`sus_climate_inmet()`** — baixa, padroniza e aplica controle de qualidade físico nos dados horários do INMET
-- **`sus_climate_fill()`** — imputa valores faltantes usando modelos XGBoost treinados por estação e por variável
+- **`sus_climate_fill_inmet()`** — imputa valores faltantes usando modelos XGBoost treinados por estação e por variável
 - **`sus_climate_plot_fill()`** — gera visualizações profissionais para inspecionar e comunicar a qualidade do preenchimento
 
 Este tutorial apresenta as três funções de forma progressiva, partindo do problema prático até a interpretação dos resultados. Cada seção combina explicação conceitual, descrição dos parâmetros e exemplos com código R que refletem cenários reais de uso em epidemiologia climática e vigilância ambiental.
@@ -172,7 +172,7 @@ As três funções foram projetadas para operar em sequência. A saída de uma �
 | **Etapa** | **Função** | **Entrada** | **Saída** | **Papel no pipeline** |
 |-----------|------------|-------------|-----------|----------------------|
 | 1 — Obtenção | `sus_climate_inmet` | Anos e UFs | `climasus_df` com dados brutos padronizados | Fonte única de verdade dos dados observados |
-| 2 — Imputação | `sus_climate_fill` | `climasus_df` | `climasus_df` com valores preenchidos e flags `is_imputed_*` | Garante continuidade temporal para análise |
+| 2 — Imputação | `sus_climate_fill_inmet` | `climasus_df` | `climasus_df` com valores preenchidos e flags `is_imputed_*` | Garante continuidade temporal para análise |
 | 3 — Diagnóstico | `sus_climate_plot_fill` | `climasus_df` preenchido ou lista de avaliação | Gráficos ggplot2 ou plotly + tabelas DT | Valida a plausibilidade do preenchimento |
 
 Na prática, o fluxo mais comum é:
@@ -180,7 +180,7 @@ Na prática, o fluxo mais comum é:
 1. **Instalar e carregar o pacote** — uma única vez por projeto
 2. **Baixar os dados** com `sus_climate_inmet()`, filtrando por anos e estados de interesse
 3. **Inspecionar a cobertura** verificando datas, estações e proporção de dados faltantes
-4. **Imputar falhas** com `sus_climate_fill()` nas variáveis de interesse
+4. **Imputar falhas** com `sus_climate_fill_inmet()` nas variáveis de interesse
 5. **Avaliar a qualidade** da imputação antes de usar os dados em modelos epidemiológicos
 6. **Visualizar o preenchimento** com `sus_climate_plot_fill()` para comunicar o processo
 7. **Integrar com dados de saúde** para análises de associação clima–desfecho
@@ -307,7 +307,7 @@ A saída de `glimpse(df_ro)` mostrará as colunas padronizadas, o tipo `POSIXct`
 
 ---
 
-# `sus_climate_fill()` — Preenchendo Falhas com XGBoost
+# `sus_climate_fill_inmet()` — Preenchendo Falhas com XGBoost
 
 ## Por que preencher falhas?
 
@@ -317,7 +317,7 @@ Preencher falhas não significa inventar dados: significa estimar os valores mai
 
 ## Como o modelo funciona
 
-A função `sus_climate_fill()` treina um modelo XGBoost independente para cada combinação de estação e variável. Isso significa que o modelo para a estação A101 predizendo temperatura não é o mesmo que o modelo para a estação A119 — cada estação tem seu próprio padrão microclimático e seu próprio histórico de falhas.
+A função `sus_climate_fill_inmet()` treina um modelo XGBoost independente para cada combinação de estação e variável. Isso significa que o modelo para a estação A101 predizendo temperatura não é o mesmo que o modelo para a estação A119 — cada estação tem seu próprio padrão microclimático e seu próprio histórico de falhas.
 
 Para cada estação e variável, o modelo recebe como preditores um conjunto rico de features criadas automaticamente a partir da série temporal:
 
@@ -419,7 +419,7 @@ A função `sus_climate_plot_fill()` oferece ferramentas visuais para inspeciona
 | **Modo** | **Entrada** | **O que exibe** | **Quando usar** |
 |----------|-------------|-----------------|-----------------|
 | Série temporal (produção) | `climasus_df` preenchido + `df_original` | Linha da série observada (com lacunas naturais) + segmentos imputados destacados em pontos e linha pontilhada. Com múltiplas estações, exibe um painel por estação. | Para comunicar onde e quanto foi imputado em um conjunto de dados real. |
-| Dashboard de avaliação | Lista retornada por `sus_climate_fill` com `run_evaluation = TRUE` | Painel 2×2: dispersão observado vs. predito com linha 1:1 e R²; histograma de resíduos; resíduos ao longo do tempo; resíduos vs. observado. | Para julgar se a qualidade do modelo justifica o uso dos valores imputados. |
+| Dashboard de avaliação | Lista retornada por `sus_climate_fill_inmet` com `run_evaluation = TRUE` | Painel 2×2: dispersão observado vs. predito com linha 1:1 e R²; histograma de resíduos; resíduos ao longo do tempo; resíduos vs. observado. | Para julgar se a qualidade do modelo justifica o uso dos valores imputados. |
 
 ## Paletas de Cores Científicas
 
@@ -513,7 +513,7 @@ sus_climate_plot_fill(
 
 # ── Modo de avaliação: dashboard diagnóstico ─────────────────────────────────
 sus_climate_plot_fill(
-  df_filled = avaliacao,  # lista retornada por sus_climate_fill(..., run_evaluation = TRUE)
+  df_filled = avaliacao,  # lista retornada por sus_climate_fill_inmet(..., run_evaluation = TRUE)
   target_var = "tair_dry_bulb_c",
   interactive = FALSE,
   color_palette = "aaas",
@@ -575,7 +575,7 @@ sus_climate_plot_fill(
 
 # ── Modo de avaliação: dashboard diagnóstico ─────────────────────────────────
 sus_climate_plot_fill(
-  df_filled = avaliacao,  # lista retornada por sus_climate_fill(..., run_evaluation = TRUE)
+  df_filled = avaliacao,  # lista retornada por sus_climate_fill_inmet(..., run_evaluation = TRUE)
   target_var = "tair_dry_bulb_c",
   interactive = FALSE,
   color_palette = "aaas",
@@ -637,7 +637,7 @@ sus_climate_plot_fill(
 
 # ── Modo de avaliação: dashboard diagnóstico ─────────────────────────────────
 sus_climate_plot_fill(
-  df_filled = avaliacao,  # lista retornada por sus_climate_fill(..., run_evaluation = TRUE)
+  df_filled = avaliacao,  # lista retornada por sus_climate_fill_inmet(..., run_evaluation = TRUE)
   target_var = "tair_dry_bulb_c",
   interactive = FALSE,
   color_palette = "aaas",
@@ -694,7 +694,7 @@ df_pa |>
                    .names = "pct_na_{.col}"))
 
 # ── ETAPA 2: Avaliar a qualidade da imputação antes de produção ──────────────
-eval_pa <- sus_climate_fill(
+eval_pa <- sus_climate_fill_inmet(
   df = df_pa,
   target_var = c("tair_dry_bulb_c", "rh_mean_porc", "rainfall_mm"),
   run_evaluation = TRUE,
@@ -710,7 +710,7 @@ eval_pa$tair_dry_bulb_c$metrics |>
 
 # ── ETAPA 3: Aplicar imputação em produção ───────────────────────────────────
 # (somente após validar que as métricas são aceitáveis)
-df_pa_filled <- sus_climate_fill(
+df_pa_filled <- sus_climate_fill_inmet(
   df = df_pa,
   target_var = c("tair_dry_bulb_c", "rh_mean_porc", "rainfall_mm"),
   parallel = TRUE,
@@ -744,7 +744,7 @@ sus_meta(df_pa_filled)
 
 # Tabela Comparativa das Três Funções
 
-| **Aspecto** | **sus_climate_inmet** | **sus_climate_fill** | **sus_climate_plot_fill** |
+| **Aspecto** | **sus_climate_inmet** | **sus_climate_fill_inmet** | **sus_climate_plot_fill** |
 |-------------|----------------------|---------------------|--------------------------|
 | Papel no pipeline | Fonte de dados | Imputação de falhas | Diagnóstico visual |
 | Entrada principal | Anos e UFs (argumentos) | `climasus_df` observado | `climasus_df` preenchido ou lista de avaliação |
@@ -752,7 +752,7 @@ sus_meta(df_pa_filled)
 | Modelo interno | Pipeline de download, parsing, QC e cache | XGBoost com engenharia de features automática | Sem modelo; apenas visualização |
 | Paralelismo | Entre anos e entre CSVs | Entre estações (furrr) | Não se aplica |
 | Modos de operação | Único | Produção e avaliação | Série temporal e dashboard |
-| Dependência de outra função | Nenhuma | Requer saída de `sus_climate_inmet` | Requer saída de `sus_climate_fill` |
+| Dependência de outra função | Nenhuma | Requer saída de `sus_climate_inmet` | Requer saída de `sus_climate_fill_inmet` |
 | Formato da saída | `climasus_df` (subclasse de tibble) | `climasus_df` ou lista nomeada | Objeto ggplot2, plotly ou lista com plot + table + metrics |
 
 ---
@@ -761,7 +761,7 @@ sus_meta(df_pa_filled)
 
 ## Boas Práticas
 
-- **Sempre avalie antes de imputar** — execute `sus_climate_fill()` com `run_evaluation = TRUE` antes de usar os dados em produção. Não assuma que um bom R² médio se aplica a todas as estações
+- **Sempre avalie antes de imputar** — execute `sus_climate_fill_inmet()` com `run_evaluation = TRUE` antes de usar os dados em produção. Não assuma que um bom R² médio se aplica a todas as estações
 - **Inspecione visualmente cada variável crítica** — use `sus_climate_plot_fill()` para pelo menos uma estação representativa de cada região ou cluster geográfico
 - **Documente a proporção imputada** — sempre registre quantos dados foram imputados (`pct_imputed` na tabela de métricas) e inclua essa informação nos métodos do estudo
 - **Use cache consistentemente** — o parâmetro `use_cache = TRUE` é padrão por uma razão: downloads repetidos sobrecarregam os servidores do INMET e são desnecessários
@@ -770,7 +770,7 @@ sus_meta(df_pa_filled)
 
 ## Erros Comuns
 
-- **Usar dados de outras fontes sem adaptação** — `sus_climate_fill()` foi construída para os nomes de colunas do INMET. Usar com dados de outras redes meteorológicas sem renomear as colunas causará erros ou resultados incorretos
+- **Usar dados de outras fontes sem adaptação** — `sus_climate_fill_inmet()` foi construída para os nomes de colunas do INMET. Usar com dados de outras redes meteorológicas sem renomear as colunas causará erros ou resultados incorretos
 - **Ignorar o fuso horário** — os dados retornados por `sus_climate_inmet()` estão em UTC. Se combinar com dados de saúde em horário local brasileiro (BRT = UTC−3), é necessário converter com `lubridate::with_tz(df$date, "America/Manaus")` ou equivalente para cada fuso
 - **Confiar em métricas agregadas** — um R² de 0,90 no conjunto de todas as estações pode esconder estações individuais com R² de 0,50. Sempre avalie por estação
 - **Imputar precipitação sem cautela** — precipitação horária é uma variável muito irregular (muitos zeros, eventos extremos raros). Valores imputados para chuva devem ser usados com mais cautela do que temperatura ou umidade
@@ -816,13 +816,13 @@ Não. Boas práticas de pesquisa exigem que a proporção de dados imputados e o
 
 ### A função funciona com dados de outras fontes (CEMADEN, INPA, WMO)?
 
-A função `sus_climate_fill()` foi projetada para os 17 nomes de variáveis canônicos do INMET. Dados de outras fontes precisam ter as colunas renomeadas para os mesmos nomes antes do uso.
+A função `sus_climate_fill_inmet()` foi projetada para os 17 nomes de variáveis canônicos do INMET. Dados de outras fontes precisam ter as colunas renomeadas para os mesmos nomes antes do uso.
 
 ---
 
 # Conclusão e Recomendações
 
-O pipeline formado por `sus_climate_inmet()`, `sus_climate_fill()` e `sus_climate_plot_fill()` oferece ao pesquisador de epidemiologia climática uma cadeia de trabalho completa, reprodutível e auditável — desde os dados brutos do INMET até a comunicação visual da qualidade da imputação.
+O pipeline formado por `sus_climate_inmet()`, `sus_climate_fill_inmet()` e `sus_climate_plot_fill()` oferece ao pesquisador de epidemiologia climática uma cadeia de trabalho completa, reprodutível e auditável — desde os dados brutos do INMET até a comunicação visual da qualidade da imputação.
 
 As principais forças do pipeline são a padronização automática das variáveis, o controle de qualidade físico embutido, a modelagem independente por estação que respeita microclimas locais, e a visualização que distingue claramente dados observados de dados imputados.
 

@@ -228,7 +228,5 @@ sus_meta(valid_values = "backend")
 }
 }
 \seealso{
-\code{\link{as_arrow_climasus}}, \code{\link{write_parquet_climasus}},
-\code{\link{from_arrow_climasus}}, \code{\link{as_duckdb_climasus}},
-\code{\link{write_duckdb_climasus}}, \code{\link{from_duckdb_climasus}}
+\code{\link{write_parquet_climasus}}, \code{\link{write_duckdb_climasus}}
 }

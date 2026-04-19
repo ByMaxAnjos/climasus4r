@@ -508,7 +508,7 @@ sus_meta <- function(
 }
 
 # ==============================================================================
-# EXPORTED: ARROW PARQUET BACKEND
+# INTERNAL: ARROW PARQUET BACKEND
 # ==============================================================================
 
 #' Convert a climasus_df to an Arrow Table, preserving metadata
@@ -537,7 +537,8 @@ sus_meta <- function(
 #'                                   as_data_frame = FALSE)
 #' df2 <- from_arrow_climasus(arrow_tbl2)
 #' }
-#' @export
+#' @keywords internal
+#' @noRd
 as_arrow_climasus <- function(x, ...) {
 
   if (!requireNamespace("arrow", quietly = TRUE)) {
@@ -642,7 +643,8 @@ write_parquet_climasus <- function(x, path, ...) {
 #' # Directly from a Parquet file
 #' df3 <- from_arrow_climasus("data/sim_respiratory.parquet")
 #' }
-#' @export
+#' @keywords internal
+#' @noRd
 from_arrow_climasus <- function(x, ...) {
 
   if (!requireNamespace("arrow", quietly = TRUE)) {
@@ -673,7 +675,7 @@ from_arrow_climasus <- function(x, ...) {
   }
 
   # Convert to tibble
-  df_plain <- arrow::as_tibble(x)
+  df_plain <- as.data.frame(x)
 
   # Reconstruct climasus_df
   meta$backend  <- "tibble"  # back in memory
@@ -689,7 +691,7 @@ from_arrow_climasus <- function(x, ...) {
 }
 
 # ==============================================================================
-# EXPORTED: DUCKDB BACKEND
+# INTERNAL: DUCKDB BACKEND
 # ==============================================================================
 
 #' Register a climasus_df as a DuckDB view, preserving metadata
@@ -727,7 +729,8 @@ from_arrow_climasus <- function(x, ...) {
 #' # Reconstruct climasus_df
 #' df2 <- from_duckdb_climasus(con, "sim_respiratory")
 #' }
-#' @export
+#' @keywords internal
+#' @noRd
 as_duckdb_climasus <- function(x, con, view_name = "climasus_data", overwrite = TRUE) {
 
   if (!requireNamespace("duckdb", quietly = TRUE)) {
@@ -800,7 +803,8 @@ as_duckdb_climasus <- function(x, con, view_name = "climasus_data", overwrite = 
 #' df3 <- from_duckdb_climasus(con, "sim_respiratory",
 #'                              query = "WHERE ano_obito = 2020")
 #' }
-#' @export
+#' @keywords internal
+#' @noRd
 from_duckdb_climasus <- function(con, view_name = "climasus_data", query = NULL) {
 
   if (!requireNamespace("DBI", quietly = TRUE)) {

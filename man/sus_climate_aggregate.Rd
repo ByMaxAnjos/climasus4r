@@ -29,7 +29,7 @@ sus_climate_aggregate(
 Must contain columns \code{date} (Date), \code{code_muni} (character), and geometry
 column \code{geom}.}
 
-\item{climate_data}{A \code{climasus_df} object produced by \code{sus_climate_fill()}.
+\item{climate_data}{A \code{climasus_df} object produced by \code{sus_climate_fill_inmet()}.
 Must contain \code{date} (Date or POSIXct), \code{station_code}, \code{latitude}, \code{longitude},
 and climate variables.}
 
@@ -106,7 +106,7 @@ Available variables are grouped as follows:
 to inspect available columns.
 \item When \code{"all"} is used, only existing variables in the dataset are selected.
 \item Derived and index variables depend on prior processing with
-\code{sus_climate_fill()} or feature engineering steps.
+\code{sus_climate_fill_inmet()} or feature engineering steps.
 }}
 
 \item{time_unit}{Temporal aggregation unit for raw climate data before join.
@@ -225,7 +225,7 @@ df_health <- sus_data_import() |>
   sus_spatial_join(level = "munic")
 
 df_climate <- sus_climate_inmet(years = 2023, uf = "AM") |>
-  sus_climate_fill(target_var = "all", parallel = TRUE)
+  sus_climate_fill_inmet(target_var = "all", parallel = TRUE)
 
 # Example 1: Exact match (same-day temperature)
 df_exact <- sus_climate_aggregate(
