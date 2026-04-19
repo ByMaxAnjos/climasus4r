@@ -12,13 +12,15 @@ sus_data_filter_demographics(
   education = NULL,
   region = NULL,
   municipality_code = NULL,
+  city = NULL,
   drop_ignored = FALSE,
   lang = "pt",
   verbose = TRUE
 )
 }
 \arguments{
-\item{df}{A data frame containing health data.}
+\item{df}{A \code{climasus_df} object containing health data (output of the
+\code{climasus4r} pipeline).}
 
 \item{sex}{Character vector specifying sex categories to include. Accepts
 values in English, Portuguese, or Spanish (e.g., \code{"Male"}, \code{"Masculino"},
@@ -33,27 +35,32 @@ includes all races.}
 includes all ages.}
 
 \item{education}{Character vector specifying education levels to include.
-If \code{NULL} (default), includes all education levels.
-to include. If \code{NULL} (default).}
+If \code{NULL} (default), includes all education levels.}
 
-\item{region}{A string indicating a predefined group of states or regions (supports multilingual names PT, EN, ES). See below in details.}
+\item{region}{A string indicating a predefined group of states or regions
+(supports multilingual names PT, EN, ES). See Details.}
 
 \item{municipality_code}{Character or numeric vector specifying municipality
 codes (IBGE 6 or 7-digit codes) to include. If \code{NULL} (default), includes
 all municipalities.}
 
-\item{drop_ignored}{Logical. If \code{TRUE}, explicitly removes rows where demographic
-variables (sex, race and education) contain missing values (\code{NA}) or DATASUS ignored codes (e.g., "9", "Ignorado").
-Default is \code{FALSE}.}
+\item{city}{Character vector of municipality names (e.g., \code{"Sao Paulo"},
+\code{"Natal"}) or IBGE codes (6 or 7-digit, e.g., \code{"3550308"}, \code{"2408102"}).
+Case-insensitive; accents are normalised for matching. Partial typos trigger
+fuzzy suggestions. If \code{NULL} (default), no additional municipality filter is
+applied. Results are merged (union) with any codes in \code{municipality_code}.}
 
-\item{lang}{Character string specifying the language for messages. Options:
-\code{"en"} (English), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}
+\item{drop_ignored}{Logical. If \code{TRUE}, explicitly removes rows where
+demographic variables (sex, race, education) contain missing values (\code{NA})
+or DATASUS ignored codes (e.g., \code{"9"}, \code{"Ignorado"}). Default is \code{FALSE}.}
+
+\item{lang}{Character string specifying the language for messages.
+Options: \code{"en"} (English), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}
 
 \item{verbose}{Logical. If \code{TRUE} (default), prints filtering summary.}
 }
 \value{
-A filtered data frame containing only rows that match all specified
-demographic criteria.
+A \code{climasus_df} filtered by all specified demographic criteria.
 }
 \description{
 Filters health data based on demographic characteristics such as sex, race,
@@ -62,8 +69,8 @@ age range, education level, region, and municipality. This function complements
 }
 \details{
 The function automatically detects column names in different languages and
-standardizations. It handles both original DATASUS column names and standardized
-names from \code{sus_data_standardize()}.
+standardisations. It handles both original DATASUS column names and
+standardised names from \code{sus_data_standardize()}.
 
 \strong{Sex categories} (case-insensitive):
 \itemize{
@@ -78,6 +85,7 @@ names from \code{sus_data_standardize()}.
 \item Portuguese: \code{"Branca"}, \code{"Preta"}, \code{"Amarela"}, \code{"Parda"}, \code{"Indigena"}
 \item Spanish: \code{"Blanca"}, \code{"Negra"}, \code{"Amarilla"}, \code{"Parda"}, \code{"Indigena"}
 }
+
 \strong{IBGE Macro-regions:}
 \itemize{
 \item \code{"norte"}: c("AC", "AP", "AM", "PA", "RO", "RR", "TO")
@@ -125,28 +133,30 @@ df_women <- sus_data_filter_demographics(df, sex = "Female")
 # Filter by age range (elderly, 65+)
 df_elderly <- sus_data_filter_demographics(df, age_range = c(65, Inf))
 
-# Filter by multiple criteria (elderly women)
-df_elderly_women <- sus_data_filter_demographics(
+# Filter by city name (with accent tolerance)
+df_natal <- sus_data_filter_demographics(df, city = "Natal", lang = "pt")
+
+# Filter by multiple city names
+df_capitals <- sus_data_filter_demographics(
   df,
-  sex = c("Feminino"),
-  age_range = c(65, Inf),
+  city = c("Sao Paulo", "Rio de Janeiro", "Fortaleza"), #Usar acentos se preferir
   lang = "pt"
 )
 
-# Filter by race and municipality
+# Mix: city names + explicit codes (union)
 df_subset <- sus_data_filter_demographics(
   df,
-  race = c("Branca", "Parda"),
-  municipality_code = c("3550308", "3304557"),  # Sao Paulo, Rio de Janeiro
-  lang = "pt"
+  city            = "Natal",
+  municipality_code = "3550308",
+  lang            = "pt"
 )
 
-# Complex filtering (children under 5, both sexes, specific municipality)
+# Complex filtering
 df_children <- sus_data_filter_demographics(
   df,
   age_range = c(0, 5),
-  region = "Norte",
-  lang = "en"
+  region    = "Norte",
+  lang      = "en"
 )
 }
 

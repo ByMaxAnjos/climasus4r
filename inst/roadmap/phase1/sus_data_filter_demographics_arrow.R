@@ -10,10 +10,14 @@
 #' @param age_range Numeric vector of length 2 specifying the age range `c(min_age, max_age)`.
 #' @param education Character vector specifying education levels to include.
 #' @param region A string indicating a predefined group of states or regions.
-#' @param municipality_code Character or numeric vector specifying municipality codes.
+#' @param city Character or numeric vector specifying municipality names or codes.
 #' @param drop_ignored Logical. If `TRUE`, removes rows with missing values or ignored codes.
 #' @param lang Character string specifying the language for messages.
 #' @param verbose Logical. If `TRUE`, prints filtering summary.
+#' @param use_cache Logical. If `TRUE` (default), uses cached spatial data to avoid
+#'   re-downloads and improve performance.
+#' @param cache_dir Character string specifying the directory to store cached files.
+#'   Default is `"~/.climasus4r_cache/spatial"`.
 #'
 #' @return A filtered object of the same class as input (preserves backend type).
 #' @export
@@ -35,10 +39,13 @@ sus_data_filter_demographics_arrow <- function(df,
                                           age_range = NULL,
                                           education = NULL,
                                           region = NULL,
-                                          municipality_code = NULL,
+                                          city = NULL,
                                           drop_ignored = FALSE,
                                           lang = "pt",
-                                          verbose = TRUE) {
+                                          verbose = TRUE,
+                                          use_cache = TRUE,
+                                          cache_dir = "~/.climasus4r_cache/spatial"
+                                        ) {
   
   cli::cli_h1("climasus4r - Filter Data Demographics")
   
@@ -285,9 +292,16 @@ sus_data_filter_demographics_arrow <- function(df,
   # FILTER BY MUNICIPALITY
   # ============================================================================
   
-  if (!is.null(municipality_code)) {
-    muni_col <- find_column_from_names(col_names, c("residence_municipality_code", 
-                                                    "municipality_code", 
+  if (!is.null(city)) {
+    
+  municipio_meta <- get_spatial_municipio_cache(
+      cache_dir = cache_dir,
+      use_cache = use_cache,
+      lang = lang,
+      verbose = verbose)
+      
+    muni_col <- find_column_from_names(col_names, c("residence_city", 
+                                                    "city", 
                                                     "residence_municipality",
                                                     "municipio_residencia",
                                                     "codigo_municipio",
@@ -297,22 +311,22 @@ sus_data_filter_demographics_arrow <- function(df,
     if (is.null(muni_col)) {
       cli::cli_alert_warning("Municipality column not found. Skipping municipality filter.")
     } else {
-      municipality_code <- as.character(municipality_code)
+      city <- as.character(city)
       
       filter_expr <- list(
         type = "in",
         column = muni_col,
-        values = municipality_code
+        values = city
       )
       
       df <- apply_filter(df, filter_expr)
       
-      if (length(municipality_code) == 1) {
-        filters_applied <- c(filters_applied, paste0("municipality: ", municipality_code))
-      } else if (length(municipality_code) <= 3) {
-        filters_applied <- c(filters_applied, paste0("municipalities: ", paste(municipality_code, collapse = ", ")))
+      if (length(city) == 1) {
+        filters_applied <- c(filters_applied, paste0("municipality: ", city))
+      } else if (length(city) <= 3) {
+        filters_applied <- c(filters_applied, paste0("municipalities: ", paste(city, collapse = ", ")))
       } else {
-        filters_applied <- c(filters_applied, paste0("municipalities: ", length(municipality_code), " codes"))
+        filters_applied <- c(filters_applied, paste0("municipalities: ", length(city), " codes"))
       }
     }
   }
@@ -548,3 +562,147 @@ translate_input <- function(x) {
   amazonia = "amazonia_legal", bosque_atlantico = "mata_atlantica",
   semiarido = "semi_arido", frontera = "fronteira_brasil"
 )
+
+# ===========================================================================
+# Get spatial municipio meta
+# ===========================================================================
+
+#' Get Spatial municipio Data with Caching
+#'
+#' Retrieves spatial municipio data with intelligent caching to improve performance.
+#' Spatial data is cached as Parquet files for fast reloading.
+#' @param cache_dir Cache directory path
+#' @param use_cache Whether to use cache
+#'
+#' @return sf object with spatial data
+#' @keywords internal
+#' @noRd
+get_spatial_municipio_cache <- function(
+  cache_dir,
+  use_cache,
+  lang,
+  verbose
+) {
+  msg <- get_spatial_municipio_messages(lang)
+
+  if ((requireNamespace("arrow", quietly = TRUE))) { 
+  # Define cache file name
+  cache_file <- file.path(
+    cache_dir,
+    paste0("municipio_meta.parquet")
+  )
+  } else { 
+  # Define cache file name
+  cache_file <- file.path(
+    cache_dir,
+    paste0("municipio_meta.rds")
+  )
+  }
+
+  # Try to load from cache
+  if (use_cache && file.exists(cache_file)) {
+    if (verbose) {
+      cli::cli_alert_success(paste0(msg$loading_cache, basename(cache_file)))
+    }
+
+    tryCatch(
+      {
+        if ((requireNamespace("arrow", quietly = TRUE))) { 
+          spatial_df <- arrow::read_parquet(cache_file)
+        } else { 
+          spatial_df <- readRDS(cache_file)
+        }
+        return(spatial_df)
+      },
+      error = function(e) {
+        if (verbose) {
+          cli::cli_alert_warning(msg$cache_error)
+        }
+      }
+    )
+  }
+
+  # Download from climasus Data Center
+  if (verbose) {
+    cli::cli_alert_info(msg$downloading_data)
+  }
+  if ((requireNamespace("arrow", quietly = TRUE))) { 
+    spatial_df <- suppressMessages(arrow::read_parquet("https://github.com/ByMaxAnjos/climasus4r/raw/refs/heads/master/inst/data_4r/municipio_meta.parquet"))
+    } else {
+      spatial_df <- suppressMessages(readRDS("https://github.com/ByMaxAnjos/climasus4r/raw/refs/heads/master/inst/data_4r/municipio_meta.rds"))
+      }
+
+
+  # Save to cache
+  if (use_cache) {
+    if (verbose) {
+      cli::cli_alert_info(msg$saving_cache)
+    }
+    tryCatch(
+      { 
+        if ((requireNamespace("arrow", quietly = TRUE))) { 
+          arrow::write_parquet(obj = spatial_df, dsn = cache_file)
+        } else {
+          readRDS(spatial_df, cache_file)
+         }
+        if (verbose) {
+          cli::cli_alert_success(msg$cache_saved)
+        }
+      },
+      error = function(e) {
+        if (verbose) {
+          cli::cli_alert_warning(paste0(msg$cache_save_error, e$message))
+        }
+      }
+    )
+  }
+
+  return(spatial_df)
+}
+
+
+#' Get Multilingual Messages for Spatial Operations
+#'
+#' Returns user interface messages in the specified language for spatial join operations.
+#'
+#' @param lang Character. Language code: "en", "pt", "es"
+#'
+#' @return List of translated UI messages
+#' @keywords internal
+#' @noRd
+get_spatial_municipio_messages <- function(lang) {
+  messages <- list(
+    en = list(
+      creating_cache = "Creating cache directory: ",
+      cache_enabled = "Cache: ENABLED",
+      loading_cache = "Loading from cache: ",
+      cache_error = "Cache loading failed. Downloading fresh data...",
+      downloading_data = "Downloading spatial data from climasus Data Center...",
+      saving_cache = "Saving to cache...",
+      cache_saved = "Spatial data cached successfully.",
+      cache_save_error = "Failed to save cache: "
+    ),
+    pt = list(
+      creating_cache = "Criando diretorio de cache: ",
+      cache_enabled = "Cache: ATIVADO",
+      loading_cache = "Carregando do cache: ",
+      cache_error = "Falha ao carregar cache. Baixando dados novos...",
+      downloading_data = "Baixando dados espaciais do climasus Data Center ...",
+      saving_cache = "Salvando no cache...",
+      cache_saved = "Dados espaciais armazenados em cache com sucesso.",
+      cache_save_error = "Falha ao salvar cache: "
+    ),
+    es = list(
+      creating_cache = "Creando directorio de cache: ",
+      cache_enabled = "Cache: ACTIVADO",
+      loading_cache = "Cargando desde cache: ",
+      cache_error = "Fallo al cargar cache. Descargando datos nuevos...",
+      downloading_data = "Descargando datos espaciales del climasus Data Center...",
+      saving_cache = "Guardando en cache...",
+      cache_saved = "Datos espaciales almacenados en cache con exito.",
+      cache_save_error = "Fallo al guardar cache: "
+    )
+  )
+  
+  return(messages[[lang]])
+}
