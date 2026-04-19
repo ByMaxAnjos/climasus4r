@@ -99,10 +99,6 @@ reference:
       - "$<-.climasus_df"
       - rbind.climasus_df
       - as.data.frame.climasus_df
-      - as_arrow_climasus
-      - as_duckdb_climasus
-      - from_arrow_climasus
-      - from_duckdb_climasus
       - write_duckdb_climasus
       - write_parquet_climasus
 
