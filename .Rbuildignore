@@ -6,6 +6,7 @@
 
 ^\.github$
 
+^CLAUDE\.md$
 
 ^README-en\.md$
 ^README-es\.md$

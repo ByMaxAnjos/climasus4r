@@ -43,7 +43,10 @@ Imports:
     purrr,
     data.table,
     glue,
-    read.dbc
+    read.dbc,
+    DBI, 
+    duckdb,
+    jsonlite
 Remotes: 
     rfsaldanha/microdatasus,
     ByMaxAnjos/climasus4r

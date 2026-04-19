@@ -107,48 +107,32 @@ sus_data_clean_encoding_arrow <- function(df, lang = "pt", verbose = TRUE) {
   }
   
   if (verbose) {
-    if (length(cols_to_correct) > 0) {
-      corrected_msg <- list(
-        en = "Will correct {length(cols_to_correct)} column{?s}",
-        pt = "Serão corrigida{?s} {length(cols_to_correct)} coluna{?s}",
-        es = "Se corregirán {length(cols_to_correct)} columna{?s}"
-      )
-      cli::cli_alert_info(corrected_msg[[lang]])
-      cli::cli_alert_info("{ui_msg$affected_columns}: {paste(cols_to_correct, collapse = ', ')}")
-    } else {
+      if (length(cols_to_correct) > 0) {
+    for (col in cols_to_correct) {
+      df <- df |>
+        dplyr::mutate(
+          !!col := arrow::cast(
+            arrow::utf8_normalize(!!rlang::sym(col)),
+            arrow::utf8()
+          )
+        )
+    }
+  } else {
       cli::cli_alert_success(ui_msg$no_correction_needed)
     }
   }
 
-  if (!inherits(df, "climasus_df")) {
-    # Create new climasus_df
-    meta <- list(
-      system = NULL,
-      stage = "clean",
-      type = "clean",
-      spatial = inherits(df, "sf"),
-      temporal = NULL,
-      created = Sys.time(),
-      modified = Sys.time(),
-      history = sprintf(
-        "[%s] Cleaned character encoding (UTF-8)",
-        format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-      ),
-      user = list()
-    )
-
-    base_classes <- setdiff(class(df), "climasus_df")
-    df <- structure(
-      df,
-      sus_meta = meta,
-      class = c("climasus_df", base_classes)
-    )
-  } else {
-    # Already climasus_df - update metadata
-    df <- sus_meta(df, stage = "clean", type = "clean")
-    df <- sus_meta(df, add_history = "Cleaned character encoding (UTF-8)")
-  }
-  
+  # Update sus_meta on the climasus_dataset wrapper (NOT as climasus_df)
+  meta <- attr(df, "sus_meta") %||% list()
+  meta$stage    <- "clean"
+  meta$modified <- Sys.time()
+  meta$history  <- c(
+    meta$history %||% character(0),
+    sprintf("[%s] Encoding check (lazy Arrow): %d column(s) flagged",
+            format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+            length(cols_to_correct))
+  )
+  attr(df, "sus_meta") <- meta
   
   return(df)
 }

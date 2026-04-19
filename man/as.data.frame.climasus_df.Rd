@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils-S3.R
 \name{as.data.frame.climasus_df}
 \alias{as.data.frame.climasus_df}
-\title{Coerce climasus_df to data.frame}
+\title{Coerce climasus_df to plain data.frame (strips metadata)}
 \usage{
 \method{as.data.frame}{climasus_df}(x, ...)
 }
@@ -12,5 +12,5 @@
 \item{...}{Additional arguments (ignored)}
 }
 \description{
-Coerce climasus_df to data.frame
+Coerce climasus_df to plain data.frame (strips metadata)
 }

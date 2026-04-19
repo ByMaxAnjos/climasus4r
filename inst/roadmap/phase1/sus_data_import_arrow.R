@@ -1,99 +1,67 @@
 # ==============================================================================
-# climasus4r — sus_data_import() : Refatoração Arrow Out-of-Core
+# climasus4r — sus_data_import()
+# Backend unificado: Apache Arrow out-of-core + DuckDB lazy
 # ==============================================================================
 #
-# DIAGNÓSTICO DOS GARGALOS ORIGINAIS
-# ───────────────────────────────────
+# ARQUITETURA
+# ───────────
 #
-# 1. `data.table::rbindlist(list_of_dfs)`
-#    PROBLEMA : acumula TODOS os data.frames em memória simultaneamente.
-#    Com 26 UFs × N anos, o pico de RAM = soma de todos os chunks + cópia do
-#    resultado — geralmente 2–3× o tamanho final dos dados. Daí o
-#    "vector memory exhausted".
-#    SOLUÇÃO   : cada chunk é escrito em disco como Parquet imediatamente após
-#    o download/cache-hit. O resultado da função é um `arrow::Dataset` (lazy).
-#
-# 2. Paralelismo future/furrr via `multisession`
-#    PROBLEMA : cada worker R é um processo separado com heap própria.
-#    A serialização de data.frames grandes entre processos via socket
-#    (o protocolo do future) é extremamente cara para dados IO-bound.
-#    Para downloads HTTP sequenciais com IO de disco, o overhead de
-#    fork/socket supera o ganho de paralelismo em ~60–80% dos casos.
-#    DIAGNÓSTICO FORMAL: se wall_time_parallel > wall_time_sequential * 0.7,
-#    o workload é IO-bound e o paralelo prejudica.
-#    SOLUÇÃO   : paralelismo APENAS no download HTTP (fase genuinamente
-#    paralelizável). A escrita em Parquet ocorre no processo principal,
-#    sequencialmente — evitando race conditions de I/O e serialização
-#    desnecessária. Arrow gerencia multi-threading internamente via libarrow
-#    para leitura/escrita (não precisa de future para isso).
-#
-# 3. `is_national` filter via data.table após rbindlist
-#    PROBLEMA : filtra DEPOIS de carregar tudo na RAM.
-#    SOLUÇÃO   : filtro lazy via predicado Arrow antes de qualquer collect().
-#
-# ARQUITETURA RESULTANTE
-# ───────────────────────
-#
-#   download_one() → retorna apenas o cache_path (string)
-#        ↓ (sequential no processo principal)
-#   arrow::write_parquet() → disco, chunk por chunk
+#   download_one_raw()          → worker (multisession ou sequencial)
+#        │ cache hit            → list(type="path",  value=path)
+#        │ download novo        → list(type="df",    value=df, path=path)
 #        ↓
-#   arrow::open_dataset() → Dataset lazy (referência a arquivos)
-#        ↓ (filtros is_national: lazy, sem collect)
-#   dplyr::filter() sobre Dataset → ainda lazy
+#   loop no processo principal  → .write_chunk_parquet() por df novo
 #        ↓
-#   return: arrow::Dataset com sus_meta
+#   arrow::open_dataset()       → FileSystemDataset lazy (sem RAM)
+#        ↓
+#   dplyr::filter() lazy        → filtro de UF para SINAN (predicado C++)
+#        ↓
+#   return: climasus_dataset    → subclasse de arrow::Dataset
 #
-# COMPATIBILIDADE PIPELINE
-# ─────────────────────────
-# O output arrow::Dataset é compatível com dplyr, dbplyr/DuckDB e com as
-# funções downstream do climasus4r que usam .resolve_input().
-# Use collect() apenas no passo final da análise.
+# OUTPUT
+# ──────
+#   • arrow::Dataset  → pipeline lazy (padrão, sem collect)
+#   • dplyr verbos encadeados antes de collect() → executados em C++/DuckDB
+#   • arrow::to_duckdb(ds) → SQL de alta performance
+#   • dplyr::collect(ds)   → materializa como tibble/climasus_df
 #
-# ==============================================================================
-
-
-# ── Dependências ───────────────────────────────────────────────────────────────
-# arrow  (>= 12.0)  – Parquet + Dataset lazy + multi-thread nativo
-# dplyr             – verbos lazy sobre Arrow Dataset
-# future + furrr    – paralelismo SOMENTE para downloads HTTP
-# cli, fs, digest   – já presentes no pacote
+# DEPENDÊNCIAS
+# ────────────
+#   arrow (>= 12.0), dplyr, future, furrr, purrr
+#   cli, fs, digest, stringi, microdatasus
 # ==============================================================================
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # HELPER: escrita segura de um chunk em Parquet
-# Chamado sequencialmente no processo principal — sem race condition.
+# Sempre chamado no processo principal — sem race condition de I/O.
 # ──────────────────────────────────────────────────────────────────────────────
 
 #' @noRd
 .write_chunk_parquet <- function(df, path) {
-  # Add check for empty data
   if (is.null(df) || nrow(df) == 0L) {
-    cli::cli_alert_warning("Empty data frame for {path}")
+    cli::cli_alert_warning("Chunk vazio, ignorado: {basename(path)}")
     return(invisible(NULL))
   }
-  
-  # Corrige encoding na ingestão: latin1 → UTF-8 antes de serializar.
+
+  # Encoding: latin1 → UTF-8 antes de serializar para Parquet
   char_cols <- names(df)[vapply(df, is.character, logical(1L))]
   for (col in char_cols) {
-    vals   <- df[[col]]
-    if (length(vals) > 0) {
-      sample <- stats::na.omit(vals[seq_len(min(200L, length(vals)))])
-      if (length(sample) > 0L && !all(stringi::stri_enc_isutf8(sample))) {
+    vals <- df[[col]]
+    if (length(vals) > 0L) {
+      sample_vals <- stats::na.omit(vals[seq_len(min(200L, length(vals)))])
+      if (length(sample_vals) > 0L &&
+          !all(stringi::stri_enc_isutf8(sample_vals))) {
         df[[col]] <- stringi::stri_conv(vals, "latin1", "UTF-8")
       }
     }
   }
-  
-  # Ensure path exists and is writable
+
   dir_path <- dirname(path)
-  if (!fs::dir_exists(dir_path)) {
-    fs::dir_create(dir_path, recurse = TRUE)
-  }
-  
-  # Write with explicit error handling
-  tryCatch({
+  if (!fs::dir_exists(dir_path)) fs::dir_create(dir_path, recurse = TRUE)
+
+  # tryCatch retorna flag booleana — evita que path seja retornado após falha
+  ok <- tryCatch({
     arrow::write_parquet(
       df,
       sink              = path,
@@ -101,35 +69,35 @@
       compression_level = 3L,
       write_statistics  = TRUE
     )
-    
-    # Verify the file was written correctly
-    if (!fs::file_exists(path) || fs::file_info(path)$size == 0) {
-      cli::cli_alert_warning("File {path} appears to be empty after write")
-      return(invisible(NULL))
-    }
-    
+    TRUE
   }, error = function(e) {
-    cli::cli_alert_danger("Failed to write Parquet: {conditionMessage(e)}")
-    return(invisible(NULL))
+    cli::cli_alert_danger("Falha ao escrever Parquet: {conditionMessage(e)}")
+    FALSE
   })
-  
+
+  if (!ok) return(invisible(NULL))
+
+  if (!fs::file_exists(path) || fs::file_info(path)$size == 0L) {
+    cli::cli_alert_warning("Arquivo vazio após escrita: {basename(path)}")
+    return(invisible(NULL))
+  }
+
   invisible(path)
 }
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# HELPER: geração de cache key
+# HELPER: geração de cache key (MD5 dos parâmetros)
 # ──────────────────────────────────────────────────────────────────────────────
 
 #' @noRd
 .make_cache_key <- function(system_i, uf_i, year_i, month_i, is_national) {
   parts <- if (is_national) {
-    c(system_i, year_i, month_i)
+    c(system_i, as.character(year_i), if (!is.null(month_i)) as.character(month_i))
   } else {
-    c(system_i, uf_i, year_i, month_i)
+    c(system_i, uf_i, as.character(year_i), if (!is.null(month_i)) as.character(month_i))
   }
-  digest::digest(paste(Filter(Negate(is.null), parts), collapse = "_"),
-                 algo = "md5")
+  digest::digest(paste(parts, collapse = "_"), algo = "md5")
 }
 
 
@@ -137,68 +105,136 @@
 # FUNÇÃO PRINCIPAL
 # ──────────────────────────────────────────────────────────────────────────────
 
-#' Import and preprocess data from DATASUS — Arrow Out-of-Core Backend
+#' Importa microdados do DATASUS com backend Arrow out-of-core
 #'
-#' Wrapper para `microdatasus::fetch_datasus` com arquitetura de avaliação
-#' lazy baseada em Apache Arrow. Elimina o `rbindlist` em memória substituindo-o
-#' por escrita sequencial de Parquets e leitura via `arrow::open_dataset`.
+#' Wrapper para `microdatasus::fetch_datasus` com avaliação lazy baseada em
+#' Apache Arrow. Substitui o `rbindlist` em memória por escrita sequencial de
+#' Parquets individuais + `arrow::open_dataset`, eliminando picos de RAM.
+#' O resultado é um `climasus_dataset` (subclasse de `arrow::Dataset`),
+#' compatível com dplyr, DuckDB e funções downstream do climasus4r.
 #'
-#' @param uf        Character vector. Siglas dos estados (ex.: `c("SP","RJ")`).
-#'   Ignorado se `region` for fornecido. Veja `?sus_data_import` para lista completa.
-#' @param region    Character. Nome de região predefinida (PT/EN/ES).
-#' @param year      Integer vector. Anos desejados (4 dígitos).
-#' @param month     Integer vector (1–12). Obrigatório para SIH, CNES e SIA.
-#' @param system    Character. Código do sistema DATASUS (ex.: `"SIM-DO"`).
-#' @param use_cache Logical. Usar cache em disco? Default `TRUE`.
-#' @param cache_dir Character. Diretório base do cache. Default `"~/.climasus4r_cache"`.
-#'   Subdirs criados automaticamente: `cache_dir/raw/` (Parquets individuais) e
-#'   `cache_dir/dataset/` (dataset consolidado, particionado por uf/year).
-#' @param force_redownload Logical. Ignorar cache e re-baixar? Default `FALSE`.
-#' @param parallel  Logical. Paralelizar downloads HTTP? Default `FALSE`.
-#'   **Leia a seção "Paralelismo" em `?sus_data_import` antes de ativar.**
-#' @param workers   Integer. Workers para downloads paralelos. Default `4`.
-#'   Recomendado: `min(tasks, 4)` — DATASUS tem throttling de conexões.
-#' @param arrow_threads Integer. Threads do Arrow para I/O e descompressão.
-#'   Default `NULL` (auto-detect: todos os cores físicos). Independente de
-#'   `workers` — estes dois pools de threads operam em fases distintas.
-#' @param lang      Character. Idioma das mensagens: `"pt"`, `"en"`, `"es"`.
-#' @param verbose   Logical. Mostrar progresso detalhado? Default `TRUE`.
+#' @param uf Character vector. Siglas dos estados (ex.: `c("SP","RJ")`).
+#'   Ignorado se `region` for fornecido.
+#'   Valores válidos: AC, AL, AP, AM, BA, CE, DF, ES, GO, MA, MT, MS, MG, PA,
+#'   PB, PR, PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO, ou `"all"`.
+#' @param region Character. Nome de região predefinida (PT/EN/ES). Sobrescreve
+#'   `uf` quando fornecido. Regiões disponíveis — **IBGE:** `"norte"`,
+#'   `"nordeste"`, `"centro_oeste"`, `"sudeste"`, `"sul"`. **Biomas:**
+#'   `"amazonia_legal"`, `"mata_atlantica"`, `"caatinga"`, `"cerrado"`,
+#'   `"pantanal"`, `"pampa"`. **Hidrografia/clima:** `"bacia_amazonica"`,
+#'   `"bacia_sao_francisco"`, `"bacia_parana"`, `"bacia_tocantins"`,
+#'   `"semi_arido"`. **Geopolítica/saúde:** `"matopiba"`,
+#'   `"arco_desmatamento"`, `"dengue_hyperendemic"`, `"sudene"`,
+#'   `"fronteira_brasil"`. Aceita nomes em EN e ES (ex.: `"northeast"`,
+#'   `"noreste"`).
+#' @param year Integer vector. Anos desejados (4 dígitos).
+#' @param month Integer vector (1–12). Obrigatório para SIH, CNES e SIA.
+#'   Ignorado (com aviso) para SIM, SINAN e SINASC.
+#' @param system Character. Código do sistema DATASUS. Sistemas disponíveis:
+#'   **SIM:** `"SIM-DO"`, `"SIM-DOFET"`, `"SIM-DOEXT"`, `"SIM-DOINF"`,
+#'   `"SIM-DOMAT"`. **SIH:** `"SIH-RD"`, `"SIH-RJ"`, `"SIH-SP"`, `"SIH-ER"`.
+#'   **SINASC:** `"SINASC"`. **CNES:** `"CNES-LT"` … `"CNES-GM"` (13 tipos).
+#'   **SIA:** `"SIA-AB"` … `"SIA-SAD"` (12 tipos). **SINAN:**
+#'   `"SINAN-DENGUE"`, `"SINAN-CHIKUNGUNYA"`, `"SINAN-ZIKA"`,
+#'   `"SINAN-MALARIA"`, `"SINAN-CHAGAS"`, `"SINAN-LEISHMANIOSE-VISCERAL"`,
+#'   `"SINAN-LEISHMANIOSE-TEGUMENTAR"`, `"SINAN-LEPTOSPIROSE"`.
+#' @param use_cache Logical. Usar cache em disco? Default `TRUE`. Cache
+#'   expirado após 30 dias.
+#' @param cache_dir Character. Diretório base do cache.
+#'   Default `"~/.climasus4r_cache"`. Subdirs criados automaticamente:
+#'   `raw/` (Parquets por chunk) e `dataset/` (reservado para uso futuro).
+#' @param force_redownload Logical. Ignorar cache e re-baixar tudo? Default
+#'   `FALSE`. Útil quando suspeitar de cache corrompido.
+#' @param parallel Logical. Paralelizar downloads HTTP? Default `FALSE`.
+#'   Use `TRUE` apenas com `total_tasks >= 6` — o overhead de
+#'   `future::multisession` não compensa para poucas tarefas.
+#' @param workers Integer. Workers para downloads paralelos. Default `4`.
+#'   Recomendado: `min(total_tasks, 4)` — DATASUS tem throttling de conexões.
+#' @param arrow_threads Integer. Threads internas do Arrow para I/O Parquet.
+#'   Default `NULL` (auto: todos os cores físicos). Pool independente de
+#'   `workers` — operam em fases distintas da pipeline.
+#' @param lang Character. Idioma das mensagens CLI: `"pt"` (padrão), `"en"`,
+#'   `"es"`.
+#' @param verbose Logical. Exibir progresso detalhado? Default `TRUE`.
 #'
-#' @return `arrow::Dataset` com metadados `sus_meta` como atributo.
-#'   Para consumo imediato como tibble: `dplyr::collect(resultado)`.
-#'   Para pipeline lazy (recomendado): encadeie verbos dplyr antes do collect.
+#' @return Um `climasus_dataset` (subclasse de `arrow::Dataset`) com atributo
+#'   `sus_meta`. O dataset é **lazy** — nenhum dado é carregado na RAM até
+#'   que `dplyr::collect()` seja chamado.
+#'
+#'   Padrões de uso:
+#'   ```r
+#'   # Pipeline lazy (recomendado)
+#'   ds |> dplyr::filter(...) |> dplyr::select(...) |> dplyr::collect()
+#'
+#'   # DuckDB — SQL de alta performance
+#'   arrow::to_duckdb(ds) |> dplyr::filter(...) |> dplyr::collect()
+#'
+#'   # Materialização direta
+#'   dplyr::collect(ds)
+#'   ```
 #'
 #' @details
 #' ## Por que Arrow Dataset e não tibble?
 #' O Arrow Dataset é uma referência lazy a arquivos Parquet em disco.
 #' Filtros, seleções e agregações são executados pelo motor C++ do Arrow
-#' (ou pelo DuckDB via `arrow::to_duckdb()`) sem carregar o dataset inteiro
-#' na RAM. Somente `collect()` materializa os dados.
+#' (ou DuckDB via `arrow::to_duckdb()`) sem carregar o dataset inteiro na RAM.
+#' Somente `collect()` materializa os dados. Para datasets nacionais (SINAN),
+#' o filtro de UF é aplicado como predicado lazy — sem `collect` antecipado.
 #'
-#' ## Paralelismo: quando usar e quando evitar
-#' O workload de `sus_data_import` tem duas fases com perfis distintos:
+#' ## Cache
+#' Cada combinação (sistema/UF/ano/mês) gera um arquivo `.parquet` com nome
+#' baseado em MD5 dos parâmetros. Cache válido por 30 dias. Para sistemas
+#' nacionais (SINAN), a chave de cache omite a UF (um arquivo por ano cobre
+#' todos os estados).
 #'
-#' - **Download HTTP** (`fetch_datasus`): genuinamente IO-bound de rede.
-#'   Paralelo com `future::multisession` ajuda **se** você tiver ≥ 4 arquivos
-#'   e conexão estável. O overhead de serialização entre processos é pago
-#'   apenas nos dados brutos transferidos pela fila `future`, que são
-#'   pequenos (a escrita em Parquet ocorre no processo principal).
+#' ## Paralelismo
+#' O workload tem duas fases: download HTTP (IO de rede, paralelizável) e
+#' escrita Parquet (IO de disco, sempre no processo principal). O Arrow já
+#' usa multi-threading interno via `arrow_threads` para a fase de escrita —
+#' não é necessário paralelizar com `future` nessa etapa.
 #'
-#' - **Escrita Parquet** (`.write_chunk_parquet`): IO de disco, sequencial
-#'   no processo principal. **Nunca paralelize esta etapa** — Arrow já usa
-#'   multi-threading internamente via `arrow_threads`.
+#' @seealso [arrow::open_dataset()], [arrow::to_duckdb()], [dplyr::collect()]
 #'
-#' Regra prática: `parallel = TRUE` só compensa quando `total_tasks >= 6`.
-#' Para poucos arquivos, use `parallel = FALSE` (padrão).
-#'
-#' @seealso [arrow::open_dataset()], [dplyr::collect()], [arrow::to_duckdb()]
-#'
-#' @importFrom arrow write_parquet open_dataset schema
-#' @importFrom dplyr filter select
-#' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_alert_warning cli_alert_danger
+#' @importFrom arrow write_parquet open_dataset set_cpu_count set_io_thread_count
+#' @importFrom dplyr filter collect
+#' @importFrom cli cli_h1 cli_h2 cli_alert_info cli_alert_success
+#'   cli_alert_warning cli_alert_danger cli_abort
 #' @importFrom fs dir_create dir_exists file_exists file_info
 #' @importFrom digest digest
+#' @importFrom stringi stri_enc_isutf8 stri_conv
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' #  Exemplo 1: mortalidade lazy
+#' ds <- sus_data_import(
+#'   uf     = c("SP", "RJ"),
+#'   year   = 2020:2023,
+#'   system = "SIM-DO"
+#' )
+#' resultado <- ds |>
+#'   dplyr::filter(SEXO == "2") |>
+#'   dplyr::select(DTOBITO, CAUSABAS, MUNRES) |>
+#'   dplyr::collect()
+#'
+#' # Exemplo 2: SINAN via DuckDB
+#' ds <- sus_data_import(region = "nordeste", year = 2022, system = "SINAN-DENGUE")
+#' arrow::to_duckdb(ds) |>
+#'   dplyr::filter(CAUSABAS_O == "A90") |>
+#'   dplyr::group_by(MUNRES) |>
+#'   dplyr::summarise(casos = dplyr::n()) |>
+#'   dplyr::collect()
+#'
+#' #  Exemplo 3: SIH mensal com paralelo 
+#' ds <- sus_data_import(
+#'   uf       = "SP",
+#'   year     = 2023,
+#'   month    = 1:6,
+#'   system   = "SIH-RD",
+#'   parallel = TRUE,
+#'   workers  = 4L
+#' )
+#' }
 sus_data_import_arrow <- function(
     uf               = NULL,
     region           = NULL,
@@ -215,170 +251,273 @@ sus_data_import_arrow <- function(
     verbose          = TRUE
 ) {
 
-  # ── 0. Validações de entrada ──────────────────────────────────────────────
+  #  0. Validacoes basicas 
 
   if (!lang %in% c("en", "pt", "es"))
     cli::cli_abort("{.arg lang} deve ser um de: 'en', 'pt', 'es'.")
+  
+  #Check if arrow pak installed
+  #check_arrow(lang=lang)
 
-  if (!requireNamespace("arrow", quietly = TRUE))
-    cli::cli_abort("Pacote {.pkg arrow} é obrigatório. Instale com {.code install.packages('arrow')}.")
-
-  # Configurar thread pool do Arrow (independente do future)
-  # Arrow usa libarrow C++ multi-thread para Parquet I/O internamente.
+  # Thread pool do Arrow: independente do future, gerenciado por libarrow C++
   n_arrow_threads <- arrow_threads %||% parallel::detectCores(logical = FALSE)
   arrow::set_cpu_count(n_arrow_threads)
   arrow::set_io_thread_count(n_arrow_threads)
 
-  # ── 1. Resolução de região ────────────────────────────────────────────────
+  # 1. Resolucao de regiao -> UF 
 
-  if (!is.null(region)) {
-    reg_clean  <- tolower(trimws(region))
-    target_key <- if (reg_clean %in% names(.region_aliases))
-      .region_aliases[[reg_clean]] else reg_clean
-
-    if (!target_key %in% names(.br_regions))
-      cli::cli_abort("Região {.val {region}} não reconhecida. Verifique a documentação.")
-
-    if (!is.null(uf) && verbose)
-      cli::cli_alert_warning("'uf' e 'region' fornecidos simultaneamente — usando {.val {region}}.")
-
-    uf <- .br_regions[[target_key]]
-    if (verbose)
-      cli::cli_alert_info("Região {.val {region}} → {paste(uf, collapse = ', ')}")
+   if (!is.null(region)) {
+    reg_clean <- tolower(region)
+    target_key <- if (reg_clean %in% names(.region_aliases)) .region_aliases[[reg_clean]] else reg_clean
+    if (target_key %in% names(.br_regions)) {
+      if (!is.null(uf) && verbose) {
+      cli::cli_alert_warning("Both {.arg uf} and {.arg region} provided. Using region mapping for: {.val {region}}.")
+      }
+     uf <- .br_regions[[target_key]]
+      if (verbose) cli::cli_alert_info("Region {.val {region}} expanded to: {paste(uf, collapse = ', ')}")
+    } else {
+      cli::cli_abort("Region {.val {region}} not recognized. Check documentation for valid regions.")
+    }
   }
 
-  # ── 2. Validações de argumentos ───────────────────────────────────────────
+  #  2. Validacao de argumentos
+  # Input validation
+  if (is.null(uf) || missing(year) || missing(system)) {
+    cli::cli_alert_danger("Arguments {.arg uf} (or {.arg region}), {.arg year}, and {.arg system} are required.")
+    stop("Missing required arguments.")
+  }
+  
+  # Validate UF codes
+  valid_ufs <- c("all", "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", 
+                 "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", 
+                 "RS", "RO", "RR", "SC", "SP", "SE", "TO")
+  
+  invalid_ufs <- setdiff(uf, valid_ufs)
+  
+  if (length(invalid_ufs) > 0) {
+    cli::cli_alert_danger("Invalid UF codes: {paste(invalid_ufs, collapse = ', ')}")
+    cli::cli_alert_info("Valid UF codes are: 'all', AC, AL, AP, AM, BA, CE, DF, ES, GO, MA, MT, MS, MG, PA, PB, PR, PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO")
+    stop("Invalid UF codes provided.")
+  }
 
-  if (is.null(uf) || missing(year) || missing(system))
-    cli::cli_abort("Argumentos {.arg uf} (ou {.arg region}), {.arg year} e {.arg system} são obrigatórios.")
-
-  valid_ufs <- c(
-    "all", "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA",
-    "MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN",
-    "RS","RO","RR","SC","SP","SE","TO"
-  )
-  bad_ufs <- setdiff(uf, valid_ufs)
-  if (length(bad_ufs) > 0L)
-    cli::cli_abort("UF(s) inválidos: {paste(bad_ufs, collapse = ', ')}.")
-
+  # Validate system codes
   valid_systems <- c(
-    "SIH-RD","SIH-RJ","SIH-SP","SIH-ER",
-    "SIM-DO","SIM-DOFET","SIM-DOEXT","SIM-DOINF","SIM-DOMAT",
+    # SIH Systems
+    "SIH-RD", "SIH-RJ", "SIH-SP", "SIH-ER",
+    
+    # SIM Systems
+    "SIM-DO", "SIM-DOFET", "SIM-DOEXT", "SIM-DOINF", "SIM-DOMAT",
+    
+    # SINASC
     "SINASC",
-    "CNES-LT","CNES-ST","CNES-DC","CNES-EQ","CNES-SR","CNES-HB",
-    "CNES-PF","CNES-EP","CNES-RC","CNES-IN","CNES-EE","CNES-EF","CNES-GM",
-    "SIA-AB","SIA-ABO","SIA-ACF","SIA-AD","SIA-AN","SIA-AM","SIA-AQ",
-    "SIA-AR","SIA-ATD","SIA-PA","SIA-PS","SIA-SAD",
-    "SINAN-DENGUE","SINAN-CHIKUNGUNYA","SINAN-ZIKA","SINAN-MALARIA",
-    "SINAN-CHAGAS","SINAN-LEISHMANIOSE-VISCERAL",
-    "SINAN-LEISHMANIOSE-TEGUMENTAR","SINAN-LEPTOSPIROSE"
+    
+    # CNES Systems
+    "CNES-LT", "CNES-ST", "CNES-DC", "CNES-EQ", "CNES-SR", 
+    "CNES-HB", "CNES-PF", "CNES-EP", "CNES-RC", "CNES-IN", 
+    "CNES-EE", "CNES-EF", "CNES-GM",
+    
+    # SIA Systems
+    "SIA-AB", "SIA-ABO", "SIA-ACF", "SIA-AD", "SIA-AN", 
+    "SIA-AM", "SIA-AQ", "SIA-AR", "SIA-ATD", "SIA-PA", 
+    "SIA-PS", "SIA-SAD",
+    
+    # SINAN Systems
+    "SINAN-DENGUE", "SINAN-CHIKUNGUNYA", "SINAN-ZIKA", 
+    "SINAN-MALARIA", "SINAN-CHAGAS", 
+    "SINAN-LEISHMANIOSE-VISCERAL", 
+    "SINAN-LEISHMANIOSE-TEGUMENTAR", "SINAN-LEPTOSPIROSE"
   )
+  
+  # Categorize systems for better error messages
+  system_categories <- list(
+    "SIH" = c("SIH-RD", "SIH-RJ", "SIH-SP", "SIH-ER"),
+    "SIM" = c("SIM-DO", "SIM-DOFET", "SIM-DOEXT", "SIM-DOINF", "SIM-DOMAT"),
+    "SINASC" = "SINASC",
+    "CNES" = c("CNES-LT", "CNES-ST", "CNES-DC", "CNES-EQ", "CNES-SR", 
+               "CNES-HB", "CNES-PF", "CNES-EP", "CNES-RC", "CNES-IN", 
+               "CNES-EE", "CNES-EF", "CNES-GM"),
+    "SIA" = c("SIA-AB", "SIA-ABO", "SIA-ACF", "SIA-AD", "SIA-AN", 
+              "SIA-AM", "SIA-AQ", "SIA-AR", "SIA-ATD", "SIA-PA", 
+              "SIA-PS", "SIA-SAD"),
+    "SINAN" = c("SINAN-DENGUE", "SINAN-CHIKUNGUNYA", "SINAN-ZIKA", 
+                "SINAN-MALARIA", "SINAN-CHAGAS", 
+                "SINAN-LEISHMANIOSE-VISCERAL", 
+                "SINAN-LEISHMANIOSE-TEGUMENTAR", "SINAN-LEPTOSPIROSE")
+  )
+  
+  # Check if system is valid
   if (!system %in% valid_systems) {
-    close_matches <- agrep(system, valid_systems, max.distance = 0.3, value = TRUE)
-    hint <- if (length(close_matches) > 0L)
-      glue::glue(" Quis dizer: {paste(close_matches, collapse = ', ')}?") else ""
-    cli::cli_abort("Sistema inválido: {.val {system}}.{hint}")
+    cli::cli_alert_danger("Invalid system: {system}")
+    
+    # Provide helpful suggestions
+    cli::cli_alert_info("Valid systems are:")
+    
+    # Show by category
+    for (category in names(system_categories)) {
+      if (any(grepl(toupper(category), toupper(system)))) {
+        cli::cli_alert_info("  {category} systems:")
+        for (sys in system_categories[[category]]) {
+          cli::cli_alert_info("    - {sys}")
+        }
+      }
+    }
+    
+    # Also check for close matches
+    possible_matches <- agrep(system, valid_systems, max.distance = 0.3, value = TRUE)
+    if (length(possible_matches) > 0) {
+      cli::cli_alert_info("Did you mean one of these?")
+      for (match in possible_matches) {
+        cli::cli_alert_info("  - {match}")
+      }
+    }
+    
+    stop("Invalid system provided.")
   }
 
-  sys_prefix <- sub("-.*", "", system)
-  systems_with_month <- c("SIH","CNES","SIA")
-
-  if (sys_prefix %in% systems_with_month && is.null(month))
-    cli::cli_abort("Sistema {.val {system}} requer o argumento {.arg month}.")
-
+  # Valid month
+  system_prefix_month <- sub("-.*", "", system)
+  systems_requiring_month <- c("SIH", "CNES", "SIA")
+  
+  if (system_prefix_month %in% systems_requiring_month && is.null(month)) {
+    cli::cli_alert_danger("System {system} requires the 'month' argument.")
+    cli::cli_alert_info("Please provide months as a vector (e.g., month = 1:12 or month = 1).")
+    stop("Missing required argument: month. Please use month for 'SIH', 'CNES' and 'SIA' systems.")
+  }
+  
   if (!is.null(month)) {
-    if (!is.numeric(month) || any(month < 1L) || any(month > 12L))
-      cli::cli_abort("{.arg month} deve ser numérico entre 1 e 12.")
-    if (!sys_prefix %in% systems_with_month && verbose)
-      cli::cli_alert_warning("'month' fornecido mas não utilizado por {.val {system}}.")
+    if (!is.numeric(month) || any(month < 1) || any(month > 12)) {
+      cli::cli_alert_danger("Invalid month. Must be a numeric vector between 1 and 12.")
+      stop("Invalid month provided.")
+    }
+    
+    # 3. Aviso se o usuario fornecer mes para sistemas que geralmente são anuais (SIM, SINASC, SINAN)
+    if (!system_prefix_month %in% systems_requiring_month) {
+      cli::cli_alert_warning("Parameter 'month' is provided but typically not used for {system_prefix} systems.")
+      cli::cli_alert_info("These systems usually aggregate data by year. The 'month' filter might be ignored by the server.")
+    }
   }
 
-  if (parallel && workers > parallel::detectCores())
-    cli::cli_alert_warning("{workers} workers > {parallel::detectCores()} cores disponíveis.")
+  #Check month
+  if (parallel && workers > parallel::detectCores()) {
+    cli::cli_alert_warning(
+      "{workers} workers requested but only {parallel::detectCores()} cores available"
+    )
+  }
 
-  # ── 3. Configuração de diretórios ─────────────────────────────────────────
+  # 3. Diretorios de cache 
 
   cache_dir   <- path.expand(cache_dir)
-  # raw/  : Parquets individuais por chunk (cache de download)
-  # dataset/ : Parquets consolidados, usados pelo open_dataset
-  raw_dir     <- file.path(cache_dir, "raw")
-  dataset_dir <- file.path(cache_dir, "dataset")
+  raw_dir     <- file.path(cache_dir, "raw")     # Parquets individuais
+  dataset_dir <- file.path(cache_dir, "dataset") # Reservado para uso futuro
 
   for (d in c(raw_dir, dataset_dir))
     if (!fs::dir_exists(d)) fs::dir_create(d, recurse = TRUE)
 
-  # ── 4. Grid de combinações ────────────────────────────────────────────────
+  #4. Configuracao: sistemas nacionais vs. por UF
+  #
+  # Sistemas SINAN entregam dados nacionais num unico arquivo por ano.
+  # Para eles: download_ufs = "BR" (uma tarefa/ano), e o filtro por UF
+  # e aplicado LAZY sobre o Dataset resultante — sem collect antecipado.
 
-  # Sistemas SINAN são nacionais: um único download por ano cobre todo o Brasil.
-  # O filtro por UF é aplicado LAZY sobre o Dataset — sem collect antecipado.
   national_systems <- c(
     "SINAN-DENGUE","SINAN-CHIKUNGUNYA","SINAN-ZIKA","SINAN-MALARIA",
     "SINAN-CHAGAS","SINAN-LEISHMANIOSE-VISCERAL",
     "SINAN-LEISHMANIOSE-TEGUMENTAR","SINAN-LEPTOSPIROSE"
   )
-  is_national <- system %in% national_systems
+  is_national  <- system %in% national_systems
+  request_ufs  <- uf                              # UFs pedidas pelo usuario
+  download_ufs <- if (is_national) "BR" else uf  # UFs efetivas de download
 
-  # UF de download: para nacionais, usa "BR" internamente (um arquivo/ano).
-  download_ufs <- if (is_national) "BR" else uf
-  request_ufs  <- uf   # guardado para o filtro lazy posterior
+  # Mapeamento UF sigla - codigo IBGE (usado no filtro lazy de SINAN)
+  uf_to_code <- c(
+    AC=12L,AL=27L,AP=16L,AM=13L,BA=29L,CE=23L,DF=53L,ES=32L,
+    GO=52L,MA=21L,MT=51L,MS=50L,MG=31L,PA=15L,PB=25L,PR=41L,
+    PE=26L,PI=22L,RJ=33L,RN=24L,RS=43L,RO=11L,RR=14L,SC=42L,
+    SP=35L,SE=28L,TO=17L
+  )
 
-  params <- if (!is.null(month)) {
-    expand.grid(year = year, uf = download_ufs, month = month,
-                stringsAsFactors = FALSE)
+  #  5. Grid de combinacoes 
+
+  if (!is.null(month)) {
+    params <- expand.grid(
+      year  = year,
+      uf    = download_ufs,
+      month = month,
+      stringsAsFactors = FALSE
+    )
   } else {
-    expand.grid(year = year, uf = download_ufs,
-                stringsAsFactors = FALSE)
+    params <- expand.grid(
+      year = year,
+      uf   = download_ufs,
+      stringsAsFactors = FALSE
+    )
   }
-
   total_tasks <- nrow(params)
 
-  # ── 5. Log de cabeçalho ───────────────────────────────────────────────────
+  #  6. Log de cabecalho 
 
   if (verbose) {
-    cli::cli_h1("Climasus4r · Import Arrow Out-of-Core")
-    cli::cli_alert_info("Sistema  : {system}")
-    cli::cli_alert_info("Estados  : {paste(request_ufs, collapse = ', ')}")
-    cli::cli_alert_info("Anos     : {paste(year, collapse = ', ')}")
+    cli::cli_h1("climasus4r - Datasus Import")
+    cli::cli_alert_info("Sistema   : {system}")
+    cli::cli_alert_info("Estados   : {paste(request_ufs, collapse = ', ')}")
+    cli::cli_alert_info("Anos      : {paste(year, collapse = ', ')}")
     if (!is.null(month))
-      cli::cli_alert_info("Meses    : {paste(month, collapse = ', ')}")
-    cli::cli_alert_info("Tarefas  : {total_tasks}")
-    cli::cli_alert_info("Cache    : {ifelse(use_cache, raw_dir, 'DESABILITADO')}")
-    cli::cli_alert_info("Arrow    : {n_arrow_threads} thread(s) I/O")
+      cli::cli_alert_info("Meses     : {paste(month, collapse = ', ')}")
+    cli::cli_alert_info("Tarefas   : {total_tasks}")
+    cli::cli_alert_info(
+      "Cache     : {ifelse(use_cache, raw_dir, 'DESABILITADO')}"
+    )
+    cli::cli_alert_info("Arrow I/O : {n_arrow_threads} thread(s)")
+    if (is_national)
+      cli::cli_alert_info(
+        "Nacional  : download unico/ano, filtro lazy por UF apos abertura do dataset."
+      )
     if (parallel && total_tasks > 1L)
-      cli::cli_alert_info("Paralelo : {workers} worker(s) de download HTTP")
+      cli::cli_alert_info("Paralelo  : {min(workers, total_tasks)} worker(s) HTTP")
   }
 
-  # ── 6. Funções auxiliares de cache (closures sobre raw_dir) ──────────────
+  #7. Closures de cache (dependem de raw_dir) 
 
-  .cache_path <- function(key)
-    file.path(raw_dir, paste0(key, ".parquet"))
+  .cache_path <- function(key) file.path(raw_dir, paste0(key, ".parquet"))
 
   .cache_valid <- function(path, max_days = 30L) {
     if (!fs::file_exists(path)) return(FALSE)
-    as.numeric(difftime(Sys.time(),
-                        fs::file_info(path)$modification_time,
-                        units = "days")) <= max_days
+    age <- as.numeric(
+      difftime(Sys.time(), fs::file_info(path)$modification_time, units = "days")
+    )
+    age <= max_days
   }
 
-  # ── 7. download_one — retorna APENAS o path, não o data.frame
+  # 8. download_one_raw 
   #
-  # MUDANÇA ARQUITETURAL CENTRAL:
-  # A versão original retornava o data.frame completo para ser acumulado
-  # em list_of_dfs e depois combinado com rbindlist — causando o OOM.
-  # Agora download_one retorna apenas o caminho do arquivo Parquet escrito.
-  # A escrita é responsabilidade do processo CHAMADOR (processo principal),
-  # não do worker — evitando serialização de dados grandes via future socket.
-  # ──────────────────────────────────────────────────────────────────────────
-  download_one <- function(year_i, uf_i, system_i, month_i = NULL) {
+  # Executado dentro do worker (paralelo) ou inline (sequencial).
+  # Retorna APENAS:
+  #   list(type="path", value=path)          — cache hit (zero serializacao)
+  #   list(type="df",   value=df, path=path) — download novo (df via socket)
+  #   NULL                                   — falha irrecuperavel
+  #
+  # A escrita Parquet NUNCA ocorre aqui — ocorre no processo principal (§9),
+  # evitando: (a) race conditions de I/O em disco, (b) necessidade de
+  # serializar df+path via socket future, (c) dependencia de permissao de
+  # escrita nos workers (falha silenciosa em NFS/Windows).
 
+  download_one_raw <- function(year_i, uf_i, system_i, month_i = NULL) {
     label <- paste(
       Filter(Negate(is.null), list(system_i, uf_i, year_i, month_i)),
       collapse = " · "
     )
 
-    # Parâmetros para fetch_datasus
-    # Para nacionais, passamos a primeira UF real (o servidor ignora para SINAN)
-    fetch_uf <- if (uf_i == "BR") request_ufs[1L] else uf_i
+    fetch_uf   <- if (uf_i == "BR") request_ufs[1L] else uf_i
+    cache_key  <- .make_cache_key(system_i, uf_i, year_i, month_i, is_national)
+    cache_path <- .cache_path(cache_key)
+
+    # Cache hit: retorna apenas o path — nada e serializado via socket
+    if (use_cache && !force_redownload && .cache_valid(cache_path)) {
+      if (verbose) cli::cli_alert_success("Cache: {label}")
+      return(list(type = "path", value = cache_path))
+    }
+
+    if (verbose) cli::cli_alert_info("Baixando: {label}")
 
     params_fetch <- list(
       year_start         = as.numeric(year_i),
@@ -391,19 +530,6 @@ sus_data_import_arrow <- function(
       params_fetch$month_end   <- month_i
     }
 
-    cache_key  <- .make_cache_key(system_i, uf_i, year_i, month_i, is_national)
-    cache_path <- .cache_path(cache_key)
-
-    # Cache hit → retorna path diretamente (sem ler o arquivo)
-    if (use_cache && !force_redownload && .cache_valid(cache_path)) {
-      if (verbose)
-        cli::cli_alert_success("Cache: {label}")
-      return(cache_path)
-    }
-
-    # Download
-    if (verbose) cli::cli_alert_info("Baixando: {label}")
-
     tryCatch({
       df <- do.call(microdatasus::fetch_datasus, params_fetch)
 
@@ -412,297 +538,201 @@ sus_data_import_arrow <- function(
         return(NULL)
       }
 
-      # Escreve em disco E retorna o path
-      # A chamada a .write_chunk_parquet() acontece AQUI, no processo principal
-      # (após o future_map recolher apenas o df via socket).
-      # Para minimizar a serialização, o df poderia ser retornado e escrito
-      # fora — mas a função optou por encapsular: veja o comentário na
-      # Seção 8 sobre a estratégia de minimização de socket transfer.
-      .write_chunk_parquet(df, cache_path)
-      rm(df); gc(verbose = FALSE)
-
-      if (verbose) cli::cli_alert_success("OK: {label}")
-      cache_path
+      list(type = "df", value = df, path = cache_path, label = label)
 
     }, error = function(e) {
       cli::cli_alert_danger("Falha: {label} — {conditionMessage(e)}")
-      if (grepl("404|Not Found", conditionMessage(e), ignore.case = TRUE))
-        cli::cli_alert_info("  ↳ Combinação pode não existir no DATASUS.")
-      if (grepl("timeout", conditionMessage(e), ignore.case = TRUE))
-        cli::cli_alert_info("  ↳ Verifique sua conexão ou tente novamente.")
+      if (grepl("404|Not Found",  conditionMessage(e), ignore.case = TRUE))
+        cli::cli_alert_info("  -> Combinacao pode nao existir no DATASUS.")
+      if (grepl("timeout",        conditionMessage(e), ignore.case = TRUE))
+        cli::cli_alert_info("  -> Verifique a conexao ou tente novamente.")
       NULL
     })
   }
 
-  # ── 8. Execução: paralela (download HTTP) ou sequencial ──────────────────
+  # 9. Execucao dos downloads (paralelo HTTP ou sequencial)
   #
-  # ESTRATÉGIA DE PARALELISMO ADOTADA:
-  #
-  # Problema original: future_map retornava data.frames grandes via socket
-  # (serialização IPC). Com dados de 3M+ linhas, isso era mais lento que
-  # sequencial.
-  #
-  # Solução: future_map retorna APENAS o path (string).
-  # O data.frame existe apenas dentro do worker, é escrito em disco pelo
-  # próprio worker, e o processo principal recebe somente a string do path.
-  # Transferência via socket: ~50 bytes (path) vs. ~100MB+ (data.frame).
-  #
-  # Consequência: a escrita Parquet ocorre DENTRO do worker (processo filho).
-  # Para evitar race conditions de I/O em disco (múltiplos workers escrevendo
-  # no mesmo arquivo), garantimos que cada combinação (system/uf/year/month)
-  # tem um cache_key único → paths únicos → zero conflito.
-  # ──────────────────────────────────────────────────────────────────────────
+  # Paralelo: future_map retorna list(type, value/path) via socket -
+  #   transferência maxima = tamanho do df bruto (inevitavel para downloads novos).
+  #   Para cache hits a transferencia es aprox. 50 bytes (apenas o path).
+  # Sequencial: purrr::map, sem overhead de serializacao.
+
+  run_task <- function(i) {
+    download_one_raw(
+      year_i   = params$year[i],
+      uf_i     = params$uf[i],
+      system_i = system,
+      month_i  = if ("month" %in% names(params)) params$month[i] else NULL
+    )
+  }
 
   if (parallel && total_tasks > 1L) {
-  old_plan <- future::plan()
-  on.exit(future::plan(old_plan), add = TRUE)
-  future::plan(future::multisession, workers = min(workers, total_tasks))
+    old_plan <- future::plan()
+    on.exit(future::plan(old_plan), add = TRUE)
+    future::plan(future::multisession, workers = min(workers, total_tasks))
 
-  parquet_paths <- furrr::future_map(
-    seq_len(total_tasks),
-    function(i) {
-      result <- download_one(
-        year_i   = params$year[i],
-        uf_i     = params$uf[i],
-        system_i = system,
-        month_i  = if ("month" %in% names(params)) params$month[i] else NULL
-      )
-      
-      # Return NULL explicitly for failures
-      if (is.null(result)) return(NULL)
-      if (!is.character(result)) {
-        if (verbose) cli::cli_alert_warning("Invalid return type for task {i}: {class(result)}")
-        return(NULL)
-      }
-      return(result)
-    },
-    .options = furrr::furrr_options(
-      seed     = TRUE,
-      packages = c("microdatasus","arrow","stringi","cli","fs","digest"),
-      globals  = c(
-        "download_one", ".write_chunk_parquet", ".make_cache_key",
-        ".cache_path", ".cache_valid",
-        "system", "is_national", "request_ufs",
-        "use_cache", "force_redownload", "raw_dir", "verbose"
+    raw_results <- furrr::future_map(
+      seq_len(total_tasks),
+      run_task,
+      .options = furrr::furrr_options(
+        seed     = TRUE,
+        packages = c("microdatasus", "arrow", "stringi", "cli", "fs", "digest"),
+        globals  = c(
+          "download_one_raw", ".make_cache_key", ".cache_path", ".cache_valid",
+          "system", "is_national", "request_ufs",
+          "use_cache", "force_redownload", "raw_dir", "verbose",
+          "params"
+        )
       )
     )
-  )
-  
-  # CRITICAL: Properly flatten and coerce to character
-  parquet_paths <- unlist(parquet_paths, use.names = FALSE)
-  parquet_paths <- as.character(parquet_paths)
-  
-} else {
-  parquet_paths <- purrr::map(
-    seq_len(total_tasks),
-    function(i) {
-      download_one(
-        year_i   = params$year[i],
-        uf_i     = params$uf[i],
-        system_i = system,
-        month_i  = if ("month" %in% names(params)) params$month[i] else NULL
-      )
-    }
-  )
-  
-  # Flatten the list
-  parquet_paths <- unlist(parquet_paths, use.names = FALSE)
-  parquet_paths <- as.character(parquet_paths)
-}
-  # ── 9. Validação dos paths coletados ─────────────────────────────────────
+  } else {
+    raw_results <- purrr::map(seq_len(total_tasks), run_task)
+  }
 
-  # Remover falhas (NULL) e paths inexistentes
-  valid_paths <- Filter(
-    function(p) !is.null(p) && fs::file_exists(p),
-    parquet_paths
-  )
+  #  10. Escrita Parquet no processo principal 
+  #
+  # Itera sobre raw_results: cache hits → coleta o path diretamente;
+  # downloads novos -> escreve com .write_chunk_parquet() e depois libera df.
+  # rm() + gc() imediatamente apos a escrita para nao acumular na heap.
+
+  parquet_paths <- character(0L)
+
+  for (res in raw_results) {
+    if (is.null(res)) next
+
+    if (res$type == "path") {
+      parquet_paths <- c(parquet_paths, res$value)
+
+    } else if (res$type == "df") {
+      written <- .write_chunk_parquet(res$value, res$path)
+      rm(res); gc(verbose = FALSE)
+      if (!is.null(written)) {
+        if (verbose)
+          cli::cli_alert_success("Salvo: {basename(written)}")
+        parquet_paths <- c(parquet_paths, written)
+      }
+    }
+  }
+  rm(raw_results); gc(verbose = FALSE)
+
+  # 11. Validacao dos paths
+
+  file_sizes <- fs::file_info(
+    parquet_paths[fs::file_exists(parquet_paths)]
+  )$size
+
+  valid_paths <- parquet_paths[
+    !is.na(parquet_paths) &
+    nchar(parquet_paths) > 0L &
+    fs::file_exists(parquet_paths) &
+    fs::file_info(parquet_paths)$size > 0L
+  ]
+  names(valid_paths) <- NULL
 
   n_ok   <- length(valid_paths)
   n_fail <- total_tasks - n_ok
 
   if (n_ok == 0L) {
-    cli::cli_alert_danger("Nenhum dado disponível para os parâmetros fornecidos.")
+    cli::cli_alert_danger(
+      "Nenhum dado disponivel para os parametros fornecidos."
+    )
     return(invisible(NULL))
   }
 
   if (verbose) {
-    cli::cli_alert_success("{n_ok}/{total_tasks} arquivo(s) disponível(is).")
+    cli::cli_alert_success("{n_ok}/{total_tasks} arquivo(s) Parquet valido(s).")
     if (n_fail > 0L)
-      cli::cli_alert_warning("{n_fail} download(s) falharam — verifique logs acima.")
-  }
-
-# ── 10. Construção do Arrow Dataset (sem rbindlist, sem RAM) ─────────────
-#
-# arrow::open_dataset lê o schema de cada Parquet sem desserializar os dados.
-# Retorna um FileSystemDataset — referência lazy a todos os arquivos.
-# Filtros subsequentes (is_national, dplyr::filter pelo usuário) são
-# traduzidos para predicados Arrow e executados em C++ durante o scan.
-# ──────────────────────────────────────────────────────────────────────────
-
-if (verbose)
-  cli::cli_alert_info("Abrindo Arrow Dataset ({n_ok} arquivo(s))...")
-
-# CRITICAL FIX: Ensure valid_paths is a plain character vector
-# This is the most likely cause of the "x is not a character vector" error
-if (is.list(valid_paths)) {
-  valid_paths <- unlist(valid_paths)
-}
-
-# Remove any names that might cause issues
-names(valid_paths) <- NULL
-
-# Ensure it's a character vector
-valid_paths <- as.character(valid_paths)
-
-# Remove any NA values
-valid_paths <- valid_paths[!is.na(valid_paths)]
-
-# Check if any files are empty/corrupted before opening
-valid_paths <- valid_paths[sapply(valid_paths, function(p) {
-  if (!fs::file_exists(p)) return(FALSE)
-  info <- fs::file_info(p)
-  return(info$size > 0)  # Reject empty files
-})]
-
-if (length(valid_paths) == 0) {
-  cli::cli_alert_danger("No valid Parquet files found after validation.")
-  return(invisible(NULL))
-}
-
-n_ok <- length(valid_paths)
-if (verbose) {
-  cli::cli_alert_success("{n_ok}/{total_tasks} arquivo(s) válido(s).")
-  if (n_fail > 0L)
-    cli::cli_alert_warning("{n_fail} download(s) falharam — verifique logs acima.")
-}
-
-# Additional fix: Try to read schema from first file to debug
-if (verbose && length(valid_paths) > 0) {
-  cli::cli_alert_info("Validating first file schema...")
-  first_file <- valid_paths[1]
-  tryCatch({
-    # Use read_parquet with as_data_frame = FALSE to just read schema
-    schema_obj <- arrow::read_parquet(first_file, as_data_frame = FALSE)
-    cli::cli_alert_success("Schema OK: {length(names(schema_obj))} colunas")
-  }, error = function(e) {
-    cli::cli_alert_warning("First file may be corrupted: {conditionMessage(e)}")
-    # Remove corrupted file from valid_paths
-    valid_paths <<- valid_paths[-1]
-  })
-}
-
-# Ensure we have valid paths after potential removal
-if (length(valid_paths) == 0) {
-  cli::cli_alert_danger("No valid Parquet files remaining after validation.")
-  return(invisible(NULL))
-}
-
-# Unificar schema: arquivos de anos diferentes podem ter colunas distintas.
-# unify_schemas = TRUE garante que colunas ausentes apareçam como NULL
-# (comportamento análogo ao fill = TRUE do rbindlist).
-dataset <- tryCatch({
-  # Explicitly convert to character vector and remove any attributes
-  sources_vec <- as.character(valid_paths)
-  names(sources_vec) <- NULL
-  
-  if (verbose) {
-    cli::cli_alert_info("Opening dataset with {length(sources_vec)} file(s)...")
-    cli::cli_alert_info("First file: {basename(sources_vec[1])}")
-  }
-  
-  arrow::open_dataset(
-    sources       = sources_vec,
-    format        = "parquet",
-    unify_schemas = TRUE
-  )
-}, error = function(e) {
-  cli::cli_alert_danger("Failed to open dataset: {conditionMessage(e)}")
-  
-  # More detailed diagnostic
-  cli::cli_alert_info("Valid paths type: {class(valid_paths)}")
-  cli::cli_alert_info("Valid paths length: {length(valid_paths)}")
-  cli::cli_alert_info("First 3 paths: {paste(basename(valid_paths[1:min(3, length(valid_paths))]), collapse = ', ')}")
-  
-  cli::cli_alert_info("Trying to open files individually for diagnosis...")
-  
-  # Diagnostic: Try to read each file individually
-  file_status <- sapply(valid_paths, function(p) {
-    tryCatch({
-      arrow::read_parquet(p, as_data_frame = FALSE)
-      return(TRUE)
-    }, error = function(e2) {
-      cli::cli_alert_danger("File corrupted: {basename(p)} - {conditionMessage(e2)}")
-      return(FALSE)
-    })
-  })
-  
-  good_files <- valid_paths[file_status]
-  cli::cli_alert_info("{sum(file_status)}/{length(file_status)} files are readable.")
-  
-  if (length(good_files) > 0) {
-    cli::cli_alert_info("Attempting to open dataset with only readable files...")
-    tryCatch({
-      arrow::open_dataset(
-        sources       = as.character(good_files),
-        format        = "parquet",
-        unify_schemas = TRUE
+      cli::cli_alert_warning(
+        "{n_fail} download(s) falharam — verifique os logs acima."
       )
-    }, error = function(e3) {
-      stop("Arrow dataset creation failed even with readable files: ", conditionMessage(e3))
-    })
-  } else {
-    stop("Arrow dataset creation failed. No readable files found.")
   }
-})
-  # ── 11. Filtro lazy para sistemas nacionais ───────────────────────────────
+
+  # 12. Arrow Dataset lazy (sem rbindlist, sem RAM)
   #
-  # ANTES (original): filtro data.table APÓS rbindlist — tudo na RAM.
-  # AGORA: predicado Arrow lazy — executado no scan C++, sem collect().
+  # open_dataset le apenas os footers Parquet (metadados/schema) — sem
+  # desserializar dados. unify_schemas = TRUE garante que colunas ausentes
+  # em alguns arquivos aparecam como NULL (equivalente ao fill=TRUE do
+  # rbindlist), essencial quando diferentes anos tem schemas distintos.
+
+  if (verbose)
+    cli::cli_alert_info("Abrindo Arrow Dataset ({n_ok} arquivo(s))...")
+
+  dataset <- tryCatch({
+    arrow::open_dataset(
+      sources       = valid_paths,
+      format        = "parquet",
+      unify_schemas = TRUE
+    )
+  }, error = function(e) {
+    cli::cli_alert_danger("Falha ao abrir dataset: {conditionMessage(e)}")
+    cli::cli_alert_info("Verificando arquivos individualmente...")
+
+    # Diagnostico: isola arquivos corrompidos
+    readable <- Filter(function(p) {
+      tryCatch({
+        arrow::open_dataset(p, format = "parquet")
+        TRUE
+      }, error = function(e2) {
+        cli::cli_alert_warning(
+          "Corrompido: {basename(p)} — {conditionMessage(e2)}"
+        )
+        FALSE
+      })
+    }, valid_paths)
+
+    if (length(readable) == 0L)
+      cli::cli_abort("Nenhum arquivo Parquet legivel. Verifique os logs.")
+
+    cli::cli_alert_info(
+      "Reabrindo com {length(readable)}/{n_ok} arquivo(s) legiveis..."
+    )
+    arrow::open_dataset(
+      sources       = readable,
+      format        = "parquet",
+      unify_schemas = TRUE
+    )
+  })
+
+  # 13. Filtro lazy de UF para sistemas nacionais (SINAN) 
   #
-  # Para SINAN, a coluna de UF é SG_UF_NOT (código numérico IBGE).
-  # O mapeamento UF sigla → código é feito aqui, uma vez, e embutido
-  # no predicado como literal — zero overhead em runtime.
-  # ──────────────────────────────────────────────────────────────────────────
+  # Predicado Arrow: executado em C++ durante o scan, sem collect().
+  # Coluna SG_UF_NOT usa codigo numerico IBGE — mapeamento feito aqui uma vez
+  # e embutido como literal no predicado.
 
   if (is_national && length(request_ufs) > 0L) {
-    uf_to_code <- c(
-      AC=12L,AL=27L,AP=16L,AM=13L,BA=29L,CE=23L,DF=53L,ES=32L,
-      GO=52L,MA=21L,MT=51L,MS=50L,MG=31L,PA=15L,PB=25L,PR=41L,
-      PE=26L,PI=22L,RJ=33L,RN=24L,RS=43L,RO=11L,RR=14L,SC=42L,
-      SP=35L,SE=28L,TO=17L
-    )
     codes_wanted <- unname(uf_to_code[request_ufs])
     codes_wanted <- codes_wanted[!is.na(codes_wanted)]
 
     if (length(codes_wanted) > 0L) {
-      # dplyr::filter sobre arrow::Dataset → predicado lazy (não collect)
-      # Arrow traduz %in% para um IN filter no scan de colunas.
       dataset <- dataset |>
         dplyr::filter(as.integer(SG_UF_NOT) %in% codes_wanted)
 
       if (verbose)
-        cli::cli_alert_info("Filtro lazy de UF aplicado ({length(codes_wanted)} código(s) IBGE).")
+        cli::cli_alert_info(
+          "Filtro lazy de UF: {length(codes_wanted)} codigo(s) IBGE aplicado(s)."
+        )
     }
   }
 
-  # ── 12. Metadados climasus_df no Dataset ─────────────────────────────────
+  #  14. Metadados climasus_dataset 
   #
-  # arrow::Dataset não suporta atributos R arbitrários da mesma forma que
-  # data.frames. Usamos um environment dedicado como "sidecar" de metadados,
-  # armazenado como atributo especial — compatível com as funções downstream
-  # que checam inherits(x, "climasus_dataset").
-  # ──────────────────────────────────────────────────────────────────────────
+  # arrow::Dataset nao suporta atributos R arbitrarios de forma persistente.
+  # sus_meta es armazenado como atributo R no wrapper S3 climasus_dataset —
+  # acessevel via attr(ds, "sus_meta") e preservado por collect().
 
   meta <- list(
-    system    = system,
+    system    = NULL,
     stage     = "import",
     type      = "raw",
     spatial   = FALSE,
     temporal  = NULL,
+    backend   = "parquet",
     created   = Sys.time(),
     modified  = Sys.time(),
-    history   = sprintf("[%s] Imported via Arrow out-of-core (climasus4r)",
-                        format(Sys.time(), "%Y-%m-%d %H:%M:%S")),
+    history   = sprintf(
+      "[%s] Imported via Arrow out-of-core (climasus4r)",
+      format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+    ),
     n_files   = n_ok,
     n_failed  = n_fail,
     cache_dir = raw_dir,
@@ -711,81 +741,100 @@ dataset <- tryCatch({
 
   dataset <- structure(
     dataset,
-    sus_meta  = meta,
-    parquet_paths  = valid_paths,
-    class          = c("climasus_dataset", class(dataset))
+    sus_meta      = meta,
+    parquet_paths = valid_paths,
+    class         = c("climasus_dataset", class(dataset))
   )
 
-  # ── 13. Resumo final ─────────────────────────────────────────────────────
+  # 15. Resumo final 
 
   if (verbose) {
-    # Mostra contagem de linhas SEM collect: usa apenas metadados Parquet
-    approx_rows <- tryCatch(
-      format(nrow(dataset), big.mark = ","),
-      error = function(e) "N/A"
-    )
+    # num_rows em FileSystemDataset sem filtros usa metadados Parquet (rapido).
+    # Em datasets filtrados (SINAN lazy), evita scan completo.
+    approx_rows <- tryCatch({
+      if (inherits(dataset, "FileSystemDataset")) {
+        format(dataset$num_rows, big.mark = ".", decimal.mark = ",")
+      } else {
+        "N/A (dataset filtrado — use nrow(dplyr::collect(...)) para contar)"
+      }
+    }, error = function(e) "N/A")
+
     cli::cli_alert_success("Dataset lazy pronto: ~{approx_rows} linha(s).")
     cli::cli_alert_info(
-      "Use {.code dplyr::collect()} para materializar ou encadeie verbos dplyr."
+      "Pipeline lazy : {.code ds |> dplyr::filter(...) |> dplyr::collect()}"
     )
     cli::cli_alert_info(
-      "DuckDB: {.code arrow::to_duckdb(resultado)} para SQL de alta performance."
+      "DuckDB        : {.code arrow::to_duckdb(ds) |> dplyr::filter(...) |> dplyr::collect()}"
     )
   }
 
-  dataset
+  return(dataset)
 }
 
 
 # ==============================================================================
-# HELPERS de suporte ao objeto climasus_dataset
+# S3: print / collect para climasus_dataset
 # ==============================================================================
 
 #' @export
 print.climasus_dataset <- function(x, ...) {
   meta <- attr(x, "sus_meta")
   cli::cli_h2("climasus_dataset")
-  cli::cli_alert_info("Sistema  : {meta$system}")
-  cli::cli_alert_info("Stage    : {meta$stage}")
-  cli::cli_alert_info("Arquivos : {meta$n_files} Parquet(s)")
-  cli::cli_alert_info("Schema   : {ncol(x)} coluna(s)")
-  cli::cli_alert_info("Criado   : {format(meta$created, '%Y-%m-%d %H:%M:%S')}")
+  cli::cli_alert_info("Sistema   : {meta$system}")
+  cli::cli_alert_info("Stage     : {meta$stage}")
+  cli::cli_alert_info("Arquivos  : {meta$n_files} Parquet(s) ({meta$n_failed} falha(s))")
+  cli::cli_alert_info("Schema    : {ncol(x)} coluna(s)")
+  cli::cli_alert_info("Cache dir : {meta$cache_dir}")
+  cli::cli_alert_info("Criado    : {format(meta$created, '%Y-%m-%d %H:%M:%S')}")
   cli::cli_alert_info(
-    "Histórico: {paste(meta$history, collapse = ' | ')}"
+    "Histórico : {paste(meta$history, collapse = ' | ')}"
   )
   NextMethod()
   invisible(x)
 }
 
-#' Coleta um climasus_dataset em tibble (collect com metadados preservados)
+
+#' Materializa um climasus_dataset como tibble preservando os metadados
 #'
-#' @param x   climasus_dataset
-#' @param ... Passado para dplyr::collect
-#' @return climasus_df (tibble com atributo sus_meta)
+#' Equivalente a `dplyr::collect()` com preservação do atributo `sus_meta`
+#' e promocao da classe para `climasus_df`.
+#'
+#' @param x   Um `climasus_dataset`.
+#' @param ... Argumentos adicionais passados para `dplyr::collect()`.
+#' @return Um `climasus_df` (tibble com atributo `sus_meta`).
 #' @export
 collect.climasus_dataset <- function(x, ...) {
+  # 1. Extrai os metadados originais do dataset lazy
   meta <- attr(x, "sus_meta")
-  df   <- NextMethod()   # chama dplyr:::collect.arrow_dplyr_query ou similar
-
-  meta$stage    <- "collected"
-  meta$modified <- Sys.time()
-  meta$history  <- c(meta$history,
-                     sprintf("[%s] Collected to tibble",
-                             format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
-
-  structure(df,
-            sus_meta = meta,
-            class         = c("climasus_df", setdiff(class(df), "climasus_dataset")))
+  
+  # 2. Materializa os dados (traz para a RAM como tibble/data.frame)
+  df <- NextMethod()   # dplyr:::collect.arrow_dplyr_query ou similar
+  
+  # 3. Transforma o tibble resultante em um climasus_df valido
+  # (new_climasus_df es a função interna definida em utils-S3.R)
+  df <- new_climasus_df(df, meta)
+  
+  # 4. Usa a nova interface unificada sus_meta() para atualizar o estado
+  df <- sus_meta(
+    df,
+    stage = "import",     # Mantem como import (ou mude para 'collected' se preferir)
+    backend = "tibble",   # NOVO: Agora os dados estao na memoria
+    add_history = "Collected Arrow Dataset to in-memory tibble"
+  )
+  
+  return(df)
 }
 
 
+
 # ==============================================================================
-# DADOS ESTÁTICOS (sem alteração)
+# DADOS ESTATICOS
 # ==============================================================================
 
+#' RegiOes geograficas do Brasil para o argumento `region`
 #' @noRd
 .br_regions <- list(
-  # IBGE Macro-regions
+  # IBGE Macro-regiões
   norte        = c("AC","AP","AM","PA","RO","RR","TO"),
   nordeste     = c("AL","BA","CE","MA","PB","PE","PI","RN","SE"),
   centro_oeste = c("DF","GO","MT","MS"),
@@ -807,70 +856,32 @@ collect.climasus_dataset <- function(x, ...) {
   bacia_tocantins     = c("GO","MA","PA","TO"),
   semi_arido          = c("AL","BA","CE","MA","PB","PE","PI","RN","SE","MG"),
   # Saúde, agro e geopolítica
-  matopiba          = c("MA","TO","PI","BA"),
-  arco_desmatamento = c("RO","AC","AM","PA","MT","MA"),
+  matopiba            = c("MA","TO","PI","BA"),
+  arco_desmatamento   = c("RO","AC","AM","PA","MT","MA"),
   dengue_hyperendemic = c("GO","MS","MT","PR","RJ","SP"),
-  sudene            = c("AL","BA","CE","MA","PB","PE","PI","RN","SE","MG","ES"),
-  fronteira_brasil  = c("AC","AM","AP","MT","MS","PA","PR","RO","RR","RS","SC")
+  sudene              = c("AL","BA","CE","MA","PB","PE","PI","RN","SE","MG","ES"),
+  fronteira_brasil    = c("AC","AM","AP","MT","MS","PA","PR","RO","RR","RS","SC")
 )
 
+#' Aliases multilíngues para o argumento `region` (EN/ES → chave PT interna)
 #' @noRd
 .region_aliases <- list(
   # English
-  north = "norte", northeast = "nordeste", central_west = "centro_oeste",
-  southeast = "sudeste", south = "sul", amazon = "amazonia_legal",
-  legal_amazon = "amazonia_legal", atlantic_forest = "mata_atlantica",
-  semi_arid = "semi_arido", border = "fronteira_brasil",
+  north           = "norte",
+  northeast       = "nordeste",
+  central_west    = "centro_oeste",
+  southeast       = "sudeste",
+  south           = "sul",
+  amazon          = "amazonia_legal",
+  legal_amazon    = "amazonia_legal",
+  atlantic_forest = "mata_atlantica",
+  semi_arid       = "semi_arido",
+  border          = "fronteira_brasil",
   # Spanish
-  noreste = "nordeste", sur = "sul",
-  amazonia = "amazonia_legal", bosque_atlantico = "mata_atlantica",
-  semiarido = "semi_arido", frontera = "fronteira_brasil"
+  noreste         = "nordeste",
+  sur             = "sul",
+  amazonia        = "amazonia_legal",
+  bosque_atlantico = "mata_atlantica",
+  semiarido       = "semi_arido",
+  frontera        = "fronteira_brasil"
 )
-
-
-# ==============================================================================
-# EXEMPLOS DE USO
-# ==============================================================================
-#
-# ── Exemplo 1: uso básico lazy ───────────────────────────────────────────────
-#
-#   ds <- sus_data_import(
-#     uf     = c("SP","RJ"),
-#     year   = 2020:2023,
-#     system = "SIM-DO"
-#   )
-#
-#   # Pipeline lazy — Arrow executa tudo em C++ no collect()
-#   resultado <- ds |>
-#     dplyr::filter(SEXO == "2") |>
-#     dplyr::select(DTOBITO, CAUSABAS, MUNRES) |>
-#     dplyr::collect()
-#
-#
-# ── Exemplo 2: DuckDB para SQL de alta performance ───────────────────────────
-#
-#   ds <- sus_data_import(region = "nordeste", year = 2022, system = "SIM-DO")
-#
-#   con <- arrow::to_duckdb(ds)
-#   resultado <- con |>
-#     dplyr::filter(CAUSABAS_O == "A90") |>  # dengue
-#     dplyr::group_by(MUNRES) |>
-#     dplyr::summarise(obitos = dplyr::n()) |>
-#     dplyr::collect()
-#
-#
-# ── Exemplo 3: SIH com mês e paralelo ────────────────────────────────────────
-#
-#   ds <- sus_data_import(
-#     uf       = "SP",
-#     year     = 2023,
-#     month    = 1:6,
-#     system   = "SIH-RD",
-#     parallel = TRUE,
-#     workers  = 4L          # 6 tarefas, 4 workers — compensa o overhead
-#   )
-#
-#   # Compatível com pipeline downstream sem collect()
-#   ds |> sus_data_clean_encoding_lazy() |> sus_data_standardize_lazy()
-#
-# ==============================================================================

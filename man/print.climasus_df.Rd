@@ -11,7 +11,7 @@
 
 \item{n}{Integer. Number of rows to print}
 
-\item{...}{Additional arguments passed to print.data.frame}
+\item{...}{Additional arguments passed to print}
 }
 \description{
 Print method for climasus_df
