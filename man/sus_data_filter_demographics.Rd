@@ -14,6 +14,8 @@ sus_data_filter_demographics(
   municipality_code = NULL,
   city = NULL,
   drop_ignored = FALSE,
+  use_cache = TRUE,
+  cache_dir = "~/.climasus4r_cache/spatial",
   lang = "pt",
   verbose = TRUE
 )
@@ -53,6 +55,13 @@ applied. Results are merged (union) with any codes in \code{municipality_code}.}
 \item{drop_ignored}{Logical. If \code{TRUE}, explicitly removes rows where
 demographic variables (sex, race, education) contain missing values (\code{NA})
 or DATASUS ignored codes (e.g., \code{"9"}, \code{"Ignorado"}). Default is \code{FALSE}.}
+
+\item{use_cache}{Logical. If \code{TRUE} (default), uses cached spatial data to
+avoid re-downloads and improve performance. Only relevant when \code{city} is
+provided.}
+
+\item{cache_dir}{Character string specifying the directory to store cached
+files. Default is \code{"~/.climasus4r_cache/spatial"}.}
 
 \item{lang}{Character string specifying the language for messages.
 Options: \code{"en"} (English), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}
@@ -156,7 +165,7 @@ df_children <- sus_data_filter_demographics(
   df,
   age_range = c(0, 5),
   region    = "Norte",
-  lang      = "en"
+  lang      = "pt"
 )
 }
 

@@ -19,17 +19,22 @@
 #'   If `NULL` (default), includes all education levels.
 #' @param region A string indicating a predefined group of states or regions
 #'   (supports multilingual names PT, EN, ES). See Details.
-#' @param municipality_code Character or numeric vector specifying municipality
-#'   codes (IBGE 6 or 7-digit codes) to include. If `NULL` (default), includes
-#'   all municipalities.
 #' @param city Character vector of municipality names (e.g., `"Sao Paulo"`,
 #'   `"Natal"`) or IBGE codes (6 or 7-digit, e.g., `"3550308"`, `"2408102"`).
 #'   Case-insensitive; accents are normalised for matching. Partial typos trigger
 #'   fuzzy suggestions. If `NULL` (default), no additional municipality filter is
 #'   applied. Results are merged (union) with any codes in `municipality_code`.
+#' @param municipality_code Character or numeric vector specifying municipality
+#'   codes (IBGE 6 or 7-digit codes) to include. If `NULL` (default), includes
+#'   all municipalities.
 #' @param drop_ignored Logical. If `TRUE`, explicitly removes rows where
 #'   demographic variables (sex, race, education) contain missing values (`NA`)
 #'   or DATASUS ignored codes (e.g., `"9"`, `"Ignorado"`). Default is `FALSE`.
+#' @param use_cache Logical. If `TRUE` (default), uses cached spatial data to
+#'   avoid re-downloads and improve performance. Only relevant when `city` is
+#'   provided.
+#' @param cache_dir Character string specifying the directory to store cached
+#'   files. Default is `"~/.climasus4r_cache/spatial"`.
 #' @param lang Character string specifying the language for messages.
 #'   Options: `"en"` (English), `"pt"` (Portuguese, default), `"es"` (Spanish).
 #' @param verbose Logical. If `TRUE` (default), prints filtering summary.
@@ -117,7 +122,7 @@
 #'   df,
 #'   age_range = c(0, 5),
 #'   region    = "Norte",
-#'   lang      = "en"
+#'   lang      = "pt"
 #' )
 #' }
 #'
@@ -131,6 +136,8 @@ sus_data_filter_demographics <- function(df,
                                           municipality_code = NULL,
                                           city              = NULL,
                                           drop_ignored      = FALSE,
+                                          use_cache         = TRUE,
+                                          cache_dir         = "~/.climasus4r_cache/spatial",
                                           lang              = "pt",
                                           verbose           = TRUE) {
 
@@ -380,45 +387,53 @@ sus_data_filter_demographics <- function(df,
     }
   }
 
-  #  FILTER BY MUNICIPALITY (codes and/or city names) 
+  #  FILTER BY MUNICIPALITY (codes and/or city names)
   #
   # city names -> resolved to 7-digit IBGE codes via municipio_meta, then merged
   # with any explicit municipality_code values before a single filter pass.
 
   all_muni_codes <- if (!is.null(municipality_code)) as.character(municipality_code) else character(0)
+  muni_meta      <- NULL  # loaded lazily; reused for zero-row diagnostics
 
   if (!is.null(city) && length(city) > 0) {
-    muni_meta <- load_municipio_meta_internal()
+    .muni_patterns <- c("residence_municipality_code", "municipality_code",
+                        "residence_municipality", "municipio_residencia",
+                        "codigo_municipio", "codigo_municipio_residencia", "CODMUNRES")
+
+    
+    muni_meta <- get_spatial_municipio_cache(
+      cache_dir = cache_dir,
+      use_cache = use_cache,
+      lang      = lang,
+      verbose   = verbose
+    )
 
     resolved <- resolve_city_input_internal(city, muni_meta, lang, verbose)
 
     if (length(resolved$codes) > 0) {
-      muni_col_check <- find_column(
-        df,
-        c("residence_municipality_code", "municipality_code",
-          "residence_municipality", "municipio_residencia",
-          "codigo_municipio", "codigo_municipio_residencia", "CODMUNRES")
-      )
+      muni_col_check <- find_column(df, .muni_patterns)
       check_city_uf_internal(df, resolved$codes, muni_col_check, muni_meta, lang, verbose)
       all_muni_codes <- unique(c(all_muni_codes, resolved$codes))
     }
-  }
+    # Snapshot of available municipality codes BEFORE filtering (for zero-row diagnostic)
+    muni_col              <- find_column(df, .muni_patterns)
+    available_muni_codes  <- if (!is.null(muni_col))
+      unique(as.character(df[[muni_col]])) else character(0)
+    muni_filter_applied   <- length(all_muni_codes) > 0L
 
-  if (length(all_muni_codes) > 0) {
-    muni_col <- find_column(
-      df,
-      c("residence_municipality_code", "municipality_code",
-        "residence_municipality", "municipio_residencia",
-        "codigo_municipio", "codigo_municipio_residencia", "CODMUNRES")
-    )
-
-    if (is.null(muni_col)) {
-      cli::cli_alert_warning("Municipality column not found. Skipping municipality filter.")
-    } else {
-      df <- df_filter_col(df, muni_col, all_muni_codes)
-      filters_applied <- c(filters_applied,
-                           sprintf("municipality: %d codes", length(all_muni_codes)))
+    if (muni_filter_applied) {
+      if (is.null(muni_col)) {
+        cli::cli_alert_warning("Municipality column not found. Skipping municipality filter.")
+      } else {
+        # Always include both 6-digit (DATASUS) and 7-digit (IBGE) forms so the
+        # filter works regardless of which format the data column uses.
+        filter_codes <- muni_codes_both_formats(all_muni_codes)
+        df <- df_filter_col(df, muni_col, filter_codes)
+        filters_applied <- c(filters_applied,
+                            sprintf("municipality: %d codes", length(all_muni_codes)))
+      }
     }
+
   }
 
   # SUMMARY MESSAGE 
@@ -462,10 +477,21 @@ sus_data_filter_demographics <- function(df,
         "es" = paste0("Eliminados ", format(n_removed, big.mark = ","), " registros")
       )
       cli::cli_alert_info(removed_msg)
+
+      # Zero-row diagnostic: show available municipalities when the result is empty
+      if (n_filtered == 0L && muni_filter_applied && length(available_muni_codes) > 0L) {
+        show_available_municipalities_internal(
+          available_muni_codes = available_muni_codes,
+          muni_meta            = muni_meta,
+          cache_dir            = cache_dir,
+          use_cache            = use_cache,
+          lang                 = lang
+        )
+      }
     }
   }
 
-  #  Update climasus_df metadata 
+  #  Update climasus_df metadata
   if (!inherits(df, "climasus_df")) {
     meta <- list(
       system   = system,
@@ -547,23 +573,170 @@ df_filter_col <- function(df, col, values) {
   dplyr::filter(df, .data[[col]] %in% values)
 }
 
-# Load municipio_meta from the package's internal parquet.
+# Expand municipality codes to cover both DATASUS 6-digit and IBGE 7-digit formats.
+# DATASUS columns store 6-digit codes (no check digit); muni_meta uses 7-digit.
+# Including both ensures the filter works regardless of column format.
 #' @noRd
-load_municipio_meta_internal <- function() {
-  path <- system.file("data_4r", "municipio_meta.parquet", package = "climasus4r")
-  if (!nzchar(path)) {
-    cli::cli_abort(c(
-      "Internal data file {.file municipio_meta.parquet} not found.",
-      "i" = "Reinstall the {.pkg climasus4r} package."
-    ))
+muni_codes_both_formats <- function(codes) {
+  codes <- as.character(codes)
+  codes_6 <- substr(codes, 1L, 6L)   # strip check digit from 7-digit → DATASUS format
+  unique(c(codes, codes_6))
+}
+
+# Show which municipalities are present in the data when the filter returns 0 rows.
+#' @noRd
+show_available_municipalities_internal <- function(available_muni_codes,
+                                                    muni_meta,
+                                                    cache_dir,
+                                                    use_cache,
+                                                    lang) {
+  header <- switch(lang,
+    "en" = "Municipalities available in the data (no match found for your filter):",
+    "pt" = "Municipios disponiveis nos dados (nenhum registro para o filtro informado):",
+    "es" = "Municipios disponibles en los datos (sin coincidencia para el filtro indicado):"
+  )
+  cli::cli_alert_warning(header)
+
+  # Load muni_meta if not already available
+  if (is.null(muni_meta)) {
+    muni_meta <- tryCatch(
+      get_spatial_municipio_cache(
+        cache_dir = cache_dir,
+        use_cache = use_cache,
+        lang      = lang,
+        verbose   = FALSE
+      ),
+      error = function(e) NULL
+    )
   }
-  if (!requireNamespace("arrow", quietly = TRUE)) {
-    cli::cli_abort(c(
-      "Package {.pkg arrow} is required for city name resolution.",
-      "i" = "Install with: {.code install.packages('arrow')}"
-    ))
+
+  codes <- unique(available_muni_codes[!is.na(available_muni_codes) & nchar(available_muni_codes) >= 6L])
+
+  if (!is.null(muni_meta) && length(codes) > 0L) {
+    meta_6 <- substr(muni_meta$municipio, 1L, 6L)
+
+    # Primary: 6-digit match (DATASUS format — no check digit)
+    idx <- match(codes, meta_6)
+
+    # Fallback: exact 7-digit match (IBGE format)
+    need_fallback <- is.na(idx) & nchar(codes) == 7L
+    if (any(need_fallback)) {
+      idx[need_fallback] <- match(codes[need_fallback], muni_meta$municipio)
+    }
+
+    labels <- ifelse(
+      !is.na(idx),
+      sprintf("%s (%s) \u2014 %s", muni_meta$name[idx], muni_meta$uf_code[idx], codes),
+      codes
+    )
+  } else {
+    labels <- codes
   }
-  as.data.frame(arrow::read_parquet(path))
+
+  labels <- sort(unique(labels))
+  for (lbl in labels) cli::cli_li(lbl)
+}
+
+# Retrieve municipio_meta with disk caching (parquet or rds fallback).
+# Downloads from GitHub if not cached locally.
+#' @noRd
+get_spatial_municipio_cache <- function(cache_dir, use_cache, lang, verbose) {
+  msg <- get_spatial_municipio_messages(lang)
+
+  use_arrow <- requireNamespace("arrow", quietly = TRUE)
+  cache_file <- file.path(
+    cache_dir,
+    if (use_arrow) "municipio_meta.parquet" else "municipio_meta.rds"
+  )
+
+  # Ensure cache directory exists
+  if (use_cache && !dir.exists(cache_dir)) {
+    dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
+    if (verbose) cli::cli_alert_info(paste0(msg$creating_cache, cache_dir))
+  }
+
+  # Try loading from cache
+  if (use_cache && file.exists(cache_file)) {
+    if (verbose) cli::cli_alert_success(paste0(msg$loading_cache, basename(cache_file)))
+    result <- tryCatch(
+      {
+        if (use_arrow) as.data.frame(arrow::read_parquet(cache_file))
+        else           readRDS(cache_file)
+      },
+      error = function(e) {
+        if (verbose) cli::cli_alert_warning(msg$cache_error)
+        NULL
+      }
+    )
+    if (!is.null(result)) return(result)
+  }
+
+  # Download from climasus Data Center
+  if (verbose) cli::cli_alert_info(msg$downloading_data)
+
+  remote_base <- "https://github.com/ByMaxAnjos/climasus4r/raw/refs/heads/master/inst/data_4r/"
+  spatial_df <- if (use_arrow) {
+    as.data.frame(
+      suppressMessages(arrow::read_parquet(paste0(remote_base, "municipio_meta.parquet")))
+    )
+  } else {
+    url <- paste0(remote_base, "municipio_meta.rds")
+    tmp <- tempfile(fileext = ".rds")
+    utils::download.file(url, tmp, quiet = TRUE, mode = "wb")
+    readRDS(tmp)
+  }
+
+  # Save to cache
+  if (use_cache) {
+    if (verbose) cli::cli_alert_info(msg$saving_cache)
+    tryCatch(
+      {
+        if (use_arrow) arrow::write_parquet(spatial_df, cache_file)
+        else           saveRDS(spatial_df, cache_file)
+        if (verbose) cli::cli_alert_success(msg$cache_saved)
+      },
+      error = function(e) {
+        if (verbose) cli::cli_alert_warning(paste0(msg$cache_save_error, e$message))
+      }
+    )
+  }
+
+  spatial_df
+}
+
+# Multilingual messages for municipio cache operations.
+#' @noRd
+get_spatial_municipio_messages <- function(lang) {
+  messages <- list(
+    en = list(
+      creating_cache    = "Creating cache directory: ",
+      loading_cache     = "Loading from cache: ",
+      cache_error       = "Cache loading failed. Downloading fresh data...",
+      downloading_data  = "Downloading municipio data from climasus Data Center...",
+      saving_cache      = "Saving to cache...",
+      cache_saved       = "Municipio data cached successfully.",
+      cache_save_error  = "Failed to save cache: "
+    ),
+    pt = list(
+      creating_cache    = "Criando diretorio de cache: ",
+      loading_cache     = "Carregando do cache: ",
+      cache_error       = "Falha ao carregar cache. Baixando dados novos...",
+      downloading_data  = "Baixando dados de municipios do climasus Data Center...",
+      saving_cache      = "Salvando no cache...",
+      cache_saved       = "Dados de municipios armazenados em cache com sucesso.",
+      cache_save_error  = "Falha ao salvar cache: "
+    ),
+    es = list(
+      creating_cache    = "Creando directorio de cache: ",
+      loading_cache     = "Cargando desde cache: ",
+      cache_error       = "Fallo al cargar cache. Descargando datos nuevos...",
+      downloading_data  = "Descargando datos de municipios del climasus Data Center...",
+      saving_cache      = "Guardando en cache...",
+      cache_saved       = "Datos de municipios almacenados en cache con exito.",
+      cache_save_error  = "Fallo al guardar cache: "
+    )
+  )
+  messages[[lang]] %||% messages[["pt"]]
 }
 
 # Resolve city names / codes to 7-digit IBGE municipality codes.
@@ -636,19 +809,35 @@ resolve_city_input_internal <- function(city, muni_meta, lang, verbose) {
   list(codes = unique(codes_found))
 }
 
-# Suggest close municipality name matches using agrep.
+# Suggest close municipality name matches.
+#
+# Strategy (in priority order):
+#   1. Prefix match  — catches truncated input like "Nata" → "Natal"
+#   2. Global edit-distance (utils::adist) — catches transpositions / typos
+#      Uses full-string distance, NOT substring, preventing false positives
+#      such as "nata" matching "pimenta" via a shared sub-sequence.
 #' @noRd
 suggest_city_matches_internal <- function(input, input_norm, meta_norm, muni_meta, lang) {
-  close_idx <- agrep(input_norm, meta_norm,
-                     max.distance = 0.25,
-                     ignore.case  = TRUE)
-
   msgs_not_found <- list(
     pt = "Municipio {.val {input}} nao encontrado.",
     en = "Municipality {.val {input}} not found.",
     es = "Municipio {.val {input}} no encontrado."
   )
   cli::cli_alert_warning(msgs_not_found[[lang]] %||% msgs_not_found[["pt"]])
+
+  # 1. Prefix match: input is a leading fragment of the city name
+  prefix_idx <- which(startsWith(meta_norm, input_norm))
+
+  # 2. Full-string edit distance — avoids substring false positives
+  #    Allow 1 edit for short inputs, up to 3 for longer ones
+  max_dist  <- max(1L, min(3L, floor(nchar(input_norm) * 0.25)))
+  distances <- utils::adist(input_norm, meta_norm, ignore.case = TRUE)[1L, ]
+  fuzzy_idx <- which(distances <= max_dist)
+  fuzzy_idx <- fuzzy_idx[order(distances[fuzzy_idx])]  # closest first
+
+  # Merge: prefix results first (most intuitive), then edit-distance matches
+  close_idx <- unique(c(prefix_idx, fuzzy_idx))
+  close_idx <- utils::head(close_idx, 5L)
 
   if (length(close_idx) == 0L) {
     msgs_none <- list(
@@ -660,7 +849,6 @@ suggest_city_matches_internal <- function(input, input_norm, meta_norm, muni_met
     return(invisible(NULL))
   }
 
-  close_idx <- utils::head(close_idx, 5L)
   suggestions <- sprintf("%s (%s \u2014 %s)",
                          muni_meta$name[close_idx],
                          muni_meta$uf_code[close_idx],

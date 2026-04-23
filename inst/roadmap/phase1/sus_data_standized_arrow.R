@@ -366,26 +366,26 @@ sus_data_standardize_arrow <- function(df,
     cli::cli_alert_success(paste(messages$standardization_complete,
                                  nrow(df), "rows,", ncol(df), "columns"))
 
-  # Step 5: Attach / update sus_meta
-  if (!inherits(df, "climasus_df")) {
-    meta <- list(
-      system   = system,
-      stage    = "stand",
-      type     = "stand",
-      spatial  = inherits(df, "sf"),
-      temporal = NULL,
-      created  = Sys.time(),
-      modified = Sys.time(),
-      history  = sprintf("[%s] Standardized column names and types",
-                         format(Sys.time(), "%Y-%m-%d %H:%M:%S")),
-      user     = list()
-    )
-    base_classes <- setdiff(class(df), "climasus_df")
-    df <- structure(df, sus_meta = meta, class = c("climasus_df", base_classes))
-  } else {
-    df <- sus_meta(df, system = system, stage = "stand", type = "stand")
-    df <- sus_meta(df, add_history = "Standardized column names and types")
-  }
+  # # Step 5: Attach / update sus_meta
+  # if (!inherits(df, "climasus_df")) {
+  #   meta <- list(
+  #     system   = system,
+  #     stage    = "stand",
+  #     type     = "stand",
+  #     spatial  = inherits(df, "sf"),
+  #     temporal = NULL,
+  #     created  = Sys.time(),
+  #     modified = Sys.time(),
+  #     history  = sprintf("[%s] Standardized column names and types",
+  #                        format(Sys.time(), "%Y-%m-%d %H:%M:%S")),
+  #     user     = list()
+  #   )
+  #   base_classes <- setdiff(class(df), "climasus_df")
+  #   df <- structure(df, sus_meta = meta, class = c("climasus_df", base_classes))
+  # } else {
+  #   df <- sus_meta(df, system = system, stage = "stand", type = "stand")
+  #   df <- sus_meta(df, add_history = "Standardized column names and types")
+  # }
 
   return(df)
 }

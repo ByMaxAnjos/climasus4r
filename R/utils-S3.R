@@ -974,7 +974,11 @@ print.climasus_df <- function(x, n = 10, ...) {
   x    <- NextMethod()
   meta$modified <- Sys.time()
 
-  new_climasus_df(x, meta)
+  if (is.data.frame(x)) {
+    new_climasus_df(x, meta)
+  } else {
+    x
+  }
 }
 
 #' Row binding for climasus_df objects

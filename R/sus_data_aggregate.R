@@ -451,7 +451,8 @@ sus_data_aggregate <- function(df,
       "codigo_municipio",
       "municipality_code",
       "codigo_municipio_paciente",
-      "patient_municipality_code"
+      "patient_municipality_code",
+      "codigo_gestor_sp", "sp_manager_code", "sp_codigo_gestor" #SIH-SP
     ),
 
     # CEP (ultimo recurso)
@@ -600,54 +601,8 @@ sus_data_aggregate <- function(df,
     }
   }
   
- # Update stage and type
-   if (!inherits(df_agg, "climasus_df")) {
-    # Create new climasus_df
-    # meta <- list(
-    #   system = system,
-    #   stage = "aggregate",
-    #   type = "agg",
-    #   spatial = FALSE,
-    #   temporal = list(
-    #     start = min(df_agg$date),
-    #     end = max(df_agg$date)
-    #   ),
-    #   created = Sys.time(),
-    #   modified = Sys.time(),
-    #   history = sprintf(
-    #     "[%s] Temporal Data aggregated",
-    #     format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-    #   ),
-    #   user = list()
-    # )
-    meta <- original_meta
+ 
 
-    base_classes <- setdiff(class(df_agg), "climasus_df")
-    df_agg <- structure(
-      df_agg,
-      sus_meta = meta,
-      class = c("climasus_df", base_classes)
-    )
-    df_agg <- sus_meta(
-      df_agg, 
-      temporal = list(
-      start = min(df_agg$date, na.rm = TRUE),
-      end = max(df_agg$date, na.rm = TRUE),
-      unit = time_unit)
-    )  
-   } else { 
-    df_agg <- sus_meta(
-    df_agg,
-    system = system,  # Preserve original system
-    stage = "aggregate",
-    type = "agg",
-    temporal = list(
-      start = min(df_agg$date, na.rm = TRUE),
-      end = max(df_agg$date, na.rm = TRUE),
-      unit = time_unit)
-      )     
-  }
-    
   # Build detailed aggregation history message
   agg_details <- c()
 
@@ -725,8 +680,7 @@ sus_data_aggregate <- function(df,
   history_msg <- sprintf("Temporal Data aggregated [%s]", paste(agg_details, collapse = " | "))
 
   # Register metadata
-  df_agg <- sus_meta(df_agg, add_history = history_msg)
-
+  
   return(df_agg)
 }
 
@@ -841,7 +795,7 @@ detect_date_column <- function(df, system) {
     ),
 
     SIH = c(
-      "data_internacao", "admission_date", "fecha_ingreso",
+      "data_internacao", "admission_date", "fecha_ingreso", "data_internacao_sp", "sp_fecha_ingreso","sp_admission_date",
       "DT_INTER"
     ),
 

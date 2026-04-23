@@ -101,7 +101,14 @@
 #'   **Live Births (SINASC - Live Birth Information System):**
 #'   * `"SINASC"`: Live Birth Declarations (Declaracoes de Nascidos Vivos)
 #'   
-#' @param use_cache Logical. If TRUE (default), will use cached data to avoid 
+#' @param city Character vector of municipality names (e.g., `"Natal"`,
+#'   `"Sao Paulo"`). Case-insensitive; accents are normalised. Typos trigger
+#'   fuzzy suggestions. Union with `municipality_code`. Applied after download
+#'   to the combined dataset.
+#' @param municipality_code Character or numeric vector of 6 or 7-digit IBGE
+#'   municipality codes. Applied independently from `city`; both 6-digit
+#'   (DATASUS) and 7-digit (IBGE) forms are always included.
+#' @param use_cache Logical. If TRUE (default), will use cached data to avoid
 #'   re-downloads. Cache is based on UF, year, month, and system parameters.
 #' @param cache_dir Character. Directory to store cached files. 
 #'   Default is "~/.climasus4r_cache/data".
@@ -196,11 +203,13 @@
 #' 
 #' SALDANHA, Raphael de Freitas; BASTOS, Ronaldo Rocha; BARCELLOS, Christovam. Microdatasus: pacote para download e pre-processamento de microdados do Departamento de Informatica do SUS (DATASUS). Cad. Saude Publica, Rio de Janeiro , v. 35, n. 9, e00032419, 2019. Available from https://doi.org/10.1590/0102-311x00032419.
 
-sus_data_import <- function(uf = NULL, 
+sus_data_import <- function(uf = NULL,
                             region = NULL,
                             year,
                             month = NULL,
-                            system, 
+                            system,
+                            city = NULL,
+                            municipality_code = NULL,
                             use_cache = TRUE,
                             cache_dir = "~/.climasus4r_cache/data",
                             force_redownload = FALSE,
@@ -360,14 +369,131 @@ sus_data_import <- function(uf = NULL,
   )
 
   # Setup cache directory
-  if (use_cache) {   
-    cache_dir <- path.expand(cache_dir)
+  cache_dir <- path.expand(cache_dir)
+  if (use_cache) {
     if (!fs::dir_exists(cache_dir)) {
       if (verbose) cli::cli_alert_info("Creating cache directory: {cache_dir}")
       fs::dir_create(cache_dir, recursive = TRUE)
     }
   }
-  
+
+  # City / municipality_code — resolve to IBGE codes BEFORE downloads (fail fast).
+  # muni_meta (~5 570 rows) is always in RAM; spatial cache lives under cache_dir.
+  all_muni_codes_import <- NULL
+
+  if (!is.null(city) || !is.null(municipality_code)) {
+    spatial_cache_dir <- file.path(dirname(cache_dir)) #Tirei o (, "spatial")
+    if (!fs::dir_exists(spatial_cache_dir))
+      fs::dir_create(spatial_cache_dir, recurse = TRUE)
+
+    muni_meta_import <- tryCatch(
+      get_spatial_municipio_cache(
+        cache_dir = spatial_cache_dir,
+        use_cache = use_cache,
+        lang      = lang,
+        verbose   = verbose
+      ),
+      error = function(e) {
+        cli::cli_alert_warning(
+          "Nao foi possivel carregar metadados municipais: {conditionMessage(e)}"
+        )
+        NULL
+      }
+    )
+
+    collected_codes <- character(0L)
+
+    if (!is.null(city) && !is.null(muni_meta_import)) {
+      meta_norm <- stringi::stri_trans_general(
+        tolower(muni_meta_import$no_accents), "Latin-ASCII"
+      )
+      for (city_i in city) {
+        input <- trimws(as.character(city_i))
+
+        if (grepl("^\\d{6,7}$", input)) {
+          idx <- if (nchar(input) == 7L)
+            which(muni_meta_import$municipio == input)
+          else
+            which(substr(muni_meta_import$municipio, 1L, 6L) == input)
+          if (length(idx) > 0L)
+            collected_codes <- c(collected_codes, muni_meta_import$municipio[idx])
+          else
+            cli::cli_alert_warning("Codigo de municipio {.val {input}} nao encontrado.")
+          next
+        }
+
+        input_norm <- stringi::stri_trans_general(tolower(input), "Latin-ASCII")
+        idx <- which(meta_norm == input_norm)
+        if (length(idx) == 0L) {
+          orig_norm <- stringi::stri_trans_general(
+            tolower(muni_meta_import$name), "Latin-ASCII"
+          )
+          idx <- which(orig_norm == input_norm)
+        }
+
+        if (length(idx) > 0L) {
+          collected_codes <- c(collected_codes, muni_meta_import$municipio[idx])
+        } else {
+          msg_nf <- switch(lang,
+            en = paste0("City '", city_i, "' not found."),
+            es = paste0("Ciudad '", city_i, "' no encontrada."),
+            paste0("Municipio '", city_i, "' nao encontrado.")
+          )
+          cli::cli_alert_warning(msg_nf)
+
+          prefix_idx <- which(startsWith(meta_norm, input_norm))
+          max_dist   <- max(1L, min(3L, floor(nchar(input_norm) * 0.25)))
+          distances  <- utils::adist(input_norm, meta_norm, ignore.case = TRUE)[1L, ]
+          fuzzy_idx  <- which(distances <= max_dist)
+          fuzzy_idx  <- fuzzy_idx[order(distances[fuzzy_idx])]
+          close_idx  <- utils::head(unique(c(prefix_idx, fuzzy_idx)), 5L)
+
+          if (length(close_idx) > 0L) {
+            cli::cli_alert_info(switch(lang,
+              en = "Did you mean:",
+              es = "\u00bfQuiso decir:",
+              "Voce quis dizer:"
+            ))
+            for (s in sprintf("%s (%s \u2014 %s)",
+                              muni_meta_import$name[close_idx],
+                              muni_meta_import$uf_code[close_idx],
+                              muni_meta_import$municipio[close_idx]))
+              cli::cli_li(s)
+          } else {
+            cli::cli_alert_info(
+              "Nenhuma sugestao disponivel. Verifique a grafia ou use o codigo IBGE."
+            )
+          }
+        }
+      }
+    }
+
+    if (!is.null(municipality_code))
+      collected_codes <- c(collected_codes, as.character(municipality_code))
+
+    if (length(collected_codes) > 0L) {
+      all_muni_codes_import <- unique(c(
+        as.character(collected_codes),
+        substr(collected_codes, 1L, 6L)
+      ))
+      if (verbose) {
+        msg_muni <- switch(lang,
+          en = paste0("Municipality filter: ", length(all_muni_codes_import),
+                      " code(s) (6+7-digit). Applied after download."),
+          es = paste0("Filtro de municipio: ", length(all_muni_codes_import),
+                      " codigo(s) (formatos 6+7 digitos). Se aplica tras la descarga."),
+          paste0("Filtro de municipio: ", length(all_muni_codes_import),
+                 " codigo(s) (formatos 6+7 digitos). Aplicado apos download.")
+        )
+        cli::cli_alert_info(msg_muni)
+      }
+    } else {
+      cli::cli_alert_warning(
+        "Nenhum municipio resolvido. Filtro de municipio sera ignorado."
+      )
+    }
+  }
+
   # Header
   if (verbose) {
     cli::cli_h1("Climasus4r Data Import")
@@ -502,7 +628,6 @@ sus_data_import <- function(uf = NULL,
     cache_age <= max_age_days
   }
   
-  # Load data from cache
   # Load data from cache
 load_from_cache <- function(cache_path, year_i, uf_i, system_i, month_i = NULL, is_national = FALSE) {
   if (verbose) {
@@ -774,13 +899,82 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
   #NEW national system
   # Se for sistema nacional, filtrar pelos UFs solicitados
   if (is_national && exists("all_ufs")) {
-    
+
     # Identificar coluna de UF (diferentes sistemas podem ter nomes diferentes)
     uf_codes <- uf_to_code[all_ufs]
     uf_cols <- c("SG_UF_NOT")
     combined_data <- data.table::as.data.table(combined_data)
     uf_col <- uf_cols[uf_cols %in% names(combined_data)][1]
     combined_data <- combined_data[as.factor(get(uf_col)) %in% uf_codes]
+  }
+
+  # Municipality filter (city / municipality_code)
+  if (!is.null(all_muni_codes_import) && length(all_muni_codes_import) > 0L) {
+    muni_col_patterns <- c(
+      "CODMUNRES", "MUNRES", "MUNAIH", "ID_MN_RESI",
+      "PA_MUNPCN", "CODMUNPAC", "CODUFMUN", "MUNNOT",
+      "MUNIC_RES", "SP_GESTOR"
+    )
+    combined_data <- data.table::as.data.table(combined_data)
+    combined_cols  <- names(combined_data)
+    muni_col       <- muni_col_patterns[muni_col_patterns %in% combined_cols][1L]
+
+    if (!is.na(muni_col) && length(muni_col) > 0L) {
+      n_before <- nrow(combined_data)
+
+      # Snapshot available codes for zero-row diagnostic
+      available_muni_codes <- unique(as.character(combined_data[[muni_col]]))
+      available_muni_codes <- available_muni_codes[
+        !is.na(available_muni_codes) & nchar(available_muni_codes) >= 6L
+      ]
+
+      combined_data <- combined_data[
+        as.character(get(muni_col)) %in% all_muni_codes_import
+      ]
+      n_after <- nrow(combined_data)
+
+      if (verbose) {
+        msg_filt <- switch(lang,
+          en = paste0("Municipality filter on '", muni_col, "': ",
+                      format(n_after,  big.mark = ","), " of ",
+                      format(n_before, big.mark = ","), " rows retained."),
+          es = paste0("Filtro de municipio en '", muni_col, "': ",
+                      format(n_after,  big.mark = ","), " de ",
+                      format(n_before, big.mark = ","), " registros retenidos."),
+          paste0("Filtro de municipio na coluna '", muni_col, "': ",
+                 format(n_after,  big.mark = ","), " de ",
+                 format(n_before, big.mark = ","), " registros retidos.")
+        )
+        cli::cli_alert_info(msg_filt)
+      }
+
+      # Zero-row diagnostic: list available municipalities
+      if (n_after == 0L && length(available_muni_codes) > 0L) {
+        muni_meta_diag <- if (exists("muni_meta_import")) muni_meta_import else NULL
+        show_available_municipalities_internal(
+          available_muni_codes = available_muni_codes,
+          muni_meta            = muni_meta_diag,
+          cache_dir            = file.path(dirname(cache_dir), "spatial"),
+          use_cache            = use_cache,
+          lang                 = lang
+        )
+      }
+    } else {
+      msg_nocol <- switch(lang,
+        en = paste0(
+          "Municipality column not found in combined dataset. Filter skipped. ",
+          "Available (first 10): ",
+          paste(utils::head(combined_cols, 10L), collapse = ", ")
+        ),
+        es = "Columna de municipio no encontrada. Filtro omitido.",
+        paste0(
+          "Coluna de municipio nao encontrada no dataset combinado. ",
+          "Filtro ignorado. Colunas disponiveis (10 primeiras): ",
+          paste(utils::head(combined_cols, 10L), collapse = ", ")
+        )
+      )
+      cli::cli_alert_warning(msg_nocol)
+    }
   }
 
   # Add cache metadata as attribute

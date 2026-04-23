@@ -236,19 +236,19 @@
 #' )
 #' }
 sus_data_import_arrow <- function(
-    uf               = NULL,
-    region           = NULL,
+    uf                = NULL,
+    region            = NULL,
     year,
-    month            = NULL,
+    month             = NULL,
     system,
-    use_cache        = TRUE,
-    cache_dir        = "~/.climasus4r_cache",
-    force_redownload = FALSE,
-    parallel         = FALSE,
-    workers          = 4L,
-    arrow_threads    = NULL,
-    lang             = "pt",
-    verbose          = TRUE
+    use_cache         = TRUE,
+    cache_dir         = "~/.climasus4r_cache/data",
+    force_redownload  = FALSE,
+    parallel          = FALSE,
+    workers           = 4L,
+    arrow_threads     = NULL,
+    lang              = "pt",
+    verbose           = TRUE
 ) {
 
   #  0. Validacoes basicas 
@@ -714,7 +714,7 @@ sus_data_import_arrow <- function(
     }
   }
 
-  #  14. Metadados climasus_dataset 
+  #  14. Metadados climasus_dataset
   #
   # arrow::Dataset nao suporta atributos R arbitrarios de forma persistente.
   # sus_meta es armazenado como atributo R no wrapper S3 climasus_dataset —
@@ -760,12 +760,12 @@ sus_data_import_arrow <- function(
     }, error = function(e) "N/A")
 
     cli::cli_alert_success("Dataset lazy pronto: ~{approx_rows} linha(s).")
-    cli::cli_alert_info(
-      "Pipeline lazy : {.code ds |> dplyr::filter(...) |> dplyr::collect()}"
-    )
-    cli::cli_alert_info(
-      "DuckDB        : {.code arrow::to_duckdb(ds) |> dplyr::filter(...) |> dplyr::collect()}"
-    )
+    # cli::cli_alert_info(
+    #   "Pipeline lazy : {.code ds |> dplyr::filter(...) |> dplyr::collect()}"
+    # )
+    # cli::cli_alert_info(
+    #   "DuckDB        : {.code arrow::to_duckdb(ds) |> dplyr::filter(...) |> dplyr::collect()}"
+    # )
   }
 
   return(dataset)
@@ -804,25 +804,22 @@ print.climasus_dataset <- function(x, ...) {
 #' @return Um `climasus_df` (tibble com atributo `sus_meta`).
 #' @export
 collect.climasus_dataset <- function(x, ...) {
-  # 1. Extrai os metadados originais do dataset lazy
   meta <- attr(x, "sus_meta")
-  
-  # 2. Materializa os dados (traz para a RAM como tibble/data.frame)
-  df <- NextMethod()   # dplyr:::collect.arrow_dplyr_query ou similar
-  
-  # 3. Transforma o tibble resultante em um climasus_df valido
-  # (new_climasus_df es a função interna definida em utils-S3.R)
-  df <- new_climasus_df(df, meta)
-  
-  # 4. Usa a nova interface unificada sus_meta() para atualizar o estado
-  df <- sus_meta(
-    df,
-    stage = "import",     # Mantem como import (ou mude para 'collected' se preferir)
-    backend = "tibble",   # NOVO: Agora os dados estao na memoria
-    add_history = "Collected Arrow Dataset to in-memory tibble"
-  )
-  
-  return(df)
+  df   <- NextMethod()
+
+  # Promote to climasus_df when the package is loaded (devtools::load_all or
+  # installed); fall back to attaching sus_meta as a plain attribute when
+  # the roadmap script is sourced standalone (package not loaded).
+  if (exists("new_climasus_df", mode = "function")) {
+    df <- new_climasus_df(df, meta)
+    if (exists("sus_meta", mode = "function"))
+      df <- sus_meta(df, stage = "import", backend = "tibble",
+                     add_history = "Collected Arrow Dataset to in-memory tibble")
+  } else {
+    attr(df, "sus_meta") <- meta
+  }
+
+  df
 }
 
 

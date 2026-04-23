@@ -113,3 +113,61 @@ Use `rlang::check_installed()` or `requireNamespace()` when calling Suggested pa
 ### Parallel Processing
 
 Parallel execution uses the `future`/`furrr` framework. Functions that support parallelism respect the user's active `future::plan()`. Do not set the plan inside package functions; let the user control it.
+
+## Sistema de Agentes
+
+Este projeto utiliza um ecossistema de **21 agentes especialistas** para coordenar análise, implementação e revisão de código. Os prompts e instruções estão em `agents/`.
+
+### Governança e Roteamento
+
+Consulte **`agents/agent-governance.instructions.md`** para:
+- Regra geral de qual agente acionar
+- Tabela de roteamento com critérios claros de entrada/saída
+- Fluxos recomendados por tipo de problema (estrutural, local, operacional, dados, funcional)
+- Regras de desempate ("quero entender o projeto?" → ProjectAnalyst; "quero saber se está lento?" → PerformanceEngineer)
+
+**Resumo**: Comece pelo agente mais específico. Se a demanda for ampla/ambígua → `TechnicalCoordinator`. Se precisar entender o projeto → `ProjectAnalyst`.
+
+### Instruções Compartilhadas
+
+Consulte **`agents/climasus-agents.instructions.md`** para:
+- Linguagem padrão (português brasileiro)
+- Formato de saída esperado (resumo executivo, contexto, problemas, pontos fortes, recomendações, priorização, próximos agentes)
+- Classificação de achados (fato, risco, má prática, lacuna, sugestão)
+- Modos de operação (Análise vs. Implementação)
+- Princípios gerais (clareza > sofisticação; evidência > suposição)
+
+### Agentes Disponíveis
+
+| # | Agente | Arquivo | Quando Acionar |
+|---|--------|---------|---|
+| 1 | **TechnicalCoordinator** | `TechnicalCoordinator.agent.md` | Demanda ampla, ambígua ou multiárea |
+| 2 | **ProjectAnalyst** | `ProjectAnalyst.agent.md` | Precisa entender estrutura ou contexto do projeto |
+| 3 | **SoftwareArchitect** | `SoftwareArchitect.agent.md` | Problema estrutural ou recorrente |
+| 4 | **BackendEngineer** | `BackendEngineer.agent.md` | Problema em APIs, integrações ou backend |
+| 5 | **DevOpsEngineer** | `DevOpsEngineer.agent.md` | Problema na entrega, CI/CD ou containerização |
+| 6 | **SecurityEngineer** | `SecurityEngineer.agent.md` | Risco de segurança ou dados sensíveis |
+| 7 | **DatabaseSpecialist** | `DatabaseSpecialist.agent.md` | Problema de persistência, SQL ou schema |
+| 8 | **JavaScriptTypeScriptDeveloper** | `JavaScriptTypeScriptDeveloper.agent.md` | Problema em UI, estado, rotas ou JS/TS |
+| 9 | **DocumentationReviewer** | `DocumentationReviewer.agent.md` | Documentação ruim, desatualizada ou incompleta |
+| 10 | **DocumentationWriter** | `DocumentationWriter.agent.md` | Criar ou refatorar documentação |
+| 11 | **PerformanceEngineer** | `PerformanceEngineer.agent.md` | Sistema lento ou custoso |
+| 12 | **ObservabilityEngineer** | `ObservabilityEngineer.agent.md` | Difícil diagnosticar em produção |
+| 13 | **DataEngineer** | `DataEngineer.agent.md` | Problema no pipeline ou processamento de dados |
+| 14 | **DataScientist** | `DataScientist.agent.md` | Objetivo é insight analítico ou exploração |
+| 15 | **PythonCodeReviewer** | `PythonCodeReviewer.agent.md` | Clareza, manutenção ou padrões em Python |
+| 16 | **RCodeReviewer** | `RCodeReviewer.agent.md` | Clareza, manutenção ou padrões em R |
+| 17 | **TestEngineer** | `TestEngineer.agent.md` | Risco de regressão ou falta de confiança |
+| 18 | **RequirementsAnalyst** | `RequirementsAnalyst.agent.md` | Ambiguidade funcional ou requisitos vagos |
+| 19 | **PromptReviewer** | `PromptReviewer.agent.md` | Agente vago, amplo ou inconsistente |
+| 20 | **DATASUSSpecialist** | `DATASUSSpecialist.agent.md` | Dados DATASUS, SIM-DO, CID-10, DBC, encoding |
+| 21 | **PackageEngineer** | `PackageEngineer.agent.md` | Preparar pacote R/Python para CRAN/PyPI |
+
+### Fluxos Recomendados
+
+- **Projeto desconhecido**: TechnicalCoordinator → ProjectAnalyst → SoftwareArchitect → especialistas
+- **Problema local de código**: especialista local → TestEngineer (se houver risco de regressão)
+- **Problema estrutural**: ProjectAnalyst → SoftwareArchitect → especialista(s) afetado(s)
+- **Problema operacional**: DevOpsEngineer → ObservabilityEngineer → PerformanceEngineer/SecurityEngineer
+- **Problema de dados**: DataEngineer → DatabaseSpecialist → DataScientist
+- **Dúvida funcional**: RequirementsAnalyst → especialista técnico → TestEngineer

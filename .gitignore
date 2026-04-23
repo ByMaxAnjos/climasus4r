@@ -20,3 +20,5 @@
 .DS_Store
 Thumbs.db
 /.quarto/
+agents/
+CLAUDE.md

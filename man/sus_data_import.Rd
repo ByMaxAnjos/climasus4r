@@ -10,6 +10,8 @@ sus_data_import(
   year,
   month = NULL,
   system,
+  city = NULL,
+  municipality_code = NULL,
   use_cache = TRUE,
   cache_dir = "~/.climasus4r_cache/data",
   force_redownload = FALSE,
@@ -138,6 +140,15 @@ is ignored.}
 \itemize{
 \item \code{"SINASC"}: Live Birth Declarations (Declaracoes de Nascidos Vivos)
 }}
+
+\item{city}{Character vector of municipality names (e.g., \code{"Natal"},
+\code{"Sao Paulo"}). Case-insensitive; accents are normalised. Typos trigger
+fuzzy suggestions. Union with \code{municipality_code}. Applied after download
+to the combined dataset.}
+
+\item{municipality_code}{Character or numeric vector of 6 or 7-digit IBGE
+municipality codes. Applied independently from \code{city}; both 6-digit
+(DATASUS) and 7-digit (IBGE) forms are always included.}
 
 \item{use_cache}{Logical. If TRUE (default), will use cached data to avoid
 re-downloads. Cache is based on UF, year, month, and system parameters.}

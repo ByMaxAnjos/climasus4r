@@ -432,7 +432,7 @@ sus_data_filter_cid <- function(df,
     # Priority order by system (all 6 major SUS systems)
     icd_column_priority <- list(
       SIM = c("underlying_cause", "underlying_cause_original", "cause_line_a", "cause_line_b", "cause_line_c", "cause_line_d"),
-      SIH = c("primary_diagnosis", "secondary_diagnosis", "death_cause", "notified_cause", paste0("secondary_diagnosis_", 1:9)),
+      SIH = c("primary_diagnosis", "secondary_diagnosis", "death_cause", "notified_cause", "sp_primary_icd", "sp_secondary_icd", paste0("secondary_diagnosis_", 1:9)),
       SIA = c("primary_icd", "secondary_icd", "associated_icd"),
       SINASC = c("underlying_cause", "maternal_cause", "fetal_cause"),  # Birth system - uses ICD for maternal/fetal deaths
       CNES = character(0),  # CNES does not use ICD-10 codes (establishment registry)
@@ -441,7 +441,7 @@ sus_data_filter_cid <- function(df,
     } else if (lang == "pt") {
       icd_column_priority <- list(
       SIM = c("causa_basica", "causa_basica_original", "linha_causa_a", "linha_causa_b", "linha_causa_c", "linha_causa_d"),
-      SIH = c("diagnostico_principal", "diagnostico_secundario", "causa_morte", "causa_notificada", paste0("diagnostico_secundario_", 1:9)),
+      SIH = c("diagnostico_principal", "diagnostico_secundario", "causa_morte", "causa_notificada", "cid_principal_sp", "sp_secundario_icd", paste0("diagnostico_secundario_", 1:9)),
       SIA = c("cid_principal", "cid_secundario", "cid_associado"),
       SINASC = c("causa_basica", "causa_materna", "causa_fetal"),
       CNES = character(0),  # CNES nao usa codigos CID-10 (cadastro de estabelecimentos)
@@ -450,7 +450,7 @@ sus_data_filter_cid <- function(df,
     } else { 
       icd_column_priority <- list(
       SIM = c("causa_basica", "causa_basica_original", "linea_causa_a", "linea_causa_b", "linea_causa_c", "linea_causa_d"),
-      SIH = c("diagnostico_principal", "diagnostico_secundario", "causa_muerte", "causa_notificada", paste0("diagnostico_secundario_", 1:9)),
+      SIH = c("diagnostico_principal", "diagnostico_secundario", "causa_muerte", "causa_notificada", "sp_cie_principal", "sp_cie_secundario", paste0("diagnostico_secundario_", 1:9)),
       SIA = c("cie_principal", "cie_secundario", "cie_asociado"),
       SINASC = c("causa_basica", "causa_materna", "causa_fetal"),
       CNES = character(0),  # CNES no usa codigos CIE-10 (registro de establecimientos)
