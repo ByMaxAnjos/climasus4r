@@ -101,6 +101,8 @@ reference:
       - as.data.frame.climasus_df
       - write_duckdb_climasus
       - write_parquet_climasus
+      - sus_as_arrow
+      - sus_as_duckdb
 
   - title: "AI e Gerenciamento de Cache"
     desc: "Controle do armazenamento local de arquivos baixados"

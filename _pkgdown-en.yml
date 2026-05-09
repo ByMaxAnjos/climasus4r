@@ -103,6 +103,8 @@ reference:
       - write_parquet_climasus
       - sus_climate_compute_heatwaves
       - sus_climate_plot_heatwaves
+      - sus_as_arrow
+      - sus_as_duckdb
 
 
   - title: "AI and Cache Management"
