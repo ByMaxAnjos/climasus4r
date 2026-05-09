@@ -684,7 +684,7 @@ hw_strict <- sus_climate_compute_heatwaves(
 
 A função retorna uma lista nomeada com três componentes:
 
-```{r hw-output-structure, eval=TRUE}
+```{r hw-output-structure, eval=FALSE}
 # Inspecionar o output
 names(hw_all)
 #> [1] "events"  "daily"   "summary"
@@ -694,7 +694,7 @@ names(hw_all)
 
 Um `data.frame` com uma linha por evento de onda de calor detectado. Cada linha representa um episódio contínuo de dias com a condição de onda de calor ativa para um determinado método e estação.
 
-```{r hw-events, eval=TRUE}
+```{r hw-events, eval=FALSE}
 # Primeiros eventos detectados
 head(hw_all$events)
 ```
@@ -718,7 +718,7 @@ head(hw_all$events)
 | `region` | character | Região geográfica da estação |
 | `federal_unit` | character | UF da estação |
 
-```{r hw-events-filter, eval=TRUE}
+```{r hw-events-filter, eval=FALSE}
 # Filtrar os 10 eventos mais severos pelo índice de severidade
 hw_all$events |>
   arrange(desc(severity_index)) |>
@@ -727,7 +727,7 @@ hw_all$events |>
   head(10)
 ```
 
-```{r hw-events-count, eval=TRUE}
+```{r hw-events-count, eval=FALSE}
 # Contar eventos por método
 hw_all$events |>
   count(method, name = "n_eventos") |>
@@ -738,7 +738,7 @@ hw_all$events |>
 
 O `data.frame` diário contém uma linha por estação por dia, com as variáveis agregadas e colunas lógicas (`TRUE`/`FALSE`) indicando se aquele dia pertence a uma onda de calor segundo cada método:
 
-```{r hw-daily, eval=TRUE}
+```{r hw-daily, eval=FALSE}
 # Inspecionar colunas de flags
 hw_all$daily |>
   select(station_code, date_day, tmax, tmean, starts_with("hw_")) |>
@@ -747,7 +747,7 @@ hw_all$daily |>
 
 A coluna `hw_any` é `TRUE` se **qualquer** método detectou onda de calor naquele dia — útil para análises de exposição sem comprometimento com um único critério.
 
-```{r hw-daily-any, eval=TRUE}
+```{r hw-daily-any, eval=FALSE}
 # Dias com onda de calor ativa por pelo menos um método
 hw_all$daily |>
   filter(hw_any == TRUE) |>
@@ -755,7 +755,7 @@ hw_all$daily |>
   head(20)
 ```
 
-```{r hw-daily-concordancia, eval=TRUE}
+```{r hw-daily-concordancia, eval=FALSE}
 # Concordância entre métodos: proporção de dias classificados por cada um
 hw_all$daily |>
   summarise(
@@ -774,7 +774,7 @@ hw_all$daily |>
 
 O resumo anual agrega as estatísticas por estação, método e ano, sendo o ponto de entrada natural para análises de tendência temporal:
 
-```{r hw-summary, eval=TRUE}
+```{r hw-summary, eval=FALSE}
 # Resumo anual
 hw_all$summary |>
   filter(method == "INMET") |>
@@ -1055,7 +1055,7 @@ write.csv(
 
 ## Análise de concordância entre métodos
 
-```{r concordancia, eval=TRUE}
+```{r concordancia, eval=FALSE}
 # Proporção de dias classificados como onda de calor por N métodos simultaneamente
 hw_all$daily |>
   mutate(
@@ -1117,7 +1117,7 @@ A análise de concordância responde a uma pergunta central da epidemiologia amb
 
 # Informações da sessão
 
-```{r session-info, eval=TRUE}
+```{r session-info, eval=FALSE}
 sessionInfo()
 ```
 
