@@ -96,8 +96,7 @@ sus_data_filter_demographics_arrow <- function(df,
   }
 
   #  climasus_df stage validation (data frames only) 
-  system <- NULL
-  if (inherits(df, "climasus_df")) {
+  if (inherits(df, "arrow_dplyr_query")) {
     required_stage <- "stand"
     current_stage  <- sus_meta(df, "stage")
     if (!is.null(current_stage) && !is_stage_at_least(current_stage, required_stage)) {
@@ -108,7 +107,7 @@ sus_data_filter_demographics_arrow <- function(df,
       )
       cli::cli_abort(msg_error[[lang]] %||% msg_error[["en"]])
     }
-    system <- sus_meta(df, "system")
+  
     if (verbose) {
       msg_ok <- list(
         en = "Data stage validated: demographic filtering",
@@ -117,7 +116,7 @@ sus_data_filter_demographics_arrow <- function(df,
       )
       cli::cli_alert_success(msg_ok[[lang]] %||% msg_ok[["en"]])
     }
-  } else if (backend_type == "dataframe") {
+  } else if (backend_type == "arrow") {
     msg_error <- list(
       en = "Input is not a climasus_df. Run sus_data_standardize() first.",
       pt = "A entrada nao e um climasus_df. Execute sus_data_standardize() primeiro.",
@@ -126,10 +125,11 @@ sus_data_filter_demographics_arrow <- function(df,
     cli::cli_abort(msg_error[[lang]] %||% msg_error[["en"]])
   }
 
-  #  Column names (lazy-safe: names() works for Arrow/DuckDB tbl) 
+  # System and Column names (lazy-safe: names() works for Arrow/DuckDB tbl) 
+  system <- sus_meta(df, "system")
   col_names       <- names(df)
   filters_applied <- character()
-  n_original      <- if (backend_type == "dataframe") nrow(df) else NULL
+  n_original      <- if (backend_type == "arrow") nrow(df) else NULL
 
   ignored_codes <- c("ignorado", "ignorada", "unknown", "desconocido", "i",
                      "9", "99", "999", "9999", "000000", "-", "", " ")
@@ -241,7 +241,7 @@ sus_data_filter_demographics_arrow <- function(df,
 
     if (length(resolved$codes) > 0L) {
       # UF consistency check: requires eager column access — data frames only
-      if (backend_type == "dataframe") {
+      if (backend_type == "arrow") {
         muni_col_check <- find_column_from_names(col_names, .muni_patterns)
         check_city_uf_internal(df, resolved$codes, muni_col_check, muni_meta, lang, verbose)
       }
@@ -255,7 +255,7 @@ sus_data_filter_demographics_arrow <- function(df,
   # Snapshot available codes BEFORE filtering — data frames only
   # (Arrow/DuckDB: skip to preserve laziness; user can inspect after collect())
   available_muni_codes <- character(0)
-  if (muni_filter_applied && backend_type == "dataframe" && !is.null(muni_col)) {
+  if (muni_filter_applied && backend_type == "arrow" && !is.null(muni_col)) {
     available_muni_codes <- unique(as.character(df[[muni_col]]))
     available_muni_codes <- available_muni_codes[!is.na(available_muni_codes)]
   }
@@ -339,13 +339,9 @@ sus_data_filter_demographics_arrow <- function(df,
   }
 
   #  Preserve / attach climasus metadata 
-  if (backend_type == "dataframe") {
-    if (inherits(df, "climasus_df")) {
-      df <- sus_meta(df, system = system, stage = "filter_demo", type = "filter_demo")
+  df <- sus_meta(df, system = system, stage = "filter_demo", type = "filter_demo")
       history_msg <- sprintf("Filtered by demographics [%s]", paste(filters_applied, collapse = " | "))
-      df <- sus_meta(df, add_history = history_msg)
-    }
-  }
+  df <- sus_meta(df, add_history = history_msg)
 
   return(df)
 }

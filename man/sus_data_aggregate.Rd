@@ -12,6 +12,7 @@ sus_data_aggregate(
   value_col = NULL,
   complete_dates = FALSE,
   date_col = NULL,
+  backend = "arrow",
   lang = "pt",
   verbose = TRUE
 )
@@ -46,6 +47,20 @@ with zero counts to create a complete time series without gaps.}
 \item{date_col}{Character string with the name of the date column to use for
 aggregation. If \code{NULL} (default), the function will attempt to auto-detect
 the date column based on common patterns.}
+
+\item{backend}{Character string specifying the data processing backend.
+Use \code{"arrow"} for out-of-memory, lazy processing (recommended for large datasets),
+or \code{"tibble"} for in-memory processing (recommended for small to medium datasets).
+\itemize{
+\item \code{"arrow"}: operations are performed lazily using the Apache Arrow engine,
+avoiding loading the full dataset into memory. Ideal for large files
+(e.g., Parquet, Feather) and high-performance workflows.
+\item \code{"tibble"}: data is fully loaded into memory as a tibble and processed eagerly
+using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
+}
+
+If not specified, the function may automatically choose the backend based on
+the input data type.}
 
 \item{lang}{Character string specifying the language for messages. Options:
 \code{"en"} (English), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}

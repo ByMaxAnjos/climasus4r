@@ -10,6 +10,7 @@ sus_data_filter_cid(
   disease_group = NULL,
   icd_column = NULL,
   match_type = "starts_with",
+  backend = "arrow",
   lang = "pt",
   verbose = TRUE
 )
@@ -87,6 +88,20 @@ column names in this priority order:
 \item \code{"chapter"}: Match entire ICD-10 chapter (e.g., "I" matches I00-I99.9)
 \item \code{"fuzzy"}: Allow for common SUS coding variations (e.g., "I10" matches "I10", "I10 ", "I10X")
 }}
+
+\item{backend}{Character string specifying the data processing backend.
+Use \code{"arrow"} for out-of-memory, lazy processing (recommended for large datasets),
+or \code{"tibble"} for in-memory processing (recommended for small to medium datasets).
+\itemize{
+\item \code{"arrow"}: operations are performed lazily using the Apache Arrow engine,
+avoiding loading the full dataset into memory. Ideal for large files
+(e.g., Parquet, Feather) and high-performance workflows.
+\item \code{"tibble"}: data is fully loaded into memory as a tibble and processed eagerly
+using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
+}
+
+If not specified, the function may automatically choose the backend based on
+the input data type.}
 
 \item{lang}{Character. Language for user interface messages, warnings, and
 documentation. Options:

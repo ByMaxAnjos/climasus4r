@@ -4,21 +4,41 @@
 #' without materializing the data. The correction is applied lazily using Arrow
 #' compute expressions that will be executed during the final collect().
 #'
-#' @param df An Arrow Dataset (climasus_dataset)
+#' @param df An Arrow Dataset/query/table or a regular data frame. Non-Arrow
+#'   data frames are converted to an Arrow object automatically.
 #' @param lang Character. Language for UI messages. Options: "en", "pt", "es".
 #' @param verbose Logical. If TRUE, prints a report of columns checked and corrected.
 #'
-#' @return An Arrow Dataset with encoding-corrected text columns
+#' @return An Arrow object with encoding-corrected text columns
 #'
 #' @importFrom arrow map_batches
 #' @importFrom dplyr mutate across
 #' @importFrom stringi stri_enc_isutf8 stri_conv
 #' @export
 sus_data_clean_encoding_arrow <- function(df, lang = "pt", verbose = TRUE) {
-  
-  # Input validation
-  if (!inherits(df, "Dataset") && !inherits(df, "climasus_dataset")) {
-    cli::cli_abort("Input must be an Arrow Dataset")
+
+  is_arrow_input <- inherits(df, c(
+    "climasus_dataset", "arrow_dplyr_query", "Dataset", "ArrowTabular", "Table"
+  ))
+
+  if (!is_arrow_input) {
+    if (!inherits(df, "data.frame")) {
+      cli::cli_abort(
+        "`df` must be an Arrow object or a data.frame/tibble that can be converted to Arrow."
+      )
+    }
+
+    df <- if (inherits(df, "climasus_df")) {
+      as_arrow_climasus(df)
+    } else {
+      arrow::as_arrow_table(dplyr::as_tibble(df))
+    }
+
+    if (verbose) {
+      cli::cli_alert_info(
+        "Converted input data.frame to Arrow for lazy encoding checks."
+      )
+    }
   }
   
   # Validate language
@@ -111,8 +131,8 @@ sus_data_clean_encoding_arrow <- function(df, lang = "pt", verbose = TRUE) {
     for (col in cols_to_correct) {
       df <- df |>
         dplyr::mutate(
-          !!col := arrow::cast(
-            arrow::utf8_normalize(!!rlang::sym(col)),
+          !!rlang::sym(col) := arrow::cast(
+            stringr::str_trim(!!rlang::sym(col)),
             arrow::utf8()
           )
         )
@@ -122,17 +142,15 @@ sus_data_clean_encoding_arrow <- function(df, lang = "pt", verbose = TRUE) {
     }
   }
 
-  # Update sus_meta on the climasus_dataset wrapper (NOT as climasus_df)
-  meta <- attr(df, "sus_meta") %||% list()
-  meta$stage    <- "clean"
-  meta$modified <- Sys.time()
-  meta$history  <- c(
-    meta$history %||% character(0),
-    sprintf("[%s] Encoding check (lazy Arrow): %d column(s) flagged",
-            format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-            length(cols_to_correct))
+  # Update metadata using sus_meta() with auto-detection of backend
+  df <- sus_meta(df, stage = "clean")
+  df <- sus_meta(
+    df,
+    add_history = sprintf(
+      "Encoding check (lazy Arrow): %d column(s) flagged",
+      length(cols_to_correct)
+    )
   )
-  attr(df, "sus_meta") <- meta
-  
+
   return(df)
 }

@@ -554,6 +554,6 @@ sus_climate_aggregate_test <- function(
   result_combined <- Reduce(function(x, y) merge(x, y, by = health_id_vars, all = TRUE),
                             result_list)
 
-  tibble::as_tibble(result_combined)
+  dplyr::as_tibble(result_combined)
 }
 

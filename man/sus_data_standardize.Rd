@@ -10,6 +10,7 @@ sus_data_standardize(
   translate_columns = TRUE,
   standardize_values = TRUE,
   keep_original = FALSE,
+  backend = "arrow",
   verbose = TRUE
 )
 }
@@ -24,6 +25,20 @@ sus_data_standardize(
 \item{standardize_values}{Logical. If TRUE, standardizes categorical values. Default is TRUE.}
 
 \item{keep_original}{Logical. If TRUE, keeps original columns alongside standardized ones. Default is FALSE.}
+
+\item{backend}{Character string specifying the data processing backend.
+Use \code{"arrow"} for out-of-memory, lazy processing (recommended for large datasets),
+or \code{"tibble"} for in-memory processing (recommended for small to medium datasets).
+\itemize{
+\item \code{"arrow"}: operations are performed lazily using the Apache Arrow engine,
+avoiding loading the full dataset into memory. Ideal for large files
+(e.g., Parquet, Feather) and high-performance workflows.
+\item \code{"tibble"}: data is fully loaded into memory as a tibble and processed eagerly
+using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
+}
+
+If not specified, the function may automatically choose the backend based on
+the input data type.}
 
 \item{verbose}{Logical. If TRUE, prints a report of standardization actions. Default is TRUE.}
 }

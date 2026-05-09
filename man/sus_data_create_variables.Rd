@@ -15,6 +15,7 @@ sus_data_create_variables(
   date_col = NULL,
   age_col = NULL,
   hemisphere = "south",
+  backend = "arrow",
   lang = "pt",
   verbose = TRUE
 )
@@ -98,6 +99,20 @@ If \code{NULL} (default), auto-detects and calculates age using hierarchical log
 
 \item{hemisphere}{Character string specifying the hemisphere for season
 calculation. Options: \code{"south"} (default, for Brazil), \code{"north"}.}
+
+\item{backend}{Character string specifying the data processing backend.
+Use \code{"arrow"} for out-of-memory, lazy processing (recommended for large datasets),
+or \code{"tibble"} for in-memory processing (recommended for small to medium datasets).
+\itemize{
+\item \code{"arrow"}: operations are performed lazily using the Apache Arrow engine,
+avoiding loading the full dataset into memory. Ideal for large files
+(e.g., Parquet, Feather) and high-performance workflows.
+\item \code{"tibble"}: data is fully loaded into memory as a tibble and processed eagerly
+using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
+}
+
+If not specified, the function may automatically choose the backend based on
+the input data type.}
 
 \item{lang}{Character string specifying the language for variable labels and
 messages. Options: \code{"en"} (English), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}

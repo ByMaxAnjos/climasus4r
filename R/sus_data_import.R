@@ -100,9 +100,21 @@
 #'   
 #'   **Live Births (SINASC - Live Birth Information System):**
 #'   * `"SINASC"`: Live Birth Declarations (Declaracoes de Nascidos Vivos)
-#'   
-#' @param city Character vector of municipality names (e.g., `"Natal"`,
-#'   `"Sao Paulo"`). Case-insensitive; accents are normalised. Typos trigger
+#' @param backend Character string specifying the data processing backend.
+#'   Use `"arrow"` for out-of-memory, lazy processing (recommended for large datasets),
+#'   or `"tibble"` for in-memory processing (recommended for small to medium datasets).
+#'
+#'   - `"arrow"`: operations are performed lazily using the Apache Arrow engine,
+#'     avoiding loading the full dataset into memory. Ideal for large files
+#'     (e.g., Parquet, Feather) and high-performance workflows.
+#'
+#'   - `"tibble"`: data is fully loaded into memory as a tibble and processed eagerly
+#'     using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
+#'
+#'   If not specified, the function may automatically choose the backend based on
+#'   the input data type.
+#' @param city Character vector of municipality names (e.g., `"Porto Velho"`,
+#'   `"São Paulo"`). Case-insensitive; accents are normalised. Typos trigger
 #'   fuzzy suggestions. Union with `municipality_code`. Applied after download
 #'   to the combined dataset.
 #' @param municipality_code Character or numeric vector of 6 or 7-digit IBGE
@@ -208,6 +220,7 @@ sus_data_import <- function(uf = NULL,
                             year,
                             month = NULL,
                             system,
+                            backend = "arrow",
                             city = NULL,
                             municipality_code = NULL,
                             use_cache = TRUE,
@@ -217,7 +230,65 @@ sus_data_import <- function(uf = NULL,
                             workers = 4,
                             lang = "pt",
                             verbose = TRUE) {
-  # --- 1. Region Handling (Precedence over UF) ---
+  
+  # --- Backend Selection ---
+  if (backend == "arrow") {
+    result <- tryCatch({
+      .import_arrow_internal(
+        uf = uf,
+        region = region,
+        year = year,
+        system = system,
+        month = month,
+        city = city,
+        municipality_code = municipality_code,
+        use_cache = use_cache, 
+        cache_dir = cache_dir, 
+        force_redownload = force_redownload, 
+        parallel = parallel,
+        workers = workers, 
+        lang = lang, 
+        verbose = verbose  # Passar explicitamente
+      )
+    }, error = function(e) {
+      cli::cli_alert_warning(
+        "Lazy (Arrow) falhou: {conditionMessage(e)}. ",
+        "Retornando em modo tibble."
+      )
+      NULL
+    })
+    
+    if (!is.null(result)) {
+      return(result)
+    }
+  }
+  # Fallback: tibble
+  .import_tibble_internal(
+        uf = uf, 
+        region = region,
+        year = year, 
+        system = system, 
+        month = month, 
+        city = city, 
+        municipality_code = municipality_code,
+        use_cache = use_cache, 
+        cache_dir = cache_dir, 
+        force_redownload = force_redownload, 
+        parallel = parallel,
+        workers = workers, 
+        lang = lang, 
+        verbose = verbose  # Passar explicitamente
+  )
+}  
+ # ===========================================================================
+ # INTERNAL FUNCTIONS
+ # ===========================================================================
+  
+.import_tibble_internal <- function(
+     uf, region, year, system, month, city, municipality_code,
+     use_cache, cache_dir, force_redownload, parallel,
+     workers, lang, verbose
+    ) {
   # Validate language
   if (!lang %in% c("en", "pt", "es")) {
     cli::cli_abort("lang must be one of: 'en', 'pt', 'es'")
@@ -348,7 +419,7 @@ sus_data_import <- function(uf = NULL,
       stop("Invalid month provided.")
     }
     
-    # 3. Aviso se o usuario fornecer mes para sistemas que geralmente são anuais (SIM, SINASC, SINAN)
+    # 3. Aviso se o usuario fornecer mes para sistemas que geralmente sao anuais (SIM, SINASC, SINAN)
     if (!system_prefix_month %in% systems_requiring_month) {
       cli::cli_alert_warning("Parameter 'month' is provided but typically not used for {system_prefix} systems.")
       cli::cli_alert_info("These systems usually aggregate data by year. The 'month' filter might be ignored by the server.")
@@ -377,7 +448,7 @@ sus_data_import <- function(uf = NULL,
     }
   }
 
-  # City / municipality_code — resolve to IBGE codes BEFORE downloads (fail fast).
+  # City / municipality_code resolve to IBGE codes BEFORE downloads (fail fast).
   # muni_meta (~5 570 rows) is always in RAM; spatial cache lives under cache_dir.
   all_muni_codes_import <- NULL
 
@@ -563,7 +634,7 @@ sus_data_import <- function(uf = NULL,
   # }
   if (!is.null(month)) {
     if (is_national) {
-      # Para sistemas nacionais com mês, criar grid com apenas uma UF
+      # Para sistemas nacionais com mes, criar grid com apenas uma UF
       params <- expand.grid(
         year = year,
         uf = uf[1],  # Apenas a primeira UF
@@ -910,40 +981,109 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
 
   # Municipality filter (city / municipality_code)
   if (!is.null(all_muni_codes_import) && length(all_muni_codes_import) > 0L) {
+    # muni_col_patterns <- c(
+    #   "CODMUNRES", "MUNRES", "MUNAIH", "ID_MN_RESI",
+    #   "PA_MUNPCN", "CODMUNPAC", "CODUFMUN", "MUNNOT",
+    #   "MUNIC_RES", "SP_GESTOR"
+    # )
     muni_col_patterns <- c(
+      # Originais fornecidos
       "CODMUNRES", "MUNRES", "MUNAIH", "ID_MN_RESI",
       "PA_MUNPCN", "CODMUNPAC", "CODUFMUN", "MUNNOT",
-      "MUNIC_RES", "SP_GESTOR"
-    )
+      "MUNIC_RES", "SP_GESTOR",
+      
+      # Adicionais SINAN  SIM  SINASC (Residencia e Ocorrencia)
+      "CODMUNOCOR", "MUNOCOR", "ID_MN_OCOR", "CODMUNNASC", 
+      "CODMUNNATU", "CODMUNINF", "MUNIC_OCOR",
+      
+      # Adicionais SIH  SIA (Hospitalar e Ambulatorial)
+      "MUNIC_ESTAB", "CODMUNEST", "MUN_ESTAB", "CODMUNSERV",
+      "PA_MUNORG", "SP_MUNINV", "SP_MUNCID",
+      
+      # Adicionais CNES  IBGE (Gerais)
+      "IBGE", "COD_MUNICIPIO", "MUNICIPIO_CODIGO", "CODMUN",
+      "COD_IBGE", "CODMUNI", "MUN_RESIDENCIA"
+    ) 
     combined_data <- data.table::as.data.table(combined_data)
     combined_cols  <- names(combined_data)
     muni_col       <- muni_col_patterns[muni_col_patterns %in% combined_cols][1L]
 
     if (!is.na(muni_col) && length(muni_col) > 0L) {
+      # NOTE: Municipality filter is applied LAZY in .import_arrow_internal, not here
+      # This keeps tibble data complete for downstream Arrow conversion
       n_before <- nrow(combined_data)
+      n_after <- n_before  # No filtering here - will be done lazy later
 
-      # Snapshot available codes for zero-row diagnostic
-      available_muni_codes <- unique(as.character(combined_data[[muni_col]]))
-      available_muni_codes <- available_muni_codes[
-        !is.na(available_muni_codes) & nchar(available_muni_codes) >= 6L
-      ]
-
-      combined_data <- combined_data[
-        as.character(get(muni_col)) %in% all_muni_codes_import
-      ]
-      n_after <- nrow(combined_data)
-
+      # if (verbose) {
+      #   msg_filt <- switch(lang,
+      #     en = paste0("Municipality filter on '", muni_col, "': ",
+      #                 format(n_after,  big.mark = ","), " of ",
+      #                 format(n_before, big.mark = ","), " rows retained."),
+      #     es = paste0("Filtro de municipio en '", muni_col, "': ",
+      #                 format(n_after,  big.mark = ","), " de ",
+      #                 format(n_before, big.mark = ","), " registros retenidos."),
+      #     paste0("Filtro de municipio na coluna '", muni_col, "': ",
+      #            format(n_after,  big.mark = ","), " de ",
+      #            format(n_before, big.mark = ","), " registros retidos.")
+      #   )
+      #   cli::cli_alert_info(msg_filt)
+      # }
       if (verbose) {
+        # Construir descrição do filtro aplicado
+        if (!is.null(city) && !is.null(municipality_code)) {
+          filtro_desc <- switch(lang,
+            en = paste0("Municipality filter (city: ", 
+                        paste(city, collapse = ", "), 
+                        "; code: ", 
+                        paste(municipality_code, collapse = ", "), 
+                        ")"),
+            es = paste0("Filtro de municipio (ciudad: ", 
+                        paste(city, collapse = ", "), 
+                        "; codigo: ", 
+                        paste(municipality_code, collapse = ", "), 
+                        ")"),
+            paste0("Filtro de municipio (cidade: ", 
+                  paste(city, collapse = ", "), 
+                  "; codigo: ", 
+                  paste(municipality_code, collapse = ", "), 
+                  ")")
+          )
+        } else if (!is.null(city)) {
+          filtro_desc <- switch(lang,
+            en = paste0("Municipality filter (city: ", 
+                        paste(city, collapse = ", "), 
+                        ")"),
+            es = paste0("Filtro de municipio (ciudad: ", 
+                        paste(city, collapse = ", "), 
+                        ")"),
+            paste0("Filtro de municipio (cidade: ", 
+                  paste(city, collapse = ", "), 
+                  ")")
+          )
+        } else if (!is.null(municipality_code)) {
+          filtro_desc <- switch(lang,
+            en = paste0("Municipality filter (code: ", 
+                        paste(municipality_code, collapse = ", "), 
+                        ")"),
+            es = paste0("Filtro de municipio (codigo: ", 
+                        paste(municipality_code, collapse = ", "), 
+                        ")"),
+            paste0("Filtro de municipio (codigo: ", 
+                  paste(municipality_code, collapse = ", "), 
+                  ")")
+          )
+        }
+        
         msg_filt <- switch(lang,
-          en = paste0("Municipality filter on '", muni_col, "': ",
+          en = paste0(filtro_desc, ": ",
                       format(n_after,  big.mark = ","), " of ",
                       format(n_before, big.mark = ","), " rows retained."),
-          es = paste0("Filtro de municipio en '", muni_col, "': ",
+          es = paste0(filtro_desc, ": ",
                       format(n_after,  big.mark = ","), " de ",
                       format(n_before, big.mark = ","), " registros retenidos."),
-          paste0("Filtro de municipio na coluna '", muni_col, "': ",
-                 format(n_after,  big.mark = ","), " de ",
-                 format(n_before, big.mark = ","), " registros retidos.")
+          paste0(filtro_desc, ": ",
+                format(n_after,  big.mark = ","), " de ",
+                format(n_before, big.mark = ","), " registros retidos.")
         )
         cli::cli_alert_info(msg_filt)
       }
@@ -1026,11 +1166,823 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
       combined_data <- sus_meta(combined_data, system = system, stage = "import", type = "raw")
       combined_data <- sus_meta(combined_data, add_history = "Imported datasus with climasus4r")
     }
-
-  return(combined_data)
+    return(combined_data)
 }
 
+.import_arrow_internal <- function(
+     uf, region, year, system, month, city, municipality_code,
+     use_cache, cache_dir, force_redownload, parallel,
+     workers, lang, verbose
+    ) {
+  #  0. Validacoes basicas 
+  if (!lang %in% c("en", "pt", "es"))
+    cli::cli_abort("{.arg lang} deve ser um de: 'en', 'pt', 'es'.")
+  
+  #Check if arrow pak installed
+  #check_arrow(lang=lang)
+  arrow_threads= NULL
+  # Thread pool do Arrow: independente do future, gerenciado por libarrow C++
+  n_arrow_threads <- arrow_threads %||% parallel::detectCores(logical = FALSE)
+  arrow::set_cpu_count(n_arrow_threads)
+  arrow::set_io_thread_count(n_arrow_threads)
 
+  # 1. Resolucao de regiao -> UF 
+
+   if (!is.null(region)) {
+    reg_clean <- tolower(region)
+    target_key <- if (reg_clean %in% names(.region_aliases)) .region_aliases[[reg_clean]] else reg_clean
+    if (target_key %in% names(.br_regions)) {
+      if (!is.null(uf) && verbose) {
+      cli::cli_alert_warning("Both {.arg uf} and {.arg region} provided. Using region mapping for: {.val {region}}.")
+      }
+     uf <- .br_regions[[target_key]]
+      if (verbose) cli::cli_alert_info("Region {.val {region}} expanded to: {paste(uf, collapse = ', ')}")
+    } else {
+      cli::cli_abort("Region {.val {region}} not recognized. Check documentation for valid regions.")
+    }
+  }
+
+  #  2. Validacao de argumentos
+  # Input validation
+  if (is.null(uf) || missing(year) || missing(system)) {
+    cli::cli_alert_danger("Arguments {.arg uf} (or {.arg region}), {.arg year}, and {.arg system} are required.")
+    stop("Missing required arguments.")
+  }
+  
+  # Validate UF codes
+  valid_ufs <- c("all", "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", 
+                 "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", 
+                 "RS", "RO", "RR", "SC", "SP", "SE", "TO")
+  
+  invalid_ufs <- setdiff(uf, valid_ufs)
+  
+  if (length(invalid_ufs) > 0) {
+    cli::cli_alert_danger("Invalid UF codes: {paste(invalid_ufs, collapse = ', ')}")
+    cli::cli_alert_info("Valid UF codes are: 'all', AC, AL, AP, AM, BA, CE, DF, ES, GO, MA, MT, MS, MG, PA, PB, PR, PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO")
+    stop("Invalid UF codes provided.")
+  }
+
+  # Validate system codes
+  valid_systems <- c(
+    # SIH Systems
+    "SIH-RD", "SIH-RJ", "SIH-SP", "SIH-ER",
+    
+    # SIM Systems
+    "SIM-DO", "SIM-DOFET", "SIM-DOEXT", "SIM-DOINF", "SIM-DOMAT",
+    
+    # SINASC
+    "SINASC",
+    
+    # CNES Systems
+    "CNES-LT", "CNES-ST", "CNES-DC", "CNES-EQ", "CNES-SR", 
+    "CNES-HB", "CNES-PF", "CNES-EP", "CNES-RC", "CNES-IN", 
+    "CNES-EE", "CNES-EF", "CNES-GM",
+    
+    # SIA Systems
+    "SIA-AB", "SIA-ABO", "SIA-ACF", "SIA-AD", "SIA-AN", 
+    "SIA-AM", "SIA-AQ", "SIA-AR", "SIA-ATD", "SIA-PA", 
+    "SIA-PS", "SIA-SAD",
+    
+    # SINAN Systems
+    "SINAN-DENGUE", "SINAN-CHIKUNGUNYA", "SINAN-ZIKA", 
+    "SINAN-MALARIA", "SINAN-CHAGAS", 
+    "SINAN-LEISHMANIOSE-VISCERAL", 
+    "SINAN-LEISHMANIOSE-TEGUMENTAR", "SINAN-LEPTOSPIROSE"
+  )
+  
+  # Categorize systems for better error messages
+  system_categories <- list(
+    "SIH" = c("SIH-RD", "SIH-RJ", "SIH-SP", "SIH-ER"),
+    "SIM" = c("SIM-DO", "SIM-DOFET", "SIM-DOEXT", "SIM-DOINF", "SIM-DOMAT"),
+    "SINASC" = "SINASC",
+    "CNES" = c("CNES-LT", "CNES-ST", "CNES-DC", "CNES-EQ", "CNES-SR", 
+               "CNES-HB", "CNES-PF", "CNES-EP", "CNES-RC", "CNES-IN", 
+               "CNES-EE", "CNES-EF", "CNES-GM"),
+    "SIA" = c("SIA-AB", "SIA-ABO", "SIA-ACF", "SIA-AD", "SIA-AN", 
+              "SIA-AM", "SIA-AQ", "SIA-AR", "SIA-ATD", "SIA-PA", 
+              "SIA-PS", "SIA-SAD"),
+    "SINAN" = c("SINAN-DENGUE", "SINAN-CHIKUNGUNYA", "SINAN-ZIKA", 
+                "SINAN-MALARIA", "SINAN-CHAGAS", 
+                "SINAN-LEISHMANIOSE-VISCERAL", 
+                "SINAN-LEISHMANIOSE-TEGUMENTAR", "SINAN-LEPTOSPIROSE")
+  )
+  
+  # Check if system is valid
+  if (!system %in% valid_systems) {
+    cli::cli_alert_danger("Invalid system: {system}")
+    
+    # Provide helpful suggestions
+    cli::cli_alert_info("Valid systems are:")
+    
+    # Show by category
+    for (category in names(system_categories)) {
+      if (any(grepl(toupper(category), toupper(system)))) {
+        cli::cli_alert_info("  {category} systems:")
+        for (sys in system_categories[[category]]) {
+          cli::cli_alert_info("    - {sys}")
+        }
+      }
+    }
+    
+    # Also check for close matches
+    possible_matches <- agrep(system, valid_systems, max.distance = 0.3, value = TRUE)
+    if (length(possible_matches) > 0) {
+      cli::cli_alert_info("Did you mean one of these?")
+      for (match in possible_matches) {
+        cli::cli_alert_info("  - {match}")
+      }
+    }
+    
+    stop("Invalid system provided.")
+  }
+
+  # Valid month
+  system_prefix_month <- sub("-.*", "", system)
+  systems_requiring_month <- c("SIH", "CNES", "SIA")
+  
+  if (system_prefix_month %in% systems_requiring_month && is.null(month)) {
+    cli::cli_alert_danger("System {system} requires the 'month' argument.")
+    cli::cli_alert_info("Please provide months as a vector (e.g., month = 1:12 or month = 1).")
+    stop("Missing required argument: month. Please use month for 'SIH', 'CNES' and 'SIA' systems.")
+  }
+  
+  if (!is.null(month)) {
+    if (!is.numeric(month) || any(month < 1) || any(month > 12)) {
+      cli::cli_alert_danger("Invalid month. Must be a numeric vector between 1 and 12.")
+      stop("Invalid month provided.")
+    }
+    
+    # 3. Aviso se o usuario fornecer mes para sistemas que geralmente sa anuais (SIM, SINASC, SINAN)
+    if (!system_prefix_month %in% systems_requiring_month) {
+      cli::cli_alert_warning("Parameter 'month' is provided but typically not used for {system_prefix} systems.")
+      cli::cli_alert_info("These systems usually aggregate data by year. The 'month' filter might be ignored by the server.")
+    }
+  }
+
+  #Check month
+  if (parallel && workers > parallel::detectCores()) {
+    cli::cli_alert_warning(
+      "{workers} workers requested but only {parallel::detectCores()} cores available"
+    )
+  }
+
+  # 3. Diretorios de cache 
+
+  cache_dir   <- path.expand(cache_dir)
+  raw_dir     <- file.path(cache_dir, "raw")     # Parquets individuais
+  dataset_dir <- file.path(cache_dir, "dataset") # Reservado para uso futuro
+
+  for (d in c(raw_dir, dataset_dir))
+    if (!fs::dir_exists(d)) fs::dir_create(d, recurse = TRUE)
+
+  #4. Configuracao: sistemas nacionais vs. por UF
+  #
+  # Sistemas SINAN entregam dados nacionais num unico arquivo por ano.
+  # Para eles: download_ufs = "BR" (uma tarefa/ano), e o filtro por UF
+  # e aplicado LAZY sobre o Dataset resultante- sem collect antecipado.
+
+  national_systems <- c(
+    "SINAN-DENGUE","SINAN-CHIKUNGUNYA","SINAN-ZIKA","SINAN-MALARIA",
+    "SINAN-CHAGAS","SINAN-LEISHMANIOSE-VISCERAL",
+    "SINAN-LEISHMANIOSE-TEGUMENTAR","SINAN-LEPTOSPIROSE"
+  )
+  # ===========================================================================
+  # new Filtr city
+  # ===========================================================================
+  all_muni_codes_import <- NULL
+
+if (!is.null(city) || !is.null(municipality_code)) {
+    spatial_cache_dir <- file.path(dirname(cache_dir))
+    if (!fs::dir_exists(spatial_cache_dir))
+      fs::dir_create(spatial_cache_dir, recurse = TRUE)
+
+    muni_meta_import <- tryCatch(
+      get_spatial_municipio_cache(
+        cache_dir = spatial_cache_dir,
+        use_cache = use_cache,
+        lang      = lang,
+        verbose   = verbose
+      ),
+      error = function(e) {
+        cli::cli_alert_warning(
+          "Nao foi possivel carregar metadados municipais: {conditionMessage(e)}"
+        )
+        NULL
+      }
+    )
+
+    collected_codes <- character(0L)
+
+    if (!is.null(city) && !is.null(muni_meta_import)) {
+      meta_norm <- stringi::stri_trans_general(
+        tolower(muni_meta_import$no_accents), "Latin-ASCII"
+      )
+      for (city_i in city) {
+        input <- trimws(as.character(city_i))
+
+        if (grepl("^\\d{6,7}$", input)) {
+          idx <- if (nchar(input) == 7L)
+            which(muni_meta_import$municipio == input)
+          else
+            which(substr(muni_meta_import$municipio, 1L, 6L) == input)
+          if (length(idx) > 0L)
+            collected_codes <- c(collected_codes, muni_meta_import$municipio[idx])
+          else
+            cli::cli_alert_warning("Codigo de municipio {.val {input}} nao encontrado.")
+          next
+        }
+
+        input_norm <- stringi::stri_trans_general(tolower(input), "Latin-ASCII")
+        idx <- which(meta_norm == input_norm)
+        if (length(idx) == 0L) {
+          orig_norm <- stringi::stri_trans_general(
+            tolower(muni_meta_import$name), "Latin-ASCII"
+          )
+          idx <- which(orig_norm == input_norm)
+        }
+
+        if (length(idx) > 0L) {
+          collected_codes <- c(collected_codes, muni_meta_import$municipio[idx])
+        } else {
+          msg_nf <- switch(lang,
+            en = paste0("City '", city_i, "' not found."),
+            es = paste0("Ciudad '", city_i, "' no encontrada."),
+            paste0("Municipio '", city_i, "' nao encontrado.")
+          )
+          cli::cli_alert_warning(msg_nf)
+
+          prefix_idx <- which(startsWith(meta_norm, input_norm))
+          max_dist   <- max(1L, min(3L, floor(nchar(input_norm) * 0.25)))
+          distances  <- utils::adist(input_norm, meta_norm, ignore.case = TRUE)[1L, ]
+          fuzzy_idx  <- which(distances <= max_dist)
+          fuzzy_idx  <- fuzzy_idx[order(distances[fuzzy_idx])]
+          close_idx  <- utils::head(unique(c(prefix_idx, fuzzy_idx)), 5L)
+
+          if (length(close_idx) > 0L) {
+            cli::cli_alert_info(switch(lang,
+              en = "Did you mean:",
+              es = "\u00bfQuiso decir:",
+              "Voce quis dizer:"
+            ))
+            for (s in sprintf("%s (%s \u2014 %s)",
+                              muni_meta_import$name[close_idx],
+                              muni_meta_import$uf_code[close_idx],
+                              muni_meta_import$municipio[close_idx]))
+              cli::cli_li(s)
+          } else {
+            cli::cli_alert_info(
+              "Nenhuma sugestao disponivel. Verifique a grafia ou use o codigo IBGE."
+            )
+          }
+        }
+      }
+    }
+
+    if (!is.null(municipality_code))
+      collected_codes <- c(collected_codes, as.character(municipality_code))
+
+    if (length(collected_codes) > 0L) {
+      all_muni_codes_import <- unique(c(
+        as.character(collected_codes),
+        substr(collected_codes, 1L, 6L)
+      ))
+      if (verbose) {
+        msg_muni <- switch(lang,
+          en = paste0("Municipality filter: ", length(all_muni_codes_import),
+                      " code(s) (6+7-digit). Applied after download."),
+          es = paste0("Filtro de municipio: ", length(all_muni_codes_import),
+                      " codigo(s) (formatos 6+7 digitos). Se aplica tras la descarga."),
+          paste0("Filtro de municipio: ", length(all_muni_codes_import),
+                " codigo(s) (formatos 6+7 digitos). Aplicado apos download.")
+        )
+        cli::cli_alert_info(msg_muni)
+      }
+      
+    } else {
+      cli::cli_alert_warning(
+        "Nenhum municipio resolvido. Filtro de municipio sera ignorado."
+      )
+    }
+  }
+
+  
+  # ===========================================================================
+  # check if national
+  # ===========================================================================
+  
+  is_national  <- system %in% national_systems
+  request_ufs  <- uf                              # UFs pedidas pelo usuario
+  download_ufs <- if (is_national) "BR" else uf  # UFs efetivas de download
+
+  # Mapeamento UF sigla - codigo IBGE (usado no filtro lazy de SINAN)
+  uf_to_code <- c(
+    AC=12L,AL=27L,AP=16L,AM=13L,BA=29L,CE=23L,DF=53L,ES=32L,
+    GO=52L,MA=21L,MT=51L,MS=50L,MG=31L,PA=15L,PB=25L,PR=41L,
+    PE=26L,PI=22L,RJ=33L,RN=24L,RS=43L,RO=11L,RR=14L,SC=42L,
+    SP=35L,SE=28L,TO=17L
+  )
+
+  #  5. Grid de combinacoes 
+
+  if (!is.null(month)) {
+    params <- expand.grid(
+      year  = year,
+      uf    = download_ufs,
+      month = month,
+      stringsAsFactors = FALSE
+    )
+  } else {
+    params <- expand.grid(
+      year = year,
+      uf   = download_ufs,
+      stringsAsFactors = FALSE
+    )
+  }
+  total_tasks <- nrow(params)
+
+  #  6. Log de cabecalho 
+
+  if (verbose) {
+    cli::cli_h1("climasus4r - Datasus Import")
+    cli::cli_alert_info("Sistema   : {system}")
+    cli::cli_alert_info("Estados   : {paste(request_ufs, collapse = ', ')}")
+    cli::cli_alert_info("Anos      : {paste(year, collapse = ', ')}")
+    if (!is.null(month))
+      cli::cli_alert_info("Meses     : {paste(month, collapse = ', ')}")
+    cli::cli_alert_info("Tarefas   : {total_tasks}")
+    cli::cli_alert_info(
+      "Cache     : {ifelse(use_cache, raw_dir, 'DESABILITADO')}"
+    )
+    cli::cli_alert_info("Arrow I/O : {n_arrow_threads} thread(s)")
+    if (is_national)
+      cli::cli_alert_info(
+        "Nacional  : download unico/ano, filtro lazy por UF apos abertura do dataset."
+      )
+    if (parallel && total_tasks > 1L)
+      cli::cli_alert_info("Paralelo  : {min(workers, total_tasks)} worker(s) HTTP")
+  }
+
+  #7. Closures de cache (dependem de raw_dir) 
+
+  .cache_path <- function(key) file.path(raw_dir, paste0(key, ".parquet"))
+
+  .cache_valid <- function(path, max_days = 30L) {
+    if (!fs::file_exists(path)) return(FALSE)
+    age <- as.numeric(
+      difftime(Sys.time(), fs::file_info(path)$modification_time, units = "days")
+    )
+    age <= max_days
+  }
+
+  # 8. download_one_raw 
+  #
+  # Executado dentro do worker (paralelo) ou inline (sequencial).
+
+  download_one_raw <- function(year_i, uf_i, system_i, month_i = NULL) {
+    label <- paste(
+      Filter(Negate(is.null), list(system_i, uf_i, year_i, month_i)),
+      collapse = " . "
+    )
+
+    fetch_uf   <- if (uf_i == "BR") request_ufs[1L] else uf_i
+    cache_key  <- .make_cache_key(system_i, uf_i, year_i, month_i, is_national)
+    cache_path <- .cache_path(cache_key)
+
+    # Cache hit: retorna apenas o path - nada e serializado via socket
+    if (use_cache && !force_redownload && .cache_valid(cache_path)) {
+      if (verbose) cli::cli_alert_success("Cache: {label}")
+      return(list(type = "path", value = cache_path))
+    }
+
+    if (verbose) cli::cli_alert_info("Baixando: {label}")
+
+    params_fetch <- list(
+      year_start         = as.numeric(year_i),
+      year_end           = as.numeric(year_i),
+      uf                 = fetch_uf,
+      information_system = system_i
+    )
+    if (!is.null(month_i)) {
+      params_fetch$month_start <- month_i
+      params_fetch$month_end   <- month_i
+    }
+
+    tryCatch({
+      df <- do.call(microdatasus::fetch_datasus, params_fetch)
+
+      if (is.null(df) || nrow(df) == 0L) {
+        cli::cli_alert_warning("Sem dados: {label}")
+        return(NULL)
+      }
+
+      list(type = "df", value = df, path = cache_path, label = label)
+
+    }, error = function(e) {
+      cli::cli_alert_danger("Falha: {label} - {conditionMessage(e)}")
+      if (grepl("404|Not Found",  conditionMessage(e), ignore.case = TRUE))
+        cli::cli_alert_info("  -> Combinacao pode nao existir no DATASUS.")
+      if (grepl("timeout",        conditionMessage(e), ignore.case = TRUE))
+        cli::cli_alert_info("  -> Verifique a conexao ou tente novamente.")
+      NULL
+    })
+  }
+
+  # 9. Execucao dos downloads (paralelo HTTP ou sequencial)
+
+  run_task <- function(i) {
+    download_one_raw(
+      year_i   = params$year[i],
+      uf_i     = params$uf[i],
+      system_i = system,
+      month_i  = if ("month" %in% names(params)) params$month[i] else NULL
+    )
+  }
+
+  if (parallel && total_tasks > 1L) {
+    old_plan <- future::plan()
+    on.exit(future::plan(old_plan), add = TRUE)
+    future::plan(future::multisession, workers = min(workers, total_tasks))
+
+    raw_results <- furrr::future_map(
+      seq_len(total_tasks),
+      run_task,
+      .options = furrr::furrr_options(
+        seed     = TRUE,
+        packages = c("microdatasus", "arrow", "stringi", "cli", "fs", "digest"),
+        globals  = c(
+          "download_one_raw", ".make_cache_key", ".cache_path", ".cache_valid",
+          "system", "is_national", "request_ufs",
+          "use_cache", "force_redownload", "raw_dir", "verbose",
+          "params"
+        )
+      )
+    )
+  } else {
+    raw_results <- purrr::map(seq_len(total_tasks), run_task)
+  }
+
+  #  10. Escrita Parquet no processo principal 
+
+  parquet_paths <- character(0L)
+
+  for (res in raw_results) {
+    if (is.null(res)) next
+
+    if (res$type == "path") {
+      parquet_paths <- c(parquet_paths, res$value)
+
+    } else if (res$type == "df") {
+      written <- .write_chunk_parquet(res$value, res$path)
+      rm(res); gc(verbose = FALSE)
+      if (!is.null(written)) {
+        if (verbose)
+          cli::cli_alert_success("Salvo: {basename(written)}")
+        parquet_paths <- c(parquet_paths, written)
+      }
+    }
+  }
+  rm(raw_results); gc(verbose = FALSE)
+
+  # 11. Validacao dos paths
+
+  file_sizes <- fs::file_info(
+    parquet_paths[fs::file_exists(parquet_paths)]
+  )$size
+
+  valid_paths <- parquet_paths[
+    !is.na(parquet_paths) &
+    nchar(parquet_paths) > 0L &
+    fs::file_exists(parquet_paths) &
+    fs::file_info(parquet_paths)$size > 0L
+  ]
+  names(valid_paths) <- NULL
+
+  n_ok   <- length(valid_paths)
+  n_fail <- total_tasks - n_ok
+
+  if (n_ok == 0L) {
+    cli::cli_alert_danger(
+      "Nenhum dado disponivel para os parametros fornecidos."
+    )
+    return(invisible(NULL))
+  }
+
+  if (verbose) {
+    cli::cli_alert_success("{n_ok}/{total_tasks} arquivo(s) Parquet valido(s).")
+    if (n_fail > 0L)
+      cli::cli_alert_warning(
+        "{n_fail} download(s) falharam - verifique os logs acima."
+      )
+  }
+
+  # 12. Arrow Dataset lazy (sem rbindlist, sem RAM)
+
+  if (verbose)
+    cli::cli_alert_info("Abrindo Arrow Dataset ({n_ok} arquivo(s))...")
+
+  dataset <- tryCatch({
+    arrow::open_dataset(
+      sources       = valid_paths,
+      format        = "parquet",
+      unify_schemas = TRUE
+    )
+  }, error = function(e) {
+    cli::cli_alert_danger("Falha ao abrir dataset: {conditionMessage(e)}")
+    cli::cli_alert_info("Verificando arquivos individualmente...")
+
+    # Diagnostico: isola arquivos corrompidos
+    readable <- Filter(function(p) {
+      tryCatch({
+        arrow::open_dataset(p, format = "parquet")
+        TRUE
+      }, error = function(e2) {
+        cli::cli_alert_warning(
+          "Corrompido: {basename(p)}-{conditionMessage(e2)}"
+        )
+        FALSE
+      })
+    }, valid_paths)
+
+    if (length(readable) == 0L)
+      cli::cli_abort("Nenhum arquivo Parquet legivel. Verifique os logs.")
+
+    cli::cli_alert_info(
+      "Reabrindo com {length(readable)}/{n_ok} arquivo(s) legiveis..."
+    )
+    arrow::open_dataset(
+      sources       = readable,
+      format        = "parquet",
+      unify_schemas = TRUE
+    )
+  })
+
+  # 13. Filtro lazy de UF para sistemas nacionais (SINAN) 
+
+  if (is_national && length(request_ufs) > 0L) {
+    codes_wanted <- unname(uf_to_code[request_ufs])
+    codes_wanted <- codes_wanted[!is.na(codes_wanted)]
+
+    if (length(codes_wanted) > 0L) {
+      dataset <- dataset |>
+        dplyr::filter(as.integer(SG_UF_NOT) %in% codes_wanted)
+
+      if (verbose)
+        cli::cli_alert_info(
+          "Filtro lazy de UF: {length(codes_wanted)} codigo(s) IBGE aplicado(s)."
+        )
+    }
+  }
+
+  # Municipality filter (city / municipality_code)
+if (!is.null(all_muni_codes_import) && length(all_muni_codes_import) > 0L) {
+    muni_col_patterns <- c(
+      # Originais fornecidos
+      "CODMUNRES", "MUNRES", "MUNAIH", "ID_MN_RESI",
+      "PA_MUNPCN", "CODMUNPAC", "CODUFMUN", "MUNNOT",
+      "MUNIC_RES", "SP_GESTOR", "MUN_RES",
+      
+      # Adicionais SINAN  SIM  SINASC (Residencia e Ocorrencia)
+      "CODMUNOCOR", "MUNOCOR", "ID_MN_OCOR", "CODMUNNASC", 
+      "CODMUNNATU", "CODMUNINF", "MUNIC_OCOR",
+      
+      # Adicionais SIH  SIA (Hospitalar e Ambulatorial)
+      "MUNIC_ESTAB", "CODMUNEST", "MUN_ESTAB", "CODMUNSERV",
+      "PA_MUNORG", "SP_MUNINV", "SP_MUNCID",
+      
+      # Adicionais CNES  IBGE (Gerais)
+      "IBGE", "COD_MUNICIPIO", "MUNICIPIO_CODIGO", "CODMUN",
+      "COD_IBGE", "CODMUNI", "MUN_RESIDENCIA"
+    ) 
+    # Para Arrow Dataset, pegamos os nomes das colunas do schema
+    combined_cols <- names(dataset)
+    muni_col <- muni_col_patterns[muni_col_patterns %in% combined_cols][1L]
+
+    if (!is.na(muni_col) && length(muni_col) > 0L) {
+      
+      # Para contar linhas antes do filtro (lazy)
+      n_before <- dataset %>%
+        dplyr::summarise(n = dplyr::n()) %>%
+        dplyr::collect() %>%
+        dplyr::pull(n)
+      
+      # Snapshot available codes for zero-row diagnostic (precisa coletar)
+      available_muni_codes <- dataset %>%
+        dplyr::select(!!rlang::sym(muni_col)) %>%
+        dplyr::distinct() %>%
+        dplyr::collect() %>%
+        dplyr::pull(!!rlang::sym(muni_col)) %>%
+        as.character()
+      
+      available_muni_codes <- available_muni_codes[
+        !is.na(available_muni_codes) & nchar(available_muni_codes) >= 6L
+      ]
+
+      # Aplicar filtro no Arrow Dataset (lazy)
+      dataset <- dataset %>%
+        dplyr::filter(
+          as.character(!!rlang::sym(muni_col)) %in% all_muni_codes_import
+        )
+      
+      # Contar linhas depois do filtro (lazy)
+      n_after <- dataset %>%
+        dplyr::summarise(n = dplyr::n()) %>%
+        dplyr::collect() %>%
+        dplyr::pull(n)
+
+      # if (verbose) {
+      #   msg_filt <- switch(lang,
+      #     en = paste0("Municipality filter on '", muni_col, "': ",
+      #                 format(n_after,  big.mark = ","), " of ",
+      #                 format(n_before, big.mark = ","), " rows retained."),
+      #     es = paste0("Filtro de municipio en '", muni_col, "': ",
+      #                 format(n_after,  big.mark = ","), " de ",
+      #                 format(n_before, big.mark = ","), " registros retenidos."),
+      #     paste0("Filtro de municipio na coluna '", muni_col, "': ",
+      #           format(n_after,  big.mark = ","), " de ",
+      #           format(n_before, big.mark = ","), " registros retidos.")
+      #   )
+      #   cli::cli_alert_info(msg_filt)
+      # }
+       # }
+      if (verbose) {
+        # Construir descrição do filtro aplicado
+        if (!is.null(city) && !is.null(municipality_code)) {
+          filtro_desc <- switch(lang,
+            en = paste0("Municipality filter (city: ", 
+                        paste(city, collapse = ", "), 
+                        "; code: ", 
+                        paste(municipality_code, collapse = ", "), 
+                        ")"),
+            es = paste0("Filtro de municipio (ciudad: ", 
+                        paste(city, collapse = ", "), 
+                        "; codigo: ", 
+                        paste(municipality_code, collapse = ", "), 
+                        ")"),
+            paste0("Filtro de municipio (cidade: ", 
+                  paste(city, collapse = ", "), 
+                  "; codigo: ", 
+                  paste(municipality_code, collapse = ", "), 
+                  ")")
+          )
+        } else if (!is.null(city)) {
+          filtro_desc <- switch(lang,
+            en = paste0("Municipality filter (city: ", 
+                        paste(city, collapse = ", "), 
+                        ")"),
+            es = paste0("Filtro de municipio (ciudad: ", 
+                        paste(city, collapse = ", "), 
+                        ")"),
+            paste0("Filtro de municipio (cidade: ", 
+                  paste(city, collapse = ", "), 
+                  ")")
+          )
+        } else if (!is.null(municipality_code)) {
+          filtro_desc <- switch(lang,
+            en = paste0("Municipality filter (code: ", 
+                        paste(municipality_code, collapse = ", "), 
+                        ")"),
+            es = paste0("Filtro de municipio (codigo: ", 
+                        paste(municipality_code, collapse = ", "), 
+                        ")"),
+            paste0("Filtro de municipio (codigo: ", 
+                  paste(municipality_code, collapse = ", "), 
+                  ")")
+          )
+        }
+        
+        msg_filt <- switch(lang,
+          en = paste0(filtro_desc, ": ",
+                      format(n_after,  big.mark = ","), " of ",
+                      format(n_before, big.mark = ","), " rows retained."),
+          es = paste0(filtro_desc, ": ",
+                      format(n_after,  big.mark = ","), " de ",
+                      format(n_before, big.mark = ","), " registros retenidos."),
+          paste0(filtro_desc, ": ",
+                format(n_after,  big.mark = ","), " de ",
+                format(n_before, big.mark = ","), " registros retidos.")
+        )
+        cli::cli_alert_info(msg_filt)
+      }
+
+      # Zero-row diagnostic: list available municipalities
+      if (n_after == 0L && length(available_muni_codes) > 0L) {
+        muni_meta_diag <- if (exists("muni_meta_import")) muni_meta_import else NULL
+        show_available_municipalities_internal(
+          available_muni_codes = available_muni_codes,
+          muni_meta            = muni_meta_diag,
+          cache_dir            = file.path(dirname(cache_dir), "spatial"),
+          use_cache            = use_cache,
+          lang                 = lang
+        )
+      }
+    } else {
+      msg_nocol <- switch(lang,
+        en = paste0(
+          "Municipality column not found in combined dataset. Filter skipped. ",
+          "Available (first 10): ",
+          paste(utils::head(combined_cols, 10L), collapse = ", ")
+        ),
+        es = "Columna de municipio no encontrada. Filtro omitido.",
+        paste0(
+          "Coluna de municipio nao encontrada no dataset combinado. ",
+          "Filtro ignorado. Colunas disponiveis (10 primeiras): ",
+          paste(utils::head(combined_cols, 10L), collapse = ", ")
+        )
+      )
+      cli::cli_alert_warning(msg_nocol)
+    }
+  }
+
+
+
+  #  14. Metadados climasus_dataset
+
+  meta <- list(
+    system    = NULL,
+    stage     = "import",
+    type      = "raw",
+    spatial   = FALSE,
+    temporal  = NULL,
+    backend   = "parquet",
+    created   = Sys.time(),
+    modified  = Sys.time(),
+    history   = sprintf(
+      "[%s] Imported via Arrow out-of-core (climasus4r)",
+      format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+    ),
+    n_files   = n_ok,
+    n_failed  = n_fail,
+    cache_dir = raw_dir,
+    user      = list()
+  )
+
+  dataset <- structure(
+    dataset,
+    sus_meta      = meta,
+    parquet_paths = valid_paths,
+    class         = c("climasus_dataset", class(dataset))
+  )
+
+  # 15. Resumo final 
+
+  if (verbose) {
+    # num_rows em FileSystemDataset sem filtros usa metadados Parquet (rapido).
+    # Em datasets filtrados (SINAN lazy), evita scan completo.
+    approx_rows <- tryCatch({
+      if (inherits(dataset, "FileSystemDataset")) {
+        format(dataset$num_rows, big.mark = ".", decimal.mark = ",")
+      } else {
+        "N/A (dataset filtrado - use nrow(dplyr::collect(...)) para contar)"
+      }
+    }, error = function(e) "N/A")
+
+    cli::cli_alert_success("Dataset lazy pronto: ~{approx_rows} linha(s).")
+    # cli::cli_alert_info(
+    #   "Pipeline lazy : {.code ds |> dplyr::filter(...) |> dplyr::collect()}"
+    # )
+    # cli::cli_alert_info(
+    #   "DuckDB        : {.code arrow::to_duckdb(ds) |> dplyr::filter(...) |> dplyr::collect()}"
+    # )
+  }
+
+  # 16. Aplicar filtro de municipality (lazy)
+  if (!is.null(all_muni_codes_import) && length(all_muni_codes_import) > 0) {
+    # Detectar coluna de município (varia por sistema)
+    muni_col <- NULL
+    schema_names <- names(dataset)
+
+    if ("municipio_residencia" %in% schema_names) {
+      muni_col <- "municipio_residencia"
+    } else if ("municipio_estabelecimento" %in% schema_names) {
+      muni_col <- "municipio_estabelecimento"
+    } else if ("municipio_codigo_ibge" %in% schema_names) {
+      muni_col <- "municipio_codigo_ibge"
+    } else if ("municipio" %in% schema_names) {
+      muni_col <- "municipio"
+    }
+
+    if (!is.null(muni_col)) {
+      # Aplicar filtro lazily (6 e 7 dígitos)
+      dataset <- dplyr::filter(
+        dataset,
+        substr(as.character(!!rlang::sym(muni_col)), 1, 7) %in% all_muni_codes_import |
+          substr(as.character(!!rlang::sym(muni_col)), 1, 6) %in% all_muni_codes_import
+      )
+
+      if (verbose) {
+        cli::cli_alert_success(
+          "Municipio filter applied (lazy): {length(all_muni_codes_import)} code(s)"
+        )
+      }
+    }
+  }
+
+  return(dataset)
+}
+
+# ===========================================================================
+# Helper functions
+# ===========================================================================
 
 #Helper functions
 #' @title Regional Definitions for Brazilian States
@@ -1082,3 +2034,118 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
   amazonia = "amazonia_legal", bosque_atlantico = "mata_atlantica",
   semiarido = "semi_arido", frontera = "fronteira_brasil"
 )
+
+# ==============================================================================
+# S3: print / collect para climasus_dataset
+# ==============================================================================
+
+#' @export
+print.climasus_dataset <- function(x, ...) {
+  meta <- attr(x, "sus_meta")
+  cli::cli_h2("climasus_dataset")
+  cli::cli_alert_info("Sistema   : {meta$system}")
+  cli::cli_alert_info("Stage     : {meta$stage}")
+  cli::cli_alert_info("Arquivos  : {meta$n_files} Parquet(s) ({meta$n_failed} falha(s))")
+  cli::cli_alert_info("Schema    : {ncol(x)} coluna(s)")
+  cli::cli_alert_info("Cache dir : {meta$cache_dir}")
+  cli::cli_alert_info("Criado    : {format(meta$created, '%Y-%m-%d %H:%M:%S')}")
+  cli::cli_alert_info(
+    "Historico : {paste(meta$history, collapse = ' | ')}"
+  )
+  NextMethod()
+  invisible(x)
+}
+
+
+#' Materializa um climasus_dataset como tibble preservando os metadados
+#'
+#' Equivalente a `dplyr::collect()` com preservacao do atributo `sus_meta`
+#' e promocao da classe para `climasus_df`.
+#'
+#' @param x   Um `climasus_dataset`.
+#' @param ... Argumentos adicionais passados para `dplyr::collect()`.
+#' @return Um `climasus_df` (tibble com atributo `sus_meta`).
+#' @noRd
+collect.climasus_dataset <- function(x, ...) {
+  meta <- attr(x, "sus_meta")
+  df   <- NextMethod()
+
+  # Promote to climasus_df when the package is loaded (devtools::load_all or
+  # installed); fall back to attaching sus_meta as a plain attribute when
+  # the roadmap script is sourced standalone (package not loaded).
+  if (exists("new_climasus_df", mode = "function")) {
+    df <- new_climasus_df(df, meta)
+    if (exists("sus_meta", mode = "function"))
+      df <- sus_meta(df, stage = "import", backend = "tibble",
+                     add_history = "Collected Arrow Dataset to in-memory tibble")
+  } else {
+    attr(df, "sus_meta") <- meta
+  }
+
+  df
+}
+
+# HELPER: escrita segura de um chunk em Parquet
+# Sempre chamado no processo principal- sem race condition de I/O.
+
+
+#' @noRd
+.write_chunk_parquet <- function(df, path) {
+  if (is.null(df) || nrow(df) == 0L) {
+    cli::cli_alert_warning("Chunk vazio, ignorado: {basename(path)}")
+    return(invisible(NULL))
+  }
+
+  # Encoding: latin1  UTF-8 antes de serializar para Parquet
+  char_cols <- names(df)[vapply(df, is.character, logical(1L))]
+  for (col in char_cols) {
+    vals <- df[[col]]
+    if (length(vals) > 0L) {
+      sample_vals <- stats::na.omit(vals[seq_len(min(200L, length(vals)))])
+      if (length(sample_vals) > 0L &&
+          !all(stringi::stri_enc_isutf8(sample_vals))) {
+        df[[col]] <- stringi::stri_conv(vals, "latin1", "UTF-8")
+      }
+    }
+  }
+
+  dir_path <- dirname(path)
+  if (!fs::dir_exists(dir_path)) fs::dir_create(dir_path, recurse = TRUE)
+
+  # tryCatch retorna flag booleana - evita que path seja retornado apos falha
+  ok <- tryCatch({
+    arrow::write_parquet(
+      df,
+      sink              = path,
+      compression       = "zstd",
+      compression_level = 3L,
+      write_statistics  = TRUE
+    )
+    TRUE
+  }, error = function(e) {
+    cli::cli_alert_danger("Falha ao escrever Parquet: {conditionMessage(e)}")
+    FALSE
+  })
+
+  if (!ok) return(invisible(NULL))
+
+  if (!fs::file_exists(path) || fs::file_info(path)$size == 0L) {
+    cli::cli_alert_warning("Arquivo vazio apos escrita: {basename(path)}")
+    return(invisible(NULL))
+  }
+
+  invisible(path)
+}
+
+
+
+# HELPER
+#' @noRd
+.make_cache_key <- function(system_i, uf_i, year_i, month_i, is_national) {
+  parts <- if (is_national) {
+    c(system_i, as.character(year_i), if (!is.null(month_i)) as.character(month_i))
+  } else {
+    c(system_i, uf_i, as.character(year_i), if (!is.null(month_i)) as.character(month_i))
+  }
+  digest::digest(paste(parts, collapse = "_"), algo = "md5")
+}

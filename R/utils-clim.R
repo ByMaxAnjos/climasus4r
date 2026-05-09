@@ -37,9 +37,25 @@ utils::globalVariables(c(
     "n_below", "prop", "start", "temp", ".I",
 
   # Plot fill
-  "observed", "residual", "predicted"
+  "observed", "residual", "predicted",
+  "SG_UF_NOT", "agg_date", ".data_evnt_tmp", ".data_nasc_tmp","sql", "data_ref"
 
 ))
+
+utils::globalVariables(c(
+  "above_ehf", "above_hi", "above_inmet", "above_utci", "above_wbgt",
+  "above_who", "above_wmo", "all_of", "anomaly_mean", "approx",
+  "available_muni_codes", "date_day", "duration_days", "ehf", "ehi_acc",
+  "ehi_sig", "federal_unit", "first", "hi_c", "hi_c_flag_extreme",
+  "hi_max", "hi_p", "hw_any", "hw_ehf", "hw_ehf_raw", "method", "n",
+  "n_distinct", "pet_c", "row_number", "severity_index", "start_date",
+  "starts_with", "t3", "t30", "t95", "temp_mean", "temp_peak", "tibble",
+  "tmax", "tmax_hist", "tmax_p", "tmean", "tmin", "tmin_p", "utci_c",
+  "utci_c_flag_extreme", "utci_max", "utci_p", "wbgt_c",
+  "wbgt_c_flag_extreme", "wbgt_max", "wbgt_p", "where", "zona_climatica"
+))
+
+
 # ============================================================================
 # INMET HELPER FUNCTIONS
 # ============================================================================

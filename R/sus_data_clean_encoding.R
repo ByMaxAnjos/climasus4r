@@ -7,6 +7,19 @@
 #' Supports multilingual output messages (English, Portuguese, Spanish).
 #'
 #' @param df A `data.frame` or `tibble` to be cleaned.
+#' @param backend Character string specifying the data processing backend.
+#'   Use `"arrow"` for out-of-memory, lazy processing (recommended for large datasets),
+#'   or `"tibble"` for in-memory processing (recommended for small to medium datasets).
+#'
+#'   - `"arrow"`: operations are performed lazily using the Apache Arrow engine,
+#'     avoiding loading the full dataset into memory. Ideal for large files
+#'     (e.g., Parquet, Feather) and high-performance workflows.
+#'
+#'   - `"tibble"`: data is fully loaded into memory as a tibble and processed eagerly
+#'     using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
+#'
+#'   If not specified, the function may automatically choose the backend based on
+#'   the input data type.
 #' @param lang Character. Language for UI messages. Options: "en" (English), 
 #'   "pt" (Portuguese, default), "es" (Spanish).
 #' @param verbose Logical. If TRUE, prints a report of columns checked and corrected. Default is TRUE.
@@ -46,12 +59,52 @@
 #' df_clean <- sus_data_import(uf = "RJ", year = 2022, system = "SIM") %>%
 #'   sus_data_clean_encoding(lang = "pt")
 #' }
-sus_data_clean_encoding <- function(df, lang = "pt", verbose = TRUE) {
+sus_data_clean_encoding <- function(df, backend = "arrow", lang = "pt", verbose = TRUE) {
   
-  # Input validation
+  if (backend == "arrow") {
+    result <- tryCatch({
+      .clean_arrow_internal(
+        df = df, 
+        lang = lang, 
+        verbose = verbose  
+      )
+    }, error = function(e) {
+      cli::cli_alert_warning(
+        "Lazy (Arrow) falhou: {conditionMessage(e)}. ",
+        "Retornando em modo tibble."
+      )
+      NULL
+    })
+    
+    if (!is.null(result)) {
+      return(result)
+    }
+  }
+  # Fallback: tibble
+  .clean_tibble_internal(
+        df = df, 
+        lang = lang, 
+        verbose = verbose  
+  )
+}
+  
+  # ===========================================================================
+  # INTERNAL FUNCTIONS
+  # ===========================================================================
+  
+.clean_tibble_internal <- function(
+    df, lang, verbose
+  ){
+  
+ # Input validation
   if (!is.data.frame(df)) {
-    cli::cli_alert_danger("Input 'df' must be a data.frame.")
-    cli::cli_abort("Invalid input type.")
+    df <- new_climasus_df(                                      
+      dplyr::collect(df),                                                
+      sus_meta(df)  # extrai metadata do Arrow                           
+    ) 
+    if (!is.data.frame(df)) {
+      cli::cli_abort("Input {.arg df} must be a data.frame or a collectable dplyr object.")
+    }
   }
   
   # Validate language and get UI messages
@@ -163,3 +216,144 @@ sus_data_clean_encoding <- function(df, lang = "pt", verbose = TRUE) {
   
   return(df)
 }
+
+.clean_arrow_internal <-  function(
+  df, lang, verbose
+){
+is_arrow_input <- inherits(df, c(
+    "climasus_dataset", "arrow_dplyr_query", "Dataset", "ArrowTabular", "Table"
+  ))
+
+  if (!is_arrow_input) {
+    if (!inherits(df, "data.frame")) {
+      cli::cli_abort(
+        "`df` must be an Arrow object or a data.frame/tibble that can be converted to Arrow."
+      )
+    }
+
+    df <- if (inherits(df, "climasus_df")) {
+      as_arrow_climasus(df)
+    } else {
+      arrow::as_arrow_table(dplyr::as_tibble(df))
+    }
+
+    if (verbose) {
+      cli::cli_alert_info(
+        "Converted input data.frame to Arrow for lazy encoding checks."
+      )
+    }
+  }
+  
+  # Validate language
+  if (!lang %in% c("en", "pt", "es")) {
+    cli::cli_alert_warning("Language '{lang}' not supported. Using English (en).")
+    lang <- "en"
+  }
+  
+  ui_msg <- get_ui_messages(lang)
+  
+  if (verbose) {
+    cli::cli_h1(paste(ui_msg$encoding_header, "(Arrow Lazy)"))
+  }
+  
+  # Get schema to identify text columns
+  schema <- tryCatch({
+    arrow::schema(df)
+  }, error = function(e) {
+    cli::cli_alert_danger("Failed to read dataset schema: {conditionMessage(e)}")
+    return(NULL)
+  })
+  
+  if (is.null(schema)) {
+    return(df)
+  }
+  
+  # Identify character/text columns
+  text_cols <- names(schema)[sapply(schema, function(field) {
+    field$type == arrow::string()
+  })]
+  
+  if (length(text_cols) == 0) {
+    if (verbose) {
+      no_text_msg <- list(
+        en = "No text columns found to check.",
+        pt = "Nenhuma coluna de texto encontrada para verificar.",
+        es = "No se encontraron columnas de texto para verificar."
+      )
+      cli::cli_alert_info(no_text_msg[[lang]])
+    }
+    return(df)
+  }
+  
+  if (verbose) {
+    cli::cli_alert_info("{ui_msg$checking_columns}")
+    checking_count_msg <- list(
+      en = "Checking {length(text_cols)} text column{?s}",
+      pt = "Verificando {length(text_cols)} coluna{?s} de texto",
+      es = "Verificando {length(text_cols)} columna{?s} de texto"
+    )
+    cli::cli_alert_info(checking_count_msg[[lang]])
+  }
+  
+  # For Arrow Dataset, we need to sample to detect encoding issues
+  # Take a sample of rows to analyze encoding
+  sample_size <- min(10000, tryCatch(nrow(df), error = function(e) 10000))
+  
+  sample_data <- tryCatch({
+    df |>
+      dplyr::slice_head(n = sample_size) |>
+      dplyr::collect()
+  }, error = function(e) {
+    cli::cli_alert_warning("Could not sample dataset: {conditionMessage(e)}")
+    NULL
+  })
+  
+  if (is.null(sample_data)) {
+    cli::cli_alert_warning("Cannot detect encoding issues. Returning original dataset.")
+    return(df)
+  }
+  
+  # Detect which columns need correction
+  cols_to_correct <- c()
+  
+  for (col in text_cols) {
+    if (col %in% names(sample_data)) {
+      test_vector <- stats::na.omit(sample_data[[col]])
+      if (length(test_vector) > 0) {
+        # Check if any string is invalid UTF-8
+        needs_correction <- !all(stringi::stri_enc_isutf8(test_vector))
+        if (needs_correction) {
+          cols_to_correct <- c(cols_to_correct, col)
+        }
+      }
+    }
+  }
+  
+  if (verbose) {
+      if (length(cols_to_correct) > 0) {
+    for (col in cols_to_correct) {
+      df <- df |>
+        dplyr::mutate(
+          !!rlang::sym(col) := arrow::Expression$cast(
+            stringr::str_trim(!!rlang::sym(col)),
+            arrow::utf8()
+          )
+        )
+    }
+  } else {
+      cli::cli_alert_success(ui_msg$no_correction_needed)
+    }
+  }
+
+  # Update metadata using sus_meta() with auto-detection of backend
+  df <- sus_meta(df, stage = "clean")
+  df <- sus_meta(
+    df,
+    add_history = sprintf(
+      "Encoding check (lazy Arrow): %d column(s) flagged",
+      length(cols_to_correct)
+    )
+  )
+
+  return(df)
+} 

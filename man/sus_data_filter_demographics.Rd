@@ -11,9 +11,10 @@ sus_data_filter_demographics(
   age_range = NULL,
   education = NULL,
   region = NULL,
-  municipality_code = NULL,
   city = NULL,
+  municipality_code = NULL,
   drop_ignored = FALSE,
+  backend = "arrow",
   use_cache = TRUE,
   cache_dir = "~/.climasus4r_cache/spatial",
   lang = "pt",
@@ -42,19 +43,33 @@ If \code{NULL} (default), includes all education levels.}
 \item{region}{A string indicating a predefined group of states or regions
 (supports multilingual names PT, EN, ES). See Details.}
 
-\item{municipality_code}{Character or numeric vector specifying municipality
-codes (IBGE 6 or 7-digit codes) to include. If \code{NULL} (default), includes
-all municipalities.}
-
 \item{city}{Character vector of municipality names (e.g., \code{"Sao Paulo"},
 \code{"Natal"}) or IBGE codes (6 or 7-digit, e.g., \code{"3550308"}, \code{"2408102"}).
 Case-insensitive; accents are normalised for matching. Partial typos trigger
 fuzzy suggestions. If \code{NULL} (default), no additional municipality filter is
 applied. Results are merged (union) with any codes in \code{municipality_code}.}
 
+\item{municipality_code}{Character or numeric vector specifying municipality
+codes (IBGE 6 or 7-digit codes) to include. If \code{NULL} (default), includes
+all municipalities.}
+
 \item{drop_ignored}{Logical. If \code{TRUE}, explicitly removes rows where
 demographic variables (sex, race, education) contain missing values (\code{NA})
 or DATASUS ignored codes (e.g., \code{"9"}, \code{"Ignorado"}). Default is \code{FALSE}.}
+
+\item{backend}{Character string specifying the data processing backend.
+Use \code{"arrow"} for out-of-memory, lazy processing (recommended for large datasets),
+or \code{"tibble"} for in-memory processing (recommended for small to medium datasets).
+\itemize{
+\item \code{"arrow"}: operations are performed lazily using the Apache Arrow engine,
+avoiding loading the full dataset into memory. Ideal for large files
+(e.g., Parquet, Feather) and high-performance workflows.
+\item \code{"tibble"}: data is fully loaded into memory as a tibble and processed eagerly
+using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
+}
+
+If not specified, the function may automatically choose the backend based on
+the input data type.}
 
 \item{use_cache}{Logical. If \code{TRUE} (default), uses cached spatial data to
 avoid re-downloads and improve performance. Only relevant when \code{city} is

@@ -723,7 +723,7 @@ sus_climate_aggregate <- function(
   data.table::setnames(result, old_nms, new_nms)
   result[, .row_id := NULL]
 
-  tibble::as_tibble(result)
+  dplyr::as_tibble(result)
 }
 
 
@@ -792,7 +792,7 @@ sus_climate_aggregate <- function(
   data.table::setnames(result, old_nms, new_nms)
   result[, .row_id := NULL]
 
-  tibble::as_tibble(result)
+  dplyr::as_tibble(result)
 }
 
 
@@ -908,7 +908,7 @@ sus_climate_aggregate <- function(
   result[, .row_id  := NULL]
   data.table::setnames(result, "gdd", col_out_name)
 
-  tibble::as_tibble(result)
+  dplyr::as_tibble(result)
 }
 
 

@@ -125,7 +125,7 @@ sus_data_aggregate_arrow <- function(df,
   # 0. Detect backend
   # --------------------------------------------------------------------------
   backend <- detect_backend(df)
-  incoming_meta <- attr(df, "sus_meta")
+  original_meta <- attr(df, "sus_meta")
   # --------------------------------------------------------------------------
   # 1. Validate inputs
   # --------------------------------------------------------------------------
@@ -156,16 +156,6 @@ sus_data_aggregate_arrow <- function(df,
     )
     cli::cli_alert_info(backend_msg)
   }
-
-  # Basic structural checks (work for all backends)
-  if (!is.data.frame(df) && backend == "tibble") {
-    stop("df must be a data frame")
-  }
-
-  if (backend == "tibble" && nrow(df) == 0) {
-    stop("df is empty (0 rows)")
-  }
-
   if (!lang %in% c("en", "pt", "es")) {
     cli::cli_alert_warning("Language '{lang}' not supported. Using Portuguese (pt).")
     lang <- "pt"
@@ -196,30 +186,12 @@ sus_data_aggregate_arrow <- function(df,
 
   # --------------------------------------------------------------------------
   # 2. climasus_df / metadata validation
-  #
-  # Arrow and DuckDB backends lose R attributes on every dplyr verb (mutate,
-  # filter, group_by, etc.) because those operations return a new query object
-  # that has no knowledge of R-level attributes.  We therefore try to recover
-  # sus_meta from three sources, in order of preference:
-  #
-  #   (a) The object itself — works when the user passes a raw Arrow Table /
-  #       DuckDB tbl that was just created and still carries the attribute.
-  #   (b) The Arrow schema metadata field "sus_meta" — works when the user
-  #       used `sus_as_arrow()` / `sus_as_duckdb()` helpers that embed the
-  #       metadata in the schema as a JSON string.
-  #   (c) The `.data` slot of an `arrow_dplyr_query` — Arrow stores the
-  #       original Table in `df$.data`; we can read its attributes / schema.
-  #
-  # If none of the sources yields valid metadata the function aborts with a
-  # helpful message explaining how to convert correctly.
-  # --------------------------------------------------------------------------
-
-  # Recover sus_meta from R attr, Arrow schema, or DuckDB metadata table.
+  
   # Works uniformly for climasus_df tibbles, Arrow Tables/queries, DuckDB tbls.
-  system <- incoming_meta$system
+  system <- sus_meta(df, "system")
 
   # -- Stage validation -------------------------------------------------------
-  current_stage  <- incoming_meta$stage
+  current_stage  <- sus_meta(df, "stage")
   required_stage <- "stand"
 
   if (!is_stage_at_least(current_stage, required_stage)) {
@@ -259,6 +231,10 @@ sus_data_aggregate_arrow <- function(df,
   # 4. Resolve date column
   # --------------------------------------------------------------------------
   # Column names are available for all backends via dplyr::tbl_vars / colnames
+  cols_to_keep <- !base::duplicated(names(df))
+  if (any(!cols_to_keep)) {
+    df <- df %>% dplyr::select(dplyr::all_of(base::which(cols_to_keep)))
+  } 
   col_names <- get_col_names(df, backend)
 
   if (is.null(date_col)) {
@@ -428,8 +404,8 @@ sus_data_aggregate_arrow <- function(df,
     dplyr::rename(date = agg_date)
 
   # Drop duplicate columns (can arise from DuckDB schema)
-  cols_unique <- !base::duplicated(names(df_agg))
-  if (any(!cols_unique)) df_agg <- df_agg[, cols_unique, drop = FALSE]
+  # cols_unique <- !base::duplicated(names(df_agg))
+  # if (any(!cols_unique)) df_agg <- df_agg[, cols_unique, drop = FALSE]
 
   # --------------------------------------------------------------------------
   # 10. Complete dates (in-memory, always a tibble at this point)
@@ -489,46 +465,140 @@ sus_data_aggregate_arrow <- function(df,
     }
   }
 
+  # Update stage and type
+   if (!inherits(df_agg, "climasus_df")) {
+    # Create new climasus_df
+    # meta <- list(
+    #   system = system,
+    #   stage = "aggregate",
+    #   type = "agg",
+    #   spatial = FALSE,
+    #   temporal = list(
+    #     start = min(df_agg$date),
+    #     end = max(df_agg$date)
+    #   ),
+    #   created = Sys.time(),
+    #   modified = Sys.time(),
+    #   history = sprintf(
+    #     "[%s] Temporal Data aggregated",
+    #     format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+    #   ),
+    #   user = list()
+    # )
+    meta <- original_meta
+
+    base_classes <- setdiff(class(df_agg), "climasus_df")
+    df_agg <- structure(
+      df_agg,
+      sus_meta = meta,
+      class = c("climasus_df", base_classes)
+    )
+    df_agg <- sus_meta(
+      df_agg, 
+      temporal = list(
+      start = min(df_agg$date, na.rm = TRUE),
+      end = max(df_agg$date, na.rm = TRUE),
+      unit = time_unit)
+    )  
+   } else { 
+    df_agg <- sus_meta(
+    df_agg,
+    temporal = list(
+      start = min(df_agg$date, na.rm = TRUE),
+      end = max(df_agg$date, na.rm = TRUE),
+      unit = time_unit)
+      )     
+  }
   # --------------------------------------------------------------------------
   # 14. History — single write via sus_meta(add_history = ...)
   # --------------------------------------------------------------------------
-  agg_details <- Filter(Negate(is.null), c(
-    sprintf("Time unit: %s", time_unit),
-    if (is.character(fun)) sprintf("Aggregation: %s", fun) else "Aggregation: custom function",
-    if (!is.null(value_col)) sprintf("Value column: %s", value_col) else "Value column: record count",
-    if (!is.null(group_by)) {
-      if (length(group_by) <= 3)
-        sprintf("Grouped by: %s", paste(group_by, collapse = ", "))
-      else
-        sprintf("Grouped by: %s and %d more",
-                paste(utils::head(group_by, 3), collapse = ", "),
-                length(group_by) - 3)
-    },
-    if (isTRUE(complete_dates)) "Completed missing dates",
-    if (!is.null(date_col)) sprintf("Date column: %s", date_col)
-  ))
+  # Build detailed aggregation history message
+  agg_details <- c()
 
-  # --------------------------------------------------------------------------
+  # Time unit
+  if (!is.null(time_unit)) {
+    agg_details <- c( agg_details, sprintf("Time unit: %s", time_unit))
+  }
+
+  # Aggregation function
+  if (!is.null(fun)) {
+    if (is.character(fun)) {
+      agg_details <- c(
+        agg_details,
+        sprintf("Aggregation: %s", fun)
+      )
+    } else {
+      agg_details <- c(
+        agg_details,
+        "Aggregation: custom function"
+      )
+    }
+  }
+
+  # Value column
+  if (!is.null(value_col)) {
+    agg_details <- c(
+      agg_details,
+      sprintf("Value column: %s", value_col)
+    )
+  } else {
+    agg_details <- c(
+      agg_details,
+      "Value column: record count"
+    )
+  }
+  # Grouping variables
+  if (!is.null(group_by)) {
+    if (length(group_by) <= 3) {
+      agg_details <- c(
+        agg_details,
+        sprintf(
+          "Grouped by: %s",
+          paste(group_by, collapse = ", ")
+        )
+      )
+    } else {
+      agg_details <- c(
+        agg_details,
+        sprintf(
+          "Grouped by: %s and %d more",
+          paste(utils::head(group_by, 3), collapse = ", "),
+          length(group_by) - 3
+        )
+      )
+    }
+  }
+
+  # Date completion
+  if (isTRUE(complete_dates)) {
+    agg_details <- c(
+      agg_details,
+      "Completed missing dates"
+    )
+  }
+
+  # Date column used
+  if (!is.null(date_col)) {
+    agg_details <- c(
+      agg_details,
+      sprintf("Date column: %s", date_col)
+    )
+  }
+
+  # Create history message
+  history_msg <- sprintf("Temporal Data aggregated [%s]", paste(agg_details, collapse = " | "))
+
+  # -------------------------------------------------------------------------
   # 13. Re-attach sus_meta (df_agg is a plain tibble after collect())
   # --------------------------------------------------------------------------
-  meta           <- incoming_meta %||% list()
-  meta$system    <- system
-  meta$stage     <- "aggregate"   # correct stage: data has been aggregated
-  meta$type      <- "agg"
-  meta$modified  <- Sys.time()
-  meta$temporal  <- list(
-    start = min(df_agg$date, na.rm = TRUE),
-    end   = max(df_agg$date, na.rm = TRUE),
-    unit  = time_unit
-  )
-  meta$history  <- c(
-  meta$history %||% character(0),
-  sprintf("[%s] Temporal Data aggregated (lazy DuckDB): %s",
-          format(Sys.time(), "%Y-%m-%d %H:%M:%S"), 
-          paste(agg_details, collapse = " | "))
-)
-attr(df_agg, "sus_meta") <- meta
-
+  # Register metadata
+  df_agg <- sus_meta(df_agg,  
+    system = system,  # Preserve original system
+    stage = "aggregate",
+    type = "agg",
+    backend = "tibble",
+    add_history = history_msg)
+  
   return(df_agg)
 }
 
@@ -607,10 +677,10 @@ recover_sus_meta <- function(df, backend) {
 
   # --- DuckDB: metadata can be stored as a single-row metadata table --------
   # (only if sus_as_duckdb() was used — it creates a .__sus_meta__ table)
-  if (backend == "duckdb") {
-    meta <- read_sus_meta_from_duckdb(df)
-    if (!is.null(meta)) return(meta)
-  }
+  # if (backend == "duckdb") {
+  #   meta <- read_sus_meta_from_duckdb(df)
+  #   if (!is.null(meta)) return(meta)
+  # }
 
   NULL
 }
@@ -635,26 +705,26 @@ read_sus_meta_from_schema <- function(table) {
   }, error = function(e) NULL)
 }
 
-#' Read sus_meta from a hidden DuckDB metadata table
-#'
-#' `sus_as_duckdb()` creates a table named `.__sus_meta__` with a single
-#' column `json` containing the serialised metadata.
-#'
-#' @param tbl A DuckDB tbl_dbi
-#' @return sus_meta list or NULL
-#' @keywords internal
-#' @noRd
-read_sus_meta_from_duckdb <- function(tbl) {
-  tryCatch({
-    con <- dbplyr::remote_con(tbl)
-    if (DBI::dbExistsTable(con, ".__sus_meta__")) {
-      json_str <- DBI::dbGetQuery(con, "SELECT json FROM \".__sus_meta__\" LIMIT 1")$json
-      jsonlite::fromJSON(json_str, simplifyVector = FALSE)
-    } else {
-      NULL
-    }
-  }, error = function(e) NULL)
-}
+# #' Read sus_meta from a hidden DuckDB metadata table
+# #'
+# #' `sus_as_duckdb()` creates a table named `.__sus_meta__` with a single
+# #' column `json` containing the serialised metadata.
+# #'
+# #' @param tbl A DuckDB tbl_dbi
+# #' @return sus_meta list or NULL
+# #' @keywords internal
+# #' @noRd
+# read_sus_meta_from_duckdb <- function(tbl) {
+#   tryCatch({
+#     con <- dbplyr::remote_con(tbl)
+#     if (DBI::dbExistsTable(con, ".__sus_meta__")) {
+#       json_str <- DBI::dbGetQuery(con, "SELECT json FROM \".__sus_meta__\" LIMIT 1")$json
+#       jsonlite::fromJSON(json_str, simplifyVector = FALSE)
+#     } else {
+#       NULL
+#     }
+#   }, error = function(e) NULL)
+# }
 
 # =============================================================================
 # PUBLIC CONVERSION HELPERS
@@ -685,7 +755,7 @@ sus_as_arrow <- function(df) {
   meta_json <- jsonlite::toJSON(meta, auto_unbox = TRUE, null = "null")
 
   # Convert to Arrow Table (drops R attributes)
-  tbl <- arrow::as_arrow_table(tibble::as_tibble(df))
+  tbl <- arrow::as_arrow_table(dplyr::as_tibble(df))
 
   # Re-embed metadata in the schema
   new_schema <- tbl$schema$WithMetadata(
@@ -723,7 +793,7 @@ sus_as_duckdb <- function(df, con, name = "sus_data", overwrite = TRUE) {
   meta_json <- jsonlite::toJSON(meta, auto_unbox = TRUE, null = "null")
 
   # Copy data
-  dplyr::copy_to(con, tibble::as_tibble(df), name = name, overwrite = overwrite)
+  dplyr::copy_to(con, dplyr::as_tibble(df), name = name, overwrite = overwrite)
 
   # Store metadata in a helper table
   DBI::dbExecute(con, 'DROP TABLE IF EXISTS ".__sus_meta__"')
@@ -747,18 +817,18 @@ detect_backend <- function(df) {
     return("arrow")
   }
 
-  # DuckDB: a tbl_dbi whose underlying connection is a DuckDBConnection
-  if (inherits(df, "tbl_dbi")) {
-    con_class <- tryCatch(
-      class(dbplyr::remote_con(df)),
-      error = function(e) ""
-    )
-    if (any(grepl("duckdb", con_class, ignore.case = TRUE))) {
-      return("duckdb")
-    }
-    # Generic DBI — treat as tibble (collect first)
-    return("tibble")
-  }
+  # # DuckDB: a tbl_dbi whose underlying connection is a DuckDBConnection
+  # if (inherits(df, "tbl_dbi")) {
+  #   con_class <- tryCatch(
+  #     class(dbplyr::remote_con(df)),
+  #     error = function(e) ""
+  #   )
+  #   if (any(grepl("duckdb", con_class, ignore.case = TRUE))) {
+  #     return("duckdb")
+  #   }
+  #   # Generic DBI — treat as tibble (collect first)
+  #   return("tibble")
+  # }
 
   "tibble"
 }

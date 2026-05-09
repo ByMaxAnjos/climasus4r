@@ -1399,7 +1399,7 @@ plot_climate_health <- function(
     return(tb)
   }
 
-  tibble::as_tibble(df_desc)
+  dplyr::as_tibble(df_desc)
 }
 
 
@@ -1447,7 +1447,7 @@ plot_climate_health <- function(
     return(tb)
   }
 
-  tibble::as_tibble(df_corr)
+  dplyr::as_tibble(df_corr)
 }
 
 
@@ -1500,7 +1500,7 @@ plot_climate_health <- function(
     return(tb)
   }
 
-  tibble::as_tibble(df_models)
+  dplyr::as_tibble(df_models)
 }
 
 
@@ -1547,7 +1547,7 @@ plot_climate_health <- function(
     return(tb)
   }
 
-  tibble::as_tibble(df_rr)
+  dplyr::as_tibble(df_rr)
 }
 
 
@@ -1604,7 +1604,7 @@ plot_climate_health <- function(
     return(tb)
   }
 
-  tibble::as_tibble(df_sens)
+  dplyr::as_tibble(df_sens)
 }
 
 

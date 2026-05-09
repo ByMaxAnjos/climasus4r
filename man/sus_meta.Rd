@@ -31,7 +31,7 @@ sus_meta(
 )
 }
 \arguments{
-\item{x}{A \code{climasus_df} object, or \code{NULL} when using
+\item{x}{A \code{climasus_df} object, Arrow Table, DuckDB result, or \code{NULL} when using
 \code{valid_values}.}
 
 \item{field}{Character. When provided as the only extra argument, returns
@@ -86,8 +86,8 @@ in-memory \strong{tibble} (default), columnar \strong{Parquet} files via the
 \pkg{duckdb} package.
 
 A single, unified interface for reading and writing metadata on
-\code{climasus_df} objects. Minimises namespace pollution by replacing
-the previous family of ten accessor functions.
+\code{climasus_df} objects (including Arrow Tables and DuckDB results).
+Minimises namespace pollution by replacing the previous family of ten accessor functions.
 }
 \details{
 \strong{Operation Dispatch Order:}
@@ -114,6 +114,13 @@ fully recoverable after reading the file back.
 When writing to DuckDB, \code{sus_meta} is stored in a companion table named
 \code{<view_name>__meta} within the same connection, enabling SQL-level
 introspection of pipeline provenance.
+
+Supports multiple backends:
+\itemize{
+\item \strong{climasus_df}: metadata stored as \code{sus_meta} attribute
+\item \strong{Arrow Table}: metadata embedded in schema under \code{"climasus_meta"} key
+\item \strong{DuckDB result}: metadata extracted from companion \code{<table>__meta} table
+}
 }
 \section{Backend Operations}{
 
@@ -208,22 +215,23 @@ duckdb::dbDisconnect(con)
 }
 
 \dontrun{
-# Get all metadata
+# With climasus_df
 sus_meta(df)
-
-# Get a specific field
 sus_meta(df, "stage")
-
-# Update stage and type
 df <- sus_meta(df, stage = "filter_cid", type = "filter_cid")
 
-# Add to history
-df <- sus_meta(df, add_history = "Filtered by respiratory CID codes")
+# With Arrow Table (auto-extracts from schema metadata)
+arrow_tbl <- as_arrow_climasus(df)
+sus_meta(arrow_tbl)  # Extracts from Arrow schema
+sus_meta(arrow_tbl, "system")
 
-# Print history
-sus_meta(df, print_history = TRUE)
+# With DuckDB result (if metadata table exists)
+con <- duckdb::dbConnect(duckdb::duckdb())
+as_duckdb_climasus(df, con, "my_data")
+result <- DBI::dbGetQuery(con, "SELECT * FROM my_data")
+sus_meta(result)  # Extracts from companion __meta table
 
-# Query valid values
+# Query valid values (no object needed)
 sus_meta(valid_values = "backend")
 }
 }

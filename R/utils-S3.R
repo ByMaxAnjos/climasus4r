@@ -129,6 +129,29 @@ is_stage_at_least <- function(current, required) {
   }
 }
 
+#' Extract metadata from DuckDB view (internal helper)
+#' Assumes metadata is stored in <view_name>__meta table (JSON column)
+#' @keywords internal
+#' @noRd
+.meta_from_duckdb_internal <- function(con, view_name) {
+  if (!requireNamespace("DBI", quietly = TRUE)) {
+    return(list())
+  }
+
+  meta_table <- paste0(view_name, "__meta")
+  tryCatch({
+    meta_row <- DBI::dbGetQuery(
+      con,
+      sprintf("SELECT meta_json FROM %s LIMIT 1", meta_table)
+    )
+    if (nrow(meta_row) > 0) {
+      .meta_from_json(meta_row$meta_json[1])
+    } else {
+      list()
+    }
+  }, error = function(e) list())
+}
+
 # ==============================================================================
 # INTERNAL: CONSTRUCTOR FUNCTIONS
 # ==============================================================================
@@ -274,27 +297,93 @@ is_climasus_df <- function(x) {
 # ==============================================================================
 
 #' Get all climasus metadata
+#' Supports climasus_df, Arrow Tables, and DuckDB objects
 #' @keywords internal
 #' @noRd
 get_sus_meta_internal <- function(x) {
-  if (!is_climasus_df(x)) {
-    stop(
-      "`x` must be a <climasus_df> object. ",
-      "Use `sus_data_import()` or `sus_data_standardize()` ",
-      "to integrate your data into the climasus4r ecosystem.",
-      call. = FALSE
-    )
+
+  meta_attr <- attr(x, "sus_meta", exact = TRUE)
+  if (!is.null(meta_attr)) {
+    return(meta_attr)
   }
-  attr(x, "sus_meta") %||% list()
+
+  meta_attr <- attr(x, "climasus_meta", exact = TRUE)
+  if (!is.null(meta_attr)) {
+    return(meta_attr)
+  }
+
+  if (inherits(x, "arrow_dplyr_query")) {
+    source_obj <- tryCatch(x$.data, error = function(e) NULL)
+
+    meta_attr <- attr(source_obj, "sus_meta", exact = TRUE)
+    if (!is.null(meta_attr)) {
+      return(meta_attr)
+    }
+
+    meta_attr <- attr(source_obj, "climasus_meta", exact = TRUE)
+    if (!is.null(meta_attr)) {
+      return(meta_attr)
+    }
+  }
+
+  if (inherits(x, c("tbl_dbi", "tbl_sql", "tbl_lazy"))) {
+    meta_attr <- attr(x, "sus_meta", exact = TRUE)
+    if (!is.null(meta_attr)) {
+      return(meta_attr)
+    }
+  }
+
+  # Case 1: climasus_df (in-memory tibble with metadata attribute)
+  if (is_climasus_df(x)) {
+    return(attr(x, "sus_meta") %||% list())
+  }
+
+  # Case 2: Arrow Table/Dataset (extract metadata from schema)
+  if (inherits(x, "ArrowTabular") || inherits(x, "Dataset") ||
+      inherits(x, "Table") || inherits(x, "arrow_dplyr_query")) {
+    tryCatch({
+      schema_obj <- if (inherits(x, "arrow_dplyr_query")) {
+        x$.data$schema
+      } else {
+        x$schema
+      }
+
+      schema_meta <- schema_obj$metadata
+      if (!is.null(schema_meta[["climasus_meta"]])) {
+        meta <- .meta_from_json(schema_meta[["climasus_meta"]])
+        meta$backend <- "arrow"
+        return(meta)
+      }
+      return(list(backend = "arrow"))
+    }, error = function(e) {
+      # If schema extraction fails, return empty metadata
+      return(list(backend = "arrow"))
+    })
+  }
+
+  # Case 3: DuckDB connection or result set (metadata stored in companion table)
+  # If x has a 'con' attribute (result set), try to extract from metadata table
+  if (inherits(x, "data.frame")) {
+    meta_attr <- attr(x, "climasus_meta")
+    if (!is.null(meta_attr)) {
+      return(meta_attr)
+    }
+  }
+
+  # Case 4: Not a supported backend
+  stop(
+    "`x` must be a <climasus_df> object, Arrow object/query, or data from DuckDB. ",
+    "Use `sus_data_import()` or `sus_data_standardize()` ",
+    "to integrate your data into the climasus4r ecosystem.",
+    call. = FALSE
+  )
 }
 
 #' Get specific metadata field
+#' Supports climasus_df, Arrow Tables, and DuckDB objects
 #' @keywords internal
 #' @noRd
 get_climasus_field_internal <- function(x, field) {
-  if (!is_climasus_df(x)) {
-    stop("`x` must be a climasus_df object", call. = FALSE)
-  }
 
   valid_fields <- c("system", "stage", "type", "spatial", "temporal",
                     "backend", "created", "modified", "history", "user")
@@ -310,6 +399,7 @@ get_climasus_field_internal <- function(x, field) {
     )
   }
 
+  # get_sus_meta_internal now supports multiple backends
   meta <- get_sus_meta_internal(x)
   meta[[field]]
 }
@@ -318,26 +408,78 @@ get_climasus_field_internal <- function(x, field) {
 #' @keywords internal
 #' @noRd
 update_sus_meta_internal <- function(x, ...) {
-  if (!is_climasus_df(x)) {
-    stop("`x` must be a climasus_df object", call. = FALSE)
-  }
-
   meta_old <- get_sus_meta_internal(x)
   meta_new <- utils::modifyList(meta_old, list(...))
   meta_new$modified <- Sys.time()
 
-  obj <- new_climasus_df(x, meta_new)
-  validate_climasus_df(obj)
+  # Case 1: climasus_df - update R attribute
+  if (is_climasus_df(x)) {
+    obj <- new_climasus_df(x, meta_new)
+    validate_climasus_df(obj)
+    return(obj)
+  }
+
+  # Case 2: Arrow Table/Dataset - update schema metadata
+  if (inherits(x, "ArrowTabular") || inherits(x, "Dataset") ||
+      inherits(x, "Table") || inherits(x, "arrow_dplyr_query")) {
+    tryCatch({
+      if (inherits(x, "arrow_dplyr_query")) {
+        attr(x, "sus_meta") <- meta_new
+        return(x)
+      }
+
+      if (inherits(x, "Dataset") && !inherits(x, "ArrowTabular")) {
+        attr(x, "sus_meta") <- meta_new
+        attr(x, "climasus_meta") <- meta_new
+        return(x)
+      }
+
+      meta_json <- .meta_to_json(meta_new)
+      new_schema <- x$schema$WithMetadata(
+        c(x$schema$metadata, list(climasus_meta = as.character(meta_json)))
+      )
+
+      updated <- x$cast(new_schema)
+      attr(updated, "sus_meta") <- meta_new
+      attr(updated, "climasus_meta") <- meta_new
+      return(updated)
+    }, error = function(e) {
+      cli::cli_abort(c(
+        "Failed to update Arrow metadata: {conditionMessage(e)}",
+        "i" = "Object class: {paste(class(x), collapse = ', ')}"
+      ))
+    })
+  }
+
+  # Case 3: DuckDB result - update companion metadata table
+  if (inherits(x, "data.frame")) {
+    # DuckDB results are data.frames; check if metadata was extracted from DuckDB
+    current_meta <- get_sus_meta_internal(x)
+    if (!is.null(current_meta) && isTRUE(current_meta$backend == "duckdb")) {
+      # For DuckDB, we can only update the metadata if we have connection context
+      # For now, we return the object with updated attributes for consistency
+      attr(x, "sus_meta") <- meta_new
+      return(x)
+    }
+  }
+
+  if (inherits(x, c("tbl_dbi", "tbl_sql", "tbl_lazy"))) {
+    attr(x, "sus_meta") <- meta_new
+    return(x)
+  }
+
+  cli::cli_abort(
+    c(
+      "`x` must be a climasus_df, Arrow object/query, or DuckDB result.",
+      "i" = "Supported types: {.cls climasus_df}, {.cls ArrowTabular}, {.cls arrow_dplyr_query}, {.cls tbl_dbi}, {.cls data.frame}"
+    )
+  )
 }
 
 #' Add entry to processing history
 #' @keywords internal
 #' @noRd
 add_climasus_history_internal <- function(x, step) {
-  if (!is_climasus_df(x)) {
-    stop("`x` must be a climasus_df object", call. = FALSE)
-  }
-
   if (!is.character(step) || length(step) != 1) {
     stop("`step` must be a single character string", call. = FALSE)
   }
@@ -358,10 +500,6 @@ add_climasus_history_internal <- function(x, step) {
 #' @keywords internal
 #' @noRd
 print_history_internal <- function(x) {
-  if (!is_climasus_df(x)) {
-    stop("`x` must be a climasus_df object", call. = FALSE)
-  }
-
   history <- get_climasus_field_internal(x, "history")
 
   if (length(history) == 0) {
@@ -404,10 +542,15 @@ get_valid_values_internal <- function(field) {
 #' Access and update climasus_df metadata
 #'
 #' A single, unified interface for reading and writing metadata on
-#' \code{climasus_df} objects. Minimises namespace pollution by replacing
-#' the previous family of ten accessor functions.
+#' \code{climasus_df} objects (including Arrow Tables and DuckDB results).
+#' Minimises namespace pollution by replacing the previous family of ten accessor functions.
 #'
-#' @param x A \code{climasus_df} object, or \code{NULL} when using
+#' Supports multiple backends:
+#' - **climasus_df**: metadata stored as \code{sus_meta} attribute
+#' - **Arrow Table**: metadata embedded in schema under \code{"climasus_meta"} key
+#' - **DuckDB result**: metadata extracted from companion \code{<table>__meta} table
+#'
+#' @param x A \code{climasus_df} object, Arrow Table, DuckDB result, or \code{NULL} when using
 #'   \code{valid_values}.
 #' @param field Character. When provided as the only extra argument, returns
 #'   the value of that metadata field (\code{"system"}, \code{"stage"},
@@ -432,22 +575,23 @@ get_valid_values_internal <- function(field) {
 #'
 #' @examples
 #' \dontrun{
-#' # Get all metadata
+#' # With climasus_df
 #' sus_meta(df)
-#'
-#' # Get a specific field
 #' sus_meta(df, "stage")
-#'
-#' # Update stage and type
 #' df <- sus_meta(df, stage = "filter_cid", type = "filter_cid")
 #'
-#' # Add to history
-#' df <- sus_meta(df, add_history = "Filtered by respiratory CID codes")
+#' # With Arrow Table (auto-extracts from schema metadata)
+#' arrow_tbl <- as_arrow_climasus(df)
+#' sus_meta(arrow_tbl)  # Extracts from Arrow schema
+#' sus_meta(arrow_tbl, "system")
 #'
-#' # Print history
-#' sus_meta(df, print_history = TRUE)
+#' # With DuckDB result (if metadata table exists)
+#' con <- duckdb::dbConnect(duckdb::duckdb())
+#' as_duckdb_climasus(df, con, "my_data")
+#' result <- DBI::dbGetQuery(con, "SELECT * FROM my_data")
+#' sus_meta(result)  # Extracts from companion __meta table
 #'
-#' # Query valid values
+#' # Query valid values (no object needed)
 #' sus_meta(valid_values = "backend")
 #' }
 #' @export

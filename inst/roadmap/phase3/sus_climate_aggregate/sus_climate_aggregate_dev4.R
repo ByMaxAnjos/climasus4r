@@ -1280,7 +1280,7 @@ sus_climate_aggregate <- function(
   
   all_res <- Reduce(function(x,y) merge(x,y, by=".row_id", all=TRUE), result_list)
   final <- health_work %>% dplyr::left_join(all_res, by=".row_id") %>% dplyr::select(-.row_id)
-  return(tibble::as_tibble(final))
+  return(dplyr::as_tibble(final))
 }
 
 #' Offset Window: aggregates historical interval [t - W2, t - W1]
@@ -1314,7 +1314,7 @@ sus_climate_aggregate <- function(
     # Return original dataframe with result columns filled with NA
     new_cols <- paste0("off", w1, "to", w2, "_", target_vars)
     for(nc in new_cols) health_work[[nc]] <- NA_real_
-    return(tibble::as_tibble(health_work) %>% dplyr::select(-.row_id))
+    return(dplyr::as_tibble(health_work) %>% dplyr::select(-.row_id))
   }
 
   # --- Prepare climate data.table -------------------------------------------
@@ -1383,7 +1383,7 @@ sus_climate_aggregate <- function(
     final_df <- .set_climate_agg_meta(final_df, type=NULL, system = NULL, history_msg = NULL)
   }
 
-  return(tibble::as_tibble(final_df))
+  return(dplyr::as_tibble(final_df))
 }
 
 #' Degree Days: Accumulated Growing Degree Days
@@ -1419,7 +1419,7 @@ sus_climate_aggregate <- function(
   data.table::setnames(res, "gdd", paste0("gdd_w", window_days))
   
   final <- health_work %>% dplyr::left_join(res, by=".row_id") %>% dplyr::select(-.row_id)
-  return(tibble::as_tibble(final))
+  return(dplyr::as_tibble(final))
 }
 
 #' Threshold Exceedance: counts days of extreme events in window [t - W, t]
@@ -1473,7 +1473,7 @@ sus_climate_aggregate <- function(
   
   all_res <- Reduce(function(x,y) merge(x,y, by=".row_id", all=TRUE), result_list)
   final <- health_work %>% dplyr::left_join(all_res, by=".row_id") %>% dplyr::select(-.row_id)
-  return(tibble::as_tibble(final))
+  return(dplyr::as_tibble(final))
 }
 
 #' Weighted Window: weighted mean with temporal decay
@@ -1523,7 +1523,7 @@ sus_climate_aggregate <- function(
   if (nrow(health_valid) == 0) {
     new_cols <- paste0("wwin", window_days, "_", target_vars)
     for(nc in new_cols) health_work[[nc]] <- NA_real_
-    return(tibble::as_tibble(health_work) %>% dplyr::select(-.row_id))
+    return(dplyr::as_tibble(health_work) %>% dplyr::select(-.row_id))
   }
 
   # --- Prepare climate data.table ------------------------------------------
@@ -1622,7 +1622,7 @@ sus_climate_aggregate <- function(
     final_df <- .set_climate_agg_meta(final_df, type = NULL, system = NULL, history_msg = NULL)
   }
 
-  return(tibble::as_tibble(final_df))
+  return(dplyr::as_tibble(final_df))
 }
 
 #' NEW: Join for cold wave exceedance (counts days below threshold)
@@ -1655,7 +1655,7 @@ sus_climate_aggregate <- function(
       health_work[[paste0("ncold", window_days, "_lt", threshold_value, "_", var)]] <- NA_real_
       health_work[[paste0("pcold", window_days, "_lt", threshold_value, "_", var)]] <- NA_real_
     }
-    return(tibble::as_tibble(health_work) %>% dplyr::select(-.row_id))
+    return(dplyr::as_tibble(health_work) %>% dplyr::select(-.row_id))
   }
   
   result_list <- list()
@@ -1721,7 +1721,7 @@ sus_climate_aggregate <- function(
     dplyr::left_join(all_results, by = ".row_id") %>%
     dplyr::select(-.row_id)
   
-  return(tibble::as_tibble(final_df))
+  return(dplyr::as_tibble(final_df))
 }
 
 # =============================================================================

@@ -316,52 +316,27 @@ sus_data_filter_cid_arrow <- function(df,
   # ============================================================================
   # Update metadata if climasus object
   # ============================================================================
-  
-  # if (has_metadata || inherits(filtered_df, "climasus_dataset") || inherits(filtered_df, "arrow_dplyr_query")) {
-  #   # Try to add climasus class and metadata
-  #   if (!inherits(filtered_df, "climasus_df") && !inherits(filtered_df, "climasus_dataset")) {
-  #     # Add climasus_dataset class for Arrow objects
-  #     if (inherits(filtered_df, c("arrow_dplyr_query", "Dataset", "ArrowTabular"))) {
-  #       class(filtered_df) <- unique(c("climasus_dataset", class(filtered_df)))
-  #     }
-  #   }
+  filtered_df <- sus_meta(
+    filtered_df,
+    system = detected_system,
+    stage = "filter_cid",
+    type = "filter_cid"
+  )
+    # Add to processing history
+    if (!is.null(disease_group)) {
+      if (length(disease_group) == 1) {
+        history_msg <- sprintf("Filtered by disease group: %s", disease_group)
+      } else {
+        history_msg <- sprintf("Filtered by disease groups: %s", paste(disease_group, collapse = ", "))
+      }
+    } else {
+      history_msg <- sprintf("Filtered by ICD codes: %s", paste(utils::head(icd_codes, 3), collapse = ", "))
+      if (length(icd_codes) > 3) {
+        history_msg <- paste0(history_msg, sprintf(" (and %d more)", length(icd_codes) - 3))
+      }
+    }
     
-  #   # Update metadata
-  #   filtered_df <- tryCatch({
-  #     sus_meta(
-  #       filtered_df,
-  #       system = detected_system,
-  #       stage = "filter_cid",
-  #       type = "filter_cid"
-  #     )
-  #   }, error = function(e) {
-  #     # If sus_meta fails, return as-is
-  #     if (verbose) {
-  #       cli::cli_alert_warning("Could not update metadata: {e$message}")
-  #     }
-  #     filtered_df
-  #   })
-    
-  #   # Add to processing history
-  #   if (!is.null(disease_group)) {
-  #     if (length(disease_group) == 1) {
-  #       history_msg <- sprintf("Filtered by disease group: %s", disease_group)
-  #     } else {
-  #       history_msg <- sprintf("Filtered by disease groups: %s", paste(disease_group, collapse = ", "))
-  #     }
-  #   } else {
-  #     history_msg <- sprintf("Filtered by ICD codes: %s", paste(utils::head(icd_codes, 3), collapse = ", "))
-  #     if (length(icd_codes) > 3) {
-  #       history_msg <- paste0(history_msg, sprintf(" (and %d more)", length(icd_codes) - 3))
-  #     }
-  #   }
-    
-  #   filtered_df <- tryCatch({
-  #     sus_meta(filtered_df, add_history = history_msg)
-  #   }, error = function(e) {
-  #     filtered_df
-  #   })
-  # }
+    filtered_df <- sus_meta(filtered_df, add_history = history_msg)
   
   return(filtered_df)
 }

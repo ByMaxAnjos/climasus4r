@@ -271,6 +271,7 @@ sus_spatial_join <- function(
         "codigo_municipio_ocorrencia", "codigo_municipio_ocurrencia", "occurrence_municipality_code",
         "codigo_municipio_residencia", "residence_municipality_code",
         "codigo_municipio", "municipality_code",
+        "municipio_residencia_paciente_sp", "sp_patient_municipality", "sp_municipio_paciente",
         "codigo_municipio_nascimento", "codigo_municipio_nacimiento", "birth_municipality_code",
         "codigo_municipio_paciente", "patient_municipality_code",
         "uf_municipio_estabelecimento", "facility_uf_municipality", "uf_municipio_establecimiento",

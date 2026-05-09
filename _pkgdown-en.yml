@@ -101,6 +101,8 @@ reference:
       - as.data.frame.climasus_df
       - write_duckdb_climasus
       - write_parquet_climasus
+      - sus_climate_compute_heatwaves
+      - sus_climate_plot_heatwaves
 
 
   - title: "AI and Cache Management"

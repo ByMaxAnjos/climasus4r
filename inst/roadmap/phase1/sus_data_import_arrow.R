@@ -246,19 +246,18 @@ sus_data_import_arrow <- function(
     force_redownload  = FALSE,
     parallel          = FALSE,
     workers           = 4L,
-    arrow_threads     = NULL,
+    #arrow_threads     = NULL,
     lang              = "pt",
     verbose           = TRUE
 ) {
 
   #  0. Validacoes basicas 
-
   if (!lang %in% c("en", "pt", "es"))
     cli::cli_abort("{.arg lang} deve ser um de: 'en', 'pt', 'es'.")
   
   #Check if arrow pak installed
   #check_arrow(lang=lang)
-
+  arrow_threads= NULL
   # Thread pool do Arrow: independente do future, gerenciado por libarrow C++
   n_arrow_threads <- arrow_threads %||% parallel::detectCores(logical = FALSE)
   arrow::set_cpu_count(n_arrow_threads)

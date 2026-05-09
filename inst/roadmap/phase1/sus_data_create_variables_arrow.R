@@ -35,7 +35,8 @@ sus_data_create_variables_arrow <- function(
   # ========================================================================
   # VALIDAÇÕES INICIAIS
   # ========================================================================
-  
+  lazy = TRUE
+  duckdb_conn = NULL
   is_arrow_dataset <- inherits(df, "ArrowObject") || 
                       inherits(df, "FileSystemDataset") ||
                       inherits(df, "arrow_dplyr_query")
@@ -53,10 +54,7 @@ sus_data_create_variables_arrow <- function(
   created_vars <- character(0)
   
   # Extract system from metadata if available
-  system <- NULL
-  if (inherits(df, "climasus_df")) {
-    system <- sus_meta(df, "system")
-  }
+  system <- sus_meta(df, "system")
   
   # Get column names
   if (is_arrow_dataset || is_duckdb_conn) {
@@ -456,34 +454,14 @@ sus_data_create_variables_arrow <- function(
     )
     cli::cli_alert_success(msg)
   }
+  # Add climasus_df metadata if not lazy 
+  df <- sus_meta(
+    df, 
+    stage = "derive", 
+    type = "derive",
+    add_history = sprintf("[%s] Create variables (Arrow optimized)", 
+                   format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
   
-  # Add climasus_df metadata if not lazy
-  if (!lazy && !(is_arrow_dataset || is_duckdb_conn)) {
-    if (!inherits(df, "climasus_df")) {
-      meta <- list(
-        system   = system,
-        stage    = "derive",
-        type     = "derive",
-        spatial  = inherits(df, "sf"),
-        temporal = NULL,
-        created  = Sys.time(),
-        modified = Sys.time(),
-        history  = sprintf("[%s] Create variables (Arrow optimized)", 
-                           format(Sys.time(), "%Y-%m-%d %H:%M:%S")),
-        user     = list()
-      )
-      
-      base_classes <- setdiff(class(df), "climasus_df")
-      df <- structure(
-        df,
-        sus_meta = meta,
-        class    = c("climasus_df", base_classes)
-      )
-    } else {
-      df <- sus_meta(df, stage = "derive", type = "derive",
-                    add_history = "Derived variables created (Arrow pipeline)")
-    }
-  }
   
   return(df)
 }

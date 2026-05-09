@@ -10,6 +10,7 @@ sus_data_import(
   year,
   month = NULL,
   system,
+  backend = "arrow",
   city = NULL,
   municipality_code = NULL,
   use_cache = TRUE,
@@ -141,8 +142,22 @@ is ignored.}
 \item \code{"SINASC"}: Live Birth Declarations (Declaracoes de Nascidos Vivos)
 }}
 
-\item{city}{Character vector of municipality names (e.g., \code{"Natal"},
-\code{"Sao Paulo"}). Case-insensitive; accents are normalised. Typos trigger
+\item{backend}{Character string specifying the data processing backend.
+Use \code{"arrow"} for out-of-memory, lazy processing (recommended for large datasets),
+or \code{"tibble"} for in-memory processing (recommended for small to medium datasets).
+\itemize{
+\item \code{"arrow"}: operations are performed lazily using the Apache Arrow engine,
+avoiding loading the full dataset into memory. Ideal for large files
+(e.g., Parquet, Feather) and high-performance workflows.
+\item \code{"tibble"}: data is fully loaded into memory as a tibble and processed eagerly
+using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
+}
+
+If not specified, the function may automatically choose the backend based on
+the input data type.}
+
+\item{city}{Character vector of municipality names (e.g., \code{"Porto Velho"},
+\code{"São Paulo"}). Case-insensitive; accents are normalised. Typos trigger
 fuzzy suggestions. Union with \code{municipality_code}. Applied after download
 to the combined dataset.}
 

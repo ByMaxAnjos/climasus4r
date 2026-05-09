@@ -34,3 +34,8 @@
 ^vignettes-en$
 ^vignettes-es$
 ^vignettes-pt$
+
+^agents/.*$
+^.claude/.*$
+^\.claude$
+^agents$
