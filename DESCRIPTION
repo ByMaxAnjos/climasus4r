@@ -46,7 +46,10 @@ Imports:
     read.dbc,
     DBI,
     duckdb,
-    slider
+    slider,
+    tibble,
+    generics,
+    splines
 Remotes: 
     rfsaldanha/microdatasus,
     ByMaxAnjos/climasus4r
@@ -64,6 +67,7 @@ Suggests:
     xgboost,
     zoo,
     MASS,
+    dlnm,
     rstudioapi,
     DT,
     ggplot2,
@@ -75,6 +79,11 @@ Suggests:
     httr,
     httr2,
     parallelly,
-    jsonlite
+    jsonlite,
+    scales,
+    gt,
+    leaflet,
+    mvmeta,
+    survival
 URL: https://github.com/ByMaxAnjos/climasus4r
 BugReports: https://github.com/ByMaxAnjos/climasus4r/issues

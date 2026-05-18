@@ -60,7 +60,11 @@
   "offset_window", "distributed_lag", "degree_days", "seasonal",
   "threshold_exceedance", "weighted_window", "cold_wave_exceedance",
   # Climate-bioindicators
-  "indicators"
+  "indicators",
+  # Heatwave detection output
+  "heatwaves",
+  # Statistical model outputs
+  "dlnm_model", "glm_model", "compare_model"
 )
 
 #' Valid storage backends for climasus_df

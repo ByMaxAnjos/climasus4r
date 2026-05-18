@@ -2,83 +2,78 @@
 % Please edit documentation in R/sus_data_quality_report.R
 \name{sus_data_quality_report}
 \alias{sus_data_quality_report}
-\title{Generate Data Quality Report for Health Data}
+\title{Pipeline-aware data quality report for health data}
 \usage{
 sus_data_quality_report(
   df,
   output_format = "console",
   output_file = NULL,
-  check_dates = TRUE,
   check_icd = TRUE,
+  check_dates = TRUE,
   top_n = 10,
-  lang = "pt"
+  lang = "pt",
+  verbose = TRUE
 )
 }
 \arguments{
-\item{df}{A data frame containing health data.}
+\item{df}{A \code{climasus_df} or plain \code{data.frame}. Arrow objects are
+materialised automatically.}
 
-\item{output_format}{Character string specifying the output format. Options:
-\code{"console"} (default, prints to console), \code{"html"} (saves HTML report),
-\code{"markdown"} (saves Markdown report).}
+\item{output_format}{Character. One of \code{"console"} (default), \code{"gt"},
+\code{"markdown"}, or \code{"html"}. The \code{"gt"} format returns a \code{gt_tbl} object
+suitable for Quarto / R Markdown documents.}
 
-\item{output_file}{Character string with the path to save the report file.
-Required if \code{output_format} is not \code{"console"}. If \code{NULL}, uses a default
-filename based on timestamp.}
+\item{output_file}{Character. File path for \code{"markdown"} and \code{"html"}
+formats. Defaults to a timestamped filename in the working directory.}
 
-\item{check_dates}{Logical. If \code{TRUE} (default), performs date validation
-checks (e.g., future dates, dates before birth).}
+\item{check_icd}{Logical. Include ICD-10 quality section. Default \code{TRUE}.}
 
-\item{check_icd}{Logical. If \code{TRUE} (default), summarizes ICD code distributions.}
+\item{check_dates}{Logical. Include date validation section. Default \code{TRUE}.}
 
-\item{top_n}{Integer. Number of top categories to show in frequency tables.
-Default is 10.}
+\item{top_n}{Integer. Rows shown in frequency tables. Default \code{10}.}
 
-\item{lang}{Character string specifying the language for the report. Options:
-\code{"en"} (English), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}
+\item{lang}{Character. Output language: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+
+\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
 }
 \value{
-Invisibly returns a list containing the quality metrics. If
-\code{output_format = "console"}, prints the report to the console. Otherwise,
-saves the report to a file.
+Invisibly returns a named list of quality metrics (always
+available regardless of \code{output_format}):
+\describe{
+\item{\verb{$meta}}{Pipeline metadata from \code{sus_meta}}
+\item{\verb{$pipeline}}{Functions detected in processing history}
+\item{\verb{$overview}}{Row/column counts, duplicates, column types}
+\item{\verb{$missing}}{Per-column missing values with quality flags}
+\item{\verb{$demographics}}{Frequency tables for sex, race, age, education}
+\item{\verb{$dates}}{Date range and validity per date column}
+\item{\verb{$icd}}{ICD-10 frequency and validity}
+\item{\verb{$geographic}}{Municipality and state coverage}
+\item{\verb{$derived}}{Presence of expected derived variables}
+\item{\verb{$score}}{Overall quality score 0-100}
+}
 }
 \description{
-Generates a comprehensive data quality report for health data, including
-summaries of missing values, data distributions, date validations, and
-ICD code frequencies. This function helps identify potential data quality
-issues before analysis.
-}
-\details{
-The data quality report includes:
-\itemize{
-\item \strong{Dataset Overview}: Dimensions, column types
-\item \strong{Missing Values}: Count and percentage of NAs by column
-\item \strong{Demographic Variables}: Frequency tables for sex, race, age groups
-\item \strong{Date Validation}: Checks for invalid dates (future, before 1900, etc.)
-\item \strong{ICD Codes}: Top 10 most frequent diagnosis codes
-\item \strong{Geographic Distribution}: Top municipalities
-}
+Reads \code{sus_meta} processing history to identify which climasus4r pipeline
+functions were applied, then produces a section-by-section quality
+assessment covering completeness, demographic distributions, date
+validity, ICD-10 codes, geographic coverage, and derived variables.
+Returns an overall quality score (0-100) and supports four output formats.
 }
 \examples{
 \dontrun{
-library(climasus4r)
-
-# Print report to console
+# Console report (default)
 sus_data_quality_report(df, lang = "pt")
 
-# Save HTML report
-sus_data_quality_report(
-  df,
-  output_format = "html",
-  output_file = "reports/dq_report.html",
-  lang = "en"
-)
+# gt table (for Quarto / R Markdown)
+sus_data_quality_report(df, output_format = "gt", lang = "en")
 
-# Save Markdown report
-sus_data_quality_report(
-  df,
-  output_format = "markdown",
-  output_file = "reports/dq_report.md"
-)
+# Save complete Markdown report
+sus_data_quality_report(df, output_format = "markdown",
+                        output_file = "reports/quality.md", lang = "pt")
+
+# Save HTML report
+sus_data_quality_report(df, output_format = "html",
+                        output_file = "reports/quality.html")
 }
 
 }

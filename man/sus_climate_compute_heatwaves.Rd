@@ -5,231 +5,131 @@
 \title{Detect heatwaves using multiple standard methodologies}
 \usage{
 sus_climate_compute_heatwaves(
-  data,
+  df,
   method = c("WHO", "WMO", "INMET", "EHF", "UTCI", "WBGT", "HI"),
   baseline_start = NULL,
   baseline_end = NULL,
   percentile = 90,
   min_duration = NULL,
-  lang = c("en", "pt", "es"),
+  lang = "pt",
   verbose = TRUE
 )
 }
 \arguments{
-\item{data}{A data frame with hourly observations from \code{sus_climate_inmet()}
-or \code{sus_climate_compute_indicators()}. Must contain columns:
-\itemize{
-\item \code{date} (POSIX datetime)
-\item \code{station_code} (character)
-\item \code{tair_dry_bulb_c}, \code{tair_max_c}, \code{tair_min_c} (numeric, degrees Celsius)
-\item \code{utci_c}, \code{wbgt_c}, \code{hi_c} (numeric, for corresponding methods)
-Pre-fill missing values using \code{sus_climate_fill_inmet()} before calling
-this function.
-}}
+\item{df}{A \code{climasus_df} at stage \code{"climate"} with type \code{"inmet"},
+\code{"filled"}, or \code{"indicators"}. Produced by \code{sus_climate_inmet()},
+\code{sus_climate_fill_gap()}, or \code{sus_climate_compute_indicators()}. Must
+contain columns \code{date} and \code{station_code}. Temperature columns
+\code{tair_max_c}, \code{tair_min_c}, \code{tair_dry_bulb_c} are required for WHO/WMO/
+INMET/EHF; \code{utci_c}, \code{wbgt_c}, \code{hi_c} are required for UTCI/WBGT/HI
+(available after \code{sus_climate_compute_indicators()}).}
 
 \item{method}{Character vector. One or more of \code{"WHO"}, \code{"WMO"}, \code{"INMET"},
-\code{"EHF"}, \code{"UTCI"}, \code{"WBGT"}, \code{"HI"}. Use \code{"all"} to run all available
-methods. Methods requiring missing thermal indices will be ignored with a
-warning.}
+\code{"EHF"}, \code{"UTCI"}, \code{"WBGT"}, \code{"HI"}. Use \code{"all"} to run every method.
+Methods whose required columns are absent emit a warning and are skipped.}
 
 \item{baseline_start}{Date or character (e.g., \code{"1981-01-01"}). Start of the
-reference period for percentile-based thresholds. \code{NULL} uses the entire
-data range.}
+reference period for percentile thresholds. \code{NULL} uses the full series.}
 
 \item{baseline_end}{Date or character. End of the reference period.
-\code{NULL} uses the entire data range.}
+\code{NULL} uses the full series.}
 
-\item{percentile}{Numeric (default \code{90}). Percentile for the threshold
-calculation (applied to methods WHO, WMO, UTCI, WBGT, HI).}
+\item{percentile}{Numeric (0–100, default \code{90}). Percentile used for WHO,
+WMO, UTCI, WBGT, and HI threshold calculations.}
 
-\item{min_duration}{Integer or \code{NULL}. Minimum consecutive days for a
-heatwave. \code{NULL} uses method-specific defaults: WHO=3, WMO=5,
-INMET=5, EHF=3, UTCI=3, WBGT=3, HI=3.}
+\item{min_duration}{Integer or \code{NULL}. Minimum consecutive days to qualify as
+a heatwave. \code{NULL} uses method defaults: WHO=3, WMO=5, INMET=5, EHF=3,
+UTCI=3, WBGT=3, HI=3.}
 
-\item{lang}{Character. Language for progress messages: \code{"en"}, \code{"pt"},
-or \code{"es"} (default \code{"en"}).}
+\item{lang}{Character. Output language: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
 
-\item{verbose}{Logical. Show progress steps (default \code{TRUE}).}
+\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
 }
 \value{
-A list with three data frames:
+A named list with class \code{climasus_hw} and \code{sus_meta} attribute
+(stage \code{"climate"}, type \code{"heatwaves"}):
 \describe{
-\item{\code{events}}{One row per detected heatwave event. Columns: event_id,
-station_code, method, start_date, end_date, duration_days, temp_mean,
-temp_peak, anomaly_mean, anomaly_cumulative, severity_index,
-ehf_peak (EHF only), ehf_mean (EHF only), intensity_class (EHF only),
-and site metadata.}
-\item{\code{daily}}{The daily aggregated data with logical flags for each
-method (columns \verb{hw_<method>}), plus an \code{hw_any} flag indicating
-whether any method detected a heatwave that day.}
-\item{\code{summary}}{Annual summary by station and method: year,
-n_events, total_days_hw, mean_duration, max_duration,
-mean_intensity, max_intensity, mean_anomaly, severity_total.}
+\item{\code{events}}{One row per detected event: \code{event_id}, \code{station_code},
+\code{method}, \code{start_date}, \code{end_date}, \code{duration_days}, \code{temp_mean},
+\code{temp_peak}, \code{anomaly_mean}, \code{anomaly_cumulative}, \code{severity_index},
+\code{ehf_peak}, \code{ehf_mean}, \code{intensity_class}, and station metadata.}
+\item{\code{daily}}{Daily aggregated data with logical flag columns
+\verb{hw_<method>} and \code{hw_any}.}
+\item{\code{summary}}{Annual summary by station and method: \code{year},
+\code{n_events}, \code{total_days_hw}, \code{mean_duration}, \code{max_duration},
+\code{mean_intensity}, \code{max_intensity}, \code{mean_anomaly}, \code{severity_total}.}
 }
 }
 \description{
-Applies several heatwave definitions to daily temperature and thermal comfort
-indices. The function expects an hourly data frame as produced by
-\code{sus_climate_compute_indicators()} or a similarly structured INMET dataset.
-It aggregates to daily scale, computes historical thresholds from a
-user-defined baseline period, identifies heatwave days with each requested
-method, extracts discrete events, and returns a list of event, daily, and
-annual summaries.
+Applies seven heatwave detection methods (WHO, WMO, INMET, EHF, UTCI, WBGT,
+HI) to a \code{climasus_df} at stage \code{"climate"} produced by
+\code{sus_climate_inmet()}, \code{sus_climate_fill_gap()}, or
+\code{sus_climate_compute_indicators()}. Aggregates hourly data to daily scale,
+computes smoothed historical percentile thresholds from a reference baseline,
+identifies heatwave days and discrete events per method, and returns a named
+list with event, daily-flag, and annual-summary tables — all carrying
+\code{sus_meta} at stage \code{"climate"} / type \code{"heatwaves"}.
 }
 \section{Implemented methods}{
 
 
-\strong{1. WHO (World Health Organization / WMO Guidance)}
-Condition: \code{Tmax > P90(Tmax)} for N consecutive days (default N=3)
-where P90(Tmax) is the 90th percentile of daily maximum temperature,
-smoothed over a 15-day rolling window by calendar day-of-year.
+\strong{1. WHO} \code{Tmax > P90(Tmax)} for >= N consecutive days (default N=3).
+Threshold smoothed over a 15-day rolling window by calendar day-of-year.
 Reference: WMO & WHO (2015).
 
-\strong{2. WMO (World Meteorological Organization)}
-Condition: \verb{Tmax > P90(Tmax) AND Tmin > P90(Tmin)} for N consecutive days
-(default N=5), where P90 denotes the 90th percentile of each temperature variable.
-Double-threshold approach ensures both daytime and nighttime extremes.
-Reference: Perkins & Alexander (2013).
+\strong{2. WMO} \verb{Tmax > P90(Tmax) AND Tmin > P90(Tmin)} for >= N days (default
+N=5). Double threshold ensures both daytime and nighttime extremes are
+captured. Reference: Perkins & Alexander (2013).
 
-\strong{3. INMET (Brazilian National Institute of Meteorology)}
-Condition: \verb{Tmax > mean(Tmax_hist) + 5 deg C} for N consecutive days
-(default N=5), where mean(Tmax_hist) is the climatological mean of daily
-maximum temperature computed over the baseline period (typically 1961-1990
-or user-specified). Designed for Brazilian tropical/subtropical contexts.
+\strong{3. INMET} \verb{Tmax > mean(Tmax_hist) + 5 degC} for >= N days (default N=5).
+Climatological mean from the baseline period. Designed for Brazilian context.
 Reference: INMET (2009); MCTI/Gov.br (2025).
 
-\strong{4. EHF (Excess Heat Factor)}
-Excess Heat Factor calculated as: EHF = EHI_sig * max(1, EHI_acc)
-where EHI_sig = T3 - P95(Tmean) (physiological signal) and
-EHI_acc = T3 - T30_mean (acclimatization index).
-T3 = 3-day centered mean temperature; T30_mean = 30-day prior mean.
-Days with EHF > 0 are flagged; intensity classified by the 85th percentile
-of positive EHF values (Low, Severe, Extreme).
-Reference: Nairn & Fawcett (2015); Nairn et al. (2018).
+\strong{4. EHF} Excess Heat Factor: \verb{EHF = EHI_sig x max(1, EHI_acc)} where
+\code{EHI_sig = T3 - P95(Tmean)} and \code{EHI_acc = T3 - T30}. Intensity classified
+by EHF85 (85th percentile of positive EHF values). Reference: Nairn &
+Fawcett (2015).
 
-\strong{5. UTCI (Universal Thermal Climate Index)}
-Condition: \code{UTCImax > P90(UTCImax)} for N consecutive days (default N=3),
-where P90 is the 90th percentile smoothed over a 15-day window.
-UTCI integrates air temperature, humidity, wind speed, and radiation
-to estimate physiological heat stress (equivalent temperature).
-Reference: Broede et al. (2012).
+\strong{5. UTCI} \code{UTCImax > P90(UTCImax)} for >= N days (default N=3). Requires
+\code{utci_c} column from \code{sus_climate_compute_indicators()}.
 
-\strong{6. WBGT (Wet Bulb Globe Temperature)}
-Condition: \code{WBGTmax > P90(WBGTmax)} for N consecutive days (default N=3).
-WBGT combines temperature, humidity, wind, and radiation into a single
-index used widely in occupational health and sports medicine.
-Reference: Liljegren et al. (2008); ISO 7243:2017.
+\strong{6. WBGT} \code{WBGTmax > P90(WBGTmax)} for >= N days (default N=3). Requires
+\code{wbgt_c} column from \code{sus_climate_compute_indicators()}.
 
-\strong{7. HI (Heat Index)}
-Condition: \code{HImax > P90(HImax)} for N consecutive days (default N=3),
-where P90 is the 90th percentile smoothed over a 15-day window.
-Heat Index (apparent temperature) combines temperature and humidity
-to estimate how hot it feels to human perception.
-Reference: Steadman (1979a, 1984).
+\strong{7. HI} \code{HImax > P90(HImax)} for >= N days (default N=3). Requires \code{hi_c}
+column from \code{sus_climate_compute_indicators()}.
 }
 
 \examples{
 \dontrun{
-  # After computing hourly indicators:
-  # df_ind <- sus_climate_compute_indicators(...)
-
-  hw_result <- sus_climate_compute_heatwaves(
-    data          = df_ind,
-    method        = c("WHO", "INMET", "UTCI"),
+hw <- df_indicators |>
+  sus_climate_compute_heatwaves(
+    method         = c("WHO", "INMET", "EHF"),
     baseline_start = "2000-01-01",
-    baseline_end   = "2020-12-31"
+    baseline_end   = "2020-12-31",
+    lang           = "pt"
   )
 
-  # Extract event list
-  head(hw_result$events)
-
-  # Annual summary table
-  hw_result$summary
-
-  # Days with at least one active heatwave method
-  head(hw_result$daily[hw_result$daily$hw_any, ])
+hw$events
+hw$summary
+hw$daily[hw$daily$hw_any, ]
 }
 
 }
 \references{
-\strong{General heatwave concepts and percentile framework}
 \itemize{
-\item Perkins, S.E. (2015). A review on the scientific understanding of
-heatwaves--their measurement, driving mechanisms, and changes at the global
-scale. \emph{Atmospheric Research}, 164-165, 242-267.
-\doi{10.1016/j.atmosres.2015.05.009}
 \item Perkins, S.E. & Alexander, L.V. (2013). On the measurement of heat waves.
 \emph{Journal of Climate}, 26(13), 4500-4517.
-\item Fischer, E.M. & Schaer, C. (2010). Consistent geographical patterns of
-changes in high-impact European heatwaves. \emph{Nature Geoscience}, 3,
-398-403.
-}
-
-\strong{WHO / WMO methods}
-\itemize{
 \item WMO & WHO (2015). \emph{Heatwaves and Health: Guidance on Warning-System
-Development}. World Meteorological Organization, Geneva.
-\item WMO (2021). \emph{Guidelines on the Definition and Monitoring of Extreme Weather
-and Climate Events}. World Meteorological Organization.
-}
-
-\strong{INMET method}
-\itemize{
-\item INMET - Instituto Nacional de Meteorologia (2009). \emph{Normais Climatologicas
-do Brasil 1961-1990}. Brasilia: MAPA/INMET.
-\item MCTI/Gov.br (2025). Heatwave reports for Brazil (online).
-}
-
-\strong{EHF (Excess Heat Factor)}
-\itemize{
-\item Nairn, J.R. & Fawcett, R.J.B. (2015). The Excess Heat Factor: A metric for
-heatwave intensity and its use in classifying heatwave severity.
-\emph{International Journal of Environmental Research and Public Health},
-12(1), 227-253. \doi{10.3390/ijerph120100227}
-\item Nairn, J.R. et al. (2018). Performance of Excess Heat Factor Severity as a
-global heatwave health impact index. \emph{International Journal of
-Environmental Research and Public Health}, 15(11), 2494.
-}
-
-\strong{UTCI (Universal Thermal Climate Index)}
-\itemize{
-\item Broede, P., Fiala, D., Blazejczyk, K., Holmer, I., Jendritzky, G.,
-Kampmann, B., Tinz, B. & Havenith, G. (2012). Deriving the operational
-procedure for the Universal Thermal Climate Index (UTCI). \emph{International
-Journal of Biometeorology}, 56(3), 481-494.
-\doi{10.1007/s00484-011-0454-1}
-}
-
-\strong{WBGT (Wet Bulb Globe Temperature)}
-\itemize{
-\item Liljegren, J.C., Carhart, R.A., Lawday, P., Tschopp, S. & Sharp, R.
-(2008). Modeling the wet bulb globe temperature using standard
-meteorological measurements. \emph{Journal of Occupational and Environmental
-Hygiene}, 5(10), 645-655.
-\item ISO 7243:2017. \emph{Ergonomics of the thermal environment -- Assessment of
-heat stress using the WBGT index}. International Organization for
-Standardization.
-}
-
-\strong{HI (Heat Index)}
-\itemize{
-\item Steadman, R.G. (1979a). The assessment of sultriness. Part I: A
-temperature-humidity index based on human physiology and clothing science.
-\emph{Journal of Applied Meteorology}, 18(7), 861-873.
-\item Steadman, R.G. (1984). A universal scale of apparent temperature. \emph{Journal
-of Applied Meteorology and Climatology}, 23(12), 1674-1687.
-}
-
-\strong{Brazil health context (SUS)}
-\itemize{
-\item Fiocruz (2025/2026). Excess cardiovascular mortality associated with
-extreme heatwaves in Southeast Brazil, 2014-2023. \emph{Cadernos de Saude
-Publica}.
-\item Observatorio do Clima. Excess mortality during heatwaves in Brazilian
-urban areas (2000-2018).
+Development}. Geneva.
+\item Nairn, J.R. & Fawcett, R.J.B. (2015). The Excess Heat Factor.
+\emph{Int. J. Environ. Res. Public Health}, 12(1), 227-253.
+\doi{10.3390/ijerph120100227}
+\item Broede, P. et al. (2012). Deriving the operational procedure for UTCI.
+\emph{Int. J. Biometeorology}, 56(3), 481-494. \doi{10.1007/s00484-011-0454-1}
+\item INMET (2009). \emph{Normais Climatologicas do Brasil 1961-1990}. Brasilia.
 }
 }
 \seealso{
-Related climate functions: \code{\link{sus_climate_compute_indicators}},
-\code{\link{sus_climate_inmet}}
+\code{\link[=sus_climate_inmet]{sus_climate_inmet()}}, \code{\link[=sus_climate_compute_indicators]{sus_climate_compute_indicators()}}
 }

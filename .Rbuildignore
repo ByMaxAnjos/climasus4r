@@ -35,7 +35,8 @@
 ^vignettes-es$
 ^vignettes-pt$
 
-^agents/.*$
 ^.claude/.*$
 ^\.claude$
-^agents$
+
+^climasus4r.Rcheck/.*$
+^\climasus4r.Rcheck$

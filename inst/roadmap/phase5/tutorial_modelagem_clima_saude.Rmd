@@ -1,0 +1,1164 @@
+---
+title: "Modelagem Estatística de Associações Clima-Saúde no CLIMASUS4r"
+subtitle: "sus_mod_glm(), sus_mod_dlnm() e sus_mod_compare()"
+author:
+  - name: "Max Anjos"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    self_contained: true
+---
+
+```{css, echo=FALSE}
+/* ── Estilos para o Tutorial Teórico ────────────────── */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+  --purple: #9c27b0;
+  --coral: #ff6b6b;
+  --cold-blue: #4A90E2;
+  --heat-red: #E74C3C;
+}
+
+body {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 18px;
+  color: var(--text-main);
+  background-color: #fff;
+  line-height: 1.7;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Helvetica Neue', 'Inter', sans-serif;
+  font-weight: 700;
+  color: var(--dark-green);
+}
+
+h1.title {
+  font-size: 2.8em;
+  border-bottom: 4px solid var(--primary-color);
+  padding-bottom: 10px;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+h2 {
+  margin-top: 2.5rem;
+  border-left: 4px solid var(--primary-color);
+  padding-left: 1rem;
+}
+
+h3 {
+  margin-top: 1.8rem;
+  color: var(--primary-color);
+}
+
+/* ── Callouts para Destaque ────────────────────────── */
+.callout {
+  padding: 1.2em 1.5em;
+  margin: 1.5em 0;
+  border-radius: 8px;
+  border-left: 6px solid;
+  background-color: var(--bg-light);
+}
+
+.callout-note {
+  background-color: #f0f7ff;
+  border-color: #007bff;
+}
+
+.callout-tip {
+  background-color: #e8f5e9;
+  border-color: #1D9E75;
+}
+
+.callout-warning {
+  background-color: #fff3e0;
+  border-color: #ff9800;
+}
+
+.callout-info {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+}
+
+.callout-scientific {
+  background-color: #f3e5f5;
+  border-color: #9c27b0;
+}
+
+/* ── Figuras e Diagramas ───────────────────────────── */
+.figure-container {
+  background: var(--bg-light);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 2rem 0;
+  text-align: center;
+  border: 1px solid #e1e1e1;
+}
+
+.figure-caption {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #666;
+  font-style: italic;
+}
+
+.timeline {
+  display: flex;
+  justify-content: space-between;
+  margin: 2rem 0;
+  padding: 1rem;
+  background: linear-gradient(90deg, #e8f5e9, #fff3e0);
+  border-radius: 12px;
+}
+
+.timeline-point {
+  text-align: center;
+  flex: 1;
+}
+
+/* ── Tabelas Estilizadas ───────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.9rem;
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+th {
+  background-color: var(--bg-light);
+  font-weight: 600;
+  color: var(--dark-green);
+}
+
+tr:hover {
+  background-color: var(--bg-light);
+}
+
+/* ── Grid para Cards ───────────────────────────────── */
+.strategy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.strategy-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.2rem;
+  border: 1px solid #e1e1e1;
+  text-align: center;
+}
+
+.strategy-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ── SVG Placeholder para Diagramas ────────────────── */
+.diagram-placeholder {
+  background: linear-gradient(135deg, #f0f7ff, #e8f5e9);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  margin: 1.5rem 0;
+  font-family: monospace;
+}
+
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+    padding: 10px;
+  }
+  h1.title {
+    font-size: 2rem;
+  }
+  .timeline {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  out.width = "100%"
+)
+```
+
+
+
+```{r, include=FALSE, eval=FALSE}
+library(dplyr)
+library(ggplot2)
+library(tibble)
+library(tidyr)
+library(patchwork)
+
+theme_set(
+  theme_minimal(base_size = 12) +
+    theme(
+      panel.grid.minor = element_blank(),
+      plot.title       = element_text(face = "bold", size = 13),
+      plot.subtitle    = element_text(color = "grey40", size = 11)
+    )
+)
+```
+
+---
+
+> **Sobre este tutorial.** Este documento apresenta as três funções de
+> modelagem estatística do pacote CLIMASUS4r: `sus_mod_glm()`,
+> `sus_mod_dlnm()` e `sus_mod_compare()`. Para cada função são apresentados
+> os fundamentos estatísticos e epidemiológicos, a formulação matemática,
+> os parâmetros disponíveis, exemplos de código completos e critérios de
+> escolha entre as abordagens. O tutorial pressupõe familiaridade com
+> `sus_climate_aggregate()` — descrita em documentação separada.
+
+---
+
+# Posicionamento no pipeline CLIMASUS4r
+
+O CLIMASUS4r organiza a análise clima-saúde em três camadas sequenciais:
+
+```
+sus_climate_aggregate()   →   sus_mod_*()   →   plot_climate_health()
+      [Exposição]             [Modelagem]         [Visualização]
+```
+
+A camada de **agregação** transforma dados horários de estações INMET em
+variáveis de exposição epidemiologicamente fundamentadas — médias de janela,
+defasagens discretas, excedências de limiar, graus-dia de desenvolvimento.
+A camada de **modelagem** estima a associação entre essa exposição e o
+desfecho de saúde, quantificando o efeito em Risco Relativo (RR) com
+intervalo de confiança. A camada de **visualização** comunica os resultados.
+
+As três funções de modelagem retornam objetos com classes próprias
+(`climasus_glm`, `climasus_dlnm`, `climasus_compare`) aceitos diretamente
+pelo parâmetro `fit=` de `plot_climate_health()` — sem duplicação de
+objetos entre chamadas.
+
+# Fundamentos de séries temporais em epidemiologia ambiental
+
+Antes de apresentar as funções, é necessário compreender as propriedades
+dos dados que motivam as escolhas metodológicas.
+
+## Por que dados de saúde são contagens com superdispersão?
+
+Dados diários de mortalidade ou internações são contagens inteiras
+não-negativas: número de óbitos por doenças cardiovasculares em Porto Velho
+em 12 de junho de 2023. A distribuição Poisson é o ponto de partida natural
+para modelar contagens, com função de probabilidade:
+
+$$P(Y = k) = \frac{e^{-\mu} \mu^k}{k!}, \quad k = 0, 1, 2, \ldots$$
+
+A propriedade fundamental da Poisson é que **média = variância** ($\mu =
+\sigma^2$). Na prática epidemiológica, dados de saúde quase sempre violam
+essa propriedade: a variância observada excede a média, fenômeno denominado
+**superdispersão**. As causas incluem correlação espacial entre municípios,
+heterogeneidade não observada entre indivíduos e agrupamento temporal de
+eventos (surtos). Ignorar a superdispersão produz erros padrão
+subestimados, intervalos de confiança artificialmente estreitos e
+p-valores incorretos.
+
+## A razão de dispersão como diagnóstico
+
+A razão de dispersão $\phi$ é estimada pelo desvio residual dividido pelos
+graus de liberdade residuais:
+
+$$\hat{\phi} = \frac{D_{\text{residual}}}{gl_{\text{residual}}} =
+\frac{\sum_{i=1}^{n} d_i^2}{n - p}$$
+
+onde $d_i$ são os resíduos de desvio e $p$ é o número de parâmetros. Sob
+o modelo Poisson correto, $\hat{\phi} \approx 1$. O CLIMASUS4r usa o
+limiar $\hat{\phi} > 1.5$ para recomendar automaticamente Quasi-Poisson.
+
+## Autocorrelação temporal: o problema central em séries temporais
+
+Dados diários de saúde e clima exibem forte autocorrelação temporal —
+eventos próximos no tempo tendem a ser mais similares do que eventos
+distantes. Isso viola o pressuposto de independência dos erros nos modelos
+GLM. As consequências são análogas às da superdispersão: erros padrão
+subestimados e inferência incorreta.
+
+A **spline natural** $\text{ns}(\text{date}, df)$ é a solução padrão em
+epidemiologia ambiental para controlar a tendência temporal de longo prazo
+e a sazonalidade (Bhaskaran et al., 2013). Uma spline com 4 graus de
+liberdade por ano de dados captura oscilações sazonais sem sobre-ajustar
+variações semanais.
+
+---
+
+# `sus_mod_glm()` — Modelos Lineares Generalizados
+
+## Fundamento epidemiológico
+
+O modelo GLM de séries temporais é o método padrão de referência em
+epidemiologia ambiental, proposto sistematicamente por Dominici et al.
+(2002) e amplamente aplicado nos estudos APHEA (Air Pollution and Health:
+a European Approach) e NMMAPS (National Morbidity, Mortality and Air
+Pollution Study). Ele responde à pergunta: *"Para um aumento de 1 unidade
+na exposição climática no dia $t$, qual é a mudança multiplicativa esperada
+no risco de desfecho de saúde?"*
+
+## Especificação matemática
+
+O modelo é especificado como:
+
+$$\log(\mu_t) = \alpha + \beta X_t + \sum_{k=1}^{K} \gamma_k \, s_k(t)$$
+
+onde:
+
+| Símbolo | Significado |
+|:-------:|:------------|
+| $\mu_t$ | Valor esperado do desfecho no dia $t$ |
+| $\alpha$ | Intercepto (log-taxa basal) |
+| $\beta$ | Coeficiente da exposição climática $X_t$ |
+| $s_k(t)$ | $k$-ésima base de spline natural sobre o tempo |
+| $K$ | Graus de liberdade da spline temporal |
+
+O **Risco Relativo** (RR) associado a um incremento de $\Delta X$ na
+exposição é:
+
+$$RR(\Delta X) = e^{\beta \cdot \Delta X}$$
+
+Para incremento unitário ($\Delta X = 1$):
+
+$$RR = e^{\beta}, \quad IC_{(1-\alpha)} = \left[e^{\beta - z_{1-\alpha/2}\, \text{SE}(\beta)},\; e^{\beta + z_{1-\alpha/2}\, \text{SE}(\beta)}\right]$$
+
+No modelo **Quasi-Poisson**, $\beta$ é estimado pela mesma equação de
+escore que o Poisson, mas os erros padrão são inflacionados pelo fator
+$\sqrt{\hat{\phi}}$:
+
+$$\text{SE}_{\text{QP}}(\beta) = \sqrt{\hat{\phi}} \cdot \text{SE}_{\text{P}}(\beta)$$
+
+## Parâmetros e escolhas metodológicas
+
+### `family`: qual distribuição usar?
+
+```{r family-guide, echo=FALSE}
+tibble::tribble(
+  ~Distribuição,    ~`Quando usar`,                                    ~`Limitação`,
+  "Poisson",        "Dados sem superdispersão (φ ≈ 1)",               "Erros padrão incorretos se φ > 1.5",
+  "Quasi-Poisson",  "Superdispersão moderada (φ: 1.5–10)",            "Sem verossimilhança: AIC/BIC inválidos",
+  "Binomial Neg.",  "Superdispersão intensa ou dados com muitos zeros","Mais parâmetros; convergência mais lenta",
+  "auto (padrão)",  "Detecta φ automaticamente e escolhe",            "Usa limiar conservador φ > 1.5"
+) |>
+  knitr::kable(caption = "Tabela 1. Guia de seleção da família GLM.")
+```
+
+> **Nota sobre AIC/BIC com Quasi-Poisson:** o Quasi-Poisson não tem
+> função de verossimilhança definida, portanto AIC e BIC não são
+> matematicamente válidos para essa família. O CLIMASUS4r calcula esses
+> índices re-ajustando o mesmo modelo com Poisson puro, usando o
+> Quasi-Poisson apenas para os erros padrão e intervalos de confiança.
+> Isso segue a prática recomendada por Winkelmann (2008).
+
+### `ns_df`: controle da tendência temporal
+
+A escolha dos graus de liberdade da spline afeta o balanço entre controlar
+confundidores de longo prazo e absorver a variação climatológica legítima:
+
+- **ns_df = 4 por ano**: captura sazonalidade anual, remove tendência secular.
+  Padrão recomendado para séries de 1–2 anos.
+- **ns_df = 6–8 por ano**: controla oscilações sub-sazonais. Recomendado
+  para análises de calor extremo em regiões subtropicais com estações bem
+  definidas.
+- **ns_df = NULL**: sem controle temporal. Justificável apenas quando
+  `sus_climate_aggregate()` já produziu variáveis de anomalia climática
+  (desvio da média histórica), que são inherentemente sem tendência sazonal.
+
+### Diagnóstico automático de autocorrelação
+
+O teste de Ljung-Box (Box & Jenkins, 1976) testa a hipótese nula de que
+os primeiros $h$ autocorrelograma dos resíduos são zero:
+
+$$Q = n(n+2) \sum_{k=1}^{h} \frac{\hat{\rho}_k^2}{n-k} \sim \chi^2_h$$
+
+A função emite aviso automático se $p < 0.05$, recomendando o aumento de
+`ns_df`. Autocorrelação residual persistente após `ns_df = 8` sugere que
+o modelo precisa de estrutura ARMA explícita ou que há confundidores
+não modelados.
+
+## Exemplos de uso
+
+### Exemplo 1: modelo básico com detecção automática
+
+```{r glm-ex1, eval=FALSE}
+library(CLIMASUS4r)
+
+# Passo 1: agregação temporal (exact match)
+df_exact <- sus_climate_aggregate(
+  health_data       = sf_sim_spatial,
+  climate_data      = df_inmet,
+  climate_var       = "tair_dry_bulb_c",
+  temporal_strategy = "exact",
+  lang              = "pt",
+  verbose           = TRUE
+)
+
+# Passo 2: modelagem
+fit_glm <- sus_mod_glm(
+  data        = df_exact,
+  outcome_col = "n_obitos",
+  family      = "auto",    # detecta superdispersão automaticamente
+  ns_df       = 4,         # controla sazonalidade anual
+  verbose     = TRUE
+)
+
+# Saída resumida
+print(fit_glm)
+#> ── Modelo climasus_glm ──────────────────────────────────────────────────
+#> Familia   : quasipoisson
+#> Exposicao : tair_dry_bulb_c
+#> Desfecho  : n_obitos
+#> N obs     : 365
+#> ────────────────────────────────────────────────────────────────────────
+#> RR = 1.0382 [1.0121, 1.0650]  p = 0.0038 **
+#> Dispersao : 2.14 (!superdispersao)
+```
+
+### Exemplo 2: modelo com covariáveis e RR espacial
+
+```{r glm-ex2, eval=FALSE}
+# Adiciona precipitação como covariável e calcula RR por município
+fit_glm2 <- sus_mod_glm(
+  data        = df_exact,
+  outcome_col = "n_obitos",
+  climate_col = "tair_dry_bulb_c",
+  covariates  = "rainfall_mm",   # controla chuva como confundidor
+  family      = "quasipoisson",
+  ns_df       = 6,
+  spatial_rr  = TRUE,            # RR estratificado por município
+  verbose     = TRUE
+)
+
+# Acessa RR por município para mapa
+fit_glm2$spatial_rr
+#> # A tibble: 63 × 4
+#>   code_muni    n_obs    rr  exposure_mean
+#>   <chr>        <int> <dbl>          <dbl>
+#> 1 110020         124 1.041           29.5
+#> 2 130260          38 1.028           28.1
+#> ...
+
+# Visualiza
+plots <- plot_climate_health(
+  data      = df_exact,
+  fit       = fit_glm2,
+  plot_type = c("residuals", "rr_table", "spatial_map")
+)
+plots$rr_table
+plots$spatial_map
+```
+
+### Exemplo 3: visualização dos diagnósticos
+
+```{r glm-diag-plot, eval=FALSE}
+# O objeto fit_glm alimenta diretamente plot_climate_health()
+plots_diag <- plot_climate_health(
+  data      = df_exact,
+  fit       = fit_glm,
+  plot_type = "all_diagnostic"   # residuals + distribution + ccf
+)
+
+# Interpretação dos 4 painéis de resíduos:
+# 1. Resíduos vs. Ajustados: padrão aleatório é o esperado
+# 2. Q-Q: desvios nas caudas são comuns em contagens de saúde
+# 3. ACF: barras fora do IC indicam autocorrelação — aumentar ns_df
+# 4. Scale-Location: homocedasticidade
+```
+
+## Interpretação do RR
+
+Para dados de mortalidade com variável climática contínua (temperatura em
+°C), o RR é interpretado como: *"A cada aumento de 1°C na temperatura
+média do dia, o risco de óbito cardiovascular multiplica por $e^\beta$"*.
+
+```{r rr-interpretation, echo=FALSE}
+tibble::tribble(
+  ~`β estimado`, ~`RR = exp(β)`, ~`Interpretação`,
+  "0.035",  "1.036", "Aumento de 3.6% no risco por +1°C",
+  "-0.012", "0.988", "Redução de 1.2% no risco por +1°C",
+  "0.000",  "1.000", "Sem associação detectada"
+) |> knitr::kable(caption = "Tabela 2. Interpretação do coeficiente β no GLM de séries temporais.")
+```
+
+> **Atenção à escala da exposição.** Se `sus_climate_aggregate()` produziu
+> `mvwin14_tair_dry_bulb_c` (média de 14 dias), o RR refere-se a um
+> aumento de 1°C na *média de 14 dias*, não na temperatura diária. Se a
+> variável for `nexc7_gt35_tair_max_c` (dias acima de 35°C em 7 dias), o
+> RR refere-se a 1 dia adicional de onda de calor.
+
+---
+
+# `sus_mod_dlnm()` — Modelo de Defasagem Distribuída Não-linear
+
+## Fundamento epidemiológico
+
+O modelo GLM apresentado na seção anterior tem uma limitação crítica:
+**assume que o efeito da exposição ocorre no mesmo dia** (ou com uma
+única defasagem fixa). Na realidade biológica, o efeito do calor sobre
+a mortalidade cardiovascular distribuiu-se ao longo de vários dias
+(Armstrong, 2006). O DLNM (*Distributed Lag Non-linear Model*), proposto
+por Gasparrini et al. (2010, 2011), estende o GLM para modelar
+simultaneamente:
+
+1. A relação **não-linear** entre nível de exposição e risco (curva
+   dose-resposta).
+2. A distribuição do efeito ao longo de múltiplas **defasagens** (lag
+   structure).
+
+Isso é especialmente importante para:
+
+- **Temperatura e mortalidade**: o efeito do calor intenso acumula-se nas
+  48–72 horas seguintes. O efeito do frio pode se prolongar por 2–3 semanas.
+- **PM~2.5~ e doenças respiratórias**: efeito agudo nas primeiras 48h e
+  efeito sub-agudo até 14 dias.
+- **Precipitação e arboviroses**: o ciclo extrínseco do vírus nos vetores
+  depende da temperatura acumulada dos 7–14 dias anteriores.
+
+## Especificação matemática
+
+### A crossbasis
+
+O núcleo do DLNM é a **crossbasis**, uma função bidimensional que define
+a estrutura de variação na exposição e no lag. Formalmente, para uma
+observação no dia $t$:
+
+$$\log(\mu_t) = \alpha + \mathbf{w}_t^\top \boldsymbol{\theta} + \text{confundidores}$$
+
+onde $\mathbf{w}_t$ é o vetor de crossbasis no instante $t$ e
+$\boldsymbol{\theta}$ é o vetor de parâmetros da crossbasis.
+
+A crossbasis é construída como produto tensorial de duas bases:
+
+$$\mathbf{W} = \mathbf{Z} \otimes \mathbf{L}$$
+
+onde:
+- $\mathbf{Z}$ é a base da **dimensão de exposição** (e.g., spline natural
+  do valor de $X$)
+- $\mathbf{L}$ é a base da **dimensão de defasagem** (e.g., spline natural
+  do lag)
+
+### Função de exposição-resposta e lag-resposta
+
+A partir do modelo ajustado, o pacote `dlnm` computa duas funções de
+interesse via `crosspred()`:
+
+**Curva de exposição-resposta no lag $l$:**
+
+$$\text{RR}(x, l) = e^{f(x, l) - f(x_0, l)}$$
+
+onde $x_0$ é o valor de referência (geralmente mediana da exposição) e
+$f(x, l)$ é a predição da crossbasis.
+
+**Efeito cumulativo geral (overall effect):**
+
+$$\text{RR}_{\text{cum}}(x) = e^{\sum_{l=0}^{L} [f(x, l) - f(x_0, l)]}$$
+
+Essa é a quantidade de maior interesse epidemiológico: o efeito total
+acumulado sobre todas as defasagens para um dado nível de exposição.
+
+### Requisito de input: a matriz de exposição
+
+A função `sus_climate_aggregate()` com `temporal_strategy = "distributed_lag"`
+produz automaticamente as colunas `{var}_lag0`, `{var}_lag1`, ...,
+`{var}_lag{L}`. `sus_mod_dlnm()` constrói a matriz de exposição $\mathbf{X}$
+a partir dessas colunas:
+
+$$\mathbf{X} = \begin{pmatrix}
+X_{t=1}^{(0)} & X_{t=1}^{(1)} & \cdots & X_{t=1}^{(L)} \\
+X_{t=2}^{(0)} & X_{t=2}^{(1)} & \cdots & X_{t=2}^{(L)} \\
+\vdots & \vdots & \ddots & \vdots \\
+X_{t=n}^{(0)} & X_{t=n}^{(1)} & \cdots & X_{t=n}^{(L)}
+\end{pmatrix}$$
+
+onde $X_t^{(l)}$ é o valor da exposição $l$ dias antes de $t$.
+
+## Escolha de `argvar` e `arglag`
+
+A escolha das bases afeta diretamente o que o modelo pode representar:
+
+```{r dlnm-argvar-guide, echo=FALSE}
+tibble::tribble(
+  ~Parâmetro,    ~Opção,           ~`Quando usar`,
+  "argvar",       "ns(df=3)",       "Relação leve a moderadamente não-linear",
+  "argvar",       "ns(df=4-5)",     "Relação U ou J invertida (calor e frio extremos)",
+  "argvar",       "bs(df=4, degree=2)", "Relação com pico bem definido",
+  "argvar",       "lin (df=1)",     "Relação linear esperada (teste de hipótese)",
+  "arglag",       "ns(df=3)",       "Decaimento suave, típico para temperatura",
+  "arglag",       "ns(df=4)",       "Perfil de lag complexo (bimodal, p.ex. calor e frio)",
+  "arglag",       "poly(df=2)",     "Decaimento parabólico, conservador"
+) |> knitr::kable(caption = "Tabela 3. Guia de seleção de bases para crossbasis.")
+```
+
+> **Regra prática:** prefira bases mais simples (menos graus de liberdade)
+> quando o tamanho amostral for pequeno (< 200 dias). Bases mais complexas
+> são justificadas com séries longas (> 5 anos) e quando há hipótese
+> biológica prévia sobre a forma da curva.
+
+## Exemplos de uso
+
+### Exemplo 1: DLNM padrão para temperatura e mortalidade
+
+```{r dlnm-ex1, eval=FALSE}
+# Passo 1: agregação com distributed_lag (21 defasagens)
+df_dlnm <- sus_climate_aggregate(
+  health_data       = sf_sim_spatial,
+  climate_data      = df_inmet,
+  climate_var       = "tair_dry_bulb_c",
+  temporal_strategy = "distributed_lag",
+  lag_days          = 21,          # cria colunas _lag0 a _lag21
+  lang              = "pt",
+  verbose           = TRUE
+)
+
+# Passo 2: DLNM
+fit_dlnm <- sus_mod_dlnm(
+  data        = df_dlnm,
+  outcome_col = "n_obitos",
+  climate_col = "tair_dry_bulb_c",  # base; _lagN detectadas automaticamente
+  lag_max     = 21,
+  argvar      = list(fun = "ns", df = 4),   # curva dose-resposta
+  arglag      = list(fun = "ns", df = 3),   # estrutura de lag
+  family      = "quasipoisson",
+  ns_df       = 4,                          # controle sazonal
+  ref_value   = NULL,    # usa mediana automaticamente
+  verbose     = TRUE
+)
+
+print(fit_dlnm)
+#> ── Modelo climasus_dlnm ─────────────────────────────────────────────────
+#> Exposicao : tair_dry_bulb_c  (lag 0-21)
+#> Desfecho  : n_obitos
+#> Familia   : quasipoisson
+#> N obs     : 344
+#> Ref value : 27.9
+#> ─────────────────────────────────────────────────────────────────────────
+#> RR cumulativo (p75 vs mediana): 1.142 [1.063, 1.227]
+#> Lag de efeito pico: 2
+#> Dispersao: 1.87
+```
+
+### Exemplo 2: DLNM para dengue (temperatura e ciclo do vetor)
+
+Para arboviroses, o efeito da temperatura sobre a transmissão ocorre via
+o ciclo extrínseco do vírus e o desenvolvimento larval do vetor. O pico
+do efeito tende a estar entre 7–14 dias antes do caso (período de
+incubação extrínseca do DENV: ~7–14 dias a 28°C):
+
+```{r dlnm-dengue, eval=FALSE}
+# Lag mais longo (28 dias) para capturar ciclo vetorial completo
+df_dengue_dlnm <- sus_climate_aggregate(
+  health_data       = sf_dengue,
+  climate_data      = df_inmet,
+  climate_var       = "tair_dry_bulb_c",
+  temporal_strategy = "distributed_lag",
+  lag_days          = 28
+)
+
+fit_dengue <- sus_mod_dlnm(
+  data    = df_dengue_dlnm,
+  lag_max = 28,
+  # Relação U invertida esperada: ótimo vetorial ~25-28°C
+  argvar  = list(fun = "ns", df = 5),
+  # Pico esperado em lag 7-14 dias
+  arglag  = list(fun = "ns", df = 4),
+  ns_df   = 8   # controle sazonal mais rigoroso para arbovirose
+)
+```
+
+### Exemplo 3: todos os gráficos DLNM de uma vez
+
+```{r dlnm-plots, eval=FALSE}
+# O objeto pred é pré-calculado uma vez e reutilizado por todos os plots
+plots_dlnm <- plot_climate_health(
+  data      = df_dlnm,
+  fit       = fit_dlnm,
+  plot_type = c("dlnm_surface",  # Superfície 3D: exposição × lag × log(RR)
+                "dlnm_overall",  # Curva cumulativa: RR vs. exposição
+                "dlnm_lag",      # Curva lag: RR no percentil 75 vs. lag
+                "residuals",     # Diagnóstico de resíduos
+                "cascade")       # RR por defasagem + acumulado sequencial
+)
+
+# Acessa individualmente
+plots_dlnm$dlnm_surface   # Gasparrini (2011): isovalores de log(RR)
+plots_dlnm$dlnm_overall   # Zanobetti et al. (2000): efeito total
+plots_dlnm$dlnm_lag       # Armstrong (2006): efeito por dia de defasagem
+```
+
+## O objeto `climasus_dlnm` em detalhe
+
+```{r dlnm-object, eval=FALSE}
+# Estrutura do objeto retornado
+str(fit_dlnm, max.level = 1)
+#> List of 7
+#>  $ model      : <glm>           # modelo GLM subjacente
+#>  $ crossbasis : <crossbasis>    # objeto dlnm::crossbasis
+#>  $ pred       : <crosspred>     # dlnm::crosspred pré-calculado
+#>  $ models     : tibble [1 × 11] # RR cumulativo, IC, dispersão
+#>  $ lag_rr     : tibble [22 × 5] # RR por defasagem 0-21
+#>  $ diagnostics: List of 3
+#>  $ meta       : List of 9
+
+# Acessa o crosspred para análises customizadas
+cp <- fit_dlnm$pred
+
+# RR cumulativo em qualquer temperatura
+rr_at_35 <- cp$allRRfit[which.min(abs(cp$predvar - 35))]
+cat("RR cumulativo a 35°C:", round(rr_at_35, 3))
+
+# Lag de efeito máximo a 35°C
+idx_35   <- which.min(abs(as.numeric(rownames(cp$matRRfit)) - 35))
+lag_peak <- cp$lag[which.max(cp$matRRfit[idx_35, ])]
+cat("Lag de pico a 35°C:", lag_peak, "dias")
+```
+
+---
+
+# `sus_mod_compare()` — Comparação entre Estratégias
+
+## Fundamento epidemiológico
+
+A escolha da estratégia temporal em `sus_climate_aggregate()` é uma
+**decisão analítica com consequências para a inferência**. Usar `exact`
+(temperatura do dia) em vez de `moving_window(14)` (média de 14 dias)
+pode produzir estimativas de RR substancialmente diferentes — não porque
+uma é "certa" e outra "errada", mas porque estão respondendo a perguntas
+ligeiramente diferentes sobre o mecanismo biológico.
+
+A **análise de sensibilidade entre estratégias** serve a dois propósitos:
+
+1. **Robustez**: se o efeito estimado é estável entre estratégias
+   plausíveis, a conclusão é mais robusta.
+2. **Discriminação mecanística**: se o efeito é maior com `discrete_lag(7)`
+   do que com `exact`, há evidência de que a exposição 7 dias antes é mais
+   relevante do que a exposição no dia do evento — o que informa sobre
+   o mecanismo biológico.
+
+## Critério de comparação: AIC e dispersão
+
+Para modelos da mesma família (Poisson), o **Critério de Informação de
+Akaike** (AIC) permite comparar modelos com diferentes variáveis de
+exposição:
+
+$$\text{AIC} = -2\ell(\hat{\boldsymbol{\theta}}) + 2p$$
+
+onde $\ell(\hat{\boldsymbol{\theta}})$ é o log da verossimilhança
+maximizada e $p$ é o número de parâmetros. Menor AIC indica melhor
+balanço entre ajuste e complexidade.
+
+> **Limitação importante.** O AIC é inválido para Quasi-Poisson (sem
+> verossimilhança definida). `sus_mod_compare()` usa Poisson para
+> calcular AIC/BIC, mas Quasi-Poisson para estimar os coeficientes e
+> seus erros padrão. A comparação de AIC é, portanto, uma aproximação —
+> útil para ordenação relativa das estratégias, não para teste de hipótese
+> formal entre famílias.
+
+## Análise de sensibilidade por `min_obs`
+
+O parâmetro `min_obs` em `sus_climate_aggregate()` define a proporção
+mínima de dados válidos dentro de cada janela temporal. Valores baixos
+retornam estimativas climáticas para janelas com muitos dados faltantes;
+valores altos as descartam como `NA`. A **análise de sensibilidade por
+min_obs** verifica se o efeito estimado é estável à escolha desse limiar:
+
+- Se o RR é estável entre `min_obs = 0.5` e `min_obs = 0.9`, a análise
+  é robusta à completude dos dados climáticos.
+- Se o RR muda substancialmente, os períodos com dados faltantes têm
+  condições climáticas ou de saúde diferentes da média — o que pode
+  indicar viés de seleção na janela.
+
+## Exemplos de uso
+
+### Exemplo 1: comparação entre múltiplas estratégias
+
+O uso mais poderoso de `sus_mod_compare()` é aplicá-lo a um dataset que
+já contém variáveis de múltiplas estratégias. A maneira mais limpa de
+construir esse dataset é via `dplyr::left_join()`:
+
+```{r compare-build, eval=FALSE}
+# Constrói o dataset multi-estratégia
+df_multi <- sus_climate_aggregate(
+  health_data       = sf_sim_spatial,
+  climate_data      = df_inmet,
+  climate_var       = "tair_dry_bulb_c",
+  temporal_strategy = "exact"
+) |>
+  dplyr::left_join(
+    sus_climate_aggregate(
+      health_data       = sf_sim_spatial,
+      climate_data      = df_inmet,
+      climate_var       = "tair_dry_bulb_c",
+      temporal_strategy = "moving_window",
+      window_days       = 7
+    ) |> dplyr::select(date, code_muni, mvwin7_tair_dry_bulb_c),
+    by = c("date", "code_muni")
+  ) |>
+  dplyr::left_join(
+    sus_climate_aggregate(
+      health_data       = sf_sim_spatial,
+      climate_data      = df_inmet,
+      climate_var       = "tair_dry_bulb_c",
+      temporal_strategy = "moving_window",
+      window_days       = 14
+    ) |> dplyr::select(date, code_muni, mvwin14_tair_dry_bulb_c),
+    by = c("date", "code_muni")
+  ) |>
+  dplyr::left_join(
+    sus_climate_aggregate(
+      health_data       = sf_sim_spatial,
+      climate_data      = df_inmet,
+      climate_var       = "tair_dry_bulb_c",
+      temporal_strategy = "discrete_lag",
+      lag_days          = c(7, 14, 21)
+    ) |> dplyr::select(date, code_muni,
+                       lag7_tair_dry_bulb_c,
+                       lag14_tair_dry_bulb_c,
+                       lag21_tair_dry_bulb_c),
+    by = c("date", "code_muni")
+  ) |>
+  dplyr::left_join(
+    sus_climate_aggregate(
+      health_data       = sf_sim_spatial,
+      climate_data      = df_inmet,
+      climate_var       = "tair_max_c",
+      temporal_strategy = "threshold_exceedance",
+      window_days       = 7,
+      threshold_value   = 35
+    ) |> dplyr::select(date, code_muni,
+                       nexc7_gt35_tair_max_c),
+    by = c("date", "code_muni")
+  )
+```
+
+### Exemplo 2: comparação e análise de sensibilidade
+
+```{r compare-ex2, eval=FALSE}
+fit_cmp <- sus_mod_compare(
+  data          = df_multi,
+  outcome_col   = "n_obitos",
+  family        = "auto",
+  ns_df         = 4,
+  min_obs_range = c(0.5, 0.6, 0.7, 0.8, 0.9),  # sensibilidade
+  spatial_rr    = TRUE,                          # RR por município
+  verbose       = TRUE
+)
+
+print(fit_cmp)
+#> ── Comparacao climasus_compare ─────────────────────────────────────────
+#> Modelos ajustados : 7
+#> Desfecho          : n_obitos
+#> Melhor variavel   : mvwin14_tair_dry_bulb_c
+#> ─────────────────────────────────────────────────────────────────────────
+#> # A tibble: 7 × 8
+#>   variable                  strategy        n RR_IC              p_value    sig   aic  disp_ratio
+#>   <chr>                     <chr>       <int> <chr>                <dbl>    <chr> <dbl>      <dbl>
+#> 1 mvwin14_tair_dry_bulb_c   moving_w..    365 1.048 [1.02, 1.08]  0.0012   **    1204.       1.92
+#> 2 mvwin7_tair_dry_bulb_c    moving_w..    365 1.039 [1.01, 1.07]  0.0041   **    1211.       1.93
+#> 3 lag7_tair_dry_bulb_c      discrete_lag  358 1.031 [1.00, 1.06]  0.0284   *     1219.       1.91
+#> 4 tair_dry_bulb_c           exact         365 1.024 [0.99, 1.06]  0.1122          1224.       1.94
+#> 5 lag14_tair_dry_bulb_c     discrete_lag  351 1.022 [0.99, 1.05]  0.1680          1225.       1.92
+#> 6 nexc7_gt35_tair_max_c     threshold..   358 1.012 [0.97, 1.06]  0.5341          1228.       1.93
+#> 7 lag21_tair_dry_bulb_c     discrete_lag  344 1.008 [0.97, 1.04]  0.6891          1229.       1.91
+```
+
+### Exemplo 3: todos os plots comparativos
+
+```{r compare-plots, eval=FALSE}
+plots_cmp <- plot_climate_health(
+  data      = df_multi,
+  fit       = fit_cmp,
+  plot_type = c(
+    "coef_compare",      # forest plot: RR por estratégia
+    "model_comparison",  # tabela AIC/BIC/dispersão
+    "sensitivity_table", # RR por min_obs (melhor variável)
+    "corr_matrix",       # correlação de Spearman entre estratégias
+    "cascade",           # RR por lag (acumulado sequencial)
+    "spatial_map"        # mapa de RR por município
+  )
+)
+```
+
+### Interpretando o forest plot comparativo
+
+```{r compare-interpretation, echo=FALSE}
+tibble::tribble(
+  ~Padrão,                         ~Interpretação,
+  "RRs semelhantes entre estratégias",   "Conclusão robusta; escolha metodológica tem baixo impacto",
+  "RR maior em mvwin(14) vs. exact",     "Efeito cumulativo de exposição prolongada é o mecanismo relevante",
+  "RR maior em lag(7) vs. lag(0)",       "Exposição 7 dias antes é mais relevante; provável período de latência",
+  "RR significativo apenas em nexc",     "Efeitos de limiar: extremos importam mais do que a média",
+  "RR instável entre min_obs",           "Períodos com dados faltantes têm características distintas; investigar"
+) |>
+  knitr::kable(
+    col.names = c("Padrão observado", "Interpretação epidemiológica"),
+    caption   = "Tabela 4. Guia de interpretação dos resultados de sus_mod_compare()."
+  )
+```
+
+---
+
+# Escolha da função: árvore de decisão
+
+```{r decision-tree, echo=FALSE}
+tibble::tribble(
+  ~Pergunta,                                          ~Resposta,       ~Função,
+  "Tenho hipótese sobre o mecanismo de defasagem?",  "Não",           "sus_mod_glm() com exact ou moving_window",
+  "Tenho hipótese sobre o mecanismo de defasagem?",  "Sim, específica","sus_mod_glm() com discrete_lag ou offset_window",
+  "Tenho hipótese sobre o mecanismo de defasagem?",  "Sim, distribuída","sus_mod_dlnm() com distributed_lag",
+  "Quero comparar estratégias ou hipóteses?",        "Sim",           "sus_mod_compare() + plot coef_compare",
+  "Preciso de mapa de efeito por município?",        "Sim",           "sus_mod_glm(spatial_rr=TRUE) ou sus_mod_compare(spatial_rr=TRUE)",
+  "Quero análise de sensibilidade a min_obs?",       "Sim",           "sus_mod_compare(min_obs_range = c(...))"
+) |>
+  knitr::kable(
+    col.names = c("Pergunta", "Resposta", "Função recomendada"),
+    caption   = "Tabela 5. Árvore de decisão para escolha da função de modelagem."
+  )
+```
+
+---
+
+# Pipeline completo: da agregação à comunicação
+
+O exemplo a seguir demonstra o fluxo completo de análise para a
+associação entre temperatura e mortalidade cardiovascular no Amazonas em
+2023, usando três estratégias temporais em paralelo.
+
+```{r full-pipeline, eval=FALSE}
+# ── Etapa 1: Agregação ────────────────────────────────────────────────────
+# Exact: temperatura do mesmo dia
+df_exact <- sus_climate_aggregate(
+  health_data       = sf_sim_spatial,
+  climate_data      = df_inmet,
+  climate_var       = "tair_dry_bulb_c",
+  temporal_strategy = "exact"
+)
+
+# Moving window: média 14 dias (exposição acumulada)
+df_mvwin <- sus_climate_aggregate(
+  health_data       = sf_sim_spatial,
+  climate_data      = df_inmet,
+  climate_var       = "tair_dry_bulb_c",
+  temporal_strategy = "moving_window",
+  window_days       = 14,
+  min_obs           = 0.7
+)
+
+# Distributed lag: para DLNM
+df_dlnm_in <- sus_climate_aggregate(
+  health_data       = sf_sim_spatial,
+  climate_data      = df_inmet,
+  climate_var       = "tair_dry_bulb_c",
+  temporal_strategy = "distributed_lag",
+  lag_days          = 21
+)
+
+# ── Etapa 2: Modelagem ────────────────────────────────────────────────────
+# GLM simples (exact)
+fit_exact <- sus_mod_glm(
+  data    = df_exact,
+  ns_df   = 4,
+  family  = "auto",
+  verbose = FALSE
+)
+
+# GLM com janela móvel
+fit_mvwin <- sus_mod_glm(
+  data        = df_mvwin,
+  climate_col = "mvwin14_tair_dry_bulb_c",
+  ns_df       = 4,
+  family      = "auto",
+  verbose     = FALSE
+)
+
+# DLNM
+fit_dlnm <- sus_mod_dlnm(
+  data    = df_dlnm_in,
+  lag_max = 21,
+  ns_df   = 4,
+  verbose = FALSE
+)
+
+# Comparação entre exact e mvwin
+df_2estrategias <- dplyr::left_join(
+  df_exact,
+  dplyr::select(df_mvwin, date, code_muni, mvwin14_tair_dry_bulb_c),
+  by = c("date", "code_muni")
+)
+
+fit_compare <- sus_mod_compare(
+  data          = df_2estrategias,
+  ns_df         = 4,
+  min_obs_range = c(0.5, 0.7, 0.9),
+  spatial_rr    = TRUE,
+  verbose       = FALSE
+)
+
+# ── Etapa 3: Visualização ─────────────────────────────────────────────────
+# Exploratório (sem modelo)
+p_exp <- plot_climate_health(
+  data      = df_exact,
+  plot_type = "all_exploratory"
+)
+
+# Diagnóstico do GLM simples
+p_glm <- plot_climate_health(
+  data      = df_exact,
+  fit       = fit_exact,
+  plot_type = c("residuals", "rr_table", "descriptive_table")
+)
+
+# DLNM: três gráficos canônicos
+p_dlnm <- plot_climate_health(
+  data      = df_dlnm_in,
+  fit       = fit_dlnm,
+  plot_type = c("dlnm_surface", "dlnm_overall", "dlnm_lag")
+)
+
+# Comparação entre estratégias
+p_cmp <- plot_climate_health(
+  data      = df_2estrategias,
+  fit       = fit_compare,
+  plot_type = c("coef_compare", "sensitivity_table",
+                "model_comparison", "spatial_map")
+)
+
+# ── Resultado resumido ────────────────────────────────────────────────────
+cat("\n===== RESUMO DOS RESULTADOS =====\n")
+cat("\nGLM exact — RR por +1°C no dia do evento:\n")
+cat(sprintf("  RR = %.4f [%.4f, %.4f]  p = %.4f\n",
+            fit_exact$models$rr,
+            fit_exact$models$rr_lo,
+            fit_exact$models$rr_hi,
+            fit_exact$models$p_value))
+
+cat("\nGLM moving window (14 dias) — RR por +1°C na média de 14 dias:\n")
+cat(sprintf("  RR = %.4f [%.4f, %.4f]  p = %.4f\n",
+            fit_mvwin$models$rr,
+            fit_mvwin$models$rr_lo,
+            fit_mvwin$models$rr_hi,
+            fit_mvwin$models$p_value))
+
+cat("\nDLNM — RR cumulativo no percentil 75 vs. mediana:\n")
+cat(sprintf("  RR = %.4f [%.4f, %.4f]  Lag pico = %d dias\n",
+            fit_dlnm$models$rr,
+            fit_dlnm$models$lo,
+            fit_dlnm$models$hi,
+            fit_dlnm$models$lag_peak))
+
+cat("\nMelhor estratégia por AIC:", fit_compare$best, "\n")
+```
+
+---
+
+# Boas práticas e armadilhas comuns
+
+## Agregação temporal antes da modelagem
+
+Todas as três funções de modelagem agregam `data` por `date` internamente
+(somando `outcome_col` e calculando médias das covariáveis). Isso é
+necessário porque `sus_climate_aggregate()` retorna dados no nível de
+`(date, code_muni)`, mas os modelos de séries temporais operam no nível
+temporal diário. A agregação `sum()` para contagens e `mean()` para
+exposições é epidemiologicamente correta — não a média de óbitos.
+
+## Viés de look-ahead
+
+O CLIMASUS4r usa exclusivamente janelas retroativas $[t - W, t]$ e
+defasagens passadas $[t - L]$. Nunca inclua variáveis futuras (clima
+de $t + k$) como preditores — isso seria look-ahead bias e invalida
+qualquer inferência causal.
+
+## Confundimento residual por sazonalidade
+
+Temperatura e mortalidade compartilham sazonalidade — ambas tendem a ser
+maiores no verão. Um modelo sem controle temporal pode estar medindo
+sazonalidade, não causalidade. Regra prática: se `ns_df = NULL` e o
+residual ACF mostra padrão periódico, adicione `ns_df = 4` ou `ns_df = 6`.
+
+## Múltiplas comparações em `sus_mod_compare()`
+
+Ao comparar 7 estratégias temporais, a probabilidade de encontrar pelo
+menos um resultado significativo por acaso aumenta. Considere aplicar
+correção de Bonferroni (dividir $\alpha$ pelo número de comparações) ou
+Benjamini-Hochberg quando o objetivo é exploração em vez de confirmação.
+
+## Interpretação de RR com variáveis de janela
+
+O RR produzido por `sus_mod_glm()` com `mvwin14_tair_dry_bulb_c` refere-se
+a um aumento de **1°C na média de 14 dias** — não na temperatura diária.
+Para comparar com a literatura (que geralmente reporta efeitos por 1°C
+diário), use a variável `exact` ou `tair_dry_bulb_c` (temperatura sem
+prefixo).
+
+---
+
+# Referências
+
+Armstrong, B. (2006). Models for the relationship between ambient
+temperature and daily mortality. *Epidemiology*, 17(6), 624-631.
+
+Bhaskaran, K., Gasparrini, A., Hajat, S., Smeeth, L., & Armstrong, B.
+(2013). Time series regression studies in environmental epidemiology.
+*International Journal of Epidemiology*, 42(4), 1187-1195.
+
+Box, G. E. P., & Jenkins, G. M. (1976). *Time Series Analysis: Forecasting
+and Control*. Holden-Day.
+
+Dominici, F., McDermott, A., Zeger, S. L., & Samet, J. M. (2002).
+On the use of generalized additive models in time-series studies of
+air pollution and health. *American Journal of Epidemiology*, 156(3), 193-203.
+
+Gasparrini, A., Armstrong, B., & Kenward, M. G. (2010). Distributed lag
+non-linear models. *Statistics in Medicine*, 29(21), 2224-2234.
+
+Gasparrini, A. (2011). Distributed lag linear and non-linear models in R:
+the package dlnm. *Journal of Statistical Software*, 43(8), 1-20.
+
+Lowe, R., et al. (2021). Combined effects of hydrometeorological hazards
+and urbanisation on dengue risk in Brazil. *Nature Communications*, 12, 337.
+
+Winkelmann, R. (2008). *Econometric Analysis of Count Data* (5th ed.).
+Springer.
+
+Zanobetti, A., Wand, M. P., Schwartz, J., & Ryan, L. M. (2000).
+Generalized additive distributed lag models: quantifying mortality
+displacement. *Biostatistics*, 1(3), 279-292.
+
+---
+
+# Informações da sessão
+
+```{r session-info}
+sessionInfo()
+```

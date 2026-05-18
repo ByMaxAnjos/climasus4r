@@ -111,6 +111,87 @@ reference:
       - sus_cache_info
       - sus_chat
 
+  - title: "Modelagem DLNM"
+    desc: >
+      Ajuste e visualização de Modelos de Defasagem Distribuída Não-Linear (DLNM), que
+      capturam simultaneamente a não-linearidade e os efeitos defasados de exposições
+      ambientais (temperatura, poluição) sobre desfechos de saúde. Use estas funções
+      para estimar curvas exposição-resposta e de defasagem a partir de dados de séries
+      temporais de mortalidade ou morbidade.
+    contents:
+      - sus_mod_dlnm
+      - sus_mod_plot_dlnm
+
+  - title: "Fração e Número Atribuíveis"
+    desc: >
+      Estimativa da Fração Atribuível (FA%) e do Número Atribuível (NA) de desfechos
+      de saúde devidos à exposição ao calor, ao frio ou ao total combinado, com intervalos
+      de confiança por bootstrap. Inclui análise de excesso de risco sob cenários
+      contrafactuais (e.g., sem aquecimento global) e visualizações dedicadas para
+      comunicar o impacto em saúde pública.
+    contents:
+      - sus_mod_af
+      - sus_mod_excess
+      - sus_mod_plot_af
+
+  - title: "Meta-análise e Agrupamento"
+    desc: >
+      Agrupamento em dois estágios de ajustes DLNM de múltiplas cidades usando mvmeta,
+      produzindo curvas exposição-resposta pooled e BLUPs cidade a cidade. A meta-regressão
+      permite identificar covariáveis de nível municipal (latitude, IDH, urbanização) que
+      explicam a heterogeneidade entre cidades. Use este bloco para análises multicidade
+      e estudos de vigilância climático-epidemiológica em escala nacional.
+    contents:
+      - sus_mod_pool
+      - sus_mod_metaregression
+      - sus_mod_plot_pool
+
+  - title: "Carga, Sensibilidade e Vulnerabilidade"
+    desc: >
+      Quantificação da carga de doença atribuível ao clima (AN, FA, desigualdade de Lorenz),
+      análise comparativa de sensibilidade entre estratos populacionais e construção do
+      Índice de Vulnerabilidade IPCC baseado em três pilares (Exposição, Sensibilidade,
+      Capacidade Adaptativa). Estas funções convertem estimativas epidemiológicas pontuais
+      em indicadores de saúde pública acionáveis para planejamento territorial e ambiental.
+    contents:
+      - sus_mod_burden
+      - sus_mod_sensitivity
+      - sus_mod_vulnerability_index
+      - sus_mod_plot_burden
+      - sus_mod_plot_sensitivity
+      - sus_mod_plot_vulnerability
+
+  - title: "Desenhos Epidemiológicos"
+    desc: >
+      Implementações de desenhos observacionais clássicos: o caso-cruzado estratificado
+      por tempo (controle interno do indivíduo, ideal para exposições agudas de curto prazo)
+      e a Análise de Séries Temporais Interrompidas (ITS), que avalia o efeito causal de
+      intervenções ou políticas de saúde sobre tendências temporais de desfechos.
+    contents:
+      - sus_mod_casecrossover
+      - sus_mod_its
+
+  - title: "Machine Learning Climático"
+    desc: >
+      Modelagem preditiva baseada em XGBoost com validação cruzada out-of-fold, importância
+      de características e diagnóstico gráfico (observado vs. predito, curva de perda,
+      importância das variáveis). Use quando o objetivo é previsão de desfechos de saúde
+      a partir de preditores climáticos e socioeconômicos, complementando as abordagens
+      causais do DLNM com capacidade preditiva de alta dimensão.
+    contents:
+      - sus_mod_ml
+      - sus_mod_plot_ml
+
+  - title: "Métodos S3 dos Modelos"
+    desc: >
+      Métodos S3 exportados (print, summary, coef, vcov, tidy, predict) para todas as
+      classes de saída do módulo de modelagem (climasus_dlnm, climasus_af, climasus_pool,
+      climasus_excess, climasus_casecrossover, climasus_its, climasus_sensitivity,
+      climasus_metaregression, climasus_burden, climasus_vi, climasus_ml). Permitem
+      integração nativa com broom, tidymodels e workflows analíticos padrão do R.
+    contents:
+      - matches("^(print|summary|coef|vcov|tidy|predict)\\.climasus_(?!df)")
+
 articles:
   - title: "Participe"
     contents:

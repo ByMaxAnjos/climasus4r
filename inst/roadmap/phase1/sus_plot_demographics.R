@@ -1,5 +1,5 @@
 # =============================================================================
-# sus_view_demographics.R
+# sus_data_plot_demographics.R
 # Robust, publication-quality demographic visualization for climasus4r
 # Compatible with: SIM, SIH, CNES, SINAN, SIA, SIAB, and all DATASUS systems
 # Style: The Lancet / Nature Medicine · EN / PT / ES
@@ -70,7 +70,7 @@
 #'   renders output in the active graphics device.
 #'
 #' @section Systems supported:
-#' \code{sus_view_demographics()} automatically adapts column detection to all
+#' \code{sus_data_plot_demographics()} automatically adapts column detection to all
 #' major DATASUS information systems:
 #' \itemize{
 #'   \item \strong{SINAN} (notifiable diseases): dengue, chikungunya, COVID-19, etc.
@@ -78,7 +78,6 @@
 #'   \item \strong{SIH} (hospitalisation): procedure codes, length of stay, AIH.
 #'   \item \strong{CNES} (health facilities): capacity, equipment, workforce.
 #'   \item \strong{SIA} (outpatient): production, procedures.
-#'   \item \strong{SIAB/e-SUS} (primary care): coverage, visits.
 #' }
 #'
 #' @section Climate & Environment Integration:
@@ -93,10 +92,10 @@
 #' library(climasus4r)
 #'
 #' # Basic age-sex pyramid (Lancet style, English)
-#' sus_view_demographics(df, type = "pyramid", lang = "en")
+#' sus_data_plot_demographics(df, type = "pyramid", lang = "en")
 #'
 #' # Publication-quality dashboard, save to PDF
-#' sus_view_demographics(
+#' sus_data_plot_demographics(
 #'   df,
 #'   type      = "dashboard",
 #'   palette   = "lancet",
@@ -106,7 +105,7 @@
 #' )
 #'
 #' # Temporal epidemic curve, stratified by climate risk group
-#' sus_view_demographics(
+#' sus_data_plot_demographics(
 #'   df,
 #'   type      = "temporal",
 #'   time_unit = "epi_week",
@@ -116,14 +115,14 @@
 #' )
 #'
 #' # Race equity diverging plot (SIM data)
-#' sus_view_demographics(df, type = "race_equity", lang = "pt")
+#' sus_data_plot_demographics(df, type = "race_equity", lang = "pt")
 #'
 #' # Interactive choropleth map (SINAN-dengue, municipality level)
-#' sus_view_demographics(df, type = "map", interactive = TRUE, lang = "pt")
+#' sus_data_plot_demographics(df, type = "map", interactive = TRUE, lang = "pt")
 #' }
 #'
 #' @export
-sus_view_demographics <- function(df,
+sus_data_plot_demographics <- function(df,
                                   type          = "table",
                                   var           = NULL,
                                   time_unit     = "month",
@@ -134,7 +133,7 @@ sus_view_demographics <- function(df,
                                   benchmark     = NULL,
                                   interactive   = FALSE,
                                   base_size     = 11,
-                                  lang          = "en",
+                                  lang          = "pt",
                                   caption_suffix = NULL,
                                   save_path     = NULL,
                                   width         = NULL,
@@ -144,10 +143,36 @@ sus_view_demographics <- function(df,
                                   ...) {
   
   # ── 1. Input Validation ────────────────────────────────────────────────────
+  # Check required dependencies
+  rlang::check_installed(
+    c("ggplot2", "ggsci", "patchwork"),
+    reason = "to run sus_data_plot_demographics( )"
+  )
   
-  if (!inherits(df, "climasus_df")) {
+  if(type == "map") {
+  # Check required dependencies
+  rlang::check_installed(
+    c("geobr", "leaflet"),
+    reason = "to run sus_data_plot_demographics( )"
+  )
+  }
+
+  # Input validation
+  if (!is.data.frame(df)) {
+    df <- climasus4r:::new_climasus_df(                                      
+      dplyr::collect(df),                                                
+      sus_meta(df)  # extrai metadata do Arrow                           
+    ) 
+    if (!is.data.frame(df)) {
+      cli::cli_abort("Input {.arg df} must be a data.frame or a collectable dplyr object.")
+    }
+  }
+
+  stage <- sus_meta(df, "stage")
+
+  if (!stage == "filter_demo") {
     cli::cli_abort(c(
-      "{.cls climasus_df} object required.",
+      "{.cls filter_demo} stage required.",
       "i" = "Run the full climasus4r pipeline first.",
       "*" = "{.code df <- sus_data_import(...)}",
       "*" = "{.code df <- sus_data_standardize(df)}",
@@ -305,7 +330,7 @@ sus_view_demographics <- function(df,
   if (!is.null(var) == FALSE && "dimension" %in% names(tbl_data)) {
     gt_obj <- gt_obj |> gt::tab_row_group(
       label = "",
-      rows  = everything()
+      rows  = dplyr::everything()
     )
   }
   
@@ -372,100 +397,9 @@ sus_view_demographics <- function(df,
 }
 
 # ── Population pyramid ────────────────────────────────────────────────────────
-# .vd_pyramid <- function(df, lang, interactive, palette, caption, base_size, ...) {
-#   
-#   #age_col <- .find_col(df, c("age_group", "ibge_age_group"))
-#   age_col <- .find_col(df, c("ibge_age_group"))
-#   sex_col <- .find_col(df, c("sex", "sexo", "SEXO"))
-#   
-#   if (is.null(age_col) || is.null(sex_col)) {
-#     cli::cli_abort(c(
-#       "Population pyramid requires {.strong age group} and {.strong sex} columns.",
-#       "i" = "Run {.fn sus_data_create_variables} to generate {.val age_group}."
-#     ))
-#   }
-#   
-#   pal       <- .vd_palette(palette)
-#   lab_male  <- .vl("male", lang)
-#   lab_female <- .vl("female", lang)
-#   
-#   male_vals   <- c("Male", "Masculino", "M", "1", "male", "masculino")
-#   female_vals <- c("Female", "Feminino", "F", "2", "female", "feminino")
-#   
-#   pyr_raw <- as.data.frame(
-#     table(df[[age_col]], df[[sex_col]], useNA = "no"),
-#     stringsAsFactors = FALSE
-#   )
-#   names(pyr_raw) <- c("age_group", "sex_raw", "n")
-#   pyr_raw$n <- as.numeric(pyr_raw$n)
-#   
-#   pyr_raw$sex_label <- dplyr::case_when(
-#     pyr_raw$sex_raw %in% male_vals   ~ lab_male,
-#     pyr_raw$sex_raw %in% female_vals ~ lab_female,
-#     TRUE ~ NA_character_
-#   )
-#   pyr_raw <- pyr_raw[!is.na(pyr_raw$sex_label), ]
-#   
-#   # Total per sex for % annotation
-#   total_male   <- sum(pyr_raw$n[pyr_raw$sex_label == lab_male],   na.rm = TRUE)
-#   total_female <- sum(pyr_raw$n[pyr_raw$sex_label == lab_female], na.rm = TRUE)
-#   
-#   pyr_raw$n_plot <- ifelse(pyr_raw$sex_label == lab_male, -pyr_raw$n, pyr_raw$n)
-#   pyr_raw$pct    <- ifelse(
-#     pyr_raw$sex_label == lab_male,
-#     round(100 * pyr_raw$n / total_male,   1),
-#     round(100 * pyr_raw$n / total_female, 1)
-#   )
-#   
-#   max_n  <- max(abs(pyr_raw$n_plot), na.rm = TRUE)
-#   brks   <- pretty(c(-max_n, max_n), n = 6)
-#   col_map <- stats::setNames(c(pal[2], pal[1]), c(lab_male, lab_female))
-#   
-#   # Sex ratio subtitle
-#   sex_ratio <- if (total_female > 0) round(total_male / total_female, 2) else NA
-#   sub_txt   <- if (!is.na(sex_ratio)) {
-#     paste0(.vl("sex_ratio", lang), ": ", sex_ratio)
-#   } else ""
-#   
-#   p <- ggplot2::ggplot(
-#     pyr_raw,
-#     ggplot2::aes(x = age_group, y = n_plot, fill = sex_label,
-#                  text = paste0(age_group, " | ", sex_label,
-#                                "\n n = ", scales::comma(abs(n_plot)),
-#                                " (", pct, "%)"))
-#   ) +
-#     ggplot2::geom_col(width = 0.82) +
-#     ggplot2::geom_hline(yintercept = 0, colour = "white", linewidth = 0.4) +
-#     ggplot2::coord_flip() +
-#     ggplot2::scale_y_continuous(
-#       breaks = brks,
-#       labels = function(x) scales::comma(abs(x)),
-#       expand = ggplot2::expansion(mult = 0.04)
-#     ) +
-#     ggplot2::scale_fill_manual(values = col_map, name = NULL) +
-#     ggplot2::labs(
-#       title    = .vl("pyramid_title", lang),
-#       subtitle = sub_txt,
-#       x        = .vl("age_group", lang),
-#       y        = .vl("count", lang),
-#       caption  = caption
-#     ) +
-#     .lancet_theme(base_size) +
-#     ggplot2::theme(
-#       legend.position = "top",
-#       legend.key.size = ggplot2::unit(0.5, "lines")
-#     )
-#   
-#   if (interactive) {
-#     .require_pkg("plotly")
-#     return(plotly::ggplotly(p, tooltip = "text"))
-#   }
-#   p
-# }
-
 .vd_pyramid <- function(df, lang, interactive, palette, caption, base_size, ...) {
   
-  age_col <- .find_col(df, c("ibge_age_group"))
+  age_col <- .find_col(df, c("ibge_age_group", "faixa_etaria_ibge", "ibge_age_group", "grupo_edad_ibge", "age_group"))
   sex_col <- .find_col(df, c("sex", "sexo", "SEXO"))
   
   if (is.null(age_col) || is.null(sex_col)) {
@@ -567,10 +501,153 @@ sus_view_demographics <- function(df,
   
   .require_pkg("geobr")
   
-  uf_col   <- .find_col(df, c("manager_uf", "uf_gestor", "UF_ZI", "notification_uf",
-                              "residence_uf", "uf", "SG_UF_NOT", "CS_FLXRET"))
-  muni_col <- .find_col(df, c("residence_municipality_code", "municipality_code",
-                              "CODMUNRES", "CO_MUNICIPIO_GESTOR", "municipio_residencia"))
+  # uf_col   <- .find_col(df, c("manager_uf", "uf_gestor", "UF_ZI", "notification_uf",
+  #                             "residence_uf", "uf", "SG_UF_NOT", "CS_FLXRET"))
+  # muni_col <- .find_col(df, c("residence_municipality_code", "municipality_code",
+  #                             "CODMUNRES", "CO_MUNICIPIO_GESTOR", "municipio_residencia"))
+  # Identificar colunas de UF (estado)
+  uf_col <- .find_col(df, c(
+    # SIM (Sistema de Informações sobre Mortalidade)
+    get_translation_dict_en()$columns["UFINFORM"],
+    get_translation_dict_pt()$columns["UFINFORM"],
+    get_translation_dict_es()$columns["UFINFORM"],
+    
+    # SINAN (Sistema de Informação de Agravos de Notificação)
+    get_translation_dict_en_sinan()$columns["SG_UF"],
+    get_translation_dict_pt_sinan()$columns["SG_UF"],
+    get_translation_dict_es_sinan()$columns["SG_UF"],
+    get_translation_dict_en_sinan()$columns["SG_UF_NOT"],
+    get_translation_dict_pt_sinan()$columns["SG_UF_NOT"],
+    get_translation_dict_es_sinan()$columns["SG_UF_NOT"],
+    get_translation_dict_en_sinan()$columns["UF"],
+    get_translation_dict_pt_sinan()$columns["UF"],
+    get_translation_dict_es_sinan()$columns["UF"],
+    
+    # SIH (Sistema de Informações Hospitalares)
+    get_translation_dict_en_sih()$columns["UF_ZI"],
+    get_translation_dict_pt_sih()$columns["UF_ZI"],
+    get_translation_dict_es_sih()$columns["UF_ZI"],
+    get_translation_dict_en_sih()$columns["UF_RES"],
+    get_translation_dict_pt_sih()$columns["UF_RES"],
+    get_translation_dict_es_sih()$columns["UF_RES"],
+    get_translation_dict_en_sih()$columns["SP_UF"],
+    get_translation_dict_pt_sih()$columns["SP_UF"],
+    get_translation_dict_es_sih()$columns["SP_UF"],
+    
+    # SIA (Sistema de Informações Ambulatoriais)
+    get_translation_dict_en_sia()$columns["PA_UFDIF"],
+    get_translation_dict_pt_sia()$columns["PA_UFDIF"],
+    get_translation_dict_es_sia()$columns["PA_UFDIF"],
+    
+    # CNES (Cadastro Nacional de Estabelecimentos de Saúde)
+    get_translation_dict_en_cnes()$columns["ESFERA_A"],
+    get_translation_dict_pt_cnes()$columns["ESFERA_A"],
+    get_translation_dict_es_cnes()$columns["ESFERA_A"],
+    
+    # SINASC (Sistema de Informações sobre Nascidos Vivos)
+    get_translation_dict_en_sinasc()$columns["UFINFORM"],
+    get_translation_dict_pt_sinasc()$columns["UFINFORM"],
+    get_translation_dict_es_sinasc()$columns["UFINFORM"],
+    
+    # Censo 2010
+    get_census_dictionary_en_population()$columns["V0001"],
+    get_census_dictionary_pt_population()$columns["V0001"],
+    get_census_dictionary_es_population()$columns["V0001"],
+    
+    # Termos alternativos comuns
+    "manager_uf", "uf_gestor", "UF_ZI", "notification_uf",
+    "residence_uf", "uf", "SG_UF_NOT", "CS_FLXRET", "SG_UF",
+    "UF", "UF_RES", "SP_UF", "PA_UFDIF", "UFINFORM", "uf"
+  ))
+
+  # Identificar colunas de município
+  muni_col <- .find_col(df, c(
+    # SIM (Sistema de Informações sobre Mortalidade)
+    get_translation_dict_en()$columns["CODMUNRES"],
+    get_translation_dict_pt()$columns["CODMUNRES"],
+    get_translation_dict_es()$columns["CODMUNRES"],
+    get_translation_dict_en()$columns["CODMUNOCOR"],
+    get_translation_dict_pt()$columns["CODMUNOCOR"],
+    get_translation_dict_es()$columns["CODMUNOCOR"],
+    get_translation_dict_en()$columns["CODMUNNATU"],
+    get_translation_dict_pt()$columns["CODMUNNATU"],
+    get_translation_dict_es()$columns["CODMUNNATU"],
+    get_translation_dict_en()$columns["COMUNSVOIM"],
+    get_translation_dict_pt()$columns["COMUNSVOIM"],
+    get_translation_dict_es()$columns["COMUNSVOIM"],
+    
+    # SINAN (Sistema de Informação de Agravos de Notificação)
+    get_translation_dict_en_sinan()$columns["ID_MN_RESI"],
+    get_translation_dict_pt_sinan()$columns["ID_MN_RESI"],
+    get_translation_dict_es_sinan()$columns["ID_MN_RESI"],
+    get_translation_dict_en_sinan()$columns["ID_MUNICIP"],
+    get_translation_dict_pt_sinan()$columns["ID_MUNICIP"],
+    get_translation_dict_es_sinan()$columns["ID_MUNICIP"],
+    get_translation_dict_en_sinan()$columns["COMUNINF"],
+    get_translation_dict_pt_sinan()$columns["COMUNINF"],
+    get_translation_dict_es_sinan()$columns["COMUNINF"],
+    get_translation_dict_en_sinan()$columns["MUNICIPIO"],
+    get_translation_dict_pt_sinan()$columns["MUNICIPIO"],
+    get_translation_dict_es_sinan()$columns["MUNICIPIO"],
+    
+    # SIH (Sistema de Informações Hospitalares)
+    get_translation_dict_en_sih()$columns["MUNIC_RES"],
+    get_translation_dict_pt_sih()$columns["MUNIC_RES"],
+    get_translation_dict_es_sih()$columns["MUNIC_RES"],
+    get_translation_dict_en_sih()$columns["MUNIC_MOV"],
+    get_translation_dict_pt_sih()$columns["MUNIC_MOV"],
+    get_translation_dict_es_sih()$columns["MUNIC_MOV"],
+    get_translation_dict_en_sih()$columns["MUN_MOV"],
+    get_translation_dict_pt_sih()$columns["MUN_MOV"],
+    get_translation_dict_es_sih()$columns["MUN_MOV"],
+    get_translation_dict_en_sih()$columns["MUN_RES"],
+    get_translation_dict_pt_sih()$columns["MUN_RES"],
+    get_translation_dict_es_sih()$columns["MUN_RES"],
+    get_translation_dict_en_sih()$columns["SP_M_HOSP"],
+    get_translation_dict_pt_sih()$columns["SP_M_HOSP"],
+    get_translation_dict_es_sih()$columns["SP_M_HOSP"],
+    get_translation_dict_en_sih()$columns["SP_M_PAC"],
+    get_translation_dict_pt_sih()$columns["SP_M_PAC"],
+    get_translation_dict_es_sih()$columns["SP_M_PAC"],
+    
+    # SIA (Sistema de Informações Ambulatoriais)
+    get_translation_dict_en_sia()$columns["PA_MUNPCN"],
+    get_translation_dict_pt_sia()$columns["PA_MUNPCN"],
+    get_translation_dict_es_sia()$columns["PA_MUNPCN"],
+    get_translation_dict_en_sia()$columns["PA_MNDIF"],
+    get_translation_dict_pt_sia()$columns["PA_MNDIF"],
+    get_translation_dict_es_sia()$columns["PA_MNDIF"],
+    get_translation_dict_en_sia()$columns["PA_UFMUN"],
+    get_translation_dict_pt_sia()$columns["PA_UFMUN"],
+    get_translation_dict_es_sia()$columns["PA_UFMUN"],
+    
+    # CNES (Cadastro Nacional de Estabelecimentos de Saúde)
+    get_translation_dict_en_cnes()$columns["CODUFMUN"],
+    get_translation_dict_pt_cnes()$columns["CODUFMUN"],
+    get_translation_dict_es_cnes()$columns["CODUFMUN"],
+    
+    # SINASC (Sistema de Informações sobre Nascidos Vivos)
+    get_translation_dict_en_sinasc()$columns["CODMUNNASC"],
+    get_translation_dict_pt_sinasc()$columns["CODMUNNASC"],
+    get_translation_dict_es_sinasc()$columns["CODMUNNASC"],
+    get_translation_dict_en_sinasc()$columns["CODMUNRES"],
+    get_translation_dict_pt_sinasc()$columns["CODMUNRES"],
+    get_translation_dict_es_sinasc()$columns["CODMUNRES"],
+    
+    # Censo 2010
+    get_census_dictionary_en_population()$columns["V0002"],
+    get_census_dictionary_pt_population()$columns["V0002"],
+    get_census_dictionary_es_population()$columns["V0002"],
+    
+    # Termos alternativos comuns
+    "residence_municipality_code", "municipality_code", "sp_municipality_code",
+    "CODMUNRES", "CO_MUNICIPIO_GESTOR", "municipio_residencia",
+    "CODMUNOCOR", "CODMUNNATU", "ID_MN_RESI", "ID_MUNICIP",
+    "MUNIC_RES", "MUNIC_MOV", "MUN_RES", "MUN_MOV",
+    "PA_MUNPCN", "CODUFMUN", "codigo_municipio", "municipio", "codigo_municipio_sp",
+    "municipio_residencia", "codigo_municipio_residencia",
+    "codigo_municipio_ocorrencia", "codigo_municipio_nascimento"
+  ))
   
   level  <- if (!is.null(muni_col)) "municipality" else if (!is.null(uf_col)) "state" else NULL
   
@@ -954,64 +1031,6 @@ sus_view_demographics <- function(df,
   }
   p
 }
-
-#── Dashboard: composite Lancet panel ────────────────────────────────────────
-# .vd_dashboard <- function(df, lang, interactive, palette, caption,
-#                           base_size, show_ci, ...) {
-# 
-#   .require_pkg("patchwork")
-#   pal <- .vd_palette(palette)
-# 
-#   collect <- function(expr) tryCatch(expr, error = function(e) {
-#     cli::cli_warn("Panel skipped: {conditionMessage(e)}")
-#     NULL
-#   })
-# 
-#   p_pyr  <- collect(.vd_pyramid(df, lang, FALSE, palette, caption, base_size))
-#   p_sex  <- collect(.vd_bar(df, "sex",   lang, FALSE, palette, caption, base_size))
-#   p_race <- collect(.vd_bar(df, "race",  lang, FALSE, palette, caption, base_size))
-#   p_age  <- collect(.vd_bar(df, "age_group", lang, FALSE, palette, caption, base_size))
-#   p_time <- collect(.vd_temporal(df, "month", NULL, show_ci, lang, FALSE,
-#                                  palette, caption, base_size))
-#   p_map  <- collect(.vd_map(df, "count", lang, FALSE, palette, caption, base_size))
-# 
-#   plots  <- Filter(function(x) inherits(x, "ggplot"),
-#                    list(p_pyr, p_time, p_sex, p_race, p_age, p_map))
-# 
-#   if (length(plots) == 0) {
-#     cli::cli_abort("No valid panels could be generated for dashboard.")
-#   }
-# 
-#   n <- length(plots)
-#   ncols <- if (n <= 2) 1 else 2
-# 
-#   combined <- patchwork::wrap_plots(plots, ncol = ncols) +
-#     patchwork::plot_annotation(
-#       title    = .vl("dashboard_title", lang),
-#       subtitle = paste0(
-#         "N = ", format(nrow(df), big.mark = ","), " | ",
-#         tryCatch(sus_meta(df, "system"), error = function(e) "DATASUS")
-#       ),
-#       caption  = caption,
-#       tag_levels = "A",
-#       theme = ggplot2::theme(
-#         plot.title    = ggplot2::element_text(
-#           face = "bold", size = base_size + 3, hjust = 0
-#         ),
-#         plot.subtitle = ggplot2::element_text(
-#           colour = "grey40", size = base_size - 1, hjust = 0,
-#           margin = ggplot2::margin(b = 8)
-#         ),
-#         plot.caption  = ggplot2::element_text(
-#           colour = "grey50", size = base_size - 2, hjust = 0
-#         ),
-#         plot.background = ggplot2::element_rect(fill = "white", colour = NA)
-#       )
-#     )
-# 
-#   print(combined)
-#   invisible(combined)
-# }
 
 .vd_dashboard <- function(df, lang, interactive, palette, caption,
                           base_size, show_ci, ...) {
@@ -1443,7 +1462,7 @@ sus_view_demographics <- function(df,
 #' @noRd
 get_spatial_munic_cache <- function(
     level = "munic",
-    cache_dir = "/Users/maxanjos/.climasus4r_cache/spatial",
+    cache_dir = "~.climasus4r_cache/spatial",
     use_cache = TRUE, 
     lang,
     verbose

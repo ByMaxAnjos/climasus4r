@@ -114,6 +114,91 @@ reference:
       - sus_cache_info
       - sus_chat
 
+  - title: "Modelado DLNM"
+    desc: >
+      Ajuste y visualización de Modelos de Rezago Distribuido No Lineal (DLNM), que
+      capturan simultáneamente la no linealidad y los efectos retardados de exposiciones
+      ambientales (temperatura, contaminación del aire) sobre desenlaces de salud. Use
+      estas funciones para estimar curvas exposición-respuesta y de rezago a partir de
+      series temporales de mortalidad o morbilidad.
+    contents:
+      - sus_mod_dlnm
+      - sus_mod_plot_dlnm
+
+  - title: "Fracción y Número Atribuibles"
+    desc: >
+      Estimación de la Fracción Atribuible (FA%) y el Número Atribuible (NA) de desenlaces
+      de salud debidos al calor, al frío o a su efecto combinado, con intervalos de
+      confianza por bootstrap. Incluye análisis de riesgo en exceso bajo escenarios
+      contrafactuales (p. ej., sin calentamiento adicional) y visualizaciones dedicadas
+      para comunicar el impacto en salud pública.
+    contents:
+      - sus_mod_af
+      - sus_mod_excess
+      - sus_mod_plot_af
+
+  - title: "Meta-análisis y Agrupación"
+    desc: >
+      Agrupación en dos etapas de ajustes DLNM por ciudad mediante mvmeta, produciendo
+      curvas exposición-respuesta agrupadas y predicciones BLUP por ciudad. La
+      metarregresión identifica covariables municipales (latitud, IDH, urbanización) que
+      explican la heterogeneidad entre ciudades. Utilice este bloque para análisis
+      multiciudad y estudios de vigilancia climático-epidemiológica a escala nacional.
+    contents:
+      - sus_mod_pool
+      - sus_mod_metaregression
+      - sus_mod_plot_pool
+
+  - title: "Carga, Sensibilidad y Vulnerabilidad"
+    desc: >
+      Cuantificación de la carga de enfermedad atribuible al clima (NA, FA, desigualdad
+      de Lorenz), análisis comparativo de sensibilidad entre estratos poblacionales y
+      construcción del Índice de Vulnerabilidad IPCC de tres pilares (Exposición,
+      Sensibilidad, Capacidad Adaptativa). Estas funciones convierten estimaciones
+      epidemiológicas puntuales en indicadores de salud pública accionables para la
+      planificación territorial y ambiental.
+    contents:
+      - sus_mod_burden
+      - sus_mod_sensitivity
+      - sus_mod_vulnerability_index
+      - sus_mod_plot_burden
+      - sus_mod_plot_sensitivity
+      - sus_mod_plot_vulnerability
+
+  - title: "Diseños Epidemiológicos"
+    desc: >
+      Implementaciones de diseños observacionales clásicos: el estudio caso-cruzado
+      estratificado por tiempo (control intraindividual, ideal para exposiciones agudas
+      de corto plazo) y el Análisis de Series de Tiempo Interrumpidas (ITS), que evalúa
+      el efecto causal de intervenciones o políticas de salud sobre las tendencias
+      temporales de los desenlaces.
+    contents:
+      - sus_mod_casecrossover
+      - sus_mod_its
+
+  - title: "Machine Learning Climático"
+    desc: >
+      Modelado predictivo con XGBoost, con validación cruzada out-of-fold, ranking de
+      importancia de características y diagnósticos gráficos (observado vs. predicho,
+      curva de pérdida de CV, gráfico de importancia de variables). Use cuando el
+      objetivo es pronosticar desenlaces de salud a partir de predictores climáticos y
+      socioeconómicos, complementando el marco causal DLNM con capacidad predictiva de
+      alta dimensión.
+    contents:
+      - sus_mod_ml
+      - sus_mod_plot_ml
+
+  - title: "Métodos S3 de los Modelos"
+    desc: >
+      Métodos S3 exportados (print, summary, coef, vcov, tidy, predict) para todas las
+      clases de salida del módulo de modelado (climasus_dlnm, climasus_af, climasus_pool,
+      climasus_excess, climasus_casecrossover, climasus_its, climasus_sensitivity,
+      climasus_metaregression, climasus_burden, climasus_vi, climasus_ml). Permiten
+      integración nativa con broom, tidymodels y flujos de trabajo analíticos estándar
+      de R.
+    contents:
+      - matches("^(print|summary|coef|vcov|tidy|predict)\\.climasus_(?!df)")
+
 articles:
   - title: "Participa"
     contents:
