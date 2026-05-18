@@ -2,7 +2,7 @@
 title: "PARTE 1: Integração de Dados Climáticos e de Saúde"
 subtitle: "As 10 Estratégias de Alinhamento Temporal da sus_climate_aggregate()"
 author:
-  - name: "Max Anjos"
+  - name: "Max Anjos", "Eucilene Santana" & "Thauã Menezes"
 date: "`r format(Sys.Date(), '%d %B, %Y')`"
 output:
   html_document:
@@ -1044,15 +1044,17 @@ A integração dessas estratégias em modelos híbridos e sistemas de vigilânci
 
 ## Referências-Chave
 
-1. **Gasparrini, A. (2011)**. Distributed lag linear and non-linear models in R: the package dlnm. *Journal of Statistical Software*, 43(8), 1-20.
+1.  **Armstrong, B. (2006)**. Models for the relationship between ambient temperature and daily mortality. *Epidemiology*, 17(6), 624-631.
 
-2. **Bhaskaran, K., et al. (2013)**. Time series regression studies in environmental epidemiology. *International Journal of Epidemiology*, 42(4), 1187-1195.
+2.  **Basu, R., & Samet, J. M. (2002)**. Relation between elevated ambient temperature and mortality: a review of the epidemiologic evidence. *Epidemiologic Reviews*, 24(2), 190-202.
 
-3. **Basu, R., & Samet, J. M. (2002)**. Relation between elevated ambient temperature and mortality: a review of the epidemiologic evidence. *Epidemiologic Reviews*, 24(2), 190-202.
+3. **Bhaskaran, K., et al. (2013)**. Time series regression studies in environmental epidemiology. *International Journal of Epidemiology*, 42(4), 1187-1195.
 
-4. **Lowe, R., et al. (2021)**. Combined effects of hydrometeorological hazards and urbanisation on dengue risk in Brazil: a spatiotemporal modelling study. *The Lancet Planetary Health*, 5(4), e209-e219.
+4. **Gasparrini, A. (2011)**. Distributed lag linear and non-linear models in R: the package dlnm. *Journal of Statistical Software*, 43(8), 1-20.
 
-5. **Armstrong, B. (2006)**. Models for the relationship between ambient temperature and daily mortality. *Epidemiology*, 17(6), 624-631.
+5.  **Gasparrini, A., et al. (2015)**. Mortality risk attributable to high and low ambient temperature: a multicountry observational study. The Lancet, 386(9991), 369-375.
+
+6. **Lowe, R., et al. (2021)**. Combined effects of hydrometeorological hazards and urbanisation on dengue risk in Brazil: a spatiotemporal modelling study. *The Lancet Planetary Health*, 5(4), e209-e219.
 
 ---
 
