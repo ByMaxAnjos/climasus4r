@@ -2,7 +2,9 @@
 title: "PARTE 1: Integração de Dados Climáticos e de Saúde"
 subtitle: "As 10 Estratégias de Alinhamento Temporal entre Dados Climáticos e Desfechos de Saúde com a sus_climate_aggregate()"
 author:
-  - name: "Max Anjos", "Eucilene Santana" & "Thauã Menezes"
+  - name: "Max Anjos"
+  - name: "Eucilene Santana"
+  - name: "Thauã Menezes"
 date: "`r format(Sys.Date(), '%d %B, %Y')`"
 output:
   html_document:
