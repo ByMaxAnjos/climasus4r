@@ -198,7 +198,7 @@ reference:
       integración nativa con broom, tidymodels y flujos de trabajo analíticos estándar
       de R.
     contents:
-      - matches("^(print|summary|coef|vcov|tidy|predict)\\.climasus_(?!df)")
+      - matches("^(print|summary|coef|vcov|tidy|predict)\\.(climasus_dlnm|climasus_af|climasus_pool|climasus_excess|climasus_casecrossover|climasus_its|climasus_sensitivity|climasus_metaregression|climasus_burden|climasus_vi|climasus_ml)")
 
 articles:
   - title: "Participa"
