@@ -84,7 +84,10 @@ reference:
       - sus_climate_fill_inmet
       - sus_climate_aggregate
       - sus_climate_compute_indicators
-      - sus_climate_plot_fill 
+      - sus_climate_plot_fill
+      - sus_climate_compute_heatwaves
+      - sus_climate_plot_heatwaves
+      - sus_climate_normals
 
   - title: "Quality & Metadata"
     desc: "Data quality reports and disease dictionaries"
@@ -201,4 +204,3 @@ articles:
   - title: "Tutorials"
     contents:
       - tutorials
- 

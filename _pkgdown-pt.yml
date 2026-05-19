@@ -85,6 +85,7 @@ reference:
       - sus_climate_plot_fill
       - sus_climate_compute_heatwaves
       - sus_climate_plot_heatwaves
+      - sus_climate_normals
 
   - title: "Qualidade e Metadados"
     desc: "Relatórios de qualidade de dados e dicionários de doenças"
@@ -206,7 +207,6 @@ articles:
       - climate_indicators
       - tutorial_clima_inmet
       - ondas_de_calor
-
 
 
       
