@@ -127,7 +127,7 @@ reference:
       de saúde devidos à exposição ao calor, ao frio ou ao total combinado, com intervalos
       de confiança por bootstrap. Inclui análise de excesso de risco sob cenários
       contrafactuais (e.g., sem aquecimento global) e visualizações dedicadas para
-      comunicar o impacto em saúde pública.""
+      comunicar o impacto em saúde pública."
     contents:
       - sus_mod_af
       - sus_mod_excess
