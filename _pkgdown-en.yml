@@ -73,6 +73,7 @@ reference:
     contents:
       - sus_data_filter_cid
       - sus_data_filter_demographics
+      - sus_data_plot_demographics
 
   - title: "Analysis & Spatial Data"
     desc: "Time series aggregation and spatial joins with Brazilian geography and demographic"
@@ -87,7 +88,11 @@ reference:
       - sus_climate_plot_fill
       - sus_climate_compute_heatwaves
       - sus_climate_plot_heatwaves
+      - hw_active_days
+      - hw_count_by_year
+      - hw_get_events
       - sus_climate_normals
+      - sus_climate_normals_meta
 
   - title: "Quality & Metadata"
     desc: "Data quality reports and disease dictionaries"
@@ -104,8 +109,6 @@ reference:
       - as.data.frame.climasus_df
       - write_duckdb_climasus
       - write_parquet_climasus
-      - sus_climate_compute_heatwaves
-      - sus_climate_plot_heatwaves
       - sus_as_arrow
       - sus_as_duckdb
 
@@ -180,7 +183,16 @@ reference:
     contents:
       - sus_mod_ml
       - sus_mod_plot_ml
-      
+
+  - title: "S3 Model Methods"
+    desc: >
+      Exported S3 methods (print, summary, coef, vcov, tidy, predict) for all output
+      classes of the modeling module (climasus_dlnm, climasus_af, climasus_pool,
+      climasus_excess, climasus_casecrossover, climasus_its, climasus_sensitivity,
+      climasus_metaregression, climasus_burden, climasus_vi, climasus_ml).
+    contents:
+      - matches("^(print|summary|coef|vcov|tidy|predict)\\.(climasus_dlnm|climasus_af|climasus_pool|climasus_excess|climasus_casecrossover|climasus_its|climasus_sensitivity|climasus_metaregression|climasus_burden|climasus_vi|climasus_ml)")
+
 articles:
   - title: "Get Involved"
     contents:
