@@ -118,46 +118,42 @@ reference:
       - sus_chat
 
   - title: "DLNM Modeling"
-    desc: >
-      Fit and visualize Distributed Lag Non-Linear Models (DLNM), which simultaneously
+    desc: "Fit and visualize Distributed Lag Non-Linear Models (DLNM), which simultaneously
       capture the non-linearity and delayed effects of environmental exposures (temperature,
       air pollution) on health outcomes. Use these functions to estimate exposure-response
-      and lag-response curves from time-series data on mortality or morbidity.
+      and lag-response curves from time-series data on mortality or morbidity."
     contents:
       - sus_mod_dlnm
       - sus_mod_plot_dlnm
 
   - title: "Attributable Fraction & Number"
-    desc: >
-      Estimate the Attributable Fraction (AF%) and Attributable Number (AN) of health
+    desc: "Estimate the Attributable Fraction (AF%) and Attributable Number (AN) of health
       outcomes due to heat, cold, or their combined effect, with bootstrap confidence
       intervals. Includes excess-risk analysis under counterfactual scenarios (e.g., no
       additional warming) and dedicated visualizations for communicating public health
-      impact to non-specialist audiences.
+      impact to non-specialist audiences."
     contents:
       - sus_mod_af
       - sus_mod_excess
       - sus_mod_plot_af
 
   - title: "Pooled Meta-Analysis"
-    desc: >
-      Two-stage pooling of city-specific DLNM fits using mvmeta, producing pooled
+    desc: "Two-stage pooling of city-specific DLNM fits using mvmeta, producing pooled
       exposure-response curves and city-level Best Linear Unbiased Predictions (BLUPs).
       Meta-regression identifies municipal-level covariates (latitude, HDI, urbanization)
       that explain heterogeneity across cities. Use this block for multi-city analyses
-      and national-scale climate-epidemiological surveillance studies.
+      and national-scale climate-epidemiological surveillance studies."
     contents:
       - sus_mod_pool
       - sus_mod_metaregression
       - sus_mod_plot_pool
 
   - title: "Disease Burden, Sensitivity & Vulnerability"
-    desc: >
-      Quantify the climate-attributable disease burden (AN, AF, Lorenz inequality),
+    desc: "Quantify the climate-attributable disease burden (AN, AF, Lorenz inequality),
       perform comparative sensitivity analyses across population strata, and construct
       the IPCC three-pillar Vulnerability Index (Exposure, Sensitivity, Adaptive Capacity).
       These functions translate point epidemiological estimates into actionable public
-      health indicators for territorial and environmental planning.
+      health indicators for territorial and environmental planning."
     contents:
       - sus_mod_burden
       - sus_mod_sensitivity
@@ -167,35 +163,23 @@ reference:
       - sus_mod_plot_vulnerability
 
   - title: "Epidemiological Study Designs"
-    desc: >
-      Implementations of classic observational designs: the time-stratified case-crossover
+    desc: "Implementations of classic observational designs: the time-stratified case-crossover
       study (within-individual control, ideal for acute short-term exposures) and
       Interrupted Time Series (ITS) analysis, which evaluates the causal effect of
-      health interventions or policy changes on temporal trends in health outcomes.
+      health interventions or policy changes on temporal trends in health outcomes."
     contents:
       - sus_mod_casecrossover
       - sus_mod_its
 
   - title: "Climate Machine Learning"
-    desc: >
-      Predictive modeling with XGBoost, featuring out-of-fold cross-validation, feature
+    desc: "Predictive modeling with XGBoost, featuring out-of-fold cross-validation, feature
       importance ranking, and graphical diagnostics (observed vs. predicted, CV loss
       curve, variable importance chart). Use when the goal is forecasting health outcomes
       from climate and socioeconomic predictors, complementing the causal DLNM framework
-      with high-dimensional predictive capacity.
+      with high-dimensional predictive capacity."
     contents:
       - sus_mod_ml
       - sus_mod_plot_ml
-
-  - title: "S3 Model Methods"
-    desc: >
-      Exported S3 methods (print, summary, coef, vcov, tidy, predict) for all output
-      classes produced by the modeling module (climasus_dlnm, climasus_af, climasus_pool,
-      climasus_excess, climasus_casecrossover, climasus_its, climasus_sensitivity,
-      climasus_metaregression, climasus_burden, climasus_vi, climasus_ml). These enable
-      native integration with broom, tidymodels, and standard R analytical workflows.
-    contents:
-      - matches("^(print|summary|coef|vcov|tidy|predict)\\.(climasus_dlnm|climasus_af|climasus_pool|climasus_excess|climasus_casecrossover|climasus_its|climasus_sensitivity|climasus_metaregression|climasus_burden|climasus_vi|climasus_ml)")
 
 articles:
   - title: "Get Involved"
