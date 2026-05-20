@@ -1138,51 +1138,48 @@ cat("Colunas geradas (ocupacional):", names(ind_ocupacional), "\n")
 
 # Referências
 
-- Liljegren, J. C., Carhart, R. A., Lawday, P., Tschopp, S., & Sharp, R. (2008).  
-  Modeling the wet bulb globe temperature using standard meteorological measurements. *Journal of Occupational and Environmental Hygiene, 5*(10), 645–655.  
+- Alduchov, O. A., & Eskridge, R. E. (1996).
+  Improved Magnus form approximation of saturation vapor pressure. Journal of Applied Meteorology, 35, 601–609.
 
 - Bernard, T. E., & Pourmoghani, M. (1999).  
   Prediction of workplace wet bulb globe temperature. *AIHAJ, 60*(1), 32–37.  
 
-- Occupational Safety and Health Administration. (2017).  
-  *Protecting workers from the effects of heat* (OSHA 3154).  
+- Bröde, P., Fiala, D., Błażejczyk, K., Holmér, I., Jendritzky, G., Kampmann, B., et al. (2012).  
+  Deriving the operational procedure for the Universal Thermal Climate Index (UTCI). *International Journal of Biometeorology, 56*(4), 481–494.  
 
 - International Organization for Standardization. (1989).  
   *ISO 7243: Hot environments—Estimation of the heat stress on working man based on the WBGT-index*.  
 
-- Rothfusz, L. P. (1990).  
-  *The heat index equation* (Technical Attachment SR/SSD 90-23). National Weather Service.  
+- Joint Action Group for Temperature Indices. (2001). Development of the wind chill temperature index.
 
-- National Weather Service. (n.d.).  
-  Heat index equation. https://www.wpc.ncep.noaa.gov/html/heatindex_equation.shtml  
+- Liljegren, J. C., Carhart, R. A., Lawday, P., Tschopp, S., & Sharp, R. (2008).
+  Modeling the wet bulb globe temperature using standard meteorological measurements. Journal of Occupational and Environmental Hygiene, 5(10), 645–655.
 
-- Thom, E. C. (1959).  
-  The discomfort index. *Weatherwise, 12*(2), 57–59.  
+- Magnus, G. (1844). Versuche über die spannkräfte des wasserdampfs.
 
-- Joint Action Group for Temperature Indices. (2001).  
-  Development of the wind chill temperature index.  
+- Matzarakis, A., Mayer, H., & Iziomon, M. G. (1999).
+  Applications of a universal thermal index: Physiological equivalent temperature. International Journal of Biometeorology, 43, 76–84.
 
 - Missenard, A. (1937).  
   *Température sensible*.  
 
-- Bröde, P., Fiala, D., Błażejczyk, K., Holmér, I., Jendritzky, G., Kampmann, B., et al. (2012).  
-  Deriving the operational procedure for the Universal Thermal Climate Index (UTCI). *International Journal of Biometeorology, 56*(4), 481–494.  
+- McMaster, G. S., & Wilhelm, W. W. (1997).
+  Growing degree-days: One equation, two interpretations. Agricultural and Forest Meteorology, 87, 291–300. 
 
-- Matzarakis, A., Mayer, H., & Iziomon, M. G. (1999).  
-  Applications of a universal thermal index: Physiological equivalent temperature. *International Journal of Biometeorology, 43*, 76–84.  
+- Missenard, A. (1937). Température sensible. 
 
-- Magnus, G. (1844).  
-  *Versuche über die spannkräfte des wasserdampfs*.  
+- National Weather Service. (n.d.).
+  Heat index equation. https://www.wpc.ncep.noaa.gov/html/heatindex_equation.shtml
 
-- Tetens, O. (1930).  
-  Über einige meteorologische Begriffe. *Zeitschrift für Geophysik, 6*, 297–309.  
+- Occupational Safety and Health Administration. (2017). Protecting workers from the effects of heat (OSHA 3154).
 
-- Alduchov, O. A., & Eskridge, R. E. (1996).  
-  Improved Magnus form approximation of saturation vapor pressure. *Journal of Applied Meteorology, 35*, 601–609.  
+- Rothfusz, L. P. (1990).
+  The heat index equation (Technical Attachment SR/SSD 90-23). National Weather Service.
 
-- McMaster, G. S., & Wilhelm, W. W. (1997).  
-  Growing degree-days: One equation, two interpretations. *Agricultural and Forest Meteorology, 87*, 291–300.  
+- Tetens, O. (1930).
+  Über einige meteorologische Begriffe. Zeitschrift für Geophysik, 6, 297–309.
 
+- Thom, E. C. (1959). The discomfort index. Weatherwise, 12(2), 57–59.
 ---
 
 ## 🌲 Tem feedback ou sugestões?
