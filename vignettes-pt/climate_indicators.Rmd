@@ -2,7 +2,7 @@
 title: "Índices Bioclimáticos para Saúde Pública"
 subtitle: "Teoria e Pipeline INMET → Preenchimento → Indicadores Térmicos | `sus_climate_compute_indicators()`"
 author:
-  - name: "Max Anjos & João Gobo"
+  - name: "Max Anjos , João Gobo" & " Thauã Menezes"
 date: "`r format(Sys.Date(), '%d %B, %Y')`"
 output:
   html_document:
@@ -304,7 +304,7 @@ térmico.
 
 ## Por que índices bioclimáticos?
 
-A temperatura do ar (`T`) isoladamente é um preditor insuficiente de estresse térmico humano. O sistema termorregulatório responde a um **balanço energético complexo** que integra:
+A temperatura do ar (`T`) isoladamente não representa adequadamente o estresse térmico humano. O sistema termorregulatório responde a um **balanço energético complexo** que integra:
 
 *   **Temperatura do ar** (`T`, °C)
 *   **Umidade relativa** (`RH`, %): afeta a eficiência da evaporação do suor.
