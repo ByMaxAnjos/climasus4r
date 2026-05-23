@@ -93,6 +93,7 @@ reference:
       - hw_get_events
       - sus_climate_normals
       - sus_climate_normals_meta
+      - sus_climate_anomaly
 
   - title: "Quality & Metadata"
     desc: "Data quality reports and disease dictionaries"

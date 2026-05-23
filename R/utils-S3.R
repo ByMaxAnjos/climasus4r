@@ -66,7 +66,9 @@
   # Statistical model outputs
   "dlnm_model", "glm_model", "compare_model",
   # SWOT analysis
-  "swot"
+  "swot",
+  # Climate anomalies vs. normals
+  "anomaly"
 )
 
 #' Valid storage backends for climasus_df
