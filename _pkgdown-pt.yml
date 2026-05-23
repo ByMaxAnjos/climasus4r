@@ -172,6 +172,12 @@ reference:
       - sus_mod_casecrossover
       - sus_mod_its
 
+  - title: "Análise SWOT Climático-Saúde"
+    desc: "Síntese de objetos climasus já processados num quadro SWOT (Forças, Fraquezas, Oportunidades e Ameaças), com pontuações numéricas (0–100) e categóricas configuráveis por quadrante, e visualizações radar, matriz e barras."
+    contents:
+      - sus_mod_swot
+      - sus_mod_plot_swot
+
   - title: "Machine Learning aplicado Clima e Saúde"
     desc: "Modelagem preditiva baseada em XGBoost com validação cruzada out-of-fold, importância
       de características e diagnóstico gráfico (observado vs. predito, curva de perda,

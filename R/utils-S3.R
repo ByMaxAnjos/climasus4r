@@ -64,7 +64,9 @@
   # Heatwave detection output
   "heatwaves",
   # Statistical model outputs
-  "dlnm_model", "glm_model", "compare_model"
+  "dlnm_model", "glm_model", "compare_model",
+  # SWOT analysis
+  "swot"
 )
 
 #' Valid storage backends for climasus_df
