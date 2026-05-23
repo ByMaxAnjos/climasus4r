@@ -2,8 +2,8 @@
 title: "Índices Bioclimáticos para Saúde Pública"
 subtitle: "Teoria e Pipeline INMET → Preenchimento → Indicadores Térmicos | `sus_climate_compute_indicators()`"
 author:
-  - name: "Max Anjos
-  - name: "João Gobo" 
+  - name: "Max Anjos"
+  - name: "João Gobo"
   - name: "Thauã Menezes"
 date: "`r format(Sys.Date(), '%d %B, %Y')`"
 output:
