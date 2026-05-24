@@ -196,7 +196,7 @@ reference:
       climasus_excess, climasus_casecrossover, climasus_its, climasus_sensitivity,
       climasus_metaregression, climasus_burden, climasus_vi, climasus_ml).
     contents:
-      - matches("^(print|summary|coef|vcov|tidy|predict)\\.(climasus_dlnm|climasus_af|climasus_pool|climasus_excess|climasus_casecrossover|climasus_its|climasus_sensitivity|climasus_metaregression|climasus_burden|climasus_vi|climasus_ml)")
+      - matches("^(print|summary|coef|vcov|tidy|predict)\\.(climasus_dlnm|climasus_af|climasus_pool|climasus_excess|climasus_casecrossover|climasus_its|climasus_sensitivity|climasus_metaregression|climasus_burden|climasus_vi|climasus_ml|climasus_swot)")
 
 articles:
   - title: "Participe"
