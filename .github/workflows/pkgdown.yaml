@@ -46,6 +46,7 @@ jobs:
       
       - name: Install pkgdown and dependencies
         run: |
+          options(repos = c(CRAN = "https://cloud.r-project.org"))
           install.packages(c("pkgdown", "knitr", "rmarkdown", "desc"), dependencies = TRUE)
         shell: Rscript {0}
       
