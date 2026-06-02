@@ -380,11 +380,12 @@ sus_data_read <- function(path,
   
   # Setup parallel processing if requested
   if (parallel && is_batch) {
-    if (!requireNamespace("future.apply", quietly = TRUE)) {
+    if (!requireNamespace("future.apply", quietly = TRUE) ||
+        !requireNamespace("future", quietly = TRUE)) {
       msg <- switch(lang,
-        "en" = "Package 'future.apply' required for parallel. Falling back to sequential.",
-        "pt" = "Pacote 'future.apply' necessario para paralelo. Voltando para sequencial.",
-        "es" = "Paquete 'future.apply' requerido para paralelo. Volviendo a secuencial."
+        "en" = "Packages 'future' and 'future.apply' required for parallel. Falling back to sequential.",
+        "pt" = "Pacotes 'future' e 'future.apply' necessarios para paralelo. Voltando para sequencial.",
+        "es" = "Paquetes 'future' y 'future.apply' requeridos para paralelo. Volviendo a secuencial."
       )
       if (verbose) cli::cli_alert_warning(msg)
       parallel <- FALSE

@@ -37,6 +37,8 @@
 
 ^.claude/.*$
 ^\.claude$
+^\.vscode$
+^\.Rprofile$
 
 ^climasus4r.Rcheck/.*$
 ^\climasus4r.Rcheck$

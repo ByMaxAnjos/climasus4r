@@ -17,26 +17,26 @@ utils::globalVariables(c(
 .swot_plot_labels <- list(
 
   radar_title = list(
-    pt = "Perfil SWOT Climático-Saúde",
+    pt = "Perfil SWOT Clim\u00e1tico-Sa\u00fade",
     en = "Climate-Health SWOT Profile",
     es = "Perfil SWOT Clima-Salud"
   ),
   matrix_title = list(
-    pt = "Análise SWOT Climático-Saúde",
+    pt = "An\u00e1lise SWOT Clim\u00e1tico-Sa\u00fade",
     en = "Climate-Health SWOT Analysis",
-    es = "Análisis SWOT Clima-Salud"
+    es = "An\u00e1lisis SWOT Clima-Salud"
   ),
   bar_title = list(
-    pt = "Pontuações SWOT por Entidade",
+    pt = "Pontua\u00e7\u00f5es SWOT por Entidade",
     en = "SWOT Scores by Entity",
     es = "Puntuaciones SWOT por Entidad"
   ),
-  quadrant_S = list(pt = "Forças",       en = "Strengths",     es = "Fortalezas"),
+  quadrant_S = list(pt = "For\u00e7as",       en = "Strengths",     es = "Fortalezas"),
   quadrant_W = list(pt = "Fraquezas",    en = "Weaknesses",    es = "Debilidades"),
   quadrant_O = list(pt = "Oportunidades",en = "Opportunities", es = "Oportunidades"),
-  quadrant_T = list(pt = "Ameaças",      en = "Threats",       es = "Amenazas"),
+  quadrant_T = list(pt = "Amea\u00e7as",      en = "Threats",       es = "Amenazas"),
 
-  x_score   = list(pt = "Pontuação (0–100)", en = "Score (0–100)", es = "Puntuación (0–100)"),
+  x_score   = list(pt = "Pontua\u00e7\u00e3o (0\u2013100)", en = "Score (0\u2013100)", es = "Puntuaci\u00f3n (0\u2013100)"),
   y_entity  = list(pt = "Entidade",          en = "Entity",        es = "Entidad"),
 
   top_inds = list(
@@ -61,12 +61,12 @@ utils::globalVariables(c(
     es = "{.arg x} debe ser un {.cls climasus_swot} de {.fn sus_mod_swot}."
   ),
   warn_matrix_multi = list(
-    pt = "type='matrix' mostra apenas uma entidade. Exibindo: {ent}. Use type='bar' para múltiplas.",
+    pt = "type='matrix' mostra apenas uma entidade. Exibindo: {ent}. Use type='bar' para m\u00faltiplas.",
     en = "type='matrix' shows one entity only. Showing: {ent}. Use type='bar' for multiple.",
-    es = "type='matrix' muestra solo una entidad. Mostrando: {ent}. Use type='bar' para múltiples."
+    es = "type='matrix' muestra solo una entidad. Mostrando: {ent}. Use type='bar' para m\u00faltiples."
   ),
   warn_lang = list(
-    pt = "Idioma '{lang}' não suportado. Usando 'pt'.",
+    pt = "Idioma '{lang}' n\u00e3o suportado. Usando 'pt'.",
     en = "Language '{lang}' not supported. Using 'pt'.",
     es = "Idioma '{lang}' no admitido. Usando 'pt'."
   )
@@ -163,7 +163,7 @@ sus_mod_plot_swot <- function(
 
   rlang::check_installed("ggplot2",
                          reason = "to create plots with sus_mod_plot_swot()")
-  if (verbose) cli::cli_h1("climasus4r — SWOT Plot")
+  if (verbose) cli::cli_h1("climasus4r \u2014 SWOT Plot")
 
   # -- Build plot and table ---------------------------------------------------
   if (type == "radar") {
@@ -453,8 +453,8 @@ sus_mod_plot_swot <- function(
     if (n_ind > 0L) {
       for (k in seq_len(n_ind)) {
         ind_row <- ent_inds[k, ]
-        lbl     <- paste0("• ", ind_row$indicator,
-                          " – ", round(ind_row$norm_score))
+        lbl     <- paste0("\u2022 ", ind_row$indicator,
+                          " \u2013 ", round(ind_row$norm_score))
         p <- p +
           ggplot2::annotate("text",
                             x = qd$xmn + pad * 1.5,

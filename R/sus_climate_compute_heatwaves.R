@@ -254,7 +254,6 @@ utils::globalVariables(c(
 #'   cli_alert_info cli_h1
 #' @importFrom purrr map map_lgl list_rbind
 #' @importFrom lubridate yday year
-#' @importFrom slider slide_dbl slide_lgl
 #' @importFrom rlang .data
 #' @importFrom glue glue
 sus_climate_compute_heatwaves <- function(
@@ -631,6 +630,8 @@ sus_climate_compute_heatwaves <- function(
 #' @keywords internal
 #' @noRd
 .hw_method_ehf <- function(daily, min_dur) {
+  rlang::check_installed("slider",
+    reason = "to compute the EHF heatwave index (rolling-window calculations)")
   daily |>
     dplyr::arrange(date_day, .by_group = FALSE) |>
     dplyr::mutate(

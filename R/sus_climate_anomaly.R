@@ -54,9 +54,9 @@ utils::globalVariables(c(
 .anom_labels <- list(
 
   title = list(
-    pt = "climasus4r — Anomalias Climáticas vs. Normais INMET",
-    en = "climasus4r — Climate Anomalies vs. INMET Normals",
-    es = "climasus4r — Anomalías Climáticas vs. Normales INMET"
+    pt = "climasus4r \u2014 Anomalias Clim\u00e1ticas vs. Normais INMET",
+    en = "climasus4r \u2014 Climate Anomalies vs. INMET Normals",
+    es = "climasus4r \u2014 Anomal\u00edas Clim\u00e1ticas vs. Normales INMET"
   ),
   step_validate = list(
     pt = "Validando entradas: {n_obs} obs. | {n_norm} normais...",
@@ -64,12 +64,12 @@ utils::globalVariables(c(
     es = "Validando entradas: {n_obs} obs. | {n_norm} normales..."
   ),
   step_vars = list(
-    pt = "Variáveis mapeadas ({n_vars}): {vars_str}",
+    pt = "Vari\u00e1veis mapeadas ({n_vars}): {vars_str}",
     en = "Mapped variables ({n_vars}): {vars_str}",
     es = "Variables mapeadas ({n_vars}): {vars_str}"
   ),
   step_aggregate = list(
-    pt = "Agregando observações à escala {time_scale}...",
+    pt = "Agregando observa\u00e7\u00f5es \u00e0 escala {time_scale}...",
     en = "Aggregating observations to {time_scale} scale...",
     es = "Agregando observaciones a escala {time_scale}..."
   ),
@@ -79,19 +79,19 @@ utils::globalVariables(c(
     es = "Preparando normales (escala {time_scale})..."
   ),
   step_join = list(
-    pt = "Unindo dados de {n_st} estação/ões com normais...",
+    pt = "Unindo dados de {n_st} esta\u00e7\u00e3o/\u00f5es com normais...",
     en = "Joining {n_st} station(s) with normals...",
-    es = "Uniendo {n_st} estación/es con normales..."
+    es = "Uniendo {n_st} estaci\u00f3n/es con normales..."
   ),
   step_compute = list(
-    pt = "Calculando anomalias (método: {method})...",
+    pt = "Calculando anomalias (m\u00e9todo: {method})...",
     en = "Computing anomalies (method: {method})...",
-    es = "Calculando anomalías (método: {method})..."
+    es = "Calculando anomal\u00edas (m\u00e9todo: {method})..."
   ),
   done = list(
-    pt = "Concluído. {n_rows} períodos | {n_st} estações | {n_vars} variáveis | método: {method}",
+    pt = "Conclu\u00eddo. {n_rows} per\u00edodos | {n_st} esta\u00e7\u00f5es | {n_vars} vari\u00e1veis | m\u00e9todo: {method}",
     en = "Done. {n_rows} periods | {n_st} stations | {n_vars} variables | method: {method}",
-    es = "Listo. {n_rows} períodos | {n_st} estaciones | {n_vars} variables | método: {method}"
+    es = "Listo. {n_rows} per\u00edodos | {n_st} estaciones | {n_vars} variables | m\u00e9todo: {method}"
   ),
 
   err_not_observed = list(
@@ -105,42 +105,42 @@ utils::globalVariables(c(
     es = "{.arg normals} debe ser un {.cls climasus_df} de {.fn sus_climate_normals}."
   ),
   err_no_station = list(
-    pt = "Coluna {.val {col}} não encontrada em {.arg observed}. Ajuste {.arg station_col}.",
+    pt = "Coluna {.val {col}} n\u00e3o encontrada em {.arg observed}. Ajuste {.arg station_col}.",
     en = "Column {.val {col}} not found in {.arg observed}. Adjust {.arg station_col}.",
     es = "Columna {.val {col}} no encontrada en {.arg observed}. Ajuste {.arg station_col}."
   ),
   err_no_date = list(
-    pt = "Coluna de data {.val {col}} não encontrada em {.arg observed}. Ajuste {.arg date_col}.",
+    pt = "Coluna de data {.val {col}} n\u00e3o encontrada em {.arg observed}. Ajuste {.arg date_col}.",
     en = "Date column {.val {col}} not found in {.arg observed}. Adjust {.arg date_col}.",
     es = "Columna de fecha {.val {col}} no encontrada en {.arg observed}. Ajuste {.arg date_col}."
   ),
   err_no_vars = list(
-    pt = "Nenhuma variável mapeável encontrada. Forneça {.arg vars} explicitamente ou verifique o catálogo com {.fn sus_climate_normals_meta}.",
+    pt = "Nenhuma vari\u00e1vel mape\u00e1vel encontrada. Forne\u00e7a {.arg vars} explicitamente ou verifique o cat\u00e1logo com {.fn sus_climate_normals_meta}.",
     en = "No mappable variables found. Provide {.arg vars} explicitly or check the catalogue with {.fn sus_climate_normals_meta}.",
-    es = "Ninguna variable mapeable encontrada. Proporcione {.arg vars} explícitamente o consulte el catálogo con {.fn sus_climate_normals_meta}."
+    es = "Ninguna variable mapeable encontrada. Proporcione {.arg vars} expl\u00edcitamente o consulte el cat\u00e1logo con {.fn sus_climate_normals_meta}."
   ),
   err_vars_not_in_obs = list(
-    pt = "Variáveis não encontradas em {.arg observed}: {.val {miss}}.",
+    pt = "Vari\u00e1veis n\u00e3o encontradas em {.arg observed}: {.val {miss}}.",
     en = "Variables not found in {.arg observed}: {.val {miss}}.",
     es = "Variables no encontradas en {.arg observed}: {.val {miss}}."
   ),
   err_varcodes_not_in_norm = list(
-    pt = "var_code não encontrado em {.arg normals}: {.val {miss}}. Use {.fn sus_climate_normals_meta} para ver os códigos disponíveis.",
+    pt = "var_code n\u00e3o encontrado em {.arg normals}: {.val {miss}}. Use {.fn sus_climate_normals_meta} para ver os c\u00f3digos dispon\u00edveis.",
     en = "var_code not found in {.arg normals}: {.val {miss}}. Use {.fn sus_climate_normals_meta} to see available codes.",
-    es = "var_code no encontrado en {.arg normals}: {.val {miss}}. Use {.fn sus_climate_normals_meta} para ver los códigos disponibles."
+    es = "var_code no encontrado en {.arg normals}: {.val {miss}}. Use {.fn sus_climate_normals_meta} para ver los c\u00f3digos disponibles."
   ),
   err_no_join = list(
-    pt = "Nenhuma correspondência encontrada após o join. Verifique se os códigos de estação de {.arg observed} coincidem com {.field codigo} em {.arg normals}.",
+    pt = "Nenhuma correspond\u00eancia encontrada ap\u00f3s o join. Verifique se os c\u00f3digos de esta\u00e7\u00e3o de {.arg observed} coincidem com {.field codigo} em {.arg normals}.",
     en = "No matches found after join. Verify that station codes in {.arg observed} match {.field codigo} in {.arg normals}.",
-    es = "Sin coincidencias tras el join. Verifique que los códigos de {.arg observed} coincidan con {.field codigo} en {.arg normals}."
+    es = "Sin coincidencias tras el join. Verifique que los c\u00f3digos de {.arg observed} coincidan con {.field codigo} en {.arg normals}."
   ),
   warn_std_few_years = list(
-    pt = "Anomalia padronizada: {n_low} estação/mês com <3 anos de dados; SD será impreciso.",
+    pt = "Anomalia padronizada: {n_low} esta\u00e7\u00e3o/m\u00eas com <3 anos de dados; SD ser\u00e1 impreciso.",
     en = "Standardized anomaly: {n_low} station/month(s) with <3 years of data; SD will be imprecise.",
-    es = "Anomalía estandarizada: {n_low} estación/mes con <3 años de datos; SD será impreciso."
+    es = "Anomal\u00eda estandarizada: {n_low} estaci\u00f3n/mes con <3 a\u00f1os de datos; SD ser\u00e1 impreciso."
   ),
   warn_lang = list(
-    pt = "Idioma '{lang}' não suportado. Usando 'pt'.",
+    pt = "Idioma '{lang}' n\u00e3o suportado. Usando 'pt'.",
     en = "Language '{lang}' not supported. Using 'pt'.",
     es = "Idioma '{lang}' no admitido. Usando 'pt'."
   )
@@ -365,7 +365,7 @@ sus_climate_anomaly <- function(
     cli::cli_alert_info(
       .anoml("step_vars", lang,
              n_vars   = length(vars),
-             vars_str = paste(paste0(names(vars), "→", vars),
+             vars_str = paste(paste0(names(vars), "\u2192", vars),
                               collapse = ", "))
     )
 
@@ -450,7 +450,7 @@ sus_climate_anomaly <- function(
     created        = Sys.time(),
     modified       = Sys.time(),
     history        = sprintf(
-      "[%s] Climate anomalies — method: %s; scale: %s; normal period: %s; vars: %s",
+      "[%s] Climate anomalies \u2014 method: %s; scale: %s; normal period: %s; vars: %s",
       format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
       method, time_scale,
       normal_period %||% "unknown",

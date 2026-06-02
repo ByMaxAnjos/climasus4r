@@ -32,33 +32,32 @@ Imports:
     lubridate,
     microdatasus,
     magrittr,
-    digest,
     tidyr,
     fs,
+    digest,
     stats,
     rlang,
-    future,
-    furrr,
     stringr,
     purrr,
     data.table,
     glue,
     read.dbc,
-    DBI,
+    furrr,
+    future,
+    arrow,
     duckdb,
-    slider,
     tibble,
-    generics,
-    splines
-Remotes: 
-    rfsaldanha/microdatasus,
-    ByMaxAnjos/climasus4r
+    generics
+Remotes:
+    rfsaldanha/microdatasus
 Suggests:
+    DBI,
+    slider,
+    splines,
     sf,
     censobr,
     geobr,
     geocodebr,
-    arrow,
     sfarrow,
     knitr,
     rmarkdown,
@@ -84,6 +83,10 @@ Suggests:
     gt,
     leaflet,
     mvmeta,
-    survival
+    survival,
+    terra,
+    exactextractr,
+    ncdf4,
+    readxl
 URL: https://github.com/ByMaxAnjos/climasus4r
 BugReports: https://github.com/ByMaxAnjos/climasus4r/issues

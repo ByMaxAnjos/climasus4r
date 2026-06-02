@@ -187,7 +187,7 @@ sus_climate_normals <- function(
     created        = Sys.time(),
     modified       = Sys.time(),
     history        = sprintf(
-      "[%s] INMET climate normals imported — period: %s",
+      "[%s] INMET climate normals imported \u2014 period: %s",
       format(Sys.time(), "%Y-%m-%d %H:%M:%S"), period
     ),
     user = list()
@@ -498,14 +498,14 @@ sus_climate_normals_meta <- function(
 .normals_messages <- function(lang = "pt") {
   msgs <- list(
     pt = list(
-      title          = "Normais Climatológicas INMET",
-      loading_dict   = "Carregando catálogo de variáveis (normal_meta)...",
-      found_vars     = "Variáveis encontradas para o período:",
+      title          = "Normais Climatol\u00f3gicas INMET",
+      loading_dict   = "Carregando cat\u00e1logo de vari\u00e1veis (normal_meta)...",
+      found_vars     = "Vari\u00e1veis encontradas para o per\u00edodo:",
       downloading    = "Baixando:",
-      downloading_dict = "Baixando catálogo de normais do climasus Data Center...",
-      no_data        = "Nenhum dado foi baixado. Verifique a conexão e os códigos de variável.",
-      done           = "Download concluído.",
-      creating_cache = "Criando diretório de cache: ",
+      downloading_dict = "Baixando cat\u00e1logo de normais do climasus Data Center...",
+      no_data        = "Nenhum dado foi baixado. Verifique a conex\u00e3o e os c\u00f3digos de vari\u00e1vel.",
+      done           = "Download conclu\u00eddo.",
+      creating_cache = "Criando diret\u00f3rio de cache: ",
       loading_cache  = "Carregando do cache: ",
       cache_error    = "Falha ao carregar cache. Baixando dados novos...",
       saving_cache   = "Salvando no cache...",
@@ -530,18 +530,18 @@ sus_climate_normals_meta <- function(
       download_failed  = "Failed to download"
     ),
     es = list(
-      title          = "Normales Climatológicas INMET",
-      loading_dict   = "Cargando catálogo de variables (normal_meta)...",
-      found_vars     = "Variables encontradas para el período:",
+      title          = "Normales Climatol\u00f3gicas INMET",
+      loading_dict   = "Cargando cat\u00e1logo de variables (normal_meta)...",
+      found_vars     = "Variables encontradas para el per\u00edodo:",
       downloading    = "Descargando:",
-      downloading_dict = "Descargando catálogo de normales del climasus Data Center...",
-      no_data        = "No se descargaron datos. Verifique la conexión y los códigos.",
+      downloading_dict = "Descargando cat\u00e1logo de normales del climasus Data Center...",
+      no_data        = "No se descargaron datos. Verifique la conexi\u00f3n y los c\u00f3digos.",
       done           = "Descarga completada.",
       creating_cache = "Creando directorio de cache: ",
       loading_cache  = "Cargando desde cache: ",
       cache_error    = "Fallo al cargar cache. Descargando datos nuevos...",
       saving_cache   = "Guardando en cache...",
-      cache_saved    = "Datos almacenados en cache con éxito.",
+      cache_saved    = "Datos almacenados en cache con \u00e9xito.",
       cache_save_error = "Error al guardar cache: ",
       download_failed  = "Error al descargar"
     )

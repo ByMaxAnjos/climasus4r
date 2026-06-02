@@ -478,7 +478,7 @@ sus_mod_ml <- function(
 #'
 #' When id_col is provided, groups are kept whole in each fold (group k-fold).
 #' When id_col is NULL, standard random k-fold is used.
-#' Returns a list of integer vectors: fold_ids[[k]] = row indices held out in fold k.
+#' Returns a list of integer vectors: fold_ids[[k[] = row indices held out in fold k.
 #' @keywords internal
 #' @noRd
 .ml_make_folds <- function(df, id_col, nfold, seed) {

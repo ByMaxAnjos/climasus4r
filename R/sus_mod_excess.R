@@ -215,7 +215,6 @@ utils::globalVariables(c(
 #' @importFrom dplyr mutate arrange summarise all_of
 #' @importFrom purrr map list_rbind
 #' @importFrom glue glue
-#' @importFrom splines ns
 sus_mod_excess <- function(
     data,
     outcome_col    = NULL,

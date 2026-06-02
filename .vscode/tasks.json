@@ -1,0 +1,46 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Install R package (local)",
+      "type": "shell",
+      "command": "/Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/bin/R",
+      "args": [
+        "--quiet",
+        "--no-restore",
+        "--no-save",
+        "-e",
+        "devtools::install(pkg = '.', dependencies = FALSE, upgrade = 'never', quiet = FALSE)"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Install R package + deps (pak)",
+      "type": "shell",
+      "command": "/Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/bin/R",
+      "args": [
+        "--quiet",
+        "--no-restore",
+        "--no-save",
+        "-e",
+        "pak::local_install(upgrade = FALSE)"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}

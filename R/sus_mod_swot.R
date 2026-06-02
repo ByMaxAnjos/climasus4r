@@ -27,14 +27,14 @@ utils::globalVariables(c(
 .swot_labels <- list(
 
   title = list(
-    pt = "climasus4r — Análise SWOT Climático-Saúde",
-    en = "climasus4r — Climate-Health SWOT Analysis",
-    es = "climasus4r — Análisis SWOT Clima-Salud"
+    pt = "climasus4r \u2014 An\u00e1lise SWOT Clim\u00e1tico-Sa\u00fade",
+    en = "climasus4r \u2014 Climate-Health SWOT Analysis",
+    es = "climasus4r \u2014 An\u00e1lisis SWOT Clima-Salud"
   ),
-  quadrant_S = list(pt = "Forças",       en = "Strengths",     es = "Fortalezas"),
+  quadrant_S = list(pt = "For\u00e7as",       en = "Strengths",     es = "Fortalezas"),
   quadrant_W = list(pt = "Fraquezas",      en = "Weaknesses",    es = "Debilidades"),
   quadrant_O = list(pt = "Oportunidades",  en = "Opportunities", es = "Oportunidades"),
-  quadrant_T = list(pt = "Ameaças",    en = "Threats",       es = "Amenazas"),
+  quadrant_T = list(pt = "Amea\u00e7as",    en = "Threats",       es = "Amenazas"),
 
   ind_adaptive_cap = list(
     pt = "Capacidade Adaptativa (IV)",
@@ -47,7 +47,7 @@ utils::globalVariables(c(
     es = "Sensibilidad Poblacional (IV)"
   ),
   ind_af_strength = list(
-    pt = "Baixa Carga Atribuível (FA inv.)",
+    pt = "Baixa Carga Atribu\u00edvel (FA inv.)",
     en = "Low Attributable Burden (AF inv.)",
     es = "Baja Carga Atribuible (FA inv.)"
   ),
@@ -64,7 +64,7 @@ utils::globalVariables(c(
   ind_cold_af = list(
     pt = "FA ao Frio (%)",
     en = "Cold AF (%)",
-    es = "FA por Frío (%)"
+    es = "FA por Fr\u00edo (%)"
   ),
   ind_stratum_ineq = list(
     pt = "Desigualdade entre Estratos",
@@ -72,39 +72,39 @@ utils::globalVariables(c(
     es = "Desigualdad entre Estratos"
   ),
   ind_vi_opportunity = list(
-    pt = "Janela de Intervenção (Percentil IV inv.)",
+    pt = "Janela de Interven\u00e7\u00e3o (Percentil IV inv.)",
     en = "Intervention Window (VI Percentile inv.)",
-    es = "Ventana de Intervención (Percentil IV inv.)"
+    es = "Ventana de Intervenci\u00f3n (Percentil IV inv.)"
   ),
   ind_exposure_low = list(
-    pt = "Exposição Atual Moderada (Exposição inv.)",
+    pt = "Exposi\u00e7\u00e3o Atual Moderada (Exposi\u00e7\u00e3o inv.)",
     en = "Moderate Current Exposure (Exposure inv.)",
-    es = "Exposición Actual Moderada (Exposición inv.)"
+    es = "Exposici\u00f3n Actual Moderada (Exposici\u00f3n inv.)"
   ),
   ind_exposure_threat = list(
-    pt = "Exposição Climática (IV)",
+    pt = "Exposi\u00e7\u00e3o Clim\u00e1tica (IV)",
     en = "Climate Exposure (VI)",
-    es = "Exposición Climática (IV)"
+    es = "Exposici\u00f3n Clim\u00e1tica (IV)"
   ),
   ind_vi_threat = list(
-    pt = "Índice de Vulnerabilidade Global",
+    pt = "\u00cdndice de Vulnerabilidade Global",
     en = "Overall Vulnerability Index",
-    es = "Índice de Vulnerabilidad Global"
+    es = "\u00cdndice de Vulnerabilidad Global"
   ),
   ind_burden_an = list(
-    pt = "Número Atribuível (Carga)",
+    pt = "N\u00famero Atribu\u00edvel (Carga)",
     en = "Attributable Number (Burden)",
-    es = "Número Atribuible (Carga)"
+    es = "N\u00famero Atribuible (Carga)"
   ),
   ind_heat_rr = list(
-    pt = "RR ao Calor (P95) — DLNM",
-    en = "Heat RR (P95) — DLNM",
-    es = "RR por Calor (P95) — DLNM"
+    pt = "RR ao Calor (P95) \u2014 DLNM",
+    en = "Heat RR (P95) \u2014 DLNM",
+    es = "RR por Calor (P95) \u2014 DLNM"
   ),
   ind_max_stratum_rr = list(
-    pt = "RR Máximo por Estrato",
+    pt = "RR M\u00e1ximo por Estrato",
     en = "Maximum Stratum RR",
-    es = "RR Máximo por Estrato"
+    es = "RR M\u00e1ximo por Estrato"
   ),
 
   step_extract = list(
@@ -113,12 +113,12 @@ utils::globalVariables(c(
     es = "Extrayendo indicadores de {n_inputs} fuente(s)..."
   ),
   step_score = list(
-    pt = "Calculando pontuações SWOT para {n_entities} entidade(s)...",
+    pt = "Calculando pontua\u00e7\u00f5es SWOT para {n_entities} entidade(s)...",
     en = "Computing SWOT scores for {n_entities} entity/entities...",
     es = "Calculando puntuaciones SWOT para {n_entities} entidad(es)..."
   ),
   done = list(
-    pt = "Concluído. Entidades: {n_ent}; Indicadores: {n_ind}; Fontes: {sources}",
+    pt = "Conclu\u00eddo. Entidades: {n_ent}; Indicadores: {n_ind}; Fontes: {sources}",
     en = "Done. Entities: {n_ent}; Indicators: {n_ind}; Sources: {sources}",
     es = "Listo. Entidades: {n_ent}; Indicadores: {n_ind}; Fuentes: {sources}"
   ),
@@ -128,9 +128,9 @@ utils::globalVariables(c(
     es = "Debe proporcionarse al menos un objeto climasus (vulnerability, af, burden, dlnm o sensitivity)."
   ),
   err_bad_breaks = list(
-    pt = "{.arg breaks} deve ser um vetor numérico crescente com valores estritamente entre 0 e 100.",
+    pt = "{.arg breaks} deve ser um vetor num\u00e9rico crescente com valores estritamente entre 0 e 100.",
     en = "{.arg breaks} must be a strictly increasing numeric vector with values between 0 and 100 (exclusive).",
-    es = "{.arg breaks} debe ser un vector numérico estrictamente creciente con valores entre 0 y 100 (exclusivos)."
+    es = "{.arg breaks} debe ser un vector num\u00e9rico estrictamente creciente con valores entre 0 y 100 (exclusivos)."
   ),
   err_bad_labels = list(
     pt = "{.arg labels} deve ter comprimento {n_cats} (length(breaks) + 1).",
@@ -138,7 +138,7 @@ utils::globalVariables(c(
     es = "{.arg labels} debe tener longitud {n_cats} (length(breaks) + 1)."
   ),
   warn_lang = list(
-    pt = "Idioma '{lang}' não suportado. Usando 'pt'.",
+    pt = "Idioma '{lang}' n\u00e3o suportado. Usando 'pt'.",
     en = "Language '{lang}' not supported. Using 'pt'.",
     es = "Idioma '{lang}' no admitido. Usando 'pt'."
   )
@@ -156,7 +156,7 @@ utils::globalVariables(c(
 
 # Default category labels per language (for length(breaks)+1 categories)
 .swot_default_labels <- list(
-  pt = c("Baixo", "Médio", "Alto"),
+  pt = c("Baixo", "M\u00e9dio", "Alto"),
   en = c("Low", "Medium", "High"),
   es = c("Bajo", "Medio", "Alto")
 )

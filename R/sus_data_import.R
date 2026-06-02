@@ -678,7 +678,11 @@ sus_data_import <- function(uf = NULL,
       key_string <- paste(system_i, uf_i, year_i, sep = "_")
     }
   }
-  digest::digest(key_string, algo = "md5")
+  if (rlang::is_installed("digest")) {
+    digest::digest(key_string, algo = "md5")
+  } else {
+    gsub("[^a-zA-Z0-9]", "_", key_string)
+  }
 }
   # Function to get cache file path
   get_cache_path <- function(cache_key) {
@@ -2147,5 +2151,10 @@ collect.climasus_dataset <- function(x, ...) {
   } else {
     c(system_i, uf_i, as.character(year_i), if (!is.null(month_i)) as.character(month_i))
   }
-  digest::digest(paste(parts, collapse = "_"), algo = "md5")
+  key_string <- paste(parts, collapse = "_")
+  if (rlang::is_installed("digest")) {
+    digest::digest(key_string, algo = "md5")
+  } else {
+    gsub("[^a-zA-Z0-9]", "_", key_string)
+  }
 }

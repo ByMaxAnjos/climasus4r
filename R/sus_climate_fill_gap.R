@@ -345,19 +345,25 @@
     # PARALLEL SETUP — resolved ONCE, reused across all variables
     # ===========================================================
     if (parallel) {
-      if (is.null(workers)) {
-        workers <- max(1L, future::availableCores() - 1L)
+      if (rlang::is_installed("furrr") && rlang::is_installed("future")) {
+        if (is.null(workers)) {
+          workers <- max(1L, future::availableCores() - 1L)
+        } else {
+          workers <- max(1L, as.integer(workers))
+        }
+
+        if (verbose) {
+          cli::cli_alert_info(sprintf(messages$parallel_setup, workers))
+        }
+
+        old_plan <- future::plan()
+        future::plan(future::multisession, workers = workers)
+        on.exit(future::plan(old_plan), add = TRUE)
       } else {
-        workers <- max(1L, as.integer(workers))
+        cli::cli_alert_warning(
+          "Install {.pkg furrr} and {.pkg future} for parallel processing; running sequentially.")
+        parallel <- FALSE
       }
-
-      if (verbose) {
-        cli::cli_alert_info(sprintf(messages$parallel_setup, workers))
-      }
-
-      old_plan <- future::plan()
-      future::plan(future::multisession, workers = workers)
-      on.exit(future::plan(old_plan), add = TRUE)
     }
 
     # ===========================================================
@@ -2186,31 +2192,36 @@
     stations_list <- data_with_gaps %>%
       dplyr::group_split(!!rlang::sym(station_col), .keep = TRUE)
 
-    filled_list <- furrr::future_map(
-      stations_list,
-      function(station_df) {
-        tryCatch(
-          .process_single_station_xgboost2(
-            station_df = station_df,
-            target_var = target_var,
-            station_col = station_col,
-            verbose = FALSE
-          ),
-          error = function(e) {
-            cli::cli_alert_warning(
-              sprintf(
-                "Station %s failed: %s",
-                unique(station_df[[station_col]]),
-                e$message
-              )
+    .fill_one_station <- function(station_df) {
+      tryCatch(
+        .process_single_station_xgboost2(
+          station_df = station_df,
+          target_var = target_var,
+          station_col = station_col,
+          verbose = FALSE
+        ),
+        error = function(e) {
+          cli::cli_alert_warning(
+            sprintf(
+              "Station %s failed: %s",
+              unique(station_df[[station_col]]),
+              e$message
             )
-            return(station_df)
-          }
-        )
-      },
-      .options = furrr::furrr_options(seed = TRUE),
-      .progress = verbose
-    )
+          )
+          return(station_df)
+        }
+      )
+    }
+    filled_list <- if (rlang::is_installed("furrr")) {
+      furrr::future_map(
+        stations_list,
+        .fill_one_station,
+        .options  = furrr::furrr_options(seed = TRUE),
+        .progress = verbose
+      )
+    } else {
+      purrr::map(stations_list, .fill_one_station)
+    }
 
     filled_data <- dplyr::bind_rows(filled_list)
 

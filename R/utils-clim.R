@@ -701,7 +701,8 @@ utils::globalVariables(c(
     spatial_obj %>% sf::st_centroid()
   )
   
-  if (parallel && workers > 1) {
+  if (parallel && workers > 1 &&
+      rlang::is_installed("future") && rlang::is_installed("future.apply")) {
     old_plan <- future::plan()
     on.exit(future::plan(old_plan), add = TRUE)
     future::plan(future::multisession, workers = workers)

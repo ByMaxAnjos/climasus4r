@@ -68,7 +68,11 @@
   # SWOT analysis
   "swot",
   # Climate anomalies vs. normals
-  "anomaly"
+  "anomaly",
+  # Gridded / reanalysis data sources
+  "era5_land", "era5", "chirps", "fires", "mapbiomas", "prodes", "ndvi",
+  "lst", "uhi", "pollution_cams", "pollution_merra2", "pollution_ghap",
+  "worldpop", "nightlights", "dem", "grid"
 )
 
 #' Valid storage backends for climasus_df
