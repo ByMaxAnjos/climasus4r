@@ -86,6 +86,7 @@ reference:
       - sus_climate_aggregate
       - sus_climate_compute_indicators
       - sus_climate_plot_fill
+      - sus_climate_plot_aggregate
       - sus_climate_compute_heatwaves
       - sus_climate_plot_heatwaves
       - hw_active_days
@@ -231,7 +232,7 @@ reference:
       climasus_excess, climasus_casecrossover, climasus_its, climasus_sensitivity,
       climasus_metaregression, climasus_burden, climasus_vi, climasus_ml).
     contents:
-      - matches("^(print|summary|coef|vcov|tidy|predict)\\.(climasus_dlnm|climasus_af|climasus_pool|climasus_excess|climasus_casecrossover|climasus_its|climasus_sensitivity|climasus_metaregression|climasus_burden|climasus_vi|climasus_ml|climasus_swot|climasus_spatial_scan)")
+      - matches("^(print|summary|coef|vcov|tidy|predict)\\.(climasus_dlnm|climasus_af|climasus_pool|climasus_excess|climasus_casecrossover|climasus_its|climasus_sensitivity|climasus_metaregression|climasus_burden|climasus_vi|climasus_ml|climasus_swot|climasus_spatial_scan|climasus_spatial_bayes|climasus_spatial_moran|climasus_spatial_reg|climasus_weights)")
 
 articles:
   - title: "Get Involved"
