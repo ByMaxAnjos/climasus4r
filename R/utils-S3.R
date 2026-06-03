@@ -65,6 +65,9 @@
   "heatwaves",
   # Statistical model outputs
   "dlnm_model", "glm_model", "compare_model",
+  # Spatial model outputs
+  "spatial_weights", "spatial_moran", "spatial_scan",
+  "spatial_bayes", "spatial_reg",
   # SWOT analysis
   "swot",
   # Climate anomalies vs. normals

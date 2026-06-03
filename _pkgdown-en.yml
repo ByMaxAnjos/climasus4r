@@ -107,6 +107,19 @@ reference:
       - sus_grid_join
       - sus_grid_pollution_merra2
 
+
+  - title: "Spatial Analysis & Cluster Detection"
+    desc: "Spatial autocorrelation (LISA), cluster detection (Kulldorff), Bayesian CAR/BYM mapping, and spatial regression (SAR/SEM)"
+    contents:
+      - sus_mod_spatial_weights
+      - sus_mod_spatial_moran
+      - sus_mod_spatial_scan
+      - sus_mod_spatial_bayes
+      - sus_mod_spatial_reg
+      - sus_mod_plot_spatial_moran
+      - sus_mod_plot_spatial_scan
+      - sus_mod_plot_spatial_bayes
+
   - title: "Quality & Metadata"
     desc: "Data quality reports and disease dictionaries"
     contents:
@@ -196,6 +209,11 @@ reference:
       - sus_mod_swot
       - sus_mod_plot_swot
 
+  - title: "Spatial Cluster Detection"
+    desc: "Kulldorff circular scan statistic for detecting geographic clusters of disease excess. Identifies the most-likely cluster and significant secondary clusters via Monte Carlo hypothesis testing, mapping results back to municipality codes."
+    contents:
+      - sus_mod_spatial_scan
+
   - title: "Climate Machine Learning"
     desc: "Predictive modeling with XGBoost, featuring out-of-fold cross-validation, feature
       importance ranking, and graphical diagnostics (observed vs. predicted, CV loss
@@ -213,7 +231,7 @@ reference:
       climasus_excess, climasus_casecrossover, climasus_its, climasus_sensitivity,
       climasus_metaregression, climasus_burden, climasus_vi, climasus_ml).
     contents:
-      - matches("^(print|summary|coef|vcov|tidy|predict)\\.(climasus_dlnm|climasus_af|climasus_pool|climasus_excess|climasus_casecrossover|climasus_its|climasus_sensitivity|climasus_metaregression|climasus_burden|climasus_vi|climasus_ml|climasus_swot)")
+      - matches("^(print|summary|coef|vcov|tidy|predict)\\.(climasus_dlnm|climasus_af|climasus_pool|climasus_excess|climasus_casecrossover|climasus_its|climasus_sensitivity|climasus_metaregression|climasus_burden|climasus_vi|climasus_ml|climasus_swot|climasus_spatial_scan)")
 
 articles:
   - title: "Get Involved"

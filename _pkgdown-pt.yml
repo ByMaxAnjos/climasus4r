@@ -105,6 +105,19 @@ reference:
       - sus_grid_join
       - sus_grid_pollution_merra2
 
+
+  - title: "Analise Espacial e Deteccao de Clusters"
+    desc: "Autocorrelacao espacial (LISA), deteccao de clusters (Kulldorff), modelos Bayesianos CAR/BYM e regressao espacial (SAR/SEM)"
+    contents:
+      - sus_mod_spatial_weights
+      - sus_mod_spatial_moran
+      - sus_mod_spatial_scan
+      - sus_mod_spatial_bayes
+      - sus_mod_spatial_reg
+      - sus_mod_plot_spatial_moran
+      - sus_mod_plot_spatial_scan
+      - sus_mod_plot_spatial_bayes
+
   - title: "Qualidade e Metadados"
     desc: "Relatórios de qualidade de dados e dicionários de doenças"
     contents:
@@ -191,6 +204,11 @@ reference:
       - sus_mod_swot
       - sus_mod_plot_swot
 
+  - title: "Detecção de Aglomerados Espaciais"
+    desc: "Estatística circular de varredura de Kulldorff para detecção de aglomerados geográficos de excesso de casos. Identifica o aglomerado mais provável e aglomerados secundários significativos via teste de hipóteses Monte Carlo, com mapeamento dos códigos de município correspondentes."
+    contents:
+      - sus_mod_spatial_scan
+
   - title: "Machine Learning aplicado Clima e Saúde"
     desc: "Modelagem preditiva baseada em XGBoost com validação cruzada out-of-fold, importância
       de características e diagnóstico gráfico (observado vs. predito, curva de perda,
@@ -208,7 +226,7 @@ reference:
       climasus_excess, climasus_casecrossover, climasus_its, climasus_sensitivity,
       climasus_metaregression, climasus_burden, climasus_vi, climasus_ml).
     contents:
-      - matches("^(print|summary|coef|vcov|tidy|predict)\\.(climasus_dlnm|climasus_af|climasus_pool|climasus_excess|climasus_casecrossover|climasus_its|climasus_sensitivity|climasus_metaregression|climasus_burden|climasus_vi|climasus_ml|climasus_swot)")
+      - matches("^(print|summary|coef|vcov|tidy|predict)\\.(climasus_dlnm|climasus_af|climasus_pool|climasus_excess|climasus_casecrossover|climasus_its|climasus_sensitivity|climasus_metaregression|climasus_burden|climasus_vi|climasus_ml|climasus_swot|climasus_spatial_scan)")
 
 articles:
   - title: "Participe"
