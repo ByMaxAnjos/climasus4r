@@ -94,12 +94,17 @@ reference:
       - sus_climate_normals
       - sus_climate_normals_meta
       - sus_climate_anomaly
+      - sus_climate_compute_spi
+      - sus_climate_compute_spei
+      - sus_grid_pdsi
+      - sus_grid_smvi
       - sus_grid_era5
       - sus_grid_pollution_cams
       - sus_grid_pollution_ghap
       - sus_grid_fires
       - sus_grid_chirps
       - sus_grid_prodes
+      - sus_grid_join
       - sus_grid_pollution_merra2
 
   - title: "Quality & Metadata"

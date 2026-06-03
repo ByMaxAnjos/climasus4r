@@ -69,6 +69,8 @@
   "swot",
   # Climate anomalies vs. normals
   "anomaly",
+  # Drought / hydro-climate indices
+  "spi", "spei", "pdsi", "smvi", "drought", "flood_index", "cdd_cwd",
   # Gridded / reanalysis data sources
   "era5_land", "era5", "chirps", "fires", "mapbiomas", "prodes", "ndvi",
   "lst", "uhi", "pollution_cams", "pollution_merra2", "pollution_ghap",
