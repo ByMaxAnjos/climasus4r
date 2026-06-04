@@ -44,13 +44,14 @@ Imports:
     read.dbc,
     furrr,
     future,
-    arrow,
     duckdb,
     tibble,
     generics
 Remotes:
     rfsaldanha/microdatasus
 Suggests:
+    arrow,
+    nanoparquet,
     DBI,
     slider,
     splines,

@@ -280,8 +280,8 @@ sus_climate_normals_meta <- function(
   if (nzchar(pkg_file) && file.exists(pkg_file)) {
     result <- tryCatch(
       {
-        if (use_arrow) as.data.frame(arrow::read_parquet(pkg_file))
-        else           as.data.frame(arrow::read_parquet(pkg_file))
+        if (use_arrow) as.data.frame(.read_parquet_smart(pkg_file))
+        else           as.data.frame(.read_parquet_smart(pkg_file))
       },
       error = function(e) NULL
     )
@@ -299,7 +299,7 @@ sus_climate_normals_meta <- function(
     if (verbose) cli::cli_alert_success(paste0(msg$loading_cache, basename(cache_file)))
     result <- tryCatch(
       {
-        if (use_arrow) as.data.frame(arrow::read_parquet(cache_file))
+        if (use_arrow) as.data.frame(.read_parquet_smart(cache_file))
         else           readRDS(cache_file)
       },
       error = function(e) {
@@ -316,7 +316,7 @@ sus_climate_normals_meta <- function(
   remote_base <- "https://github.com/ByMaxAnjos/climasus4r/raw/refs/heads/master/inst/data_4r/"
   normal_df <- if (use_arrow) {
     as.data.frame(
-      suppressMessages(arrow::read_parquet(paste0(remote_base, "normal_meta.parquet")))
+      suppressMessages(.read_parquet_smart(paste0(remote_base, "normal_meta.parquet")))
     )
   } else {
     url <- paste0(remote_base, "normal_meta.rds")
@@ -330,7 +330,7 @@ sus_climate_normals_meta <- function(
     if (verbose) cli::cli_alert_info(msg$saving_cache)
     tryCatch(
       {
-        if (use_arrow) arrow::write_parquet(normal_df, cache_file)
+        if (use_arrow) .write_parquet_smart(normal_df, cache_file)
         else           saveRDS(normal_df, cache_file)
         if (verbose) cli::cli_alert_success(msg$cache_saved)
       },

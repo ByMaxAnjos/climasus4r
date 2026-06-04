@@ -1992,3 +1992,191 @@ get_disease_group_info <- function(group_name, lang = "en") {
     climate_factors = group$climate_factors
   ))
 }
+
+# ── Parquet smart helpers ─────────────────────────────────────────────────────
+
+#' Read a Parquet file using the best available backend
+#'
+#' Tries arrow, then nanoparquet, then DuckDB. Always returns a data.frame.
+#' @keywords internal
+#' @noRd
+.read_parquet_smart <- function(path, ...) {
+  if (requireNamespace("arrow", quietly = TRUE)) {
+    return(as.data.frame(arrow::read_parquet(path, ...)))
+  }
+  if (requireNamespace("nanoparquet", quietly = TRUE)) {
+    return(as.data.frame(nanoparquet::read_parquet(path)))
+  }
+  # DuckDB fallback (always available — duckdb is in Imports)
+  con <- DBI::dbConnect(duckdb::duckdb(), dbdir = ":memory:")
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+  DBI::dbGetQuery(con, sprintf("SELECT * FROM read_parquet('%s')",
+                               gsub("\\\\", "/", path)))
+}
+
+#' Write a data.frame as Parquet using the best available backend
+#'
+#' Tries arrow, then nanoparquet, then DuckDB.
+#' @keywords internal
+#' @noRd
+.write_parquet_smart <- function(df, path, ...) {
+  df <- as.data.frame(df)
+  if (requireNamespace("arrow", quietly = TRUE)) {
+    arrow::write_parquet(df, path, ...)
+    return(invisible(path))
+  }
+  if (requireNamespace("nanoparquet", quietly = TRUE)) {
+    nanoparquet::write_parquet(df, path)
+    return(invisible(path))
+  }
+  # DuckDB fallback
+  con <- DBI::dbConnect(duckdb::duckdb(), dbdir = ":memory:")
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+  DBI::dbWriteTable(con, "tmp_df", df, overwrite = TRUE)
+  DBI::dbExecute(con, sprintf(
+    "COPY tmp_df TO '%s' (FORMAT parquet)",
+    gsub("\\\\", "/", path)
+  ))
+  invisible(path)
+}
+
+
+# ── Package startup message ───────────────────────────────────────────────────
+
+.onAttach <- function(libname, pkgname) {
+  if (!requireNamespace("arrow", quietly = TRUE)) {
+    packageStartupMessage(
+      "climasus4r: 'arrow' not found. ",
+      "Parquet cache will use DuckDB/nanoparquet fallbacks.\n",
+      "  For full performance: climasus4r::enable_arrow()"
+    )
+  }
+}
+
+
+# ── sus_install_deps() ────────────────────────────────────────────────────────
+
+#' Install Optional Dependencies for climasus4r
+#'
+#' @description
+#' Installs optional packages needed for specific feature groups.
+#' Tries multiple installation strategies, including Posit Package Manager
+#' (PPM) for pre-compiled binaries on Posit Cloud / Linux.
+#'
+#' @param features Character vector. Feature groups to install.
+#'   One or more of `"parquet"`, `"spatial"`, `"plot"`, `"models"`, `"all"`.
+#'   Default `"all"`.
+#' @param force Logical. Re-install even if the package is already available.
+#'   Default `FALSE`.
+#' @param lang Character. Language for messages: `"pt"` (default), `"en"`,
+#'   `"es"`.
+#'
+#' @details
+#' \describe{
+#'   \item{`"parquet"`}{Installs `arrow` (fastest Parquet) and/or
+#'     `nanoparquet` (pure-R fallback, no C++ required).}
+#'   \item{`"spatial"`}{Installs `sf`, `geobr`, `geocodebr`, `sfarrow`,
+#'     `censobr`.}
+#'   \item{`"plot"`}{Installs `ggplot2`, `plotly`, `patchwork`, `ggsci`.}
+#'   \item{`"models"`}{Installs `dlnm`, `mvmeta`, `survival`, `xgboost`.}
+#' }
+#'
+#' On Posit Cloud, PPM binaries are used automatically for faster installation.
+#'
+#' @examples
+#' \dontrun{
+#' # Install all optional dependencies
+#' sus_install_deps()
+#'
+#' # Install only Parquet backend (no C++ required path)
+#' sus_install_deps("parquet")
+#'
+#' # Force reinstall arrow
+#' sus_install_deps("parquet", force = TRUE)
+#' }
+#'
+#' @export
+sus_install_deps <- function(
+    features = "all",
+    force    = FALSE,
+    lang     = "pt") {
+
+  valid_feats <- c("all", "parquet", "spatial", "plot", "models")
+  features    <- match.arg(features, valid_feats, several.ok = TRUE)
+
+  # Detect Posit Cloud → use PPM for faster binaries
+  is_posit_cloud <- nchar(Sys.getenv("RSTUDIO_PROGRAM_MODE")) > 0 ||
+                    nchar(Sys.getenv("RS_SERVER_URL")) > 0 ||
+                    nchar(Sys.getenv("RSTUDIO_SESSION_PORT")) > 0
+  old_repos <- getOption("repos")
+  if (is_posit_cloud) {
+    options(repos = c(
+      PPM  = "https://packagemanager.posit.co/cran/latest",
+      CRAN = "https://cloud.r-project.org"
+    ))
+    cli::cli_alert_info("Posit Cloud detected \u2014 using PPM binary repository.")
+  }
+  on.exit(options(repos = old_repos), add = TRUE)
+
+  install_if_missing <- function(pkg) {
+    if (force || !requireNamespace(pkg, quietly = TRUE)) {
+      cli::cli_alert_info("Installing {.pkg {pkg}}...")
+      tryCatch(
+        utils::install.packages(pkg, quiet = TRUE),
+        error   = function(e) cli::cli_alert_warning("Failed: {pkg} \u2014 {conditionMessage(e)}"),
+        warning = function(w) cli::cli_alert_warning("Warning: {pkg} \u2014 {conditionMessage(w)}")
+      )
+    }
+  }
+
+  do_parquet <- "all" %in% features || "parquet" %in% features
+  do_spatial <- "all" %in% features || "spatial" %in% features
+  do_plot    <- "all" %in% features || "plot"    %in% features
+  do_models  <- "all" %in% features || "models"  %in% features
+
+  if (do_parquet) {
+    cli::cli_h1("Parquet backends")
+    # Try arrow via enable_arrow() multi-strategy installer first
+    if (force || !requireNamespace("arrow", quietly = TRUE)) {
+      tryCatch(enable_arrow(lang = lang, verbose = TRUE),
+               error = function(e) cli::cli_alert_warning(conditionMessage(e)))
+    }
+    # If arrow still not available, install nanoparquet (pure R, always works)
+    if (!requireNamespace("arrow", quietly = TRUE)) {
+      cli::cli_alert_info("arrow not available \u2014 installing nanoparquet (pure-R Parquet).")
+      install_if_missing("nanoparquet")
+    } else {
+      install_if_missing("nanoparquet")   # install anyway as lightweight backup
+    }
+  }
+
+  if (do_spatial) {
+    cli::cli_h1("Spatial packages")
+    tryCatch(enable_spatial(lang = lang, verbose = TRUE),
+             error = function(e) cli::cli_alert_warning(conditionMessage(e)))
+  }
+
+  if (do_plot) {
+    cli::cli_h1("Plot packages")
+    for (pkg in c("ggplot2", "plotly", "patchwork", "ggsci", "scales",
+                  "htmlwidgets", "leaflet")) {
+      install_if_missing(pkg)
+    }
+  }
+
+  if (do_models) {
+    cli::cli_h1("Modelling packages")
+    for (pkg in c("dlnm", "mvmeta", "survival", "xgboost", "MASS", "zoo")) {
+      install_if_missing(pkg)
+    }
+  }
+
+  # Report status
+  cli::cli_h1("Status")
+  for (pkg in c("arrow", "nanoparquet", "duckdb", "sf", "ggplot2", "dlnm")) {
+    avail <- requireNamespace(pkg, quietly = TRUE)
+    if (avail) cli::cli_alert_success("{.pkg {pkg}}: installed")
+    else       cli::cli_alert_warning("{.pkg {pkg}}: NOT installed")
+  }
+  invisible(NULL)
+}

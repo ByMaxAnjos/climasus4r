@@ -413,7 +413,7 @@ sus_grid_pollution_ghap <- function(
         cli::cli_alert_success(
           glue::glue(msg$parquet_hit, filename = basename(pq_path)))
       }
-      result_list[[i]] <- arrow::read_parquet(pq_path)
+      result_list[[i]] <- .read_parquet_smart(pq_path)
       next
     }
 
@@ -515,7 +515,7 @@ sus_grid_pollution_ghap <- function(
         dir.create(pq_dir, recursive = TRUE, showWarnings = FALSE)
       }
       tryCatch(
-        arrow::write_parquet(df_i, pq_path),
+        .write_parquet_smart(df_i, pq_path),
         error = function(e) {
           cli::cli_alert_warning(
             glue::glue(msg$parquet_write_warn, filename = basename(pq_path)))
@@ -791,7 +791,7 @@ sus_grid_pollution_ghap <- function(
 #' @noRd
 .ghap_build_result_from_parquet <- function(manifest, municipalities, verbose, msg) {
   parts <- lapply(manifest$cache_pq, function(pq) {
-    tryCatch(arrow::read_parquet(pq), error = function(e) NULL)
+    tryCatch(.read_parquet_smart(pq), error = function(e) NULL)
   })
   parts <- parts[!vapply(parts, is.null, logical(1))]
   if (length(parts) == 0) cli::cli_abort(msg$no_data)

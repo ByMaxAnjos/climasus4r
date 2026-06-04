@@ -291,7 +291,7 @@ sus_grid_pdsi <- function(
     if (use_cache && file.exists(pq_path) && file.size(pq_path) > 0) {
       if (verbose) cli::cli_alert_success(
         glue::glue(msg$parquet_hit, filename = basename(pq_path)))
-      return(arrow::read_parquet(pq_path))
+      return(.read_parquet_smart(pq_path))
     }
 
     tryCatch({
@@ -308,7 +308,7 @@ sus_grid_pdsi <- function(
       if (!is.null(df_yr) && nrow(df_yr) > 0) {
         pq_dir <- dirname(pq_path)
         if (!dir.exists(pq_dir)) dir.create(pq_dir, recursive = TRUE, showWarnings = FALSE)
-        tryCatch(arrow::write_parquet(df_yr, pq_path),
+        tryCatch(.write_parquet_smart(df_yr, pq_path),
                  error = function(e) cli::cli_alert_warning(
                    glue::glue(msg$parquet_write_warn, filename = basename(pq_path))))
       }
@@ -469,7 +469,7 @@ sus_grid_pdsi <- function(
 #' @noRd
 .pdsi_build_from_parquet <- function(pq_paths, verbose, msg) {
   parts <- lapply(pq_paths, function(p) {
-    tryCatch(arrow::read_parquet(p), error = function(e) NULL)
+    tryCatch(.read_parquet_smart(p), error = function(e) NULL)
   })
   parts  <- parts[!vapply(parts, is.null, logical(1))]
   if (length(parts) == 0) cli::cli_abort(msg$no_data)

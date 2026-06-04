@@ -1187,8 +1187,8 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
   arrow_threads= NULL
   # Thread pool do Arrow: independente do future, gerenciado por libarrow C++
   n_arrow_threads <- arrow_threads %||% parallel::detectCores(logical = FALSE)
-  arrow::set_cpu_count(n_arrow_threads)
-  arrow::set_io_thread_count(n_arrow_threads)
+  if (requireNamespace("arrow", quietly = TRUE)) arrow::set_cpu_count(n_arrow_threads)
+  if (requireNamespace("arrow", quietly = TRUE)) arrow::set_io_thread_count(n_arrow_threads)
 
   # 1. Resolucao de regiao -> UF 
 
@@ -1679,46 +1679,50 @@ if (!is.null(city) || !is.null(municipality_code)) {
       )
   }
 
-  # 12. Arrow Dataset lazy (sem rbindlist, sem RAM)
+  # 12. Open dataset: arrow (lazy) → DuckDB → rbind fallback
 
   if (verbose)
-    cli::cli_alert_info("Abrindo Arrow Dataset ({n_ok} arquivo(s))...")
+    cli::cli_alert_info("Abrindo dataset ({n_ok} arquivo(s))...")
 
-  dataset <- tryCatch({
-    arrow::open_dataset(
-      sources       = valid_paths,
-      format        = "parquet",
-      unify_schemas = TRUE
+  dataset <- if (requireNamespace("arrow", quietly = TRUE)) {
+    # arrow path: fully lazy, memory-efficient
+    tryCatch({
+      arrow::open_dataset(
+        sources       = valid_paths,
+        format        = "parquet",
+        unify_schemas = TRUE
+      )
+    }, error = function(e) {
+      cli::cli_alert_danger("Falha ao abrir Arrow dataset: {conditionMessage(e)}")
+      cli::cli_alert_info("Verificando arquivos individualmente...")
+      readable <- Filter(function(p) {
+        tryCatch({
+          arrow::open_dataset(p, format = "parquet"); TRUE
+        }, error = function(e2) {
+          cli::cli_alert_warning("Corrompido: {basename(p)}")
+          FALSE
+        })
+      }, valid_paths)
+      if (length(readable) == 0L)
+        cli::cli_abort("Nenhum arquivo Parquet legivel. Verifique os logs.")
+      cli::cli_alert_info("Reabrindo com {length(readable)}/{n_ok} arquivo(s)...")
+      arrow::open_dataset(sources = readable, format = "parquet",
+                          unify_schemas = TRUE)
+    })
+  } else {
+    # Fallback: DuckDB lazy (duckdb is in Imports, always available)
+    if (verbose) cli::cli_alert_info("arrow indisponivel \u2014 usando DuckDB.")
+    con_ds <- DBI::dbConnect(duckdb::duckdb(), dbdir = ":memory:")
+    glob   <- paste0("'", valid_paths, "'", collapse = ", ")
+    tryCatch(
+      dplyr::tbl(con_ds, paste0("read_parquet([", glob, "], union_by_name=true)")),
+      error = function(e) {
+        DBI::dbDisconnect(con_ds, shutdown = TRUE)
+        cli::cli_alert_warning("DuckDB falhou, usando rbind...")
+        do.call(rbind, lapply(valid_paths, .read_parquet_smart))
+      }
     )
-  }, error = function(e) {
-    cli::cli_alert_danger("Falha ao abrir dataset: {conditionMessage(e)}")
-    cli::cli_alert_info("Verificando arquivos individualmente...")
-
-    # Diagnostico: isola arquivos corrompidos
-    readable <- Filter(function(p) {
-      tryCatch({
-        arrow::open_dataset(p, format = "parquet")
-        TRUE
-      }, error = function(e2) {
-        cli::cli_alert_warning(
-          "Corrompido: {basename(p)}-{conditionMessage(e2)}"
-        )
-        FALSE
-      })
-    }, valid_paths)
-
-    if (length(readable) == 0L)
-      cli::cli_abort("Nenhum arquivo Parquet legivel. Verifique os logs.")
-
-    cli::cli_alert_info(
-      "Reabrindo com {length(readable)}/{n_ok} arquivo(s) legiveis..."
-    )
-    arrow::open_dataset(
-      sources       = readable,
-      format        = "parquet",
-      unify_schemas = TRUE
-    )
-  })
+  }
 
   # 13. Filtro lazy de UF para sistemas nacionais (SINAN) 
 

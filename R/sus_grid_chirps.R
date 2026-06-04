@@ -329,7 +329,7 @@ sus_grid_chirps <- function(
     if (use_cache && file.exists(pq_path) && file.size(pq_path) > 0) {
       if (verbose) cli::cli_alert_success(
         glue::glue(msg$parquet_hit, filename = basename(pq_path)))
-      return(arrow::read_parquet(pq_path))
+      return(.read_parquet_smart(pq_path))
     }
 
     # Process each row in this group
@@ -400,7 +400,7 @@ sus_grid_chirps <- function(
       dir.create(pq_dir, recursive = TRUE, showWarnings = FALSE)
     }
     tryCatch(
-      arrow::write_parquet(group_df, pq_path),
+      .write_parquet_smart(group_df, pq_path),
       error = function(e) cli::cli_alert_warning(
         glue::glue(msg$parquet_write_warn, filename = basename(pq_path)))
     )
@@ -479,7 +479,7 @@ sus_grid_chirps <- function(
 #' @noRd
 .chirps_build_from_parquet <- function(pq_paths, verbose, msg) {
   parts <- lapply(pq_paths, function(p) {
-    tryCatch(arrow::read_parquet(p), error = function(e) NULL)
+    tryCatch(.read_parquet_smart(p), error = function(e) NULL)
   })
   parts <- parts[!vapply(parts, is.null, logical(1))]
   if (length(parts) == 0) cli::cli_abort(msg$no_data)

@@ -1531,7 +1531,7 @@ get_spatial_municipio_cache <- function(cache_dir, use_cache, lang, verbose) {
     if (verbose) cli::cli_alert_success(paste0(msg$loading_cache, basename(cache_file)))
     result <- tryCatch(
       {
-        if (use_arrow) as.data.frame(arrow::read_parquet(cache_file))
+        if (use_arrow) as.data.frame(.read_parquet_smart(cache_file))
         else           readRDS(cache_file)
       },
       error = function(e) {
@@ -1548,7 +1548,7 @@ get_spatial_municipio_cache <- function(cache_dir, use_cache, lang, verbose) {
   remote_base <- "https://github.com/ByMaxAnjos/climasus4r/raw/refs/heads/master/inst/data_4r/"
   spatial_df <- if (use_arrow) {
     as.data.frame(
-      suppressMessages(arrow::read_parquet(paste0(remote_base, "municipio_meta.parquet")))
+      suppressMessages(.read_parquet_smart(paste0(remote_base, "municipio_meta.parquet")))
     )
   } else {
     url <- paste0(remote_base, "municipio_meta.rds")
@@ -1562,7 +1562,7 @@ get_spatial_municipio_cache <- function(cache_dir, use_cache, lang, verbose) {
     if (verbose) cli::cli_alert_info(msg$saving_cache)
     tryCatch(
       {
-        if (use_arrow) arrow::write_parquet(spatial_df, cache_file)
+        if (use_arrow) .write_parquet_smart(spatial_df, cache_file)
         else           saveRDS(spatial_df, cache_file)
         if (verbose) cli::cli_alert_success(msg$cache_saved)
       },
@@ -1987,7 +1987,7 @@ if (!exists("get_spatial_municipio_cache")) {
     if (use_cache && file.exists(cache_file)) {
       if (verbose) cli::cli_alert_success(paste0(msg$loading_cache, basename(cache_file)))
       result <- tryCatch(
-        if (use_arrow) as.data.frame(arrow::read_parquet(cache_file)) else readRDS(cache_file),
+        if (use_arrow) as.data.frame(.read_parquet_smart(cache_file)) else readRDS(cache_file),
         error = function(e) NULL
       )
       if (!is.null(result)) return(result)
@@ -1995,14 +1995,14 @@ if (!exists("get_spatial_municipio_cache")) {
     if (verbose) cli::cli_alert_info(msg$downloading_data)
     remote <- "https://github.com/ByMaxAnjos/climasus4r/raw/refs/heads/master/inst/data_4r/"
     spatial_df <- if (use_arrow)
-      as.data.frame(suppressMessages(arrow::read_parquet(paste0(remote, "municipio_meta.parquet"))))
+      as.data.frame(suppressMessages(.read_parquet_smart(paste0(remote, "municipio_meta.parquet"))))
     else {
       tmp <- tempfile(fileext = ".rds")
       utils::download.file(paste0(remote, "municipio_meta.rds"), tmp, quiet = TRUE, mode = "wb")
       readRDS(tmp)
     }
     if (use_cache) tryCatch(
-      { if (use_arrow) arrow::write_parquet(spatial_df, cache_file) else saveRDS(spatial_df, cache_file) },
+      { if (use_arrow) .write_parquet_smart(spatial_df, cache_file) else saveRDS(spatial_df, cache_file) },
       error = function(e) NULL
     )
     spatial_df
