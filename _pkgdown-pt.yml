@@ -234,7 +234,7 @@ reference:
       climasus_excess, climasus_casecrossover, climasus_its, climasus_sensitivity,
       climasus_metaregression, climasus_burden, climasus_vi, climasus_ml).
     contents:
-      - matches("^(print|summary|coef|vcov|tidy|predict)\\.(climasus_dlnm|climasus_af|climasus_pool|climasus_excess|climasus_casecrossover|climasus_its|climasus_sensitivity|climasus_metaregression|climasus_burden|climasus_vi|climasus_ml|climasus_swot|climasus_spatial_scan|climasus_spatial_bayes|climasus_spatial_moran|climasus_spatial_reg|climasus_weights|climasus_spacetime_exceedance|climasus_spacetime_bayes)")
+      - matches("^(print|summary|coef|vcov|tidy|predict)\\.(climasus_dlnm|climasus_af|climasus_pool|climasus_excess|climasus_casecrossover|climasus_its|climasus_sensitivity|climasus_metaregression|climasus_burden|climasus_vi|climasus_ml|climasus_swot|climasus_spatial_scan|climasus_spatial_bayes|climasus_spatial_moran|climasus_spatial_reg|climasus_weights|climasus_spacetime_exceedance|climasus_spacetime_bayes|climasus_spacetime_pred)")
 
 articles:
   - title: "Participe"
