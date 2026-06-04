@@ -260,7 +260,7 @@ sus_data_plot_aggregate_map <- function(
     }
     if (verbose) {
       col <- value_col
-      cli::cli_alert_success(glue::glue(msg$col_used, col = col))
+      col <- value_col; cli::cli_alert_success(msg$col_used)
     }
   } else {
     if (!value_col %in% names(df)) {
@@ -277,7 +277,7 @@ sus_data_plot_aggregate_map <- function(
   }
   if (verbose) {
     col <- muni_col
-    cli::cli_alert_success(glue::glue(msg$muni_col_used, col = col))
+    col <- muni_col; cli::cli_alert_success(msg$muni_col_used)
   }
 
   # ---------------------------------------------------------------------------
