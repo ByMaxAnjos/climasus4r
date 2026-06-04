@@ -140,6 +140,7 @@ reference:
   - title: "AI e Gerenciamento de Cache"
     desc: "Controle do armazenamento local de arquivos baixados"
     contents:
+      - sus_install_deps
       - sus_cache_clear
       - sus_cache_info
       - sus_chat

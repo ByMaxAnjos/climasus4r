@@ -144,6 +144,7 @@ reference:
   - title: "AI y Gestión de Caché"
     desc: "Control del almacenamiento local de archivos descargados"
     contents:
+      - sus_install_deps
       - sus_cache_clear
       - sus_cache_info
       - sus_chat
