@@ -75,3 +75,11 @@ if (file.exists(f)) {
 }
 
 cli::cli_h1("Results: {ok} passed, {fail} failed out of {ok+fail} tests")
+
+# ── SINAN-MALARIA (national database) ────────────────────────────────────────
+cli::cli_h2("SINAN-MALARIA (nacional)")
+f <- file.path(BASE, "sinan", "SINAN_MALARIA_BR_2022.parquet")
+if (file.exists(f)) {
+  df <- .read_parquet_smart(f) |> new_climasus_df(list(stage="import",system="SINAN"))
+  run_test("MALARIA: clean", sus_data_clean_encoding(df, verbose=FALSE))
+}
