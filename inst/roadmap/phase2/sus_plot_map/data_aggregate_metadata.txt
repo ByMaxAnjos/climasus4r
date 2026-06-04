@@ -1,0 +1,22 @@
+======================================================================
+climasus4r - DATA EXPORT METADATA
+======================================================================
+
+Export Date: 2026-06-04 13:56:59.138145
+Package Version: 0.0.0.9000
+
+--- DATA INFORMATION ---
+Rows: 485
+Columns: 3
+Spatial Data: FALSE
+
+--- FILE INFORMATION ---
+Format: csv
+File Size: 0.01 MB
+Compressed: TRUE
+File Path: inst/roadmap/phase2/sus_plot_map/data_aggregate.csv
+
+--- COLUMN NAMES ---
+date, municipio_residencia_paciente_sp, n_internacoes
+
+======================================================================
