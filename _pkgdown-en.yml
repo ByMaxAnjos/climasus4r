@@ -74,6 +74,8 @@ reference:
       - sus_data_filter_cid
       - sus_data_filter_demographics
       - sus_data_plot_demographics
+      - sus_data_plot_aggregate_ts
+      - sus_data_plot_aggregate_map
 
   - title: "Analysis & Spatial Data"
     desc: "Time series aggregation and spatial joins with Brazilian geography and demographic"

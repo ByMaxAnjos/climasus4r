@@ -74,6 +74,8 @@ reference:
       - sus_data_filter_cid
       - sus_data_filter_demographics
       - sus_data_plot_demographics
+      - sus_data_plot_aggregate_ts
+      - sus_data_plot_aggregate_map
 
   - title: "Análisis y Datos Espaciales"
     desc: "Agregación de series temporales y unión con datos geográficos y demograficas"
