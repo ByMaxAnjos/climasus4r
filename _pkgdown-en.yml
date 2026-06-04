@@ -119,6 +119,10 @@ reference:
       - sus_mod_spatial_scan
       - sus_mod_spatial_bayes
       - sus_mod_spatial_reg
+      - sus_mod_spacetime_bayes
+      - sus_mod_spacetime_exceedance
+      - sus_mod_spacetime_predict
+      - sus_mod_plot_spacetime
       - sus_mod_plot_spatial_moran
       - sus_mod_plot_spatial_scan
       - sus_mod_plot_spatial_bayes
@@ -235,7 +239,7 @@ reference:
       climasus_excess, climasus_casecrossover, climasus_its, climasus_sensitivity,
       climasus_metaregression, climasus_burden, climasus_vi, climasus_ml).
     contents:
-      - matches("^(print|summary|coef|vcov|tidy|predict)\\.(climasus_dlnm|climasus_af|climasus_pool|climasus_excess|climasus_casecrossover|climasus_its|climasus_sensitivity|climasus_metaregression|climasus_burden|climasus_vi|climasus_ml|climasus_swot|climasus_spatial_scan|climasus_spatial_bayes|climasus_spatial_moran|climasus_spatial_reg|climasus_weights)")
+      - matches("^(print|summary|coef|vcov|tidy|predict)\\.(climasus_dlnm|climasus_af|climasus_pool|climasus_excess|climasus_casecrossover|climasus_its|climasus_sensitivity|climasus_metaregression|climasus_burden|climasus_vi|climasus_ml|climasus_swot|climasus_spatial_scan|climasus_spatial_bayes|climasus_spatial_moran|climasus_spatial_reg|climasus_weights|climasus_spacetime_exceedance|climasus_spacetime_bayes)")
 
 articles:
   - title: "Get Involved"

@@ -1,6 +1,6 @@
 # =============================================================================
 # sus_mod_spatial_bayes.R
-# Bayesian CAR / BYM Disease Mapping with Climate Covariates (CARBayes)
+# Bayesian CAR / BYM Disease Mapping with Climate Covariates (CARBayes / INLA)
 #
 # Theory:
 #   Besag, J., York, J., & Mollie, A. (1991). Bayesian image restoration, with
@@ -11,6 +11,9 @@
 #     Models in Epidemiology, the Environment, and Clinical Trials (pp. 179-191).
 #   Lee, D. (2013). CARBayes: an R package for Bayesian spatial modelling with
 #     conditional autoregressive priors. Journal of Statistical Software, 55(13).
+#   Riebler, A., Sorbye, S. H., Simpson, D., & Rue, H. (2016). An intuitive
+#     Bayesian spatial model for disease mapping that accounts for scaling.
+#     Statistical Methods in Medical Research, 25(4), 1145-1165. (BYM2 model)
 # Input : climasus_df (or data.frame) at aggregate stage, climasus_weights W
 # Output: climasus_spatial_bayes (list) with fixed effects, random effects,
 #         smoothed relative risks, DIC, fitted values
@@ -29,6 +32,12 @@ utils::globalVariables(c(
     pt = "Verificando pacotes necess\u00e1rios (CARBayes, spdep)...",
     en = "Checking required packages (CARBayes, spdep)...",
     es = "Verificando paquetes necesarios (CARBayes, spdep)..."
+  ),
+
+  step_check_pkgs_inla = list(
+    pt = "Verificando pacotes necess\u00e1rios (INLA, spdep)...",
+    en = "Checking required packages (INLA, spdep)...",
+    es = "Verificando paquetes necesarios (INLA, spdep)..."
   ),
 
   step_validate = list(
@@ -55,6 +64,12 @@ utils::globalVariables(c(
     es = "Ejecutando MCMC {model_name} ({n_iter} iteraciones, burnin = {burnin}, thin = {thin})..."
   ),
 
+  step_inla = list(
+    pt = "Executando INLA com modelo BYM2...",
+    en = "Running INLA with BYM2 model...",
+    es = "Ejecutando INLA con modelo BYM2..."
+  ),
+
   step_extract = list(
     pt = "Extraindo efeitos fixos, aleat\u00f3rios e riscos relativos...",
     en = "Extracting fixed effects, random effects, and relative risks...",
@@ -65,6 +80,12 @@ utils::globalVariables(c(
     pt = "Conclu\u00eddo. DIC = {dic_val} | Itera\u00e7\u00f5es efetivas = {n_eff} | Modelo = {model_name}",
     en = "Done. DIC = {dic_val} | Effective iterations = {n_eff} | Model = {model_name}",
     es = "Listo. DIC = {dic_val} | Iteraciones efectivas = {n_eff} | Modelo = {model_name}"
+  ),
+
+  done_inla = list(
+    pt = "Conclu\u00eddo. DIC = {dic_val} | \u00c1reas = {n_areas} | Modelo = bym2 (INLA)",
+    en = "Done. DIC = {dic_val} | Areas = {n_areas} | Model = bym2 (INLA)",
+    es = "Listo. DIC = {dic_val} | \u00c1reas = {n_areas} | Modelo = bym2 (INLA)"
   ),
 
   err_no_muni = list(
@@ -103,6 +124,18 @@ utils::globalVariables(c(
     es = "Columna de offset {.val {offset}} no encontrada en {.arg df}."
   ),
 
+  err_inla_not_available = list(
+    pt = "INLA n\u00e3o est\u00e1 instalado. Para usar o modelo BYM2, instale o INLA com:\n  install.packages('INLA', repos=c(getOption('repos'), INLA='https://inla.r-inla-download.org/R/stable'), dep=TRUE)",
+    en = "INLA is not installed. To use the BYM2 model, install INLA with:\n  install.packages('INLA', repos=c(getOption('repos'), INLA='https://inla.r-inla-download.org/R/stable'), dep=TRUE)",
+    es = "INLA no est\u00e1 instalado. Para usar el modelo BYM2, instale INLA con:\n  install.packages('INLA', repos=c(getOption('repos'), INLA='https://inla.r-inla-download.org/R/stable'), dep=TRUE)"
+  ),
+
+  err_inla_bym2_gaussian = list(
+    pt = "O modelo BYM2 via INLA suporta apenas as fam\u00edlias {.val poisson} e {.val binomial}. Para {.val gaussian}, use {.val bym}, {.val leroux} ou {.val independent}.",
+    en = "BYM2 via INLA supports only {.val poisson} and {.val binomial} families. For {.val gaussian}, use {.val bym}, {.val leroux}, or {.val independent}.",
+    es = "El modelo BYM2 v\u00eda INLA solo admite las familias {.val poisson} y {.val binomial}. Para {.val gaussian}, use {.val bym}, {.val leroux} o {.val independent}."
+  ),
+
   warn_na_outcome = list(
     pt = "{n_na} valor(es) NA em {.val {outcome}}. Linhas com NA ser\u00e3o removidas antes do ajuste.",
     en = "{n_na} NA value(s) in {.val {outcome}}. Rows with NA will be removed before fitting.",
@@ -130,10 +163,12 @@ utils::globalVariables(c(
 #' @description
 #' Fits a Bayesian hierarchical spatial model for disease mapping using
 #' Conditional Autoregressive (CAR) priors implemented in the **CARBayes**
-#' package. Three model specifications are available: the Besag-York-Mollie
-#' (BYM) model with structured and unstructured random effects, the Leroux
-#' model with a mixing parameter for spatial dependence, and the independent
-#' random effects model. Climate and environmental covariates stored in a
+#' package, or the reparameterised BYM2 model via **INLA**. Four model
+#' specifications are available: the Besag-York-Mollie (BYM) model with
+#' structured and unstructured random effects, the Leroux model with a mixing
+#' parameter for spatial dependence, the independent random effects model
+#' (all via CARBayes/MCMC), and the BYM2 model (via INLA with penalised
+#' complexity priors). Climate and environmental covariates stored in a
 #' `climasus_df` can be passed directly as fixed effects.
 #'
 #' @section Model specifications:
@@ -147,9 +182,23 @@ utils::globalVariables(c(
 #' supplied, \eqn{E_i} is set to the overall mean of the fitted values, which
 #' is equivalent to a standardised mortality/morbidity ratio. Credible intervals
 #' for the RR are derived from the 2.5th and 97.5th percentiles of the
-#' MCMC samples for fitted values divided by the expected.
+#' MCMC samples for fitted values divided by the expected (CARBayes models), or
+#' from the INLA marginal posterior quantiles (BYM2 model).
 #'
-#' @section Prior specification:
+#' @section BYM2 model (INLA):
+#'
+#' The BYM2 model of Riebler et al. (2016) reparameterises the original
+#' Besag-York-Mollie model into a single precision parameter \eqn{\tau} and
+#' a mixing parameter \eqn{\phi \in [0,1]} that quantifies the proportion of
+#' variance attributable to structured spatial variation. The latent field is:
+#'
+#' \deqn{u_i = \frac{1}{\sqrt{\tau}} \left(\sqrt{\phi} v_i^* + \sqrt{1-\phi} w_i\right)}
+#'
+#' where \eqn{v_i^*} is the scaled ICAR component and \eqn{w_i \sim N(0,1)}.
+#' Penalised complexity (PC) priors are placed on \eqn{\phi} and \eqn{\tau}:
+#' \eqn{P(\phi > 0.5) = 0.5} and \eqn{P(1/\sqrt{\tau} > 1) = 0.01}.
+#'
+#' @section Prior specification (CARBayes models):
 #'
 #' `prior_tau2` specifies the shape and rate parameters of an
 #' Inverse-Gamma prior for the variance component \eqn{\tau^2}:
@@ -172,31 +221,43 @@ utils::globalVariables(c(
 #'   (on the natural scale, not log-transformed). Used as `log(offset)` in the
 #'   linear predictor for Poisson models. Default `NULL`.
 #' @param family Character. Response distribution. One of `"poisson"`
-#'   (default), `"binomial"`, or `"gaussian"`.
-#' @param model Character. CAR model structure. One of `"bym"` (default),
-#'   `"leroux"`, or `"independent"`. See **Model specifications**.
+#'   (default), `"binomial"`, or `"gaussian"`. Note: `"gaussian"` is not
+#'   supported for `model = "bym2"`.
+#' @param model Character. Spatial model structure. One of:
+#'   \itemize{
+#'     \item `"bym"` (default) -- Besag-York-Mollie model via CARBayes/MCMC.
+#'     \item `"leroux"` -- Leroux CAR model via CARBayes/MCMC.
+#'     \item `"independent"` -- Independent random effects via CARBayes/MCMC.
+#'     \item `"bym2"` -- Reparameterised BYM2 model via INLA with penalised
+#'       complexity priors. Requires the **INLA** package (not on CRAN; see
+#'       \url{https://www.r-inla.org/download-install}).
+#'   }
 #' @param n_iter Positive integer. Total number of MCMC iterations
-#'   (including burn-in). Default `10000`.
+#'   (including burn-in). Used only for CARBayes models (`"bym"`, `"leroux"`,
+#'   `"independent"`). Default `10000`. Ignored for `model = "bym2"`.
 #' @param burnin Positive integer. Number of initial MCMC iterations to
-#'   discard as burn-in. Must be less than `n_iter`. Default `2000`.
-#' @param thin Positive integer. Thinning interval: only every `thin`-th
-#'   post-burn-in iteration is retained. Default `10`.
+#'   discard as burn-in. Must be less than `n_iter`. Used only for CARBayes
+#'   models. Default `2000`. Ignored for `model = "bym2"`.
+#' @param thin Positive integer. Thinning interval. Used only for CARBayes
+#'   models. Default `10`. Ignored for `model = "bym2"`.
 #' @param prior_tau2 Numeric vector of length 2. Shape and rate parameters of
 #'   the Inverse-Gamma prior for the variance of spatial random effects.
-#'   Default `c(1, 0.01)` (weakly informative).
+#'   Used only for CARBayes models. Default `c(1, 0.01)` (weakly informative).
+#'   Ignored for `model = "bym2"` (which uses PC priors instead).
 #' @param seed Integer. Random seed passed to [base::set.seed()] for
-#'   reproducible MCMC. Default `42`.
+#'   reproducible MCMC (CARBayes models) or to `INLA::inla.set.control.compute`
+#'   via `inla.seed` (BYM2). Default `42`.
 #' @param lang Character. Language for CLI messages: `"pt"` (default),
 #'   `"en"`, `"es"`.
-#' @param verbose Logical. If `TRUE` (default), print MCMC progress messages
+#' @param verbose Logical. If `TRUE` (default), print progress messages
 #'   via **cli**.
 #'
 #' @return A named list of class `c("climasus_spatial_bayes", "list")` with
 #'   slots `$fixed` (posterior fixed effects), `$random` (spatial random
 #'   effects per municipality), `$rr` (posterior relative risk with 95\%
 #'   credible intervals), `$fitted` (posterior mean fitted values), `$dic`
-#'   (Deviance Information Criterion), `$model`, `$family`,
-#'   `$n_iter_effective`, and `$call`.
+#'   (Deviance Information Criterion; for BYM2 a named numeric with both DIC
+#'   and WAIC), `$model`, `$family`, `$n_iter_effective`, and `$call`.
 #'
 #' @references
 #' Besag, J., York, J., & Mollie, A. (1991). Bayesian image restoration, with
@@ -211,6 +272,14 @@ utils::globalVariables(c(
 #' Lee, D. (2013). CARBayes: an R package for Bayesian spatial modelling with
 #' conditional autoregressive priors. \emph{Journal of Statistical Software},
 #' 55(13), 1-24.
+#'
+#' Riebler, A., Sorbye, S. H., Simpson, D., & Rue, H. (2016). An intuitive
+#' Bayesian spatial model for disease mapping that accounts for scaling.
+#' \emph{Statistical Methods in Medical Research}, 25(4), 1145-1165.
+#'
+#' Rue, H., Martino, S., & Chopin, N. (2009). Approximate Bayesian inference
+#' for latent Gaussian models by using integrated nested Laplace approximations.
+#' \emph{Journal of the Royal Statistical Society: Series B}, 71(2), 319-392.
 #'
 #' @seealso
 #' [sus_mod_spatial_weights()] to build the required adjacency object,
@@ -230,8 +299,8 @@ utils::globalVariables(c(
 #' # Prepare aggregated health-climate data (must have code_muni)
 #' # agg <- sus_data_aggregate(cleaned_df) |> sus_climate_aggregate()
 #'
-#' # BYM Poisson model with temperature as covariate
-#' result <- sus_mod_spatial_bayes(
+#' # BYM Poisson model with temperature as covariate (CARBayes/MCMC)
+#' result_bym <- sus_mod_spatial_bayes(
 #'   df         = agg,
 #'   outcome    = "deaths",
 #'   W          = W,
@@ -245,10 +314,23 @@ utils::globalVariables(c(
 #'   seed       = 42,
 #'   lang       = "pt"
 #' )
+#' print(result_bym)
 #'
-#' print(result)
-#' result$rr
-#' result$fixed
+#' # BYM2 Poisson model with PC priors (INLA) - requires INLA package
+#' result_bym2 <- sus_mod_spatial_bayes(
+#'   df         = agg,
+#'   outcome    = "deaths",
+#'   W          = W,
+#'   covariates = c("temp_mean", "prec_total"),
+#'   offset     = "expected_deaths",
+#'   family     = "poisson",
+#'   model      = "bym2",
+#'   seed       = 42,
+#'   lang       = "pt"
+#' )
+#' print(result_bym2)
+#' result_bym2$rr
+#' result_bym2$fixed
 #' }
 #'
 #' @export
@@ -259,7 +341,7 @@ sus_mod_spatial_bayes <- function(
     covariates  = NULL,
     offset      = NULL,
     family      = c("poisson", "binomial", "gaussian"),
-    model       = c("bym", "leroux", "independent"),
+    model       = c("bym", "leroux", "independent", "bym2"),
     n_iter      = 10000L,
     burnin      = 2000L,
     thin        = 10L,
@@ -273,18 +355,29 @@ sus_mod_spatial_bayes <- function(
   model  <- match.arg(model)
   lang   <- match.arg(lang, c("pt", "en", "es"))
 
-  # ── 0. dependency check ──────────────────────────────────────────────────────
-  if (verbose) cli::cli_progress_step(.brl("step_check_pkgs", lang))
-  rlang::check_installed(
-    "CARBayes",
-    reason = "for Bayesian spatial CAR/BYM models"
-  )
-  rlang::check_installed(
-    "spdep",
-    reason = "to build adjacency matrix from neighbour list"
-  )
+  # \u2500\u2500 0. dependency check \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  if (model == "bym2") {
+    if (verbose) cli::cli_progress_step(.brl("step_check_pkgs_inla", lang))
+    if (!requireNamespace("INLA", quietly = TRUE)) {
+      cli::cli_abort(.brl("err_inla_not_available", lang))
+    }
+    rlang::check_installed(
+      "spdep",
+      reason = "to build adjacency matrix from neighbour list"
+    )
+  } else {
+    if (verbose) cli::cli_progress_step(.brl("step_check_pkgs", lang))
+    rlang::check_installed(
+      "CARBayes",
+      reason = "for Bayesian spatial CAR/BYM models"
+    )
+    rlang::check_installed(
+      "spdep",
+      reason = "to build adjacency matrix from neighbour list"
+    )
+  }
 
-  # ── 1. validate inputs ───────────────────────────────────────────────────────
+  # \u2500\u2500 1. validate inputs \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   if (verbose) cli::cli_progress_step(.brl("step_validate", lang))
 
   if (!("code_muni" %in% names(df))) {
@@ -313,7 +406,12 @@ sus_mod_spatial_bayes <- function(
     cli::cli_abort(.brl("err_bad_offset", lang, offset = offset))
   }
 
-  # ── 2. sort by code_muni to align with W ────────────────────────────────────
+  # BYM2 does not support gaussian family
+  if (model == "bym2" && family == "gaussian") {
+    cli::cli_abort(.brl("err_inla_bym2_gaussian", lang))
+  }
+
+  # \u2500\u2500 2. sort by code_muni to align with W \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   df_sorted <- df[order(df[["code_muni"]]), , drop = FALSE]
 
   n_df <- nrow(df_sorted)
@@ -334,7 +432,7 @@ sus_mod_spatial_bayes <- function(
     df_sorted <- df_sorted[!is.na(df_sorted[[outcome]]), , drop = FALSE]
   }
 
-  # ── 3. build adjacency matrix W_mat ─────────────────────────────────────────
+  # \u2500\u2500 3. build adjacency matrix W_mat \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   if (verbose) {
     cli::cli_progress_step(.brl("step_build_w", lang, n = n_df))
   }
@@ -348,7 +446,26 @@ sus_mod_spatial_bayes <- function(
   W_mat <- (W_mat != 0) * 1L
   storage.mode(W_mat) <- "numeric"
 
-  # ── 4. build formula ─────────────────────────────────────────────────────────
+  # \u2500\u2500 4. dispatch to model-specific fitting \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  if (model == "bym2") {
+    result <- .fit_bym2_inla(
+      df_sorted  = df_sorted,
+      outcome    = outcome,
+      W_mat      = W_mat,
+      covariates = covariates,
+      offset     = offset,
+      family     = family,
+      seed       = seed,
+      lang       = lang,
+      verbose    = verbose,
+      .call      = .call
+    )
+    return(result)
+  }
+
+  # \u2500\u2500 4b. CARBayes path (bym / leroux / independent) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+  # build formula
   rhs <- if (!is.null(covariates) && length(covariates) > 0L) {
     paste(covariates, collapse = " + ")
   } else {
@@ -367,7 +484,6 @@ sus_mod_spatial_bayes <- function(
     cli::cli_progress_step(.brl("step_formula", lang, fml = fml_str))
   }
 
-  # ── 5. fit CAR model via CARBayes ────────────────────────────────────────────
   model_name <- switch(model,
     bym         = "S.CARbym",
     leroux      = "S.CARleroux",
@@ -422,16 +538,12 @@ sus_mod_spatial_bayes <- function(
     )
   )
 
-  # ── 6. extract results ───────────────────────────────────────────────────────
+  # \u2500\u2500 5. extract results (CARBayes) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   if (verbose) cli::cli_progress_step(.brl("step_extract", lang))
 
-  # -- 6a. Fixed effects from fit$summary.results ------------------------------
-  # CARBayes summary.results rows: intercept + covariates + variance params
-  # We select only rows corresponding to regression coefficients (beta rows)
+  # -- 5a. Fixed effects from fit$summary.results ------------------------------
   sum_res <- fit$summary.results
 
-  # Identify beta rows: they appear before variance/mixing parameter rows
-  # Row names containing "tau2", "nu2", "rho", "Sigma" are not fixed effects
   coef_pattern <- "^(Intercept|[A-Za-z_][A-Za-z0-9_\\.]*)"
   excl_pattern <- "(tau2|nu2|rho|Sigma|phi|psi|delta|gamma)"
   all_rows     <- rownames(sum_res)
@@ -440,7 +552,6 @@ sus_mod_spatial_bayes <- function(
   ]
 
   if (length(beta_rows) == 0L) {
-    # Fallback: take first row(s) that are not clearly hyperparameters
     beta_rows <- head(all_rows, 1L + length(covariates))
   }
 
@@ -454,8 +565,7 @@ sus_mod_spatial_bayes <- function(
     row.names = NULL
   )
 
-  # -- 6b. Random effects (phi samples) ----------------------------------------
-  # CARBayes stores spatial random effects in fit$samples$phi
+  # -- 5b. Random effects (phi samples) ----------------------------------------
   phi_samples <- fit$samples$phi  # matrix: n_eff x n_areas
 
   n_iter_effective <- nrow(phi_samples)
@@ -471,12 +581,10 @@ sus_mod_spatial_bayes <- function(
     row.names = NULL
   )
 
-  # -- 6c. Fitted values (posterior mean, response scale) ----------------------
-  fitted_vals <- fit$fitted.values  # posterior mean on response scale
+  # -- 5c. Fitted values (posterior mean, response scale) ----------------------
+  fitted_vals <- fit$fitted.values
 
-  # -- 6d. Relative risks ------------------------------------------------------
-  # Expected counts: if offset provided use exp(log_offset) = offset column
-  # Otherwise use overall mean of fitted values as reference
+  # -- 5d. Relative risks ------------------------------------------------------
   if (!is.null(offset)) {
     expected_vec <- as.numeric(df_sorted[[offset]])
   } else {
@@ -484,15 +592,13 @@ sus_mod_spatial_bayes <- function(
     expected_vec <- rep(mean_fitted, length(fitted_vals))
   }
 
-  # Compute RR from MCMC samples for fitted values
-  # fit$samples$fitted is n_eff x n_areas (on response scale for Poisson)
   fitted_samples <- fit$samples$fitted  # matrix n_eff x n
 
   rr_samples <- sweep(fitted_samples, 2L, expected_vec, FUN = "/")
 
-  rr_mean_vec   <- colMeans(rr_samples)
-  rr_lower_vec  <- apply(rr_samples, 2L, stats::quantile, probs = 0.025)
-  rr_upper_vec  <- apply(rr_samples, 2L, stats::quantile, probs = 0.975)
+  rr_mean_vec  <- colMeans(rr_samples)
+  rr_lower_vec <- apply(rr_samples, 2L, stats::quantile, probs = 0.025)
+  rr_upper_vec <- apply(rr_samples, 2L, stats::quantile, probs = 0.975)
 
   rr_df <- data.frame(
     code_muni  = df_sorted[["code_muni"]],
@@ -503,13 +609,13 @@ sus_mod_spatial_bayes <- function(
     row.names  = NULL
   )
 
-  # -- 6e. DIC -----------------------------------------------------------------
+  # -- 5e. DIC -----------------------------------------------------------------
   dic_val <- tryCatch(
     fit$modelfit["DIC"],
     error = function(e) NA_real_
   )
 
-  # ── 7. done message ──────────────────────────────────────────────────────────
+  # \u2500\u2500 6. done message \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   if (verbose) {
     dic_str <- if (!is.na(dic_val)) formatC(dic_val, digits = 2, format = "f") else "NA"
     cli::cli_alert_success(
@@ -520,18 +626,187 @@ sus_mod_spatial_bayes <- function(
     )
   }
 
-  # ── 8. assemble output ───────────────────────────────────────────────────────
+  # \u2500\u2500 7. assemble output \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   structure(
     list(
-      fixed           = fixed_df,
-      random          = random_df,
-      rr              = rr_df,
-      fitted          = fitted_vals,
-      dic             = dic_val,
-      model           = model,
-      family          = family,
+      fixed            = fixed_df,
+      random           = random_df,
+      rr               = rr_df,
+      fitted           = fitted_vals,
+      dic              = dic_val,
+      model            = model,
+      family           = family,
       n_iter_effective = n_iter_effective,
-      call            = .call
+      call             = .call
+    ),
+    class = c("climasus_spatial_bayes", "list")
+  )
+}
+
+# =============================================================================
+# INTERNAL: BYM2 via INLA
+# =============================================================================
+
+#' Fit BYM2 spatial model via INLA
+#'
+#' @keywords internal
+#' @noRd
+.fit_bym2_inla <- function(
+    df_sorted,
+    outcome,
+    W_mat,
+    covariates,
+    offset,
+    family,
+    seed,
+    lang,
+    verbose,
+    .call
+) {
+  # area index (1-based integer) required by INLA f() term
+  df_sorted[["area_idx"]] <- seq_len(nrow(df_sorted))
+  n_areas <- nrow(df_sorted)
+
+  # -- build formula -----------------------------------------------------------
+  cov_part <- if (!is.null(covariates) && length(covariates) > 0L) {
+    paste("+", paste(covariates, collapse = " + "))
+  } else {
+    ""
+  }
+
+  fml_str <- paste0(
+    outcome, " ~ 1", cov_part,
+    " + f(area_idx, model='bym2', graph=W_mat,",
+    " hyper=list(",
+    "phi=list(prior='pc', param=c(0.5, 2/3)),",
+    "prec=list(prior='pc.prec', param=c(1, 0.01))))"
+  )
+
+  fml <- stats::as.formula(fml_str, env = environment())
+
+  if (verbose) {
+    cli::cli_progress_step(.brl("step_formula", lang, fml = fml_str))
+    cli::cli_progress_step(.brl("step_inla", lang))
+  }
+
+  # -- INLA family mapping -----------------------------------------------------
+  inla_family <- switch(family,
+    poisson  = "poisson",
+    binomial = "binomial"
+  )
+
+  # -- offset handling ---------------------------------------------------------
+  inla_offset <- if (!is.null(offset)) {
+    log(as.numeric(df_sorted[[offset]]))
+  } else {
+    NULL
+  }
+
+  # -- run INLA ----------------------------------------------------------------
+  set.seed(seed)
+
+  inla_control_compute <- list(
+    dic    = TRUE,
+    waic   = TRUE,
+    config = TRUE,
+    return.marginals.predictor = TRUE
+  )
+
+  fit <- INLA::inla(
+    formula         = fml,
+    family          = inla_family,
+    data            = as.data.frame(df_sorted),
+    offset          = inla_offset,
+    control.compute = inla_control_compute,
+    control.predictor = list(compute = TRUE, link = 1),
+    verbose         = FALSE
+  )
+
+  # -- extract results ---------------------------------------------------------
+  if (verbose) cli::cli_progress_step(.brl("step_extract", lang))
+
+  # fixed effects
+  fe <- fit$summary.fixed
+  fixed_df <- data.frame(
+    term    = rownames(fe),
+    mean    = as.numeric(fe[, "mean"]),
+    sd      = as.numeric(fe[, "sd"]),
+    lower95 = as.numeric(fe[, "0.025quant"]),
+    upper95 = as.numeric(fe[, "0.975quant"]),
+    stringsAsFactors = FALSE,
+    row.names = NULL
+  )
+
+  # random / spatial effects (BYM2 latent field)
+  # fit$summary.random$area_idx has 2*n rows: first n are spatial (u), last n
+  # are the total (u + v). We want the first n (structured spatial component).
+  re_all  <- fit$summary.random$area_idx
+  re_spat <- re_all[seq_len(n_areas), , drop = FALSE]
+
+  random_df <- data.frame(
+    code_muni = df_sorted[["code_muni"]],
+    phi_mean  = as.numeric(re_spat[, "mean"]),
+    phi_sd    = as.numeric(re_spat[, "sd"]),
+    stringsAsFactors = FALSE,
+    row.names = NULL
+  )
+
+  # fitted values (posterior mean on response scale)
+  fitted_vals <- as.numeric(fit$summary.fitted.values[, "mean"])
+
+  # relative risks
+  if (!is.null(offset)) {
+    expected_vec <- as.numeric(df_sorted[[offset]])
+  } else {
+    mean_fitted  <- mean(fitted_vals, na.rm = TRUE)
+    expected_vec <- rep(mean_fitted, length(fitted_vals))
+  }
+
+  rr_mean_vec  <- fitted_vals / expected_vec
+  rr_lower_vec <- as.numeric(fit$summary.fitted.values[, "0.025quant"]) / expected_vec
+  rr_upper_vec <- as.numeric(fit$summary.fitted.values[, "0.975quant"]) / expected_vec
+
+  rr_df <- data.frame(
+    code_muni  = df_sorted[["code_muni"]],
+    rr_mean    = rr_mean_vec,
+    rr_lower95 = rr_lower_vec,
+    rr_upper95 = rr_upper_vec,
+    stringsAsFactors = FALSE,
+    row.names  = NULL
+  )
+
+  # DIC + WAIC
+  dic_val <- tryCatch(
+    c(DIC = fit$dic$dic, WAIC = fit$waic$waic),
+    error = function(e) c(DIC = NA_real_, WAIC = NA_real_)
+  )
+
+  # effective iterations: INLA does not use MCMC -- report as NA
+  n_iter_effective <- NA_integer_
+
+  # done message
+  if (verbose) {
+    dic_str <- if (!is.na(dic_val["DIC"])) {
+      formatC(dic_val["DIC"], digits = 2, format = "f")
+    } else {
+      "NA"
+    }
+    cli::cli_alert_success(
+      .brl("done_inla", lang, dic_val = dic_str, n_areas = n_areas)
+    )
+  }
+
+  structure(
+    list(
+      fixed            = fixed_df,
+      random           = random_df,
+      rr               = rr_df,
+      fitted           = fitted_vals,
+      dic              = dic_val,
+      model            = "bym2",
+      family           = family,
+      n_iter_effective = n_iter_effective,
+      call             = .call
     ),
     class = c("climasus_spatial_bayes", "list")
   )
@@ -544,8 +819,9 @@ sus_mod_spatial_bayes <- function(
 #' Print method for climasus_spatial_bayes objects
 #'
 #' Displays a formatted summary of the Bayesian spatial model fit, including
-#' DIC, effective MCMC sample size, model specification, and the top fixed
-#' effects with posterior means and 95\% credible intervals.
+#' DIC, effective MCMC sample size (or NA for INLA-based models), model
+#' specification, and the top fixed effects with posterior means and 95\%
+#' credible intervals.
 #'
 #' @param x A `climasus_spatial_bayes` object from [sus_mod_spatial_bayes()].
 #' @param n_fixed Integer. Maximum number of fixed-effect rows to display.
@@ -557,16 +833,31 @@ sus_mod_spatial_bayes <- function(
 #' @export
 print.climasus_spatial_bayes <- function(x, n_fixed = 10L, ...) {
   cli::cli_h1(
-    "climasus4r \u2014 Bayesian Spatial Model ({.cls climasus_spatial_bayes})"
+    "climasus4r -- Bayesian Spatial Model ({.cls climasus_spatial_bayes})"
   )
 
-  dic_str <- if (!is.na(x$dic)) formatC(x$dic, digits = 2, format = "f") else "NA"
+  # DIC display: scalar for CARBayes, named numeric for INLA BYM2
+  dic_display <- if (length(x$dic) > 1L) {
+    dic_val <- x$dic["DIC"]
+    waic_val <- x$dic["WAIC"]
+    dic_str  <- if (!is.na(dic_val))  formatC(dic_val,  digits = 2, format = "f") else "NA"
+    waic_str <- if (!is.na(waic_val)) formatC(waic_val, digits = 2, format = "f") else "NA"
+    paste0(dic_str, " (WAIC: ", waic_str, ")")
+  } else {
+    if (!is.na(x$dic)) formatC(x$dic, digits = 2, format = "f") else "NA"
+  }
+
+  n_eff_display <- if (is.na(x$n_iter_effective)) {
+    "N/A (INLA)"
+  } else {
+    as.character(x$n_iter_effective)
+  }
 
   cli::cli_dl(c(
     "Model"                = x$model,
     "Family"               = x$family,
-    "DIC"                  = dic_str,
-    "Effective iterations" = as.character(x$n_iter_effective),
+    "DIC"                  = dic_display,
+    "Effective iterations" = n_eff_display,
     "Areas"                = as.character(nrow(x$rr))
   ))
 
@@ -598,7 +889,7 @@ print.climasus_spatial_bayes <- function(x, n_fixed = 10L, ...) {
     "RR mean (all areas)"  = formatC(rr_mean_overall, digits = 4, format = "f"),
     "RR range"             = paste0(
       formatC(rr_min, digits = 4, format = "f"),
-      " \u2013 ",
+      " - ",
       formatC(rr_max, digits = 4, format = "f")
     )
   ))

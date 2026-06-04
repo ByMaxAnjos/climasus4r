@@ -11,7 +11,7 @@ sus_mod_spatial_bayes(
   covariates = NULL,
   offset = NULL,
   family = c("poisson", "binomial", "gaussian"),
-  model = c("bym", "leroux", "independent"),
+  model = c("bym", "leroux", "independent", "bym2"),
   n_iter = 10000L,
   burnin = 2000L,
   thin = 10L,
@@ -42,31 +42,43 @@ include as fixed effects. Default \code{NULL} (intercept-only model).}
 linear predictor for Poisson models. Default \code{NULL}.}
 
 \item{family}{Character. Response distribution. One of \code{"poisson"}
-(default), \code{"binomial"}, or \code{"gaussian"}.}
+(default), \code{"binomial"}, or \code{"gaussian"}. Note: \code{"gaussian"} is not
+supported for \code{model = "bym2"}.}
 
-\item{model}{Character. CAR model structure. One of \code{"bym"} (default),
-\code{"leroux"}, or \code{"independent"}. See \strong{Model specifications}.}
+\item{model}{Character. Spatial model structure. One of:
+\itemize{
+\item \code{"bym"} (default) -- Besag-York-Mollie model via CARBayes/MCMC.
+\item \code{"leroux"} -- Leroux CAR model via CARBayes/MCMC.
+\item \code{"independent"} -- Independent random effects via CARBayes/MCMC.
+\item \code{"bym2"} -- Reparameterised BYM2 model via INLA with penalised
+complexity priors. Requires the \strong{INLA} package (not on CRAN; see
+\url{https://www.r-inla.org/download-install}).
+}}
 
 \item{n_iter}{Positive integer. Total number of MCMC iterations
-(including burn-in). Default \code{10000}.}
+(including burn-in). Used only for CARBayes models (\code{"bym"}, \code{"leroux"},
+\code{"independent"}). Default \code{10000}. Ignored for \code{model = "bym2"}.}
 
 \item{burnin}{Positive integer. Number of initial MCMC iterations to
-discard as burn-in. Must be less than \code{n_iter}. Default \code{2000}.}
+discard as burn-in. Must be less than \code{n_iter}. Used only for CARBayes
+models. Default \code{2000}. Ignored for \code{model = "bym2"}.}
 
-\item{thin}{Positive integer. Thinning interval: only every \code{thin}-th
-post-burn-in iteration is retained. Default \code{10}.}
+\item{thin}{Positive integer. Thinning interval. Used only for CARBayes
+models. Default \code{10}. Ignored for \code{model = "bym2"}.}
 
 \item{prior_tau2}{Numeric vector of length 2. Shape and rate parameters of
 the Inverse-Gamma prior for the variance of spatial random effects.
-Default \code{c(1, 0.01)} (weakly informative).}
+Used only for CARBayes models. Default \code{c(1, 0.01)} (weakly informative).
+Ignored for \code{model = "bym2"} (which uses PC priors instead).}
 
 \item{seed}{Integer. Random seed passed to \code{\link[base:Random]{base::set.seed()}} for
-reproducible MCMC. Default \code{42}.}
+reproducible MCMC (CARBayes models) or to \code{INLA::inla.set.control.compute}
+via \code{inla.seed} (BYM2). Default \code{42}.}
 
 \item{lang}{Character. Language for CLI messages: \code{"pt"} (default),
 \code{"en"}, \code{"es"}.}
 
-\item{verbose}{Logical. If \code{TRUE} (default), print MCMC progress messages
+\item{verbose}{Logical. If \code{TRUE} (default), print progress messages
 via \strong{cli}.}
 }
 \value{
@@ -74,16 +86,18 @@ A named list of class \code{c("climasus_spatial_bayes", "list")} with
 slots \verb{$fixed} (posterior fixed effects), \verb{$random} (spatial random
 effects per municipality), \verb{$rr} (posterior relative risk with 95\\%
 credible intervals), \verb{$fitted} (posterior mean fitted values), \verb{$dic}
-(Deviance Information Criterion), \verb{$model}, \verb{$family},
-\verb{$n_iter_effective}, and \verb{$call}.
+(Deviance Information Criterion; for BYM2 a named numeric with both DIC
+and WAIC), \verb{$model}, \verb{$family}, \verb{$n_iter_effective}, and \verb{$call}.
 }
 \description{
 Fits a Bayesian hierarchical spatial model for disease mapping using
 Conditional Autoregressive (CAR) priors implemented in the \strong{CARBayes}
-package. Three model specifications are available: the Besag-York-Mollie
-(BYM) model with structured and unstructured random effects, the Leroux
-model with a mixing parameter for spatial dependence, and the independent
-random effects model. Climate and environmental covariates stored in a
+package, or the reparameterised BYM2 model via \strong{INLA}. Four model
+specifications are available: the Besag-York-Mollie (BYM) model with
+structured and unstructured random effects, the Leroux model with a mixing
+parameter for spatial dependence, the independent random effects model
+(all via CARBayes/MCMC), and the BYM2 model (via INLA with penalised
+complexity priors). Climate and environmental covariates stored in a
 \code{climasus_df} can be passed directly as fixed effects.
 }
 \section{Model specifications}{
@@ -98,10 +112,26 @@ are the expected counts (offset on the original scale). When no offset is
 supplied, \eqn{E_i} is set to the overall mean of the fitted values, which
 is equivalent to a standardised mortality/morbidity ratio. Credible intervals
 for the RR are derived from the 2.5th and 97.5th percentiles of the
-MCMC samples for fitted values divided by the expected.
+MCMC samples for fitted values divided by the expected (CARBayes models), or
+from the INLA marginal posterior quantiles (BYM2 model).
 }
 
-\section{Prior specification}{
+\section{BYM2 model (INLA)}{
+
+
+The BYM2 model of Riebler et al. (2016) reparameterises the original
+Besag-York-Mollie model into a single precision parameter \eqn{\tau} and
+a mixing parameter \eqn{\phi \in [0,1]} that quantifies the proportion of
+variance attributable to structured spatial variation. The latent field is:
+
+\deqn{u_i = \frac{1}{\sqrt{\tau}} \left(\sqrt{\phi} v_i^* + \sqrt{1-\phi} w_i\right)}
+
+where \eqn{v_i^*} is the scaled ICAR component and \eqn{w_i \sim N(0,1)}.
+Penalised complexity (PC) priors are placed on \eqn{\phi} and \eqn{\tau}:
+\eqn{P(\phi > 0.5) = 0.5} and \eqn{P(1/\sqrt{\tau} > 1) = 0.01}.
+}
+
+\section{Prior specification (CARBayes models)}{
 
 
 \code{prior_tau2} specifies the shape and rate parameters of an
@@ -124,8 +154,8 @@ W <- sus_mod_spatial_weights(shp_ne, return_matrix = TRUE)
 # Prepare aggregated health-climate data (must have code_muni)
 # agg <- sus_data_aggregate(cleaned_df) |> sus_climate_aggregate()
 
-# BYM Poisson model with temperature as covariate
-result <- sus_mod_spatial_bayes(
+# BYM Poisson model with temperature as covariate (CARBayes/MCMC)
+result_bym <- sus_mod_spatial_bayes(
   df         = agg,
   outcome    = "deaths",
   W          = W,
@@ -139,10 +169,23 @@ result <- sus_mod_spatial_bayes(
   seed       = 42,
   lang       = "pt"
 )
+print(result_bym)
 
-print(result)
-result$rr
-result$fixed
+# BYM2 Poisson model with PC priors (INLA) - requires INLA package
+result_bym2 <- sus_mod_spatial_bayes(
+  df         = agg,
+  outcome    = "deaths",
+  W          = W,
+  covariates = c("temp_mean", "prec_total"),
+  offset     = "expected_deaths",
+  family     = "poisson",
+  model      = "bym2",
+  seed       = 42,
+  lang       = "pt"
+)
+print(result_bym2)
+result_bym2$rr
+result_bym2$fixed
 }
 
 }
@@ -159,6 +202,14 @@ Trials} (pp. 179-191). Springer.
 Lee, D. (2013). CARBayes: an R package for Bayesian spatial modelling with
 conditional autoregressive priors. \emph{Journal of Statistical Software},
 55(13), 1-24.
+
+Riebler, A., Sorbye, S. H., Simpson, D., & Rue, H. (2016). An intuitive
+Bayesian spatial model for disease mapping that accounts for scaling.
+\emph{Statistical Methods in Medical Research}, 25(4), 1145-1165.
+
+Rue, H., Martino, S., & Chopin, N. (2009). Approximate Bayesian inference
+for latent Gaussian models by using integrated nested Laplace approximations.
+\emph{Journal of the Royal Statistical Society: Series B}, 71(2), 319-392.
 }
 \seealso{
 \code{\link[=sus_mod_spatial_weights]{sus_mod_spatial_weights()}} to build the required adjacency object,

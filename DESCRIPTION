@@ -46,12 +46,15 @@ Imports:
     future,
     duckdb,
     tibble,
-    generics
+    generics,
+    scales
 Remotes:
     rfsaldanha/microdatasus
 Suggests:
     arrow,
     nanoparquet,
+    RColorBrewer,
+    ggrepel,
     DBI,
     slider,
     splines,
@@ -80,7 +83,6 @@ Suggests:
     httr2,
     parallelly,
     jsonlite,
-    scales,
     gt,
     leaflet,
     mvmeta,
@@ -92,6 +94,8 @@ Suggests:
     spdep (>= 1.3),
     spatialreg (>= 1.3),
     CARBayes (>= 6.1),
-    SpatialEpi (>= 1.2)
+    SpatialEpi (>= 1.2),
+    INLA
+Additional_repositories: https://inla.r-inla-download.org/R/stable
 URL: https://github.com/ByMaxAnjos/climasus4r
 BugReports: https://github.com/ByMaxAnjos/climasus4r/issues
