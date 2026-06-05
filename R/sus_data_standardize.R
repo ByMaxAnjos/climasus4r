@@ -339,10 +339,10 @@ sus_data_standardize <- function(
   # ============================================================================
   # STEP 3: Datetime formating
   # ============================================================================
- date_pattern <- switch(lang, "en" = "_date", "pt" = "data_", "es" = "fecha_")
+  date_pattern <- switch(lang, "en" = "_date", "pt" = "data_", "es" = "fecha_")
 
   for (col in names(df)[grepl(date_pattern, names(df), ignore.case = TRUE)]) {
-    df <- dplyr::mutate(df, !!col := lubridate::ymd(!!rlang::sym(col)))
+    df[[col]] <- .parse_sus_date(df[[col]], col, verbose)
   }
 
   names(df) <- make.unique(names(df), sep = "_")
@@ -542,67 +542,26 @@ sus_data_standardize <- function(
     }
   }
 
-  # 1c. Date column casting - attempt Arrow-native ymd() (YYYYMMDD  Date32)
-  #     Wrapped in tryCatch: skipped gracefully if Arrow version or column
-  #     type does not support the compute function.
+  # 1c. Date column parsing — portable base-R approach, all systems, all platforms.
+  #     Collects any Arrow-backed object first so df[[col]] returns a plain R
+  #     vector. .parse_sus_date() uses as.Date() with explicit format strings
+  #     (no ICU / locale dependency) and covers Date passthrough, ISO YYYY-MM-DD,
+  #     YYYYMMDD, and raw DATASUS DDMMYYYY formats.
   date_pattern <- switch(lang, "en" = "_date", "pt" = "data_", "es" = "fecha_")
-  
-  if(system %in% c("SIM", "SIA", "CNES", "SINASC")) {
-  cols_to_fix <- names(df)[grepl(
-    paste(date_pattern, collapse = "|"),
-    names(df),
-    ignore.case = TRUE
-  )]
+  cols_date <- names(df)[grepl(date_pattern, names(df), ignore.case = TRUE)]
 
-  if (length(cols_to_fix) > 0) {
-    # Any Arrow-backed object (lazy query OR in-memory Arrow Table) must be
-    # collected before column-level date parsing — df[[col]] on an Arrow Table
-    # returns a ChunkedArray, not a plain R vector.
-    is_arrow <- detect_backend_type(df) == "arrow"
-    if (is_arrow) {
-      df <- dplyr::collect(df)
+  if (length(cols_date) > 0) {
+    is_arrow_obj <- detect_backend_type(df) == "arrow"
+    if (is_arrow_obj) df <- dplyr::collect(df)
+
+    for (col in cols_date) {
+      df[[col]] <- .parse_sus_date(df[[col]], col, verbose)
     }
 
-    # Parse dates in eager mode (works reliably)
-    for (col in cols_to_fix) {
-      df[[col]] <- tryCatch({
-        col_val <- df[[col]]
-        if (inherits(col_val, c("Date", "POSIXct", "POSIXlt"))) {
-          # microdatasus already parsed these — just normalise to Date
-          as.Date(col_val)
-        } else {
-          # Try YYYYMMDD / ISO first (microdatasus output format),
-          # fall back to raw DDMMYYYY if majority are NA
-          result <- suppressWarnings(lubridate::ymd(as.character(col_val)))
-          na_frac <- sum(is.na(result), na.rm = TRUE) / max(length(result), 1)
-          if (na_frac > 0.5) lubridate::dmy(as.character(col_val)) else result
-        }
-      }, error = function(e) {
-        if (verbose) {
-          cli::cli_alert_warning(
-            "Could not parse {col} as date: {conditionMessage(e)}"
-          )
-        }
-        df[[col]]
-      })
-    }
-
-    # Convert back to Arrow Table if input was Arrow-backed
-    if (is_arrow) {
-      df <- arrow::as_arrow_table(df)
-    }
+    if (is_arrow_obj) df <- arrow::as_arrow_table(df)
   }
 
-  # Ensure unique column names
   names(df) <- make.unique(names(df), sep = "_")
-  }
-
-  for (col in names(df)[grepl(date_pattern, names(df), ignore.case = TRUE)]) {
-    df <- tryCatch(
-      dplyr::mutate(df, !!col := lubridate::ymd(!!rlang::sym(col))),
-      error = function(e) df
-    )
-  }
   
    if (verbose) {
     cli::cli_alert_success(paste(
@@ -622,6 +581,25 @@ sus_data_standardize <- function(
 # ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
+
+#' Parse a SUS date column portably across OS and locale
+#'
+#' Uses base-R as.Date() with explicit format strings — no ICU / lubridate
+#' locale dependency. Tries formats in order: already-Date passthrough,
+#' ISO YYYY-MM-DD, YYYYMMDD (8-digit), DDMMYYYY (raw DATASUS).
+#' @keywords internal
+#' @noRd
+.parse_sus_date <- function(x, col_name = "", verbose = FALSE) {
+  if (inherits(x, c("Date", "POSIXct", "POSIXlt"))) return(as.Date(x))
+  chr <- as.character(x)
+  for (fmt in c("%Y-%m-%d", "%Y%m%d", "%d%m%Y")) {
+    result <- suppressWarnings(as.Date(chr, format = fmt))
+    na_frac <- sum(is.na(result), na.rm = TRUE) / max(length(result), 1L)
+    if (na_frac <= 0.5) return(result)
+  }
+  if (verbose) cli::cli_alert_warning("Could not parse date column: {col_name}")
+  x
+}
 
 #' Get UI Messages
 #'
