@@ -148,10 +148,7 @@ sus_data_aggregate <- function(df,
         verbose = verbose
       )
     }, error = function(e) {
-      cli::cli_alert_warning(
-        "Lazy (Arrow) falhou: {conditionMessage(e)}. ",
-        "Retornando em modo tibble."
-      )
+      .warn_arrow_fallback(conditionMessage(e), lang = lang)
       NULL
     })
     

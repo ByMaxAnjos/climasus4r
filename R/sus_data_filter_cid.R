@@ -202,10 +202,7 @@ sus_data_filter_cid <- function(
         )
       },
       error = function(e) {
-        cli::cli_alert_warning(
-          "Lazy (Arrow) falhou: {conditionMessage(e)}. ",
-          "Retornando em modo tibble."
-        )
+        .warn_arrow_fallback(conditionMessage(e), lang = lang)
         NULL
       }
     )
@@ -1481,25 +1478,7 @@ process_icd_codes <- function(codes) {
   return(unique(expanded))
 }
 
-#' Detect backend type of input object
-#' @keywords internal
-#' @noRd
-detect_backend_type <- function(df) {
-  if (inherits(df, "data.frame")) {
-    return("dataframe")
-  } else if (
-    inherits(
-      df,
-      c("arrow_dplyr_query", "Dataset", "ArrowTabular", "RecordBatchReader")
-    )
-  ) {
-    return("arrow")
-  } else if (inherits(df, c("tbl_duckdb_connection", "duckdb_connection"))) {
-    return("duckdb")
-  } else {
-    return("unsupported")
-  }
-}
+# detect_backend_type() is defined in R/utils-S3.R
 
 #' Get column names from lazy objects
 #' @keywords internal

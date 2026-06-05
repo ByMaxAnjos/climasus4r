@@ -220,6 +220,7 @@ sus_data_create_variables <- function(
   lang = "pt",
   verbose = TRUE
 ) {
+  validate_system_pipeline_support(df, "sus_data_create_variables", lang = lang)
 
   if (backend == "arrow") {
     result <- tryCatch({
@@ -238,10 +239,7 @@ sus_data_create_variables <- function(
         verbose = verbose  
       )
     }, error = function(e) {
-      cli::cli_alert_warning(
-        "Lazy (Arrow) falhou: {conditionMessage(e)}. ",
-        "Retornando em modo tibble."
-      )
+      .warn_arrow_fallback(conditionMessage(e), lang = lang)
       NULL
     })
     
@@ -1471,7 +1469,7 @@ sus_data_create_variables <- function(
     stage = "derive", 
     type = "derive",
     add_history = sprintf("[%s] Create variables (Arrow optimized)", 
-                   format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
+                   ))
   
   
   return(df)

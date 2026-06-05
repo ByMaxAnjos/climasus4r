@@ -88,6 +88,74 @@
 #' @noRd
 .climasus_backends <- c("tibble", "parquet", "duckdb")
 
+#' Sub-systems that pipeline functions do not support.
+#' Extend this list as new incompatibilities are discovered in testing.
+#' @keywords internal
+#' @noRd
+.climasus_unsupported <- list(
+  sus_data_create_variables = c(
+    "SIH-SP", "SIH-RJ", "SIH-ER",
+    "CNES-LT", "CNES-ST", "CNES-DC", "CNES-EQ", "CNES-SR", "CNES-HB",
+    "CNES-PF", "CNES-EP", "CNES-RC", "CNES-IN", "CNES-EE", "CNES-EF", "CNES-GM"
+  )
+)
+
+#' Emit a multilingual warning when Arrow lazy backend falls back to tibble.
+#' @keywords internal
+#' @noRd
+.warn_arrow_fallback <- function(msg, lang = "pt") {
+  txt <- list(
+    pt = "Lazy (Arrow) falhou: {msg}. Retornando em modo tibble.",
+    en = "Arrow lazy backend failed: {msg}. Falling back to tibble.",
+    es = "Backend lazy (Arrow) fallo: {msg}. Volviendo a modo tibble."
+  )
+  cli::cli_alert_warning(txt[[lang]] %||% txt[["pt"]])
+}
+
+#' Detect the storage backend of an input object.
+#' Returns "dataframe", "arrow", "duckdb", or "unsupported".
+#' @keywords internal
+#' @noRd
+detect_backend_type <- function(df) {
+  if (inherits(df, c("data.frame", "tbl_df", "climasus_df"))) return("dataframe")
+  if (inherits(df, c("ArrowObject", "arrow_dplyr_query",
+                      "Dataset", "Table", "RecordBatch",
+                      "ArrowTabular", "FileSystemDataset",
+                      "RecordBatchReader"))) return("arrow")
+  if (inherits(df, c("tbl_dbi", "tbl_sql", "tbl_lazy",
+                      "tbl_duckdb_connection", "duckdb_connection"))) return("duckdb")
+  "unsupported"
+}
+
+#' Check whether a pipeline function supports the system stored in sus_meta.
+#' Aborts early with a multilingual message if the system is in the blocked list.
+#' @keywords internal
+#' @noRd
+validate_system_pipeline_support <- function(df, fn_name, lang = "pt") {
+  system <- sus_meta(df, "system")
+  if (is.null(system) || identical(system, "UNKNOWN")) return(invisible(NULL))
+  blocked <- .climasus_unsupported[[fn_name]]
+  if (is.null(blocked) || !system %in% blocked) return(invisible(NULL))
+  msg <- list(
+    pt = c(
+      "!" = "Sistema {.strong {system}} nao suportado por {.fn {fn_name}}.",
+      "i" = "Esta funcao requer colunas de idade/data ausentes em {.strong {system}}.",
+      "*" = "Use sistemas com colunas de idade: SIH-RD, SIM-DO, SINAN-*, SINASC, SIA-PA."
+    ),
+    en = c(
+      "!" = "System {.strong {system}} is not supported by {.fn {fn_name}}.",
+      "i" = "This function requires age/date columns absent in {.strong {system}}.",
+      "*" = "Use a system with age columns: SIH-RD, SIM-DO, SINAN-*, SINASC, SIA-PA."
+    ),
+    es = c(
+      "!" = "El sistema {.strong {system}} no es compatible con {.fn {fn_name}}.",
+      "i" = "Esta funcion requiere columnas de edad/fecha ausentes en {.strong {system}}.",
+      "*" = "Use un sistema con columnas de edad: SIH-RD, SIM-DO, SINAN-*, SINASC, SIA-PA."
+    )
+  )
+  cli::cli_abort(msg[[lang]] %||% msg[["pt"]])
+}
+
 #' Null-coalescing operator
 #' @keywords internal
 #' @noRd

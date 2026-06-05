@@ -175,10 +175,7 @@ sus_data_filter_demographics <- function(df,
         )
       },
       error = function(e) {
-        cli::cli_alert_warning(
-          "Lazy (Arrow) falhou: {conditionMessage(e)}. ",
-          "Retornando em modo tibble."
-        )
+        .warn_arrow_fallback(conditionMessage(e), lang = lang)
         NULL
       }
     )
@@ -1865,17 +1862,7 @@ translate_input <- function(x) {
   semiarido = "semi_arido", frontera = "fronteira_brasil"
 )
 
-#' Detect the storage backend of an input object.
-#' Returns "dataframe", "arrow", "duckdb", or "unsupported".
-#' @noRd
-detect_backend_type <- function(df) {
-  if (inherits(df, c("data.frame", "tbl_df", "climasus_df"))) return("dataframe")
-  if (inherits(df, c("ArrowObject", "arrow_dplyr_query",
-                      "Dataset", "Table", "RecordBatch",
-                      "ArrowTabular", "FileSystemDataset"))) return("arrow")
-  if (inherits(df, c("tbl_dbi", "tbl_sql", "tbl_lazy")))       return("duckdb")
-  "unsupported"
-}
+# detect_backend_type() is defined in R/utils-S3.R
 
 #' Apply a structured filter expression to any supported backend.
 #'

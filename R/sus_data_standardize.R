@@ -94,10 +94,7 @@ sus_data_standardize <- function(
         )
       },
       error = function(e) {
-        cli::cli_alert_warning(
-          "Lazy (Arrow) falhou: {conditionMessage(e)}. ",
-          "Retornando em modo tibble."
-        )
+        .warn_arrow_fallback(conditionMessage(e), lang = lang)
         NULL
       }
     )
@@ -567,15 +564,24 @@ sus_data_standardize <- function(
     # Parse dates in eager mode (works reliably)
     for (col in cols_to_fix) {
       df[[col]] <- tryCatch({
-        # Try parsing DDMMYYYY format (SIM, SIA, CNES, SINASC)
-        lubridate::parse_date_time(df[[col]], orders = "dmy")
+        col_val <- df[[col]]
+        if (inherits(col_val, c("Date", "POSIXct", "POSIXlt"))) {
+          # microdatasus already parsed these — just normalise to Date
+          as.Date(col_val)
+        } else {
+          # Try YYYYMMDD / ISO first (microdatasus output format),
+          # fall back to raw DDMMYYYY if majority are NA
+          result <- suppressWarnings(lubridate::ymd(as.character(col_val)))
+          na_frac <- sum(is.na(result), na.rm = TRUE) / max(length(result), 1)
+          if (na_frac > 0.5) lubridate::dmy(as.character(col_val)) else result
+        }
       }, error = function(e) {
         if (verbose) {
           cli::cli_alert_warning(
             "Could not parse {col} as date: {conditionMessage(e)}"
           )
         }
-        df[[col]]  # Return unchanged
+        df[[col]]
       })
     }
 
