@@ -555,9 +555,11 @@ sus_data_standardize <- function(
   )]
 
   if (length(cols_to_fix) > 0) {
-    # If Arrow lazy (dplyr query), collect to eager mode for date parsing
-    is_lazy <- inherits(df, c("arrow_dplyr_query", "Dataset"))
-    if (is_lazy) {
+    # Any Arrow-backed object (lazy query OR in-memory Arrow Table) must be
+    # collected before column-level date parsing — df[[col]] on an Arrow Table
+    # returns a ChunkedArray, not a plain R vector.
+    is_arrow <- detect_backend_type(df) == "arrow"
+    if (is_arrow) {
       df <- dplyr::collect(df)
     }
 
@@ -585,8 +587,8 @@ sus_data_standardize <- function(
       })
     }
 
-    # Convert back to Arrow if was originally lazy
-    if (is_lazy) {
+    # Convert back to Arrow Table if input was Arrow-backed
+    if (is_arrow) {
       df <- arrow::as_arrow_table(df)
     }
   }
