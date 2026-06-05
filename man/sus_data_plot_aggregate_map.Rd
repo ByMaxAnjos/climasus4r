@@ -128,6 +128,5 @@ sus_data_plot_aggregate_map(df_agg, interactive = TRUE, lang = "pt")
 
 }
 \seealso{
-\code{\link[=sus_data_aggregate]{sus_data_aggregate()}}, \code{\link[=sus_climate_plot_aggregate]{sus_climate_plot_aggregate()}},
-\code{\link[=sus_join_spatial]{sus_join_spatial()}}
+\code{\link[=sus_data_aggregate]{sus_data_aggregate()}}, \code{\link[=sus_climate_plot_aggregate]{sus_climate_plot_aggregate()}}
 }

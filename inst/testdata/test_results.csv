@@ -4,7 +4,7 @@
 "SIM","filter_cid","PASS","SIM filter_cid",10277,NA
 "SIM","derive","PASS","SIM create_vars",10277,NA
 "SIM","filter_demo","PASS","SIM filter_demo",0,NA
-"SIM","aggregate","PASS","SIM aggregate",0,NA
+"SIM","aggregate","PASS","SIM aggregate",738,NA
 "SIM","quality","PASS","SIM quality",NA,NA
 "SIM","export","PASS","SIM export",NA,NA
 "SIH-RD","clean","PASS","SIH-RD clean",9256,NA
@@ -36,21 +36,23 @@
 "SIA-PA","clean","PASS","SIA-PA clean",236364,NA
 "SIA-PA","stand","PASS","SIA-PA stand",236364,NA
 "SIA-PA","filter_cid","PASS","SIA-PA filter_cid",236364,NA
-"SIA-PA","derive","PASS","SIA-PA create_vars",236364,NA
+"SIA-PA","derive","FAIL","SIA-PA create_vars",NA,"[1m[22mCould not auto-detect date column. Please specify
+'date_col' parameter."
 "SIA-PA","filter_demo","PASS","SIA-PA filter_demo",0,NA
-"SIA-PA","aggregate","PASS","SIA-PA aggregate",0,NA
+"SIA-PA","aggregate","FAIL","SIA-PA aggregate",NA,"[1m[22mCould not auto-detect date column. Please specify
+'date_col' parameter."
 "SIA-PA","quality","PASS","SIA-PA quality",NA,NA
 "CNES-ST","clean","PASS","CNES-ST clean",3903,NA
 "CNES-ST","stand","PASS","CNES-ST stand",3903,NA
 "CNES-ST","skip","SKIP","CNES-ST filter_cid",NA,"Registro de estabelecimentos -- sem CID-10"
 "CNES-ST","skip","SKIP","CNES-ST create_vars",NA,"Dados de instalacoes -- sem informacao de idade/nascimento"
 "CNES-ST","skip","SKIP","CNES-ST filter_demo",NA,"Dados de estabelecimentos -- sem demografia pessoal (sexo/raca/idade)"
-"CNES-ST","aggregate","PASS","CNES-ST aggregate",0,NA
+"CNES-ST","aggregate","FAIL","CNES-ST aggregate",NA,"character string is not in a standard unambiguous format"
 "CNES-ST","quality","PASS","CNES-ST quality",NA,NA
 "SINASC","clean","PASS","SINASC clean",24901,NA
 "SINASC","stand","PASS","SINASC stand",24901,NA
 "SINASC","filter_cid","PASS","SINASC filter_cid",163,NA
 "SINASC","derive","PASS","SINASC create_vars",24901,NA
 "SINASC","filter_demo","PASS","SINASC filter_demo",0,NA
-"SINASC","aggregate","PASS","SINASC aggregate",0,NA
+"SINASC","aggregate","PASS","SINASC aggregate",621,NA
 "SINASC","quality","PASS","SINASC quality",NA,NA

@@ -68,11 +68,11 @@ rs <- function(name, sys, reason) {
 }
 
 lp <- function(path) {
-  .read_parquet_smart(file.path(BASE, path))
+  climasus4r:::.read_parquet_smart(file.path(BASE, path))
 }
 
 mk <- function(df, system) {
-  new_climasus_df(df, list(
+  climasus4r:::new_climasus_df(df, list(
     stage   = "import",
     system  = system,
     type    = "individual",

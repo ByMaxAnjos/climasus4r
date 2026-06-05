@@ -84,8 +84,7 @@ utils::globalVariables(c(
 #'   object when `interactive = TRUE`.  The function does **not** modify `df`
 #'   or advance the pipeline `stage`.
 #'
-#' @seealso [sus_data_aggregate()], [sus_climate_plot_aggregate()],
-#'   [sus_join_spatial()]
+#' @seealso [sus_data_aggregate()], [sus_climate_plot_aggregate()]
 #'
 #' @examples
 #' \dontrun{
