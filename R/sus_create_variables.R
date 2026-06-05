@@ -447,7 +447,34 @@ sus_data_create_variables <- function(
     }
   }
 
-  # If no valid age column, try to calculate
+  # If no valid age column, check for DIRECT age columns (not DATASUS codes)
+  # Note: DATASUS age-code columns (codigo_idade, IDADE, etc.) need special
+  # decoding via try_decode_datasus_age — they are NOT handled here.
+  if (is.null(age_col_to_use)) {
+    direct_age_patterns <- c(
+      "age_years",          # already decoded age in years
+      "idade_mae",          # SINASC maternal age (direct value, e.g. 28)
+      "mother_age", "edad_madre"
+    )
+    for (.pat in direct_age_patterns) {
+      if (.pat %in% names(df)) {
+        col_vals <- df[[.pat]]
+        is_numeric_compat <- is.numeric(col_vals) ||
+          (is.character(col_vals) &&
+             suppressWarnings(mean(is.na(as.numeric(col_vals)))) < 0.5)
+        if (is_numeric_compat) {
+          age_col_to_use <- .pat
+          if (verbose) {
+            age_msg <- .pat
+            cli::cli_alert_info("Using existing age column: {age_msg}")
+          }
+          break
+        }
+      }
+    }
+  }
+
+  # If still no age column, try to calculate
   if (is.null(age_col_to_use)) {
     # Try to calculate from dates first (gold standard)
     age_from_dates <- try_calculate_age_from_dates(df, lang, verbose)
@@ -490,6 +517,11 @@ sus_data_create_variables <- function(
 
   # Ensure age column is numeric
   df[[age_col_to_use]] <- as.numeric(df[[age_col_to_use]])
+
+  # Downstream code references df$age_years — ensure it exists
+  if (age_col_to_use != "age_years") {
+    df$age_years <- df[[age_col_to_use]]
+  }
 
   # ========================================================================
   # CREATE AGE GROUPS  Climate risk group (fixed definition)
@@ -1126,7 +1158,8 @@ sus_data_create_variables <- function(
     } else {
       # Try age code column (DATASUS format)
       age_code_col <- NULL
-      age_code_patterns <- c("codigo_idade", "age_code", "IDADE", "NU_IDADE_N")
+      age_code_patterns <- c("codigo_idade", "age_code", "IDADE", "NU_IDADE_N",
+                             "idade_paciente", "patient_age_code", "edad_paciente")
       for (pattern in age_code_patterns) {
         if (pattern %in% col_names) {
           age_code_col <- pattern
@@ -1458,22 +1491,27 @@ sus_data_create_variables <- function(
 try_detect_age_column <- function(df) {
   # Patterns for age in years (after standardization or processing)
   age_patterns <- c(
-    "age_years",      # English standardized
-    "age_code",            # Generic
+    "age_years",
+    "age_code",
     "codigo_idade",
     "codigo_edad",
-    "IDADE", "idade", "age", "edad"
+    "IDADE", "idade", "age", "edad",
+    "idade_mae",   # SINASC maternal age
+    "mother_age", "edad_madre"
   )
   
   for (pattern in age_patterns) {
     if (pattern %in% names(df)) {
-      # Validate it's numeric
-      if (is.numeric(df[[pattern]])) {
-        return(pattern)
+      col <- df[[pattern]]
+      if (is.numeric(col)) return(pattern)
+      # Accept character columns that parse as numeric (e.g. "40", "032")
+      if (is.character(col)) {
+        suppressWarnings(vals <- as.numeric(col))
+        if (mean(is.na(vals)) < 0.5) return(pattern)
       }
     }
   }
-  
+
   return(NULL)
 }
 
@@ -1592,10 +1630,12 @@ try_decode_datasus_age <- function(df, lang, verbose) {
   
   # Find age code column
   age_code_patterns <- c(
-    "age_code",  # ADD THIS - matches your column name
+    "age_code",
     "codigo_idade", "codigo_edad",
-    "NU_IDADE_N",  # SINAN standard
-    "IDADE"        # SIH standard
+    "NU_IDADE_N",       # SINAN
+    "IDADE",            # SIH raw
+    "idade_paciente",   # SIA-PA standardized
+    "patient_age_code", "edad_paciente"
   )
   
   age_code_col <- NULL

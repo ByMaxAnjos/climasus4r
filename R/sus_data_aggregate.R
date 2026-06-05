@@ -572,16 +572,14 @@ sus_data_aggregate <- function(df,
   # SELECAO FINAL
   existent_cols <- names(df)[names(df) %in% priority_order]
   geo_col <- priority_order[priority_order %in% existent_cols][1]
-  
-  #New insert
-  invalid_geo <- c("0", "000000", "", NA)
-  n_invalid <- sum(df[[geo_col]] %in% invalid_geo, na.rm = TRUE)
-  if (n_invalid > 0) {
-    df <- df[!df[[geo_col]] %in% invalid_geo, ]
-  }
 
-  # Add geo columns to group_vars if not already included
-  if (length(geo_col) > 0) {
+  # Guard: skip geo filtering if no municipality column was found
+  if (!is.na(geo_col) && length(geo_col) == 1L) {
+    invalid_geo <- c("0", "000000", "", NA)
+    n_invalid <- sum(df[[geo_col]] %in% invalid_geo, na.rm = TRUE)
+    if (n_invalid > 0) {
+      df <- df[!df[[geo_col]] %in% invalid_geo, ]
+    }
     group_vars <- unique(c(group_vars, geo_col))
   }
   # Perform aggregation based on fun type

@@ -565,7 +565,8 @@ sus_data_filter_cid <- function(
           paste0("secondary_diagnosis_", 1:9)
         ),
         SIA = c("primary_icd", "secondary_icd", "associated_icd"),
-        SINASC = c("underlying_cause", "maternal_cause", "fetal_cause"), # Birth system - uses ICD for maternal/fetal deaths
+        SINASC = c("underlying_cause", "maternal_cause", "fetal_cause",
+                   "congenital_anomaly_code", "anomaly_code"), # Birth system
         CNES = character(0), # CNES does not use ICD-10 codes (establishment registry)
         SINAN = character(0) # SINAN uses disease-specific codes, not ICD-10
       )
@@ -589,7 +590,8 @@ sus_data_filter_cid <- function(
           paste0("diagnostico_secundario_", 1:9)
         ),
         SIA = c("cid_principal", "cid_secundario", "cid_associado"),
-        SINASC = c("causa_basica", "causa_materna", "causa_fetal"),
+        SINASC = c("causa_basica", "causa_materna", "causa_fetal",
+                   "codigo_anomalia_congenita", "anomalia_congenita"),
         CNES = character(0), # CNES nao usa codigos CID-10 (cadastro de estabelecimentos)
         SINAN = character(0) # SINAN usa codigos especificos de agravos, nao CID-10
       )
@@ -613,7 +615,8 @@ sus_data_filter_cid <- function(
           paste0("diagnostico_secundario_", 1:9)
         ),
         SIA = c("cie_principal", "cie_secundario", "cie_asociado"),
-        SINASC = c("causa_basica", "causa_materna", "causa_fetal"),
+        SINASC = c("causa_basica", "causa_materna", "causa_fetal",
+                   "codigo_anomalia_congenita", "anomalia_congenita"),
         CNES = character(0), # CNES no usa codigos CIE-10 (registro de establecimientos)
         SINAN = character(0) # SINAN usa codigos especificos de enfermedades, no CIE-10
       )

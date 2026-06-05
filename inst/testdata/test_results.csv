@@ -1,0 +1,56 @@
+"sys","stage","result","name","rows","error"
+"SIM","clean","PASS","SIM clean",10277,NA
+"SIM","stand","PASS","SIM stand",10277,NA
+"SIM","filter_cid","PASS","SIM filter_cid",10277,NA
+"SIM","derive","PASS","SIM create_vars",10277,NA
+"SIM","filter_demo","PASS","SIM filter_demo",0,NA
+"SIM","aggregate","PASS","SIM aggregate",0,NA
+"SIM","quality","PASS","SIM quality",NA,NA
+"SIM","export","PASS","SIM export",NA,NA
+"SIH-RD","clean","PASS","SIH-RD clean",9256,NA
+"SIH-RD","stand","PASS","SIH-RD stand",9256,NA
+"SIH-RD","filter_cid","PASS","SIH-RD filter_cid",9256,NA
+"SIH-RD","derive","PASS","SIH-RD create_vars",9256,NA
+"SIH-RD","filter_demo","PASS","SIH-RD filter_demo",0,NA
+"SIH-RD","aggregate","PASS","SIH-RD aggregate",303,NA
+"SIH-RD","quality","PASS","SIH-RD quality",NA,NA
+"SIH-SP","clean","PASS","SIH-SP clean",5000,NA
+"SIH-SP","stand","PASS","SIH-SP stand",5000,NA
+"SIH-SP","filter_cid","PASS","SIH-SP filter_cid",5000,NA
+"SIH-SP","skip","SKIP","SIH-SP create_vars",NA,"Esquema SP nao tem NASC/DTNASC/IDADE pessoal (36 colunas SP_*)"
+"SIH-SP","skip","SKIP","SIH-SP filter_demo",NA,"Esquema SP nao tem SEXO/RACACOR/IDADE pessoal"
+"SIH-SP","aggregate","PASS","SIH-SP aggregate",57,NA
+"SIH-ER","clean","PASS","SIH-ER clean",664,NA
+"SIH-ER","stand","PASS","SIH-ER stand",664,NA
+"SIH-ER","skip","SKIP","SIH-ER filter_cid",NA,"Sem coluna ICD no esquema ER"
+"SIH-ER","skip","SKIP","SIH-ER create_vars",NA,"Sem colunas de idade/nascimento no esquema ER"
+"SIH-ER","skip","SKIP","SIH-ER filter_demo",NA,"Sem demographics no esquema ER"
+"SIH-ER","aggregate","PASS","SIH-ER aggregate",112,NA
+"SINAN","clean","PASS","SINAN clean",14252,NA
+"SINAN","stand","PASS","SINAN stand",14252,NA
+"SINAN","skip","SKIP","SINAN filter_cid",NA,"SINAN usa codigos de agravo (ID_AGRAVO), nao CID-10"
+"SINAN","derive","PASS","SINAN create_vars",14252,NA
+"SINAN","filter_demo","PASS","SINAN filter_demo",0,NA
+"SINAN","aggregate","PASS","SINAN aggregate",1436,NA
+"SINAN","quality","PASS","SINAN quality",NA,NA
+"SIA-PA","clean","PASS","SIA-PA clean",236364,NA
+"SIA-PA","stand","PASS","SIA-PA stand",236364,NA
+"SIA-PA","filter_cid","PASS","SIA-PA filter_cid",236364,NA
+"SIA-PA","derive","PASS","SIA-PA create_vars",236364,NA
+"SIA-PA","filter_demo","PASS","SIA-PA filter_demo",0,NA
+"SIA-PA","aggregate","PASS","SIA-PA aggregate",0,NA
+"SIA-PA","quality","PASS","SIA-PA quality",NA,NA
+"CNES-ST","clean","PASS","CNES-ST clean",3903,NA
+"CNES-ST","stand","PASS","CNES-ST stand",3903,NA
+"CNES-ST","skip","SKIP","CNES-ST filter_cid",NA,"Registro de estabelecimentos -- sem CID-10"
+"CNES-ST","skip","SKIP","CNES-ST create_vars",NA,"Dados de instalacoes -- sem informacao de idade/nascimento"
+"CNES-ST","skip","SKIP","CNES-ST filter_demo",NA,"Dados de estabelecimentos -- sem demografia pessoal (sexo/raca/idade)"
+"CNES-ST","aggregate","PASS","CNES-ST aggregate",0,NA
+"CNES-ST","quality","PASS","CNES-ST quality",NA,NA
+"SINASC","clean","PASS","SINASC clean",24901,NA
+"SINASC","stand","PASS","SINASC stand",24901,NA
+"SINASC","filter_cid","PASS","SINASC filter_cid",163,NA
+"SINASC","derive","PASS","SINASC create_vars",24901,NA
+"SINASC","filter_demo","PASS","SINASC filter_demo",0,NA
+"SINASC","aggregate","PASS","SINASC aggregate",0,NA
+"SINASC","quality","PASS","SINASC quality",NA,NA
