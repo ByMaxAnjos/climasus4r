@@ -86,7 +86,7 @@
 #' Valid storage backends for climasus_df
 #' @keywords internal
 #' @noRd
-.climasus_backends <- c("tibble", "parquet", "duckdb")
+.climasus_backends <- c("tibble", "arrow", "parquet", "duckdb")
 
 #' Sub-systems that pipeline functions do not support.
 #' Extend this list as new incompatibilities are discovered in testing.

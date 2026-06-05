@@ -1465,11 +1465,11 @@ sus_data_create_variables <- function(
   }
   # Add climasus_df metadata if not lazy 
   df <- sus_meta(
-    df, 
-    stage = "derive", 
+    df,
+    stage = "derive",
     type = "derive",
-    add_history = sprintf("[%s] Create variables (Arrow optimized)", 
-                   ))
+    add_history = sprintf("[%s] Create variables (Arrow optimized)",
+                          format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
   
   
   return(df)
