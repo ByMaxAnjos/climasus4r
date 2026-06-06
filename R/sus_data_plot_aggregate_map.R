@@ -12,10 +12,10 @@
 #   .map_msgs                       -- i18n message list
 # =============================================================================
 
-# ── NSE variable declarations ─────────────────────────────────────────────────
+# \u2500\u2500 NSE variable declarations \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 utils::globalVariables(c(
   "municipio", "lon", "lat", "name", "uf_code", "is_capital", "pop_25",
-  "total_cases", "fill_var", "rate", "n_periods",
+  "total_cases", "fill_var", "fill_class", "rate", "n_periods",
   "abbrev_state", "lon_lbl", "lat_lbl",
   ".data"
 ))
@@ -125,7 +125,7 @@ utils::globalVariables(c(
 sus_data_plot_aggregate_map <- function(
     df,
     value_col      = NULL,
-    map_type       = c("bubble", "choropleth"),
+    map_type       = c("bubble", "choropleth", "quantile_choropleth"),
     rate_per_100k  = FALSE,
     period         = NULL,
     top_n          = NULL,
@@ -176,6 +176,7 @@ sus_data_plot_aggregate_map <- function(
       col_used          = "Coluna de desfecho usada: {col}",
       muni_col_used     = "Coluna municipal usada: {col}",
       period_filter     = "Filtrando per\u00edodo: {s} \u2013 {e}",
+      title_quantile    = "Incid\u00eancia municipal classificada por quintis",
       fill_label        = "Eventos notificados",
       rate_label        = "Taxa por 100.000 habitantes",
       fill_label_log    = "Eventos notificados (log1p)",
@@ -189,6 +190,7 @@ sus_data_plot_aggregate_map <- function(
     en = list(
       title_bubble      = "Spatial distribution of reported health events",
       title_choropleth  = "Municipal incidence of reported health events",
+      title_quantile    = "Classified municipal incidence (quintiles)",
       loading_meta      = "Loading municipality metadata...",
       computing_rate    = "Computing rate per 100,000 pop.",
       n_muni            = "{n} municipalities mapped",
@@ -204,6 +206,7 @@ sus_data_plot_aggregate_map <- function(
       period_filter     = "Filtering period: {s} \u2013 {e}",
       fill_label        = "Reported events",
       rate_label        = "Rate per 100,000 population",
+      title_quantile    = "Classified municipal incidence (quintiles)",
       fill_label_log    = "Reported events (log1p)",
       rate_label_log    = "Rate per 100,000 pop. (log1p)",
       size_label        = "Total events",
@@ -228,6 +231,7 @@ sus_data_plot_aggregate_map <- function(
       col_used          = "Columna de desenlace usada: {col}",
       muni_col_used     = "Columna municipal usada: {col}",
       period_filter     = "Filtrando per\u00edodo: {s} \u2013 {e}",
+      title_quantile    = "Incidencia municipal clasificada (quintiles)",
       fill_label        = "Eventos notificados",
       rate_label        = "Tasa por 100.000 habitantes",
       fill_label_log    = "Eventos notificados (log1p)",
@@ -433,7 +437,12 @@ sus_data_plot_aggregate_map <- function(
   cap_lbl     <- caption %||% default_cap
 
   # Title
-  default_title <- if (map_type == "bubble") msg$title_bubble else msg$title_choropleth
+  default_title <- switch(map_type,
+    bubble               = msg$title_bubble,
+    choropleth           = msg$title_choropleth,
+    quantile_choropleth  = msg$title_quantile,
+    msg$title_choropleth
+  )
   map_title <- if (!is.null(title)) title else default_title
 
   # Subtitle (auto-generated from n municipalities, metric and period)
@@ -458,13 +467,13 @@ sus_data_plot_aggregate_map <- function(
   # 14.  State borders (geobr)
   # ---------------------------------------------------------------------------
   state_sf <- NULL
-  if (state_borders || map_type == "choropleth") {
+  if (state_borders || map_type %in% c("choropleth", "quantile_choropleth")) {
     has_geobr <- requireNamespace("geobr",  quietly = TRUE)
     has_sf    <- requireNamespace("sf",     quietly = TRUE)
     if (!has_geobr || !has_sf) {
       cli::cli_warn(msg$geobr_missing)
       state_borders <- FALSE
-      if (map_type == "choropleth") {
+      if (map_type %in% c("choropleth", "quantile_choropleth")) {
         cli::cli_warn(msg$fallback_bubble)
         map_type <- "bubble"
       }
@@ -488,27 +497,27 @@ sus_data_plot_aggregate_map <- function(
   }
 
   # ---------------------------------------------------------------------------
-  # 15.  Build scale_fill layer (shared between bubble & choropleth)
+  # 15.  Continuous fill scale (base \u2014 guide added per branch)
   # ---------------------------------------------------------------------------
-  fill_scale <- ggplot2::scale_fill_gradientn(
-    colors = color_vec,
-    trans  = sc_trans,
-    name   = fill_lbl,
-    labels = scales::label_comma(),
-    guide  = ggplot2::guide_colorbar(
-      barwidth  = ggplot2::unit(10, "lines"),
-      barheight = ggplot2::unit(0.5, "lines"),
-      title.position = "top",
-      title.hjust    = 0.5
-    )
+  fill_scale_base <- ggplot2::scale_fill_gradientn(
+    colors   = color_vec,
+    trans    = sc_trans,
+    name     = fill_lbl,
+    labels   = scales::label_comma(),
+    na.value = "#EBEBEB",
+    guide    = "none"
   )
+
+  # Dynamic zoom limits (computed inside each branch)
+  .zoom_xlim <- NULL
+  .zoom_ylim <- NULL
 
   # ---------------------------------------------------------------------------
   # 16.  Map-type branch
   # ---------------------------------------------------------------------------
 
   if (map_type == "bubble") {
-    # ── 16a. Bubble map ────────────────────────────────────────────────────
+    # \u2500\u2500 16a. Bubble map \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
     # Capital city labels
     capitals <- NULL
@@ -568,24 +577,56 @@ sus_data_plot_aggregate_map <- function(
       alpha  = 0.80
     )
 
-    # Size scale
+    # Size scale: representative breaks spanning the data range
+    .sz_max    <- max(muni_plot$total_cases, na.rm = TRUE)
+    .sz_min    <- max(1L, min(muni_plot$total_cases[muni_plot$total_cases > 0L],
+                              na.rm = TRUE))
+    .sz_breaks <- unique(round(exp(seq(log(.sz_min + 1), log(.sz_max + 1),
+                                      length.out = 4L)) - 1))
+
     p <- p + ggplot2::scale_size_continuous(
-      range  = c(0.8, 7),
+      range  = c(1, 8),
       trans  = "log1p",
       name   = size_lbl,
-      guide  = ggplot2::guide_legend(
-        override.aes = list(
+      breaks = .sz_breaks,
+      labels = scales::label_comma(accuracy = 1)
+    )
+
+    # Fill scale (continuous gradient, colorbar below the map)
+    p <- p + fill_scale_base
+
+    # Explicit legend layout: size legend (circles) above colorbar
+    p <- p + ggplot2::guides(
+      size = ggplot2::guide_legend(
+        title.position = "top",
+        label.position = "bottom",
+        nrow           = 1L,
+        override.aes   = list(
           shape  = 21,
-          fill   = "#FD8D3C",
-          color  = "white",
-          stroke = 0.25,
-          alpha  = 0.85
-        )
+          fill   = "grey72",
+          color  = "grey40",
+          stroke = 0.35,
+          alpha  = 0.80
+        ),
+        order = 1L
+      ),
+      fill = ggplot2::guide_colorbar(
+        barwidth       = ggplot2::unit(9, "lines"),
+        barheight      = ggplot2::unit(0.45, "lines"),
+        title.position = "top",
+        title.hjust    = 0.5,
+        ticks          = FALSE,
+        order          = 2L
       )
     )
 
-    # Fill scale
-    p <- p + fill_scale
+    # Dynamic zoom from data bounding box
+    .lon_rng   <- diff(range(muni_plot$lon, na.rm = TRUE))
+    .lat_rng   <- diff(range(muni_plot$lat, na.rm = TRUE))
+    .pad_x     <- max(.lon_rng * 0.12, 1.5)
+    .pad_y     <- max(.lat_rng * 0.12, 1.2)
+    .zoom_xlim <- range(muni_plot$lon, na.rm = TRUE) + c(-.pad_x, .pad_x)
+    .zoom_ylim <- range(muni_plot$lat, na.rm = TRUE) + c(-.pad_y, .pad_y)
 
     # Capital / top-N text labels
     label_data <- if (!is.null(top_labels)) top_labels else capitals
@@ -624,7 +665,7 @@ sus_data_plot_aggregate_map <- function(
     }
 
   } else {
-    # ── 16b. Choropleth map ────────────────────────────────────────────────
+    # \u2500\u2500 16b/16c. Choropleth / Quantile-choropleth \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     # geobr and sf are available (checked in step 14)
 
     muni_poly <- tryCatch(
@@ -650,7 +691,7 @@ sus_data_plot_aggregate_map <- function(
           value_col     = value_col,
           map_type      = "bubble",
           rate_per_100k = rate_per_100k,
-          period        = NULL,   # already filtered
+          period        = NULL,
           top_n         = top_n,
           state_borders = state_borders,
           show_labels   = show_labels,
@@ -659,7 +700,7 @@ sus_data_plot_aggregate_map <- function(
           title         = title,
           base_size     = base_size,
           interactive   = interactive,
-          use_cache     = FALSE,  # already loaded
+          use_cache     = FALSE,
           cache_dir     = cache_dir,
           lang          = lang,
           verbose       = FALSE
@@ -683,26 +724,95 @@ sus_data_plot_aggregate_map <- function(
       by = c("._code6_poly" = "._muni6")
     )
 
+    # Dynamic zoom to data extent (where fill_var is not NA)
+    .data_poly <- poly_joined[!is.na(poly_joined$fill_var), ]
+    if (nrow(.data_poly) > 0L) {
+      .bb <- sf::st_bbox(.data_poly)
+      .pad_x     <- max((.bb["xmax"] - .bb["xmin"]) * 0.06, 0.4)
+      .pad_y     <- max((.bb["ymax"] - .bb["ymin"]) * 0.06, 0.4)
+      .zoom_xlim <- c(unname(.bb["xmin"]) - .pad_x, unname(.bb["xmax"]) + .pad_x)
+      .zoom_ylim <- c(unname(.bb["ymin"]) - .pad_y, unname(.bb["ymax"]) + .pad_y)
+    }
+
     p <- ggplot2::ggplot()
 
-    # Municipality polygons (choropleth fill)
-    p <- p + ggplot2::geom_sf(
-      data      = poly_joined,
-      ggplot2::aes(fill = .data$fill_var),
-      color     = "white",
-      linewidth = 0.05,
-      inherit.aes = FALSE
-    )
+    if (map_type == "choropleth") {
+      # \u2500\u2500 Continuous choropleth \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+      p <- p + ggplot2::geom_sf(
+        data        = poly_joined,
+        ggplot2::aes(fill = .data$fill_var),
+        color       = "#C8C8C8",
+        linewidth   = 0.05,
+        inherit.aes = FALSE
+      )
 
-    p <- p + fill_scale
+      p <- p + fill_scale_base
+      p <- p + ggplot2::guides(
+        fill = ggplot2::guide_colorbar(
+          barwidth       = ggplot2::unit(10, "lines"),
+          barheight      = ggplot2::unit(0.5, "lines"),
+          title.position = "top",
+          title.hjust    = 0.5,
+          ticks          = FALSE,
+          order          = 1L
+        )
+      )
 
-    # State borders on top
+    } else {
+      # \u2500\u2500 Quantile choropleth (5-class classified) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+      .n_cls    <- 5L
+      .q_probs  <- seq(0, 1, length.out = .n_cls + 1L)
+      .q_breaks <- unique(quantile(muni_data$fill_var, probs = .q_probs,
+                                   na.rm = TRUE))
+      if (length(.q_breaks) < 2L) {
+        .q_breaks <- c(0, max(muni_data$fill_var, na.rm = TRUE))
+      }
+      .q_labels <- paste0(
+        scales::comma(round(utils::head(.q_breaks, -1L), 1)),
+        " \u2013 ",
+        scales::comma(round(utils::tail(.q_breaks, -1L), 1))
+      )
+
+      poly_joined$fill_class <- cut(
+        poly_joined$fill_var,
+        breaks         = .q_breaks,
+        labels         = .q_labels,
+        include.lowest = TRUE,
+        ordered_result = TRUE
+      )
+
+      .n_lvl    <- length(levels(stats::na.omit(poly_joined$fill_class)))
+      .cls_cols <- grDevices::colorRampPalette(color_vec)(max(.n_lvl, 2L))
+
+      p <- p + ggplot2::geom_sf(
+        data        = poly_joined,
+        ggplot2::aes(fill = .data$fill_class),
+        color       = "#C8C8C8",
+        linewidth   = 0.05,
+        inherit.aes = FALSE
+      )
+
+      p <- p + ggplot2::scale_fill_manual(
+        values   = .cls_cols,
+        name     = fill_lbl,
+        na.value = "#EBEBEB",
+        drop     = FALSE,
+        guide    = ggplot2::guide_legend(
+          title.position = "top",
+          nrow           = 2L,
+          reverse        = FALSE,
+          order          = 1L
+        )
+      )
+    }
+
+    # State borders on top (both choropleth variants)
     if (!is.null(state_sf)) {
       p <- p + ggplot2::geom_sf(
-        data      = state_sf,
-        fill      = NA,
-        color     = "#4A4A4A",
-        linewidth = 0.35,
+        data        = state_sf,
+        fill        = NA,
+        color       = "#4A4A4A",
+        linewidth   = 0.35,
         inherit.aes = FALSE
       )
     }
@@ -711,8 +821,15 @@ sus_data_plot_aggregate_map <- function(
   # ---------------------------------------------------------------------------
   # 17.  Common theme & labels
   # ---------------------------------------------------------------------------
+  # Apply dynamic zoom if computed in branch, otherwise show full extent
+  .coord <- if (!is.null(.zoom_xlim)) {
+    ggplot2::coord_sf(xlim = .zoom_xlim, ylim = .zoom_ylim, expand = FALSE)
+  } else {
+    ggplot2::coord_sf(expand = FALSE)
+  }
+
   p <- p +
-    ggplot2::coord_sf(expand = FALSE) +
+    .coord +
     ggplot2::labs(
       title    = map_title,
       subtitle = map_subtitle,
@@ -875,7 +992,7 @@ sus_data_plot_aggregate_map <- function(
     )(n))
   }
 
-  # ggsci aliases (categorical / qualitative — interpolated for continuous)
+  # ggsci aliases (categorical / qualitative \u2014 interpolated for continuous)
   if (palette %in% c("lancet", "nejm")) {
     if (requireNamespace("ggsci", quietly = TRUE)) {
       pal_fn <- switch(palette,

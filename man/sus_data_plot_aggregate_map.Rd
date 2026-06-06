@@ -7,7 +7,7 @@
 sus_data_plot_aggregate_map(
   df,
   value_col = NULL,
-  map_type = c("bubble", "choropleth"),
+  map_type = c("bubble", "choropleth", "quantile_choropleth"),
   rate_per_100k = FALSE,
   period = NULL,
   top_n = NULL,
