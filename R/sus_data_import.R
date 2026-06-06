@@ -472,6 +472,20 @@ sus_data_import <- function(uf = NULL,
       }
     )
 
+    # Restrict city search to requested UF(s) — prevents cross-state name matches
+    if (!is.null(uf) && !is.null(muni_meta_import) &&
+        !identical(tolower(uf), "all")) {
+      muni_meta_import <- muni_meta_import[
+        toupper(muni_meta_import$uf_code) %in% toupper(uf), , drop = FALSE
+      ]
+      if (nrow(muni_meta_import) == 0L) {
+        cli::cli_alert_warning(
+          "Nenhum municipio encontrado para UF(s) '{paste(uf,collapse=',')}'."
+        )
+        muni_meta_import <- NULL
+      }
+    }
+
     collected_codes <- character(0L)
 
     if (!is.null(city) && !is.null(muni_meta_import)) {
@@ -584,8 +598,17 @@ sus_data_import <- function(uf = NULL,
 
   #New: Is national sys
   is_national <- system %in% national_systems
-  
-  if (is_national) {    
+
+  # UF -> IBGE state code (2-digit) — always available for all branches
+  uf_to_code <- c(
+    "AC" = 12, "AL" = 27, "AP" = 16, "AM" = 13, "BA" = 29, "CE" = 23,
+    "DF" = 53, "ES" = 32, "GO" = 52, "MA" = 21, "MT" = 51, "MS" = 50,
+    "MG" = 31, "PA" = 15, "PB" = 25, "PR" = 41, "PE" = 26, "PI" = 22,
+    "RJ" = 33, "RN" = 24, "RS" = 43, "RO" = 11, "RR" = 14, "SC" = 42,
+    "SP" = 35, "SE" = 28, "TO" = 17
+  )
+
+  if (is_national) {
     # Criamos params com apenas UMA combinacao (primeira UF)
     # Mas mantemos todas as UFs para filtragem posterior
     params <- expand.grid(
@@ -594,16 +617,9 @@ sus_data_import <- function(uf = NULL,
       system = system,
       stringsAsFactors = FALSE
     )
-    
+
     # Guarda todas as UFs para filtragem
     all_ufs <- uf
-    uf_to_code <- c(
-    "AC" = 12, "AL" = 27, "AP" = 16, "AM" = 13, "BA" = 29, "CE" = 23, 
-    "DF" = 53, "ES" = 32, "GO" = 52, "MA" = 21, "MT" = 51, "MS" = 50, 
-    "MG" = 31, "PA" = 15, "PB" = 25, "PR" = 41, "PE" = 26, "PI" = 22, 
-    "RJ" = 33, "RN" = 24, "RS" = 43, "RO" = 11, "RR" = 14, "SC" = 42, 
-    "SP" = 35, "SE" = 28, "TO" = 17
-  ) 
   } else {
     # Para sistemas normais, criamos grid completo
     params <- expand.grid(
@@ -722,7 +738,7 @@ load_from_cache <- function(cache_path, year_i, uf_i, system_i, month_i = NULL, 
   }
   
   if (requireNamespace("arrow", quietly = TRUE)) {
-    return(arrow::read_parquet(cache_path)) 
+    return(suppressMessages(suppressWarnings(arrow::read_parquet(cache_path))))
   } else {
     return(readRDS(cache_path))
   }
@@ -747,8 +763,8 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
   }
   
   if (requireNamespace("arrow", quietly = TRUE)) {
-    arrow::write_parquet(data, cache_path)
-  } else { 
+    suppressMessages(suppressWarnings(arrow::write_parquet(data, cache_path)))
+  } else {
     saveRDS(data, cache_path)
   }
   
@@ -818,7 +834,29 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
       }
 
       data <- do.call(microdatasus::fetch_datasus, params_list)
-      
+
+      # Safety-net: keep only rows whose municipality prefix matches the requested state
+      if (!is_national && !is.null(data) && nrow(data) > 0L) {
+        state_code <- sprintf("%02d", as.integer(uf_to_code[toupper(uf_i)]))
+        if (!is.na(state_code) && nchar(state_code) == 2L) {
+          muni_candidates <- c(
+            "CODMUNRES", "CODMUNOCOR", "MUNIC_RES", "MUNIC_MOV",
+            "CODMUNNASC", "CODMUN", "PA_MUNPCN", "MUNAIH"
+          )
+          mf <- muni_candidates[muni_candidates %in% names(data)][1L]
+          if (!is.na(mf)) {
+            vals    <- substr(as.character(data[[mf]]), 1L, 2L)
+            n_before <- nrow(data)
+            data    <- data[vals %in% state_code | is.na(data[[mf]]), , drop = FALSE]
+            n_removed <- n_before - nrow(data)
+            if (n_removed > 0L && verbose)
+              cli::cli_alert_info(
+                "Filtro UF '{uf_i}': {n_removed} registro(s) de outro(s) estado(s) removido(s)."
+              )
+          }
+        }
+      }
+
       # Save to cache if enabled
       if (use_cache && !is.null(data) && nrow(data) > 0) {
         save_to_cache(data, cache_path, year_i, uf_i, system_i, month_i, is_national)
@@ -1184,11 +1222,15 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
   
   #Check if arrow pak installed
   #check_arrow(lang=lang)
-  arrow_threads= NULL
+  arrow_threads = NULL
   # Thread pool do Arrow: independente do future, gerenciado por libarrow C++
   n_arrow_threads <- arrow_threads %||% parallel::detectCores(logical = FALSE)
-  if (requireNamespace("arrow", quietly = TRUE)) arrow::set_cpu_count(n_arrow_threads)
-  if (requireNamespace("arrow", quietly = TRUE)) arrow::set_io_thread_count(n_arrow_threads)
+  if (requireNamespace("arrow", quietly = TRUE)) {
+    suppressMessages(suppressWarnings({
+      arrow::set_cpu_count(n_arrow_threads)
+      arrow::set_io_thread_count(n_arrow_threads)
+    }))
+  }
 
   # 1. Resolucao de regiao -> UF 
 
@@ -1374,6 +1416,20 @@ if (!is.null(city) || !is.null(municipality_code)) {
         NULL
       }
     )
+
+    # Restrict city search to requested UF(s) — prevents cross-state name matches
+    if (!is.null(uf) && !is.null(muni_meta_import) &&
+        !identical(tolower(uf), "all")) {
+      muni_meta_import <- muni_meta_import[
+        toupper(muni_meta_import$uf_code) %in% toupper(uf), , drop = FALSE
+      ]
+      if (nrow(muni_meta_import) == 0L) {
+        cli::cli_alert_warning(
+          "Nenhum municipio encontrado para UF(s) '{paste(uf,collapse=',')}'."
+        )
+        muni_meta_import <- NULL
+      }
+    }
 
     collected_codes <- character(0L)
 
@@ -1687,17 +1743,22 @@ if (!is.null(city) || !is.null(municipality_code)) {
   dataset <- if (requireNamespace("arrow", quietly = TRUE)) {
     # arrow path: fully lazy, memory-efficient
     tryCatch({
-      arrow::open_dataset(
-        sources       = valid_paths,
-        format        = "parquet",
-        unify_schemas = TRUE
-      )
+      suppressMessages(suppressWarnings(
+        arrow::open_dataset(
+          sources       = valid_paths,
+          format        = "parquet",
+          unify_schemas = TRUE
+        )
+      ))
     }, error = function(e) {
       cli::cli_alert_danger("Falha ao abrir Arrow dataset: {conditionMessage(e)}")
       cli::cli_alert_info("Verificando arquivos individualmente...")
       readable <- Filter(function(p) {
         tryCatch({
-          arrow::open_dataset(p, format = "parquet"); TRUE
+          suppressMessages(suppressWarnings(
+            arrow::open_dataset(p, format = "parquet")
+          ))
+          TRUE
         }, error = function(e2) {
           cli::cli_alert_warning("Corrompido: {basename(p)}")
           FALSE
@@ -1706,8 +1767,10 @@ if (!is.null(city) || !is.null(municipality_code)) {
       if (length(readable) == 0L)
         cli::cli_abort("Nenhum arquivo Parquet legivel. Verifique os logs.")
       cli::cli_alert_info("Reabrindo com {length(readable)}/{n_ok} arquivo(s)...")
-      arrow::open_dataset(sources = readable, format = "parquet",
-                          unify_schemas = TRUE)
+      suppressMessages(suppressWarnings(
+        arrow::open_dataset(sources = readable, format = "parquet",
+                            unify_schemas = TRUE)
+      ))
     })
   } else {
     # Fallback: DuckDB lazy (duckdb is in Imports, always available)
@@ -1724,19 +1787,42 @@ if (!is.null(city) || !is.null(municipality_code)) {
     )
   }
 
-  # 13. Filtro lazy de UF para sistemas nacionais (SINAN) 
-
-  if (is_national && length(request_ufs) > 0L) {
-    codes_wanted <- unname(uf_to_code[request_ufs])
-    codes_wanted <- codes_wanted[!is.na(codes_wanted)]
+  # 13. Filtro lazy de UF — aplicado a TODOS os sistemas
+  if (length(request_ufs) > 0L) {
+    codes_wanted    <- unname(uf_to_code[toupper(request_ufs)])
+    codes_wanted    <- codes_wanted[!is.na(codes_wanted)]
+    state_str_codes <- sprintf("%02d", as.integer(codes_wanted))
 
     if (length(codes_wanted) > 0L) {
-      dataset <- dataset |>
-        dplyr::filter(as.integer(SG_UF_NOT) %in% codes_wanted)
+      if (is_national) {
+        # SINAN: SG_UF_NOT contém código IBGE numérico direto
+        dataset <- dataset |>
+          dplyr::filter(as.integer(SG_UF_NOT) %in% codes_wanted)
+      } else {
+        # Sistemas estaduais: filtrar pelo prefixo (2 dígitos) do código municipal
+        muni_col_candidates <- c(
+          "CODMUNRES", "CODMUNOCOR", "MUNIC_RES", "MUNIC_MOV",
+          "CODMUNNASC", "CODMUN", "PA_MUNPCN", "MUNAIH"
+        )
+        ds_cols <- names(dataset)
+        mf      <- muni_col_candidates[muni_col_candidates %in% ds_cols][1L]
+        if (!is.na(mf) && !is.null(mf)) {
+          uf_pattern <- paste0("^(", paste(state_str_codes, collapse = "|"), ")")
+          dataset <- dataset |>
+            dplyr::filter(
+              is.na(!!rlang::sym(mf)) |
+              grepl(uf_pattern, !!rlang::sym(mf))
+            )
+          if (verbose)
+            cli::cli_alert_info(
+              "Filtro lazy de UF na coluna '{mf}' ({length(codes_wanted)} UF(s))."
+            )
+        }
+      }
 
       if (verbose)
         cli::cli_alert_info(
-          "Filtro lazy de UF: {length(codes_wanted)} codigo(s) IBGE aplicado(s)."
+          "Filtro de UF: {length(codes_wanted)} codigo(s) IBGE aplicado(s)."
         )
     }
   }
@@ -2122,13 +2208,15 @@ collect.climasus_dataset <- function(x, ...) {
 
   # tryCatch retorna flag booleana - evita que path seja retornado apos falha
   ok <- tryCatch({
-    arrow::write_parquet(
-      df,
-      sink              = path,
-      compression       = "zstd",
-      compression_level = 3L,
-      write_statistics  = TRUE
-    )
+    suppressMessages(suppressWarnings(
+      arrow::write_parquet(
+        df,
+        sink              = path,
+        compression       = "zstd",
+        compression_level = 3L,
+        write_statistics  = TRUE
+      )
+    ))
     TRUE
   }, error = function(e) {
     cli::cli_alert_danger("Falha ao escrever Parquet: {conditionMessage(e)}")
