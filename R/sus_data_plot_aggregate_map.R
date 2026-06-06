@@ -69,6 +69,12 @@ utils::globalVariables(c(
 #'   scale.  Default `TRUE`.
 #' @param title Character.  Map title.  `NULL` uses a built-in multilingual
 #'   default.
+#' @param subtitle Character.  Map subtitle.  `NULL` auto-generates one from
+#'   the number of municipalities, metric and period.
+#' @param caption Character.  Figure caption.  `NULL` uses the DATASUS source
+#'   string for the selected language.
+#' @param theme_style Character.  Reserved for future theme variants.
+#'   Currently only `"publication"` (default) is implemented.
 #' @param base_size Numeric.  Base font size for `theme_void()`.  Default `11`.
 #' @param interactive Logical.  If `TRUE`, wraps the ggplot2 object with
 #'   `plotly::ggplotly()`.  Requires `plotly`.  Default `FALSE`.
@@ -128,6 +134,9 @@ sus_data_plot_aggregate_map <- function(
     palette        = "YlOrRd",
     log_scale      = TRUE,
     title          = NULL,
+    subtitle       = NULL,
+    caption        = NULL,
+    theme_style    = "publication",
     base_size      = 11,
     interactive    = FALSE,
     use_cache      = TRUE,
@@ -152,13 +161,13 @@ sus_data_plot_aggregate_map <- function(
   # ---------------------------------------------------------------------------
   .msgs <- list(
     pt = list(
-      title_bubble      = "Distribui\u00e7\u00e3o Municipal de Casos",
-      title_choropleth  = "Mapa Coropl\u00e9tico Municipal",
+      title_bubble      = "Distribui\u00e7\u00e3o espacial de eventos de sa\u00fade notificados",
+      title_choropleth  = "Incid\u00eancia municipal de eventos de sa\u00fade notificados",
       loading_meta      = "Carregando metadados municipais...",
       computing_rate    = "Calculando taxa por 100.000 habitantes...",
       n_muni            = "{n} munic\u00edpios mapeados",
       geobr_missing     = "geobr n\u00e3o dispon\u00edvel: fronteiras estaduais omitidas.",
-      fallback_bubble   = "Coropleth requer geobr+sf. Usando mapa de bolhas.",
+      fallback_bubble   = "Coropl\u00e9tico requer geobr+sf. Usando mapa de bolhas.",
       done              = "{n} munic\u00edpios, tipo '{type}'.",
       stage_warn        = "stage '{stage}' n\u00e3o \u00e9 'aggregate' ou posterior. O mapa pode estar incompleto.",
       no_outcome        = "Nenhuma coluna de desfecho detectada em {.arg df}. Informe {.arg value_col}.",
@@ -167,14 +176,19 @@ sus_data_plot_aggregate_map <- function(
       col_used          = "Coluna de desfecho usada: {col}",
       muni_col_used     = "Coluna municipal usada: {col}",
       period_filter     = "Filtrando per\u00edodo: {s} \u2013 {e}",
-      fill_label        = "Casos",
-      rate_label        = "Taxa / 100k hab.",
-      size_label        = "Total de casos",
-      caption           = "climasus4r | Fonte: DATASUS"
+      fill_label        = "Eventos notificados",
+      rate_label        = "Taxa por 100.000 habitantes",
+      fill_label_log    = "Eventos notificados (log1p)",
+      rate_label_log    = "Taxa por 100.000 hab. (log1p)",
+      size_label        = "Total de eventos",
+      caption           = "Fonte: DATASUS / Minist\u00e9rio da Sa\u00fade",
+      municipalities    = "munic\u00edpios",
+      to                = " a ",
+      sep               = " | "
     ),
     en = list(
-      title_bubble      = "Municipal Case Distribution",
-      title_choropleth  = "Municipal Choropleth Map",
+      title_bubble      = "Spatial distribution of reported health events",
+      title_choropleth  = "Municipal incidence of reported health events",
       loading_meta      = "Loading municipality metadata...",
       computing_rate    = "Computing rate per 100,000 pop.",
       n_muni            = "{n} municipalities mapped",
@@ -188,14 +202,19 @@ sus_data_plot_aggregate_map <- function(
       col_used          = "Outcome column used: {col}",
       muni_col_used     = "Municipality column used: {col}",
       period_filter     = "Filtering period: {s} \u2013 {e}",
-      fill_label        = "Cases",
-      rate_label        = "Rate / 100k pop.",
-      size_label        = "Total cases",
-      caption           = "climasus4r | Source: DATASUS"
+      fill_label        = "Reported events",
+      rate_label        = "Rate per 100,000 population",
+      fill_label_log    = "Reported events (log1p)",
+      rate_label_log    = "Rate per 100,000 pop. (log1p)",
+      size_label        = "Total events",
+      caption           = "Source: DATASUS / Brazilian Ministry of Health",
+      municipalities    = "municipalities",
+      to                = " to ",
+      sep               = " | "
     ),
     es = list(
-      title_bubble      = "Distribuci\u00f3n Municipal de Casos",
-      title_choropleth  = "Mapa Coropl\u00e9tico Municipal",
+      title_bubble      = "Distribuci\u00f3n espacial de eventos de salud notificados",
+      title_choropleth  = "Incidencia municipal de eventos de salud notificados",
       loading_meta      = "Cargando metadatos municipales...",
       computing_rate    = "Calculando tasa por 100.000 hab.",
       n_muni            = "{n} municipios mapeados",
@@ -209,10 +228,15 @@ sus_data_plot_aggregate_map <- function(
       col_used          = "Columna de desenlace usada: {col}",
       muni_col_used     = "Columna municipal usada: {col}",
       period_filter     = "Filtrando per\u00edodo: {s} \u2013 {e}",
-      fill_label        = "Casos",
-      rate_label        = "Tasa / 100k hab.",
-      size_label        = "Total de casos",
-      caption           = "climasus4r | Fuente: DATASUS"
+      fill_label        = "Eventos notificados",
+      rate_label        = "Tasa por 100.000 habitantes",
+      fill_label_log    = "Eventos notificados (log1p)",
+      rate_label_log    = "Tasa por 100.000 hab. (log1p)",
+      size_label        = "Total de eventos",
+      caption           = "Fuente: DATASUS / Ministerio de Salud de Brasil",
+      municipalities    = "municipios",
+      to                = " a ",
+      sep               = " | "
     )
   )
   msg <- .msgs[[lang]]
@@ -400,13 +424,32 @@ sus_data_plot_aggregate_map <- function(
   # ---------------------------------------------------------------------------
   # 13.  Axis / legend labels
   # ---------------------------------------------------------------------------
-  fill_lbl <- if (rate_per_100k) msg$rate_label else msg$fill_label
+  fill_lbl_base <- if (rate_per_100k) msg$rate_label     else msg$fill_label
+  fill_lbl_log  <- if (rate_per_100k) msg$rate_label_log else msg$fill_label_log
+  fill_lbl <- if (log_scale) fill_lbl_log else fill_lbl_base
   size_lbl <- msg$size_label
-  cap_lbl  <- msg$caption
+
+  default_cap <- paste0(msg$caption, " | climasus4r")
+  cap_lbl     <- caption %||% default_cap
 
   # Title
   default_title <- if (map_type == "bubble") msg$title_bubble else msg$title_choropleth
   map_title <- if (!is.null(title)) title else default_title
+
+  # Subtitle (auto-generated from n municipalities, metric and period)
+  n_muni_sub <- nrow(muni_plot)
+  per_sub    <- ""
+  if (!is.null(period)) {
+    p1      <- format(as.Date(period[1]))
+    p2      <- if (length(period) >= 2) format(as.Date(period[2])) else NULL
+    per_sub <- if (!is.null(p2)) {
+      paste0(msg$sep, p1, msg$to, p2)
+    } else {
+      paste0(msg$sep, p1)
+    }
+  }
+  auto_subtitle <- paste0(n_muni_sub, " ", msg$municipalities, msg$sep, fill_lbl, per_sub)
+  map_subtitle  <- subtitle %||% auto_subtitle
 
   # Scale transformation
   sc_trans <- if (log_scale) "log1p" else "identity"
@@ -470,8 +513,8 @@ sus_data_plot_aggregate_map <- function(
     # Capital city labels
     capitals <- NULL
     if (show_labels && "is_capital" %in% names(muni_plot)) {
-      caps_raw <- muni_plot[isTRUE(muni_plot$is_capital) |
-                              muni_plot$is_capital %in% c(TRUE, 1L, "TRUE", "1"), ]
+      is_cap   <- muni_plot$is_capital %in% c(TRUE, 1L, "TRUE", "1")
+      caps_raw <- muni_plot[is_cap, ]
       if (nrow(caps_raw) > 0L && "uf_code" %in% names(caps_raw)) {
         # One label per state: city with most cases
         caps_raw$._uf <- as.character(caps_raw$uf_code)
@@ -503,9 +546,9 @@ sus_data_plot_aggregate_map <- function(
     if (!is.null(state_sf)) {
       p <- p + ggplot2::geom_sf(
         data      = state_sf,
-        fill      = "#F0EDE8",
-        color     = "#7A8C99",
-        linewidth = 0.45,
+        fill      = "#F8F8F8",
+        color     = "#AAAAAA",
+        linewidth = 0.30,
         inherit.aes = FALSE
       )
     }
@@ -521,13 +564,13 @@ sus_data_plot_aggregate_map <- function(
       ),
       shape  = 21,
       color  = "white",
-      stroke = 0.2,
-      alpha  = 0.85
+      stroke = 0.3,
+      alpha  = 0.80
     )
 
     # Size scale
     p <- p + ggplot2::scale_size_continuous(
-      range  = c(0.8, 8),
+      range  = c(0.8, 7),
       trans  = "log1p",
       name   = size_lbl,
       guide  = ggplot2::guide_legend(
@@ -553,16 +596,16 @@ sus_data_plot_aggregate_map <- function(
           data          = label_data,
           ggplot2::aes(x = .data$lon, y = .data$lat,
                        label = .data$name),
-          size          = 2.0,
+          size          = 2.2,
           fontface      = "bold",
           color         = "#1A252F",
-          fill          = scales::alpha("white", 0.82),
-          label.padding = ggplot2::unit(0.15, "lines"),
-          label.size    = 0.2,
-          box.padding   = 0.55,
-          segment.color = "#1A252F",
-          segment.size  = 0.3,
-          max.overlaps  = 20,
+          fill          = scales::alpha("white", 0.85),
+          label.padding = ggplot2::unit(0.12, "lines"),
+          label.size    = 0.15,
+          box.padding   = 0.40,
+          segment.color = "#555555",
+          segment.size  = 0.25,
+          max.overlaps  = 15,
           na.rm         = TRUE,
           inherit.aes   = FALSE
         )
@@ -647,7 +690,7 @@ sus_data_plot_aggregate_map <- function(
       data      = poly_joined,
       ggplot2::aes(fill = .data$fill_var),
       color     = "white",
-      linewidth = 0.1,
+      linewidth = 0.05,
       inherit.aes = FALSE
     )
 
@@ -658,8 +701,8 @@ sus_data_plot_aggregate_map <- function(
       p <- p + ggplot2::geom_sf(
         data      = state_sf,
         fill      = NA,
-        color     = "#5A6E7A",
-        linewidth = 0.5,
+        color     = "#4A4A4A",
+        linewidth = 0.35,
         inherit.aes = FALSE
       )
     }
@@ -671,8 +714,11 @@ sus_data_plot_aggregate_map <- function(
   p <- p +
     ggplot2::coord_sf(expand = FALSE) +
     ggplot2::labs(
-      title   = map_title,
-      caption = cap_lbl
+      title    = map_title,
+      subtitle = map_subtitle,
+      caption  = cap_lbl,
+      fill     = fill_lbl,
+      size     = size_lbl
     ) +
     ggplot2::theme_void(base_size = base_size) +
     ggplot2::theme(
@@ -685,10 +731,14 @@ sus_data_plot_aggregate_map <- function(
       plot.margin        = ggplot2::margin(4, 4, 4, 4),
       plot.title         = ggplot2::element_text(face = "bold",
                                                   size = base_size + 1,
-                                                  hjust = 0.5),
+                                                  hjust = 0),
+      plot.subtitle      = ggplot2::element_text(colour = "grey45",
+                                                  size   = base_size * 0.88,
+                                                  hjust  = 0,
+                                                  margin = ggplot2::margin(b = 4)),
       plot.caption       = ggplot2::element_text(size   = base_size - 2,
                                                   color  = "#888888",
-                                                  hjust  = 1)
+                                                  hjust  = 0)
     )
 
   # ---------------------------------------------------------------------------
@@ -696,7 +746,7 @@ sus_data_plot_aggregate_map <- function(
   # ---------------------------------------------------------------------------
   if (verbose) {
     n    <- n_matched
-    tp   <- type
+    tp   <- map_type
     cli::cli_alert_success(glue::glue(msg$done, n = n, type = tp))
   }
 
@@ -800,7 +850,32 @@ sus_data_plot_aggregate_map <- function(
 #' @keywords internal
 #' @noRd
 .map_palette_colors <- function(palette, n = 9L) {
-  # ggsci aliases
+  # viridis family
+  if (palette %in% c("viridis", "magma", "inferno", "cividis", "plasma")) {
+    if (requireNamespace("viridisLite", quietly = TRUE)) {
+      fn <- switch(palette,
+        viridis = viridisLite::viridis,
+        magma   = viridisLite::magma,
+        inferno = viridisLite::inferno,
+        cividis = viridisLite::cividis,
+        plasma  = viridisLite::plasma
+      )
+      return(fn(n, direction = 1))
+    }
+    # Fallback to built-in perceptual blue
+    return(grDevices::colorRampPalette(
+      c("#F7FBFF", "#D0E1F2", "#8AB6D6", "#3B7EA1", "#0B3C5D")
+    )(n))
+  }
+
+  # Science / Nature sequential aliases
+  if (palette %in% c("nature", "science")) {
+    return(grDevices::colorRampPalette(
+      c("#F7FBFF", "#D0E1F2", "#8AB6D6", "#3B7EA1", "#0B3C5D")
+    )(n))
+  }
+
+  # ggsci aliases (categorical / qualitative — interpolated for continuous)
   if (palette %in% c("lancet", "nejm")) {
     if (requireNamespace("ggsci", quietly = TRUE)) {
       pal_fn <- switch(palette,
@@ -808,24 +883,25 @@ sus_data_plot_aggregate_map <- function(
         nejm   = ggsci::pal_nejm()
       )
       cols <- pal_fn(min(n, 9L))
+      if (n > length(cols)) cols <- grDevices::colorRampPalette(cols)(n)
       return(cols)
     }
-    # Fallback if ggsci not available
     palette <- "YlOrRd"
   }
 
   # RColorBrewer palettes
   if (requireNamespace("RColorBrewer", quietly = TRUE)) {
-    # Check if it's a valid brewer palette
     all_pals <- rownames(RColorBrewer::brewer.pal.info)
     if (palette %in% all_pals) {
       max_n <- RColorBrewer::brewer.pal.info[palette, "maxcolors"]
-      return(RColorBrewer::brewer.pal(min(n, max_n), palette))
+      cols  <- RColorBrewer::brewer.pal(min(n, max_n), palette)
+      if (n > length(cols)) cols <- grDevices::colorRampPalette(cols)(n)
+      return(cols)
     }
   }
 
-  # Built-in fallback: YlOrRd-like gradient
+  # Built-in perceptual blue fallback (colorblind-safe)
   grDevices::colorRampPalette(
-    c("#FFEDA0", "#FEB24C", "#FC4E2A", "#E31A1C", "#800026")
+    c("#F7FBFF", "#D0E1F2", "#8AB6D6", "#3B7EA1", "#0B3C5D")
   )(n)
 }

@@ -17,6 +17,9 @@ sus_data_plot_aggregate_ts(
   free_scales = TRUE,
   palette = "lancet",
   title = NULL,
+  subtitle = NULL,
+  caption = NULL,
+  theme_style = "publication",
   date_labels = "\%b/\%y",
   year_breaks = "3 months",
   base_size = 11,
@@ -62,6 +65,15 @@ Default \code{TRUE}.}
 \code{"nejm"}, \code{"jco"}, \code{"uchicago"}, or \code{"viridis"}.}
 
 \item{title}{Character. Plot title. Auto-generated if \code{NULL}.}
+
+\item{subtitle}{Character. Plot subtitle. \code{NULL} auto-generates one from
+row count, outcome column name and date range.}
+
+\item{caption}{Character. Figure caption. \code{NULL} uses the DATASUS source
+string for the selected language.}
+
+\item{theme_style}{Character. Reserved for future theme variants.
+Currently only \code{"publication"} (default) is implemented.}
 
 \item{date_labels}{Character. \code{strftime} format string for x-axis date
 labels. Default \code{"\%b/\%y"}.}

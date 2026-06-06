@@ -75,6 +75,7 @@ Suggests:
     DT,
     ggplot2,
     ggsci,
+    viridisLite,
     htmltools,
     patchwork,
     plotly,

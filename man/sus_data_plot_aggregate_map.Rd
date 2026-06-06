@@ -16,6 +16,9 @@ sus_data_plot_aggregate_map(
   palette = "YlOrRd",
   log_scale = TRUE,
   title = NULL,
+  subtitle = NULL,
+  caption = NULL,
+  theme_style = "publication",
   base_size = 11,
   interactive = FALSE,
   use_cache = TRUE,
@@ -64,6 +67,15 @@ scale.  Default \code{TRUE}.}
 
 \item{title}{Character.  Map title.  \code{NULL} uses a built-in multilingual
 default.}
+
+\item{subtitle}{Character.  Map subtitle.  \code{NULL} auto-generates one from
+the number of municipalities, metric and period.}
+
+\item{caption}{Character.  Figure caption.  \code{NULL} uses the DATASUS source
+string for the selected language.}
+
+\item{theme_style}{Character.  Reserved for future theme variants.
+Currently only \code{"publication"} (default) is implemented.}
 
 \item{base_size}{Numeric.  Base font size for \code{theme_void()}.  Default \code{11}.}
 

@@ -73,18 +73,48 @@ utils::globalVariables(c(
     en = "Materialising Arrow dataset...",
     es = "Materializando dataset Arrow..."
   ),
+  subtitle_fmt = list(
+    pt = "n = %s registros | Desfecho: %s | %s a %s",
+    en = "n = %s records | Outcome: %s | %s to %s",
+    es = "n = %s registros | Desenlace: %s | %s a %s"
+  ),
+  caption = list(
+    pt = "Fonte: DATASUS / Minist\u00E9rio da Sa\u00FAde",
+    en = "Source: DATASUS / Brazilian Ministry of Health",
+    es = "Fuente: DATASUS / Ministerio de Salud de Brasil"
+  ),
+  title_epidemic = list(
+    pt = "Curva epid\u00EAmica de eventos de sa\u00FAde notificados",
+    en = "Epidemic curve of reported health events",
+    es = "Curva epid\u00E9mica de eventos de salud notificados"
+  ),
+  title_seasonal = list(
+    pt = "Distribui\u00E7\u00E3o sazonal de eventos de sa\u00FAde notificados",
+    en = "Seasonal distribution of reported health events",
+    es = "Distribuci\u00F3n estacional de eventos de salud notificados"
+  ),
+  title_heatmap = list(
+    pt = "Mapa de calor mensal de eventos de sa\u00FAde notificados",
+    en = "Monthly heatmap of reported health events",
+    es = "Mapa de calor mensual de eventos de salud notificados"
+  ),
+  title_trend = list(
+    pt = "Tend\u00EAncia anual de eventos de sa\u00FAde notificados",
+    en = "Annual trend in reported health events",
+    es = "Tendencia anual de eventos de salud notificados"
+  ),
   # axis / label helpers
   y_label = list(
-    pt = "Contagem",
-    en = "Count",
-    es = "Conteo"
+    pt = "Eventos notificados",
+    en = "Reported events",
+    es = "Eventos notificados"
   ),
   x_year   = list(pt = "Ano",   en = "Year",  es = "A\u00F1o"),
   x_month  = list(pt = "M\u00EAs", en = "Month", es = "Mes"),
   log_note = list(
-    pt = " (escala log\u2081\u208A\u2093)",
-    en = " (log\u2081\u208A\u2093 scale)",
-    es = " (escala log\u2081\u208A\u2093)"
+    pt = " (escala log1p; r\u00F3tulos em contagem original)",
+    en = " (log1p scale; labels shown as original counts)",
+    es = " (escala log1p; etiquetas en conteo original)"
   ),
   month_abbr = list(
     pt = c("Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
@@ -98,6 +128,11 @@ utils::globalVariables(c(
     pt = "Valor m\u00E9dio",
     en = "Mean value",
     es = "Valor medio"
+  ),
+  fill_label_hm = list(
+    pt = "M\u00E9dia de eventos notificados",
+    en = "Mean reported events",
+    es = "Media de eventos notificados"
   )
 )
 
@@ -148,10 +183,10 @@ utils::globalVariables(c(
       panel.grid.minor       = ggplot2::element_blank(),
       panel.grid.major.x     = ggplot2::element_line(colour = "grey92", linewidth = 0.25),
       panel.grid.major.y     = ggplot2::element_line(colour = "grey88", linewidth = 0.30),
-      panel.border           = ggplot2::element_rect(colour = "grey60", fill = NA,
-                                                     linewidth = 0.35),
-      strip.background       = ggplot2::element_rect(fill = "#1C2B3A"),
-      strip.text             = ggplot2::element_text(colour = "white", face = "bold",
+      panel.border           = ggplot2::element_rect(colour = "grey85", fill = NA,
+                                                     linewidth = 0.3),
+      strip.background       = ggplot2::element_rect(fill = "grey95", colour = NA),
+      strip.text             = ggplot2::element_text(colour = "grey20", face = "bold",
                                                      size = base_size * 0.85),
       axis.text.x            = ggplot2::element_text(angle = 45, hjust = 1),
       legend.position        = "bottom",
@@ -185,25 +220,22 @@ utils::globalVariables(c(
 #' @noRd
 .ts_epidemic <- function(df, value_col, group_col, facet_col, facet_ncol,
                          smooth_method, smooth_span, log_transform,
-                         free_scales, pal, title, date_labels, year_breaks,
-                         base_size, lang) {
+                         free_scales, pal, title, subtitle, caption,
+                         date_labels, year_breaks, base_size, lang) {
 
-  # Build working data
   df_e <- df |>
     dplyr::mutate(.date = as.Date(date), .val = .data[[value_col]])
 
   if (log_transform) {
     df_e <- df_e |> dplyr::mutate(.y = log1p(.val))
-    y_lab <- paste0(.tsm("y_label", lang), .tsm("log_note", lang))
-    y_trans_fn  <- log1p
-    y_inv_fn    <- expm1
+    y_lab   <- paste0(.tsm("y_label", lang), .tsm("log_note", lang))
     y_scale <- ggplot2::scale_y_continuous(
       name   = y_lab,
       labels = function(x) scales::comma(round(expm1(x), 0))
     )
   } else {
-    df_e <- df_e |> dplyr::mutate(.y = .val)
-    y_lab  <- .tsm("y_label", lang)
+    df_e    <- df_e |> dplyr::mutate(.y = .val)
+    y_lab   <- .tsm("y_label", lang)
     y_scale <- ggplot2::scale_y_continuous(
       name   = y_lab,
       labels = scales::comma,
@@ -211,49 +243,51 @@ utils::globalVariables(c(
     )
   }
 
-  # Smooth method
-  sm_method  <- switch(smooth_method,
-    loess = "loess",
-    gam   = "gam",
-    lm    = "lm",
-    "loess"
-  )
-  sm_formula <- if (smooth_method == "gam") {
-    rlang::check_installed("mgcv", reason = "to use smooth_method = 'gam'")
-    y ~ s(x, bs = "tp")
-  } else {
-    y ~ x
-  }
-
   primary_col   <- pal[[1L]]
   secondary_col <- pal[[6L]] %||% pal[[length(pal)]]
 
-  # Base mapping
-  if (!is.null(group_col) && group_col %in% names(df_e)) {
+  has_group <- !is.null(group_col) && group_col %in% names(df_e)
+
+  if (has_group) {
     p <- ggplot2::ggplot(df_e, ggplot2::aes(
       x     = .date,
       y     = .y,
       color = .data[[group_col]],
       fill  = .data[[group_col]]
-    ))
+    )) +
+      ggplot2::geom_area(alpha = 0.18, na.rm = TRUE) +
+      ggplot2::geom_line(linewidth = 0.7, na.rm = TRUE)
   } else {
-    p <- ggplot2::ggplot(df_e, ggplot2::aes(x = .date, y = .y))
+    p <- ggplot2::ggplot(df_e, ggplot2::aes(x = .date, y = .y)) +
+      ggplot2::geom_area(alpha = 0.18, fill = primary_col, na.rm = TRUE) +
+      ggplot2::geom_line(linewidth = 0.7, color = primary_col, na.rm = TRUE)
+  }
+
+  # Optional smoothing line
+  if (!identical(smooth_method, "none")) {
+    sm_method  <- switch(smooth_method,
+      loess = "loess", gam = "gam", lm = "lm", "loess"
+    )
+    sm_formula <- if (smooth_method == "gam") {
+      rlang::check_installed("mgcv", reason = "to use smooth_method = 'gam'")
+      y ~ s(x, bs = "tp")
+    } else {
+      y ~ x
+    }
+    p <- p + ggplot2::geom_smooth(
+      method    = sm_method,
+      formula   = sm_formula,
+      span      = smooth_span,
+      se        = TRUE,
+      color     = secondary_col,
+      fill      = secondary_col,
+      alpha     = 0.15,
+      linewidth = 0.9,
+      na.rm     = TRUE
+    )
   }
 
   p <- p +
-    ggplot2::geom_area(alpha = 0.25, fill = primary_col, na.rm = TRUE) +
-    ggplot2::geom_line(linewidth = 0.8, color = primary_col, na.rm = TRUE) +
-    ggplot2::geom_smooth(
-      method  = sm_method,
-      formula = sm_formula,
-      span    = smooth_span,
-      se      = TRUE,
-      color   = secondary_col,
-      fill    = secondary_col,
-      alpha   = 0.18,
-      linewidth = 1.0,
-      na.rm   = TRUE
-    ) +
     ggplot2::scale_x_date(
       date_breaks = year_breaks,
       date_labels = date_labels,
@@ -261,18 +295,20 @@ utils::globalVariables(c(
     ) +
     y_scale +
     ggplot2::labs(
-      title    = title %||% .tsm("title", lang),
+      title    = title    %||% .tsm("title_epidemic", lang),
+      subtitle = subtitle,
+      caption  = caption,
       x        = NULL,
       color    = group_col,
       fill     = group_col
     ) +
     .ts_theme(base_size)
 
-  if (!is.null(group_col) && group_col %in% names(df_e)) {
+  if (has_group) {
     n_grps <- dplyr::n_distinct(df_e[[group_col]])
     p <- p +
       ggplot2::scale_color_manual(values = .ts_palette("lancet", n_grps)) +
-      ggplot2::scale_fill_manual(values = .ts_palette("lancet", n_grps))
+      ggplot2::scale_fill_manual(values  = .ts_palette("lancet", n_grps))
   }
 
   if (!is.null(facet_col) && facet_col %in% names(df_e)) {
@@ -293,7 +329,8 @@ utils::globalVariables(c(
 #' @keywords internal
 #' @noRd
 .ts_seasonal <- function(df, value_col, group_col, facet_col, facet_ncol,
-                         log_transform, free_scales, pal, title, base_size, lang) {
+                         log_transform, free_scales, pal, title, subtitle,
+                         caption, base_size, lang) {
 
   month_abbr <- .ts_msgs$month_abbr[[lang]] %||% .ts_msgs$month_abbr[["pt"]]
 
@@ -361,9 +398,11 @@ utils::globalVariables(c(
       name = .tsm("x_month", lang)
     ) +
     ggplot2::labs(
-      title = title %||% .tsm("title", lang),
-      x     = .tsm("x_month", lang),
-      fill  = group_col %||% NULL
+      title    = title %||% .tsm("title_seasonal", lang),
+      subtitle = subtitle,
+      caption  = caption,
+      x        = .tsm("x_month", lang),
+      fill     = group_col %||% NULL
     ) +
     .ts_theme(base_size) +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 0, hjust = 0.5))
@@ -398,7 +437,8 @@ utils::globalVariables(c(
 #' @keywords internal
 #' @noRd
 .ts_heatmap <- function(df, value_col, facet_col, facet_ncol,
-                        log_transform, free_scales, pal, title, base_size, lang) {
+                        log_transform, free_scales, pal, title, subtitle,
+                        caption, base_size, lang) {
 
   month_abbr <- .ts_msgs$month_abbr[[lang]] %||% .ts_msgs$month_abbr[["pt"]]
 
@@ -424,9 +464,9 @@ utils::globalVariables(c(
   )(9L)
 
   fill_lab <- if (log_transform) {
-    paste0(.tsm("fill_label", lang), "\n(log\u2081\u208A\u2093)")
+    paste0(.tsm("fill_label_hm", lang), "\n(log1p)")
   } else {
-    .tsm("fill_label", lang)
+    .tsm("fill_label_hm", lang)
   }
 
   p <- ggplot2::ggplot(
@@ -462,8 +502,10 @@ utils::globalVariables(c(
     ) +
     ggplot2::scale_y_discrete(expand = c(0, 0)) +
     ggplot2::labs(
-      title = title %||% .tsm("title", lang),
-      y     = .tsm("x_year", lang)
+      title    = title %||% .tsm("title_heatmap", lang),
+      subtitle = subtitle,
+      caption  = caption,
+      y        = .tsm("x_year", lang)
     ) +
     .ts_theme(base_size) +
     ggplot2::theme(
@@ -517,7 +559,7 @@ utils::globalVariables(c(
         name   = .tsm("x_month", lang)
       ) +
       ggplot2::scale_y_discrete(expand = c(0, 0)) +
-      ggplot2::labs(title = title %||% .tsm("title", lang), y = .tsm("x_year", lang)) +
+      ggplot2::labs(title = title %||% .tsm("title_heatmap", lang), subtitle = subtitle, caption = caption, y = .tsm("x_year", lang)) +
       ggplot2::facet_wrap(
         stats::as.formula(paste0("~ ", facet_col)),
         ncol   = facet_ncol,
@@ -543,7 +585,10 @@ utils::globalVariables(c(
 #' @keywords internal
 #' @noRd
 .ts_trend <- function(df, value_col, facet_col, facet_ncol,
-                      free_scales, pal, title, base_size, lang) {
+                      free_scales, pal, title, subtitle, caption,
+                      base_size, lang) {
+
+  primary_col <- pal[[1L]]
 
   df_t <- df |>
     dplyr::mutate(
@@ -565,19 +610,12 @@ utils::globalVariables(c(
       )
     )
 
-  n_years     <- nrow(df_t)
-  bar_colors  <- grDevices::colorRampPalette(pal)(n_years)
-  primary_col <- pal[[1L]]
-
   p <- ggplot2::ggplot(
     df_t,
-    ggplot2::aes(
-      x    = factor(.year_val),
-      y    = .annual_total,
-      fill = factor(.year_val)
-    )
+    ggplot2::aes(x = factor(.year_val), y = .annual_total)
   ) +
-    ggplot2::geom_col(width = 0.72, alpha = 0.88, show.legend = FALSE) +
+    ggplot2::geom_col(width = 0.72, alpha = 0.88, fill = primary_col,
+                      show.legend = FALSE) +
     ggplot2::geom_text(
       ggplot2::aes(
         y     = .annual_total,
@@ -589,7 +627,6 @@ utils::globalVariables(c(
       fontface = "bold",
       na.rm    = TRUE
     ) +
-    ggplot2::scale_fill_manual(values = bar_colors, guide = "none") +
     ggplot2::scale_color_manual(
       values = c("FALSE" = "#2196F3", "TRUE" = "#C0392B"),
       guide  = "none"
@@ -597,11 +634,13 @@ utils::globalVariables(c(
     ggplot2::scale_y_continuous(
       name   = .tsm("y_label", lang),
       labels = scales::comma,
-      expand = ggplot2::expansion(mult = c(0, 0.15))
+      expand = ggplot2::expansion(mult = c(0, 0.18))
     ) +
     ggplot2::labs(
-      title = title %||% .tsm("title", lang),
-      x     = .tsm("x_year", lang)
+      title    = title %||% .tsm("title_trend", lang),
+      subtitle = subtitle,
+      caption  = caption,
+      x        = .tsm("x_year", lang)
     ) +
     .ts_theme(base_size) +
     ggplot2::theme(
@@ -632,20 +671,13 @@ utils::globalVariables(c(
       ) |>
       dplyr::ungroup()
 
-    p <- ggplot2::ggplot(
-      df_tf,
-      ggplot2::aes(
-        x    = factor(.year_val),
-        y    = .annual_total,
-        fill = factor(.year_val)
-      )
-    ) +
-      ggplot2::geom_col(width = 0.72, alpha = 0.88, show.legend = FALSE) +
+    p <- ggplot2::ggplot(df_tf, ggplot2::aes(x = factor(.year_val), y = .annual_total)) +
+      ggplot2::geom_col(width = 0.72, alpha = 0.88, fill = primary_col,
+                        show.legend = FALSE) +
       ggplot2::geom_text(
         ggplot2::aes(y = .annual_total, label = .label_pct, color = .pct_change > 0),
         vjust = -0.5, size = base_size * 0.22, fontface = "bold", na.rm = TRUE
       ) +
-      ggplot2::scale_fill_manual(values = bar_colors, guide = "none") +
       ggplot2::scale_color_manual(
         values = c("FALSE" = "#2196F3", "TRUE" = "#C0392B"),
         guide  = "none"
@@ -653,11 +685,13 @@ utils::globalVariables(c(
       ggplot2::scale_y_continuous(
         name   = .tsm("y_label", lang),
         labels = scales::comma,
-        expand = ggplot2::expansion(mult = c(0, 0.15))
+        expand = ggplot2::expansion(mult = c(0, 0.18))
       ) +
       ggplot2::labs(
-        title = title %||% .tsm("title", lang),
-        x     = .tsm("x_year", lang)
+        title    = title %||% .tsm("title_trend", lang),
+        subtitle = subtitle,
+        caption  = caption,
+        x        = .tsm("x_year", lang)
       ) +
       ggplot2::facet_wrap(
         stats::as.formula(paste0("~ ", facet_col)),
@@ -711,6 +745,12 @@ utils::globalVariables(c(
 #' @param palette Character. Colour palette. One of `"lancet"` (default),
 #'   `"nejm"`, `"jco"`, `"uchicago"`, or `"viridis"`.
 #' @param title Character. Plot title. Auto-generated if `NULL`.
+#' @param subtitle Character. Plot subtitle. `NULL` auto-generates one from
+#'   row count, outcome column name and date range.
+#' @param caption Character. Figure caption. `NULL` uses the DATASUS source
+#'   string for the selected language.
+#' @param theme_style Character. Reserved for future theme variants.
+#'   Currently only `"publication"` (default) is implemented.
 #' @param date_labels Character. `strftime` format string for x-axis date
 #'   labels. Default `"%b/%y"`.
 #' @param year_breaks Character. `date_breaks` string for the x-axis. Default
@@ -785,6 +825,9 @@ sus_data_plot_aggregate_ts <- function(
     free_scales   = TRUE,
     palette       = "lancet",
     title         = NULL,
+    subtitle      = NULL,
+    caption       = NULL,
+    theme_style   = "publication",
     date_labels   = "%b/%y",
     year_breaks   = "3 months",
     base_size     = 11,
@@ -928,6 +971,14 @@ sus_data_plot_aggregate_ts <- function(
 
   if (verbose) cli::cli_h1(.tsm("title", lang))
 
+  # -- 11b. Auto-subtitle and caption -------------------------------------------
+  n_obs  <- nrow(df)
+  min_dt <- tryCatch(format(min(as.Date(df$date), na.rm = TRUE), "%Y-%m"), error = function(e) "?")
+  max_dt <- tryCatch(format(max(as.Date(df$date), na.rm = TRUE), "%Y-%m"), error = function(e) "?")
+  auto_subtitle <- sprintf(.tsm("subtitle_fmt", lang), scales::comma(n_obs), value_col, min_dt, max_dt)
+  plot_subtitle <- subtitle %||% auto_subtitle
+  plot_caption  <- caption  %||% paste0(.tsm("caption", lang), " | climasus4r")
+
   # -- 12. Dispatch to plot engines ---------------------------------------------
   plots <- lapply(plot_type, function(tp) {
     switch(
@@ -944,6 +995,8 @@ sus_data_plot_aggregate_ts <- function(
         free_scales   = free_scales,
         pal           = pal,
         title         = title,
+        subtitle      = plot_subtitle,
+        caption       = plot_caption,
         date_labels   = date_labels,
         year_breaks   = year_breaks,
         base_size     = base_size,
@@ -959,6 +1012,8 @@ sus_data_plot_aggregate_ts <- function(
         free_scales   = free_scales,
         pal           = pal,
         title         = title,
+        subtitle      = plot_subtitle,
+        caption       = plot_caption,
         base_size     = base_size,
         lang          = lang
       ),
@@ -971,19 +1026,23 @@ sus_data_plot_aggregate_ts <- function(
         free_scales   = free_scales,
         pal           = pal,
         title         = title,
+        subtitle      = plot_subtitle,
+        caption       = plot_caption,
         base_size     = base_size,
         lang          = lang
       ),
       trend = .ts_trend(
-        df         = df,
-        value_col  = value_col,
-        facet_col  = facet_col,
-        facet_ncol = facet_ncol,
+        df          = df,
+        value_col   = value_col,
+        facet_col   = facet_col,
+        facet_ncol  = facet_ncol,
         free_scales = free_scales,
-        pal        = pal,
-        title      = title,
-        base_size  = base_size,
-        lang       = lang
+        pal         = pal,
+        title       = title,
+        subtitle    = plot_subtitle,
+        caption     = plot_caption,
+        base_size   = base_size,
+        lang        = lang
       )
     )
   })

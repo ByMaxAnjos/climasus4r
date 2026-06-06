@@ -74,6 +74,11 @@ utils::globalVariables(c(
 #' @param base_size Numeric. Base font size for ggplot2 theme. Default `11`.
 #' @param lang Character. Language for labels and messages. One of `"pt"`
 #'   (default), `"en"`, `"es"`.
+#' @param subtitle Character. Figure subtitle. `NULL` uses no subtitle.
+#' @param caption Character. Figure caption. `NULL` auto-generates a DATASUS
+#'   source string for the selected language.
+#' @param theme_style Character. Reserved for future theme variants.
+#'   Currently only `"publication"` (default) is implemented.
 #' @param caption_suffix Character. Additional text appended to the figure
 #'   caption (e.g., study period, DOI). Default `NULL`.
 #' @param save_path Character. File path to save output (PNG, PDF, SVG, or
@@ -170,6 +175,9 @@ sus_data_plot_demographics <- function(
     interactive    = FALSE,
     base_size      = 11,
     lang           = "pt",
+    subtitle       = NULL,
+    caption        = NULL,
+    theme_style    = "publication",
     caption_suffix = NULL,
     save_path      = NULL,
     width          = NULL,
@@ -180,7 +188,7 @@ sus_data_plot_demographics <- function(
 ) {
   # -- 1. Dependency checks ----------------------------------------------------
   rlang::check_installed(
-    c("ggplot2", "ggsci", "patchwork", "scales"),
+    c("ggplot2", "patchwork", "scales"),
     reason = "to run {.fn sus_data_plot_demographics}"
   )
 
@@ -241,27 +249,28 @@ sus_data_plot_demographics <- function(
   }
 
   # -- 7. Build caption --------------------------------------------------------
-  cap_base <- .vl("source_datasus", lang)
-  caption  <- if (!is.null(caption_suffix)) {
+  cap_base         <- .vl("source_datasus", lang)
+  cap_with_suffix  <- if (!is.null(caption_suffix)) {
     paste0(cap_base, " | ", caption_suffix)
   } else {
     cap_base
   }
+  resolved_caption <- caption %||% paste0(cap_with_suffix, " | climasus4r")
 
   # -- 8. Dispatch -------------------------------------------------------------
   out <- switch(
     type,
-    "table"       = .vd_table(df, var, lang, interactive, palette, caption, base_size, ...),
-    "bar"         = .vd_bar(df, var, lang, interactive, palette, caption, base_size, ...),
-    "pyramid"     = .vd_pyramid(df, lang, interactive, palette, caption, base_size, ...),
+    "table"       = .vd_table(df, var, lang, interactive, palette, resolved_caption, base_size, ...),
+    "bar"         = .vd_bar(df, var, lang, interactive, palette, resolved_caption, base_size, ...),
+    "pyramid"     = .vd_pyramid(df, lang, interactive, palette, resolved_caption, base_size, ...),
     "heatmap"     = .vd_heatmap(df, heatmap_row, heatmap_col, fill_metric, lang,
-                                interactive, palette, caption, base_size, ...),
+                                interactive, palette, resolved_caption, base_size, ...),
     "temporal"    = .vd_temporal(df, time_unit, fill_var, show_ci, lang,
-                                 interactive, palette, caption, base_size, ...),
-    "climate"     = .vd_climate(df, lang, interactive, palette, caption, base_size, ...),
+                                 interactive, palette, resolved_caption, base_size, ...),
+    "climate"     = .vd_climate(df, lang, interactive, palette, resolved_caption, base_size, ...),
     "race_equity" = .vd_race_equity(df, benchmark, lang, interactive, palette,
-                                    caption, base_size, ...),
-    "dashboard"   = .vd_dashboard(df, lang, interactive, palette, caption,
+                                    resolved_caption, base_size, ...),
+    "dashboard"   = .vd_dashboard(df, lang, interactive, palette, resolved_caption,
                                   base_size, show_ci, ...)
   )
 
@@ -492,7 +501,7 @@ sus_data_plot_demographics <- function(
 
   max_n  <- max(abs(pyr_raw$n_plot), na.rm = TRUE)
   brks   <- pretty(c(-max_n, max_n), n = 6)
-  col_map <- stats::setNames(c(pal[2], pal[1]), c(lab_male, lab_female))
+  col_map <- stats::setNames(c("#2166AC", "#D6604D"), c(lab_male, lab_female))
 
   sex_ratio <- if (total_female > 0) round(total_male / total_female, 2) else NA
   sub_txt   <- if (!is.na(sex_ratio)) {
@@ -640,6 +649,11 @@ sus_data_plot_demographics <- function(
   }
 
   # 8. Build plot -----------------------------------------------------------
+  heat_threshold <- stats::median(heat$fill_val, na.rm = TRUE)
+  hm_seq_pal <- grDevices::colorRampPalette(
+    c("#F7FBFF", "#DEEBF7", "#C6DBEF", "#9ECAE1", "#6BAED6", "#3182BD", "#08519C")
+  )(9L)
+
   p <- ggplot2::ggplot(
     heat,
     ggplot2::aes(
@@ -654,17 +668,22 @@ sus_data_plot_demographics <- function(
       )
     )
   ) +
-    ggplot2::geom_tile(colour = "white", linewidth = 0.55) +
+    ggplot2::geom_tile(colour = "white", linewidth = 0.3) +
     ggplot2::geom_text(
-      ggplot2::aes(label = cell_fmt(fill_val)),
-      size      = base_size * 0.27,
-      colour    = "grey15",
-      fontface  = "plain"
+      ggplot2::aes(
+        label  = cell_fmt(fill_val),
+        colour = fill_val > heat_threshold
+      ),
+      size     = base_size * 0.27,
+      fontface = "plain",
+      show.legend = FALSE
     ) +
+    ggplot2::scale_colour_manual(values = c("TRUE" = "white", "FALSE" = "grey20"),
+                                 guide  = "none") +
     ggplot2::scale_fill_gradientn(
-      colours  = c("#f5f5f5", pal[2], pal[1]),
+      colours  = hm_seq_pal,
       name     = fill_label,
-      na.value = "#ebebeb"
+      na.value = "#F2F2F2"
     ) +
     ggplot2::scale_x_discrete(position = "bottom") +
     ggplot2::scale_y_discrete(limits = rev) +
@@ -962,8 +981,8 @@ sus_data_plot_demographics <- function(
     dplyr::arrange(diff) |>
     dplyr::mutate(race = factor(race, levels = race))
 
-  col_over  <- pal[1]
-  col_under <- pal[3] %||% "#d73027"
+  col_over  <- "#B22222"
+  col_under <- "#1B6CA8"
 
   p <- ggplot2::ggplot(
     obs_tab,
@@ -1133,8 +1152,8 @@ sus_data_plot_demographics <- function(
       axis.text          = ggplot2::element_text(size = base_size - 1,   colour = "grey20"),
       axis.line          = ggplot2::element_line(colour = "grey30", linewidth = 0.4),
       axis.ticks         = ggplot2::element_line(colour = "grey60", linewidth = 0.3),
-      panel.grid.major.x = ggplot2::element_line(colour = "grey92", linewidth = 0.35),
-      panel.grid.major.y = ggplot2::element_line(colour = "grey92", linewidth = 0.35),
+      panel.grid.major.x = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_line(colour = "grey90", linewidth = 0.30),
       panel.grid.minor   = ggplot2::element_blank(),
       panel.background   = ggplot2::element_rect(fill = "white", colour = NA),
       legend.background  = ggplot2::element_blank(),
@@ -1144,7 +1163,7 @@ sus_data_plot_demographics <- function(
       strip.background   = ggplot2::element_rect(fill = "grey95", colour = NA),
       strip.text         = ggplot2::element_text(face = "bold", size = base_size - 1),
       plot.background    = ggplot2::element_rect(fill = "white", colour = NA),
-      plot.margin        = ggplot2::margin(8, 10, 6, 8)
+      plot.margin        = ggplot2::margin(10, 12, 8, 10)
     )
 }
 
@@ -1162,24 +1181,41 @@ sus_data_plot_demographics <- function(
 #'   `"sus"`, `"viridis"`, `"colorblind"`.
 #' @noRd
 .vd_palette <- function(name = "lancet") {
-  rlang::check_installed("ggsci", reason = "for colour palettes")
+  has_ggsci <- requireNamespace("ggsci", quietly = TRUE)
 
   switch(name,
-    lancet     = ggsci::pal_lancet("lanonc")(9),
-    nature     = ggsci::pal_npg("nrc")(10),
-    nejm       = ggsci::pal_nejm("default")(8),
-    jco        = ggsci::pal_jco("default")(10),
-    aaas       = ggsci::pal_aaas("default")(10),
-    sus        = c("#1B6CA8", "#E84855", "#3BB273", "#F4A261",
-                   "#7B2D8B", "#2EC4B6", "#FF9F1C", "#CBCBCB"),
-    colorblind = c("#0072B2", "#D55E00", "#009E73", "#CC79A7",
-                   "#56B4E9", "#E69F00", "#F0E442", "#999999"),
-    viridis    = scales::viridis_pal()(8),
+    lancet     = if (has_ggsci) ggsci::pal_lancet("lanonc")(9) else
+                   c("#00468B","#ED0000","#42B540","#0099B4","#925E9F",
+                     "#FDAF91","#AD002A","#ADB6B6","#1B1919"),
+    nature     = if (has_ggsci) ggsci::pal_npg("nrc")(10) else
+                   c("#E64B35","#4DBBD5","#00A087","#3C5488","#F39B7F",
+                     "#8491B4","#91D1C2","#DC0000","#7E6148","#B09C85"),
+    nejm       = if (has_ggsci) ggsci::pal_nejm("default")(8) else
+                   c("#BC3C29","#0072B5","#E18727","#20854E",
+                     "#7876B1","#6F99AD","#FFDC91","#EE4C97"),
+    jco        = if (has_ggsci) ggsci::pal_jco("default")(10) else
+                   c("#0073C2","#EFC000","#868686","#CD534C","#7AA6DC",
+                     "#003C67","#8F7700","#3B3B3B","#A73030","#4A6990"),
+    aaas       = if (has_ggsci) ggsci::pal_aaas("default")(10) else
+                   c("#3B4992","#EE0000","#008B45","#631879","#008280",
+                     "#BB0021","#5F559B","#A20056","#808180","#1B1919"),
+    sus        = c("#1B6CA8","#E84855","#3BB273","#F4A261",
+                   "#7B2D8B","#2EC4B6","#FF9F1C","#CBCBCB"),
+    colorblind = c("#0072B2","#D55E00","#009E73","#CC79A7",
+                   "#56B4E9","#E69F00","#F0E442","#999999"),
+    science    = c("#3B4992","#EE0000","#008B45","#631879",
+                   "#008280","#BB0021","#5F559B","#A20056"),
+    viridis    = if (requireNamespace("viridisLite", quietly = TRUE)) {
+      viridisLite::viridis(8)
+    } else {
+      c("#440154","#3B528B","#21908C","#5DC863","#FDE725",
+        "#31688E","#35B779","#8FD744")
+    },
     {
-      cli::cli_warn(
-        "Palette {.val {name}} not recognised. Using {.val lancet}."
-      )
-      ggsci::pal_lancet("lanonc")(9)
+      cli::cli_warn("Palette {.val {name}} not recognised. Using {.val lancet}.")
+      if (has_ggsci) ggsci::pal_lancet("lanonc")(9) else
+        c("#00468B","#ED0000","#42B540","#0099B4","#925E9F",
+          "#FDAF91","#AD002A","#ADB6B6","#1B1919")
     }
   )
 }
@@ -1226,95 +1262,99 @@ sus_data_plot_demographics <- function(
                              pt = "Sistema detectado: %s",
                              es = "Sistema detectado: %s"),
   saved_to            = list(en = "Output saved: %s",
-                             pt = "Saida salva: %s",
+                             pt = "Sa\u00EDda salva: %s",
                              es = "Salida guardada: %s"),
-  sex                 = list(en = "Sex",            pt = "Sexo",            es = "Sexo"),
-  race                = list(en = "Race/Colour",    pt = "Raca/Cor",        es = "Raza/Color"),
-  age                 = list(en = "Age (years)",    pt = "Idade (anos)",    es = "Edad (anos)"),
-  age_group           = list(en = "Age Group",      pt = "Faixa Etaria",    es = "Grupo de Edad"),
-  ibge_age_group      = list(en = "Age Group",      pt = "Faixa Etaria",    es = "Grupo de Edad"),
-  education           = list(en = "Education",      pt = "Escolaridade",    es = "Escolaridad"),
-  climate_risk        = list(en = "Climate Risk",   pt = "Risco Climatico", es = "Riesgo Climatico"),
-  region              = list(en = "State/Region",   pt = "Estado/Regiao",   es = "Estado/Region"),
-  municipality        = list(en = "Municipality",   pt = "Municipio",       es = "Municipio"),
-  dimension           = list(en = "Dimension",      pt = "Dimensao",        es = "Dimension"),
+  sex                 = list(en = "Sex",             pt = "Sexo",            es = "Sexo"),
+  race                = list(en = "Race/Colour",     pt = "Ra\u00E7a/Cor",   es = "Raza/Color"),
+  age                 = list(en = "Age (years)",     pt = "Idade (anos)",    es = "Edad (a\u00F1os)"),
+  age_group           = list(en = "Age Group",       pt = "Faixa Et\u00E1ria",   es = "Grupo de Edad"),
+  ibge_age_group      = list(en = "Age Group",       pt = "Faixa Et\u00E1ria",   es = "Grupo de Edad"),
+  education           = list(en = "Education",       pt = "Escolaridade",    es = "Escolaridad"),
+  climate_risk        = list(en = "Climate Risk",    pt = "Risco Clim\u00E1tico", es = "Riesgo Clim\u00E1tico"),
+  region              = list(en = "State/Region",    pt = "Estado/Regi\u00E3o",   es = "Estado/Regi\u00F3n"),
+  municipality        = list(en = "Municipality",    pt = "Munic\u00EDpio",  es = "Municipio"),
+  dimension           = list(en = "Dimension",       pt = "Dimens\u00E3o",   es = "Dimensi\u00F3n"),
   demographic_summary = list(en = "Demographic Summary",
-                             pt = "Resumo Demografico",
-                             es = "Resumen Demografico"),
-  category            = list(en = "Category",  pt = "Categoria",  es = "Categoria"),
-  count               = list(en = "Count",     pt = "Contagem",   es = "Conteo"),
-  percent             = list(en = "Percent",   pt = "Percentual", es = "Porcentaje"),
-  male                = list(en = "Male",      pt = "Masculino",  es = "Masculino"),
-  female              = list(en = "Female",    pt = "Feminino",   es = "Femenino"),
-  sex_ratio           = list(en = "Sex ratio (M:F)", pt = "Razao de sexo (M:F)",
-                             es = "Razon de sexo (M:F)"),
+                             pt = "Resumo Demogr\u00E1fico",
+                             es = "Resumen Demogr\u00E1fico"),
+  category            = list(en = "Category",  pt = "Categoria",   es = "Categor\u00EDa"),
+  count               = list(en = "Count",     pt = "Contagem",    es = "Conteo"),
+  percent             = list(en = "Percent",   pt = "Percentual",  es = "Porcentaje"),
+  male                = list(en = "Male",      pt = "Masculino",   es = "Masculino"),
+  female              = list(en = "Female",    pt = "Feminino",    es = "Femenino"),
+  sex_ratio           = list(en = "Sex ratio (M:F)",
+                             pt = "Raz\u00E3o de sexo (M:F)",
+                             es = "Raz\u00F3n de sexo (M:F)"),
   bar_title_sex       = list(en = "Distribution by Sex",
-                             pt = "Distribuicao por Sexo",
-                             es = "Distribucion por Sexo"),
+                             pt = "Distribui\u00E7\u00E3o por Sexo",
+                             es = "Distribuci\u00F3n por Sexo"),
   bar_title_race      = list(en = "Distribution by Race/Colour",
-                             pt = "Distribuicao por Raca/Cor",
-                             es = "Distribucion por Raza/Color"),
+                             pt = "Distribui\u00E7\u00E3o por Ra\u00E7a/Cor",
+                             es = "Distribuci\u00F3n por Raza/Color"),
   bar_title_age_group = list(en = "Distribution by Age Group",
-                             pt = "Distribuicao por Faixa Etaria",
-                             es = "Distribucion por Grupo de Edad"),
+                             pt = "Distribui\u00E7\u00E3o por Faixa Et\u00E1ria",
+                             es = "Distribuci\u00F3n por Grupo de Edad"),
   bar_title_ibge_age_group = list(en = "Distribution by Age Group",
-                             pt = "Distribuicao por Faixa Etaria",
-                             es = "Distribucion por Grupo de Edad"),
+                             pt = "Distribui\u00E7\u00E3o por Faixa Et\u00E1ria",
+                             es = "Distribuci\u00F3n por Grupo de Edad"),
   bar_title_education = list(en = "Distribution by Education Level",
-                             pt = "Distribuicao por Escolaridade",
-                             es = "Distribucion por Nivel Educativo"),
+                             pt = "Distribui\u00E7\u00E3o por Escolaridade",
+                             es = "Distribuci\u00F3n por Nivel Educativo"),
   bar_title_climate_risk = list(en = "Distribution by Climate Risk Group",
-                                pt = "Distribuicao por Grupo de Risco Climatico",
-                                es = "Distribucion por Grupo de Riesgo Climatico"),
+                                pt = "Distribui\u00E7\u00E3o por Grupo de Risco Clim\u00E1tico",
+                                es = "Distribuci\u00F3n por Grupo de Riesgo Clim\u00E1tico"),
   bar_title_region    = list(en = "Distribution by State/Region",
-                             pt = "Distribuicao por Estado/Regiao",
-                             es = "Distribucion por Estado/Region"),
-  pyramid_title       = list(en = "Age-Sex Population Pyramid",
-                             pt = "Piramide Etaria por Sexo",
-                             es = "Piramide de Edad y Sexo"),
-  map_title           = list(en = "Geographic Distribution of Cases",
-                             pt = "Distribuicao Geografica dos Casos",
-                             es = "Distribucion Geografica de los Casos"),
-  legend_count        = list(en = "Records",    pt = "Registros",   es = "Registros"),
-  temporal_title      = list(en = "Temporal Distribution of Cases",
-                             pt = "Distribuicao Temporal dos Casos",
-                             es = "Distribucion Temporal de los Casos"),
-  month    = list(en = "Month",              pt = "Mes",                   es = "Mes"),
-  epi_week = list(en = "Epidemiological Week", pt = "Semana Epidemiologica",
-                  es = "Semana Epidemiologica"),
-  year     = list(en = "Year",              pt = "Ano",                   es = "Ano"),
-  quarter  = list(en = "Quarter",           pt = "Trimestre",             es = "Trimestre"),
-  semester = list(en = "Semester",          pt = "Semestre",              es = "Semestre"),
-  climate_bar_title  = list(en = "Cases by Climate Risk Group",
-                            pt = "Casos por Grupo de Risco Climatico",
-                            es = "Casos por Grupo de Riesgo Climatico"),
-  climate_heat_title = list(en = "Seasonal Distribution (Month x Season)",
-                            pt = "Distribuicao Sazonal (Mes x Estacao)",
-                            es = "Distribucion Estacional (Mes x Estacion)"),
-  season  = list(en = "Season",   pt = "Estacao",   es = "Estacion"),
+                             pt = "Distribui\u00E7\u00E3o por Estado/Regi\u00E3o",
+                             es = "Distribuci\u00F3n por Estado/Regi\u00F3n"),
+  pyramid_title       = list(en = "Age-sex distribution",
+                             pt = "Distribui\u00E7\u00E3o et\u00E1ria por sexo",
+                             es = "Distribuci\u00F3n por edad y sexo"),
+  map_title           = list(en = "Geographic Distribution of Reported Events",
+                             pt = "Distribui\u00E7\u00E3o Geogr\u00E1fica dos Eventos Notificados",
+                             es = "Distribuci\u00F3n Geogr\u00E1fica de los Eventos Notificados"),
+  legend_count        = list(en = "Records",     pt = "Registros",    es = "Registros"),
+  temporal_title      = list(en = "Temporal distribution of reported records",
+                             pt = "Distribui\u00E7\u00E3o temporal dos registros notificados",
+                             es = "Distribuci\u00F3n temporal de los registros notificados"),
+  month    = list(en = "Month",               pt = "M\u00EAs",                 es = "Mes"),
+  epi_week = list(en = "Epidemiological Week", pt = "Semana Epidemiol\u00F3gica",
+                  es = "Semana Epidemiol\u00F3gica"),
+  year     = list(en = "Year",               pt = "Ano",                  es = "A\u00F1o"),
+  quarter  = list(en = "Quarter",            pt = "Trimestre",            es = "Trimestre"),
+  semester = list(en = "Semester",           pt = "Semestre",             es = "Semestre"),
+  climate_bar_title  = list(en = "Records by climate risk group",
+                            pt = "Registros por grupo de risco clim\u00E1tico",
+                            es = "Registros por grupo de riesgo clim\u00E1tico"),
+  climate_heat_title = list(en = "Seasonal distribution (Month \u00D7 Season)",
+                            pt = "Distribui\u00E7\u00E3o sazonal (M\u00EAs \u00D7 Esta\u00E7\u00E3o)",
+                            es = "Distribuci\u00F3n estacional (Mes \u00D7 Estaci\u00F3n)"),
+  season  = list(en = "Season",   pt = "Esta\u00E7\u00E3o",   es = "Estaci\u00F3n"),
   equity_title    = list(en = "Race/Colour Equity vs. National Census Benchmark",
                          pt = "Equidade Racial vs. Censo Nacional (IBGE 2022)",
                          es = "Equidad Racial vs. Censo Nacional (IBGE 2022)"),
   equity_subtitle = list(
     en = "Percentage-point difference: observed vs. IBGE 2022 Census proportions",
-    pt = "Diferenca em pontos percentuais: observado vs. Censo IBGE 2022",
+    pt = "Diferen\u00E7a em pontos percentuais: observado vs. Censo IBGE 2022",
     es = "Diferencia en puntos porcentuales: observado vs. Censo IBGE 2022"
   ),
   equity_axis     = list(en = "Difference from national proportion (pp)",
-                         pt = "Diferenca da proporcao nacional (pp)",
-                         es = "Diferencia de la proporcion nacional (pp)"),
+                         pt = "Diferen\u00E7a da propor\u00E7\u00E3o nacional (pp)",
+                         es = "Diferencia de la proporci\u00F3n nacional (pp)"),
   overrep  = list(en = "Over-represented",  pt = "Sobre-representado",  es = "Sobrerrepresentado"),
   underrep = list(en = "Under-represented", pt = "Sub-representado",    es = "Subrepresentado"),
   dashboard_title = list(en = "Demographic Profile",
-                         pt = "Perfil Demografico",
-                         es = "Perfil Demografico"),
+                         pt = "Perfil Demogr\u00E1fico",
+                         es = "Perfil Demogr\u00E1fico"),
   source_datasus  = list(en = "Source: DATASUS / Brazilian Ministry of Health",
-                         pt = "Fonte: DATASUS / Ministerio da Saude",
+                         pt = "Fonte: DATASUS / Minist\u00E9rio da Sa\u00FAde",
                          es = "Fuente: DATASUS / Ministerio de Salud de Brasil"),
-  heatmap_title    = list(en = "Demographic Cross-tabulation",
-                          pt = "Tabulacao Cruzada Demografica",
-                          es = "Tabulacion Cruzada Demografica"),
-  fill_metric_label = list(en = "Metric",   pt = "Metrica",  es = "Metrica"),
+  heatmap_title    = list(en = "Cross-tabulated demographic profile",
+                          pt = "Perfil demogr\u00E1fico cruzado",
+                          es = "Perfil demogr\u00E1fico cruzado"),
+  fill_metric_label = list(en = "Metric",   pt = "M\u00E9trica",  es = "M\u00E9trica"),
+  distribution      = list(en = "Distribution", pt = "Distribui\u00E7\u00E3o", es = "Distribuci\u00F3n"),
+  tabulation        = list(en = "Tabulation",   pt = "Tabula\u00E7\u00E3o",    es = "Tabulaci\u00F3n"),
+  metric            = list(en = "Metric",       pt = "M\u00E9trica",           es = "M\u00E9trica"),
   within_row       = list(en = "within row",    pt = "dentro da linha",
                            es = "dentro de fila"),
   within_col       = list(en = "within column", pt = "dentro da coluna",

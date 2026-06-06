@@ -19,6 +19,9 @@ sus_data_plot_demographics(
   interactive = FALSE,
   base_size = 11,
   lang = "pt",
+  subtitle = NULL,
+  caption = NULL,
+  theme_style = "publication",
   caption_suffix = NULL,
   save_path = NULL,
   width = NULL,
@@ -85,6 +88,14 @@ instead of static ggplot2/gt objects. Default \code{FALSE}.}
 
 \item{lang}{Character. Language for labels and messages. One of \code{"pt"}
 (default), \code{"en"}, \code{"es"}.}
+
+\item{subtitle}{Character. Figure subtitle. \code{NULL} uses no subtitle.}
+
+\item{caption}{Character. Figure caption. \code{NULL} auto-generates a DATASUS
+source string for the selected language.}
+
+\item{theme_style}{Character. Reserved for future theme variants.
+Currently only \code{"publication"} (default) is implemented.}
 
 \item{caption_suffix}{Character. Additional text appended to the figure
 caption (e.g., study period, DOI). Default \code{NULL}.}
