@@ -58,7 +58,7 @@ model).}
 \item{\verb{$lambda}}{Numeric spatial error parameter (\code{NULL} for the
 \code{lag} and \code{durbin} models).}
 \item{\verb{$impacts}}{\code{data.frame} with columns \code{term}, \code{direct},
-\code{indirect}, \code{total} (from \code{\link[spatialreg:impacts]{spatialreg::impacts()}}), or \code{NULL} for
+\code{indirect}, \code{total} (from \code{spatialreg::impacts()}), or \code{NULL} for
 the \code{error} model or when impact computation fails.}
 \item{\verb{$aic}}{Numeric. AIC of the spatial model.}
 \item{\verb{$lm_aic}}{Numeric. AIC of the OLS baseline (same formula,
@@ -84,21 +84,21 @@ studies. Four model families are supported: the Spatial Autoregressive Model
 \item{\code{"lag"} (SAR)}{
 The outcome in unit \eqn{i} depends on a weighted average of outcomes
 in neighbouring units (spatial lag). Estimated via
-\code{\link[spatialreg:lagsarlm]{spatialreg::lagsarlm()}}. Contains a spatial lag parameter \code{rho}.
+\code{spatialreg::lagsarlm()}. Contains a spatial lag parameter \code{rho}.
 }
 \item{\code{"error"} (SEM)}{
 Spatial dependence enters through a spatially autocorrelated error term.
-Estimated via \code{\link[spatialreg:errorsarlm]{spatialreg::errorsarlm()}}. Contains a spatial error
+Estimated via \code{spatialreg::errorsarlm()}. Contains a spatial error
 parameter \code{lambda}.
 }
 \item{\code{"durbin"} (SDM)}{
 Extends the SAR model by including spatially lagged covariates (Durbin
-terms). Estimated via \code{\link[spatialreg:lagsarlm]{spatialreg::lagsarlm()}} with \code{Durbin = TRUE}.
+terms). Estimated via \code{spatialreg::lagsarlm()} with \code{Durbin = TRUE}.
 Contains both \code{rho} and lagged-covariate coefficients.
 }
 \item{\code{"sac"} (SAC)}{
 Contains both a spatial lag of the outcome (\code{rho}) and a spatial error
-term (\code{lambda}). Estimated via \code{\link[spatialreg:sacsarlm]{spatialreg::sacsarlm()}}.
+term (\code{lambda}). Estimated via \code{spatialreg::sacsarlm()}.
 }
 }
 }
@@ -108,7 +108,7 @@ term (\code{lambda}). Estimated via \code{\link[spatialreg:sacsarlm]{spatialreg:
 
 For models with a spatial lag (\code{lag}, \code{durbin}, \code{sac}), the total effect of
 a covariate is decomposed into \emph{direct} (own-unit), \emph{indirect} (spillover),
-and \emph{total} effects using \code{\link[spatialreg:impacts]{spatialreg::impacts()}} with \code{R} simulations for
+and \emph{total} effects using \code{spatialreg::impacts()} with \code{R} simulations for
 inference. For the \code{error} model impacts equal OLS slopes and no
 decomposition is meaningful; the \verb{$impacts} element will be \code{NULL}.
 }

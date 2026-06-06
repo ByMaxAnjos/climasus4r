@@ -33,7 +33,7 @@ geometry and a \code{code_muni} column used to join to \code{df}.}
 
 \item{expected}{Character or \code{NULL}. Name of the column in \code{df} with
 the expected number of cases under the null model. When \code{NULL}
-(default), \code{\link[SpatialEpi:kulldorff]{SpatialEpi::kulldorff()}} computes expected counts
+(default), \code{SpatialEpi::kulldorff()} computes expected counts
 internally from the overall rate.}
 
 \item{max_pop_frac}{Numeric in (0, 1]. Maximum fraction of the total
@@ -89,7 +89,7 @@ obtained by comparing to the empirical distribution of max-LR under
 overlapping windows with LR > the \code{alpha}-level critical value from the
 same Monte Carlo distribution.
 
-Computations are delegated to \code{\link[SpatialEpi:kulldorff]{SpatialEpi::kulldorff()}}. Municipality
+Computations are delegated to \code{SpatialEpi::kulldorff()}. Municipality
 centroids are derived from the polygon geometry using
 \code{\link[sf:geos_unary]{sf::st_centroid()}} after reprojecting to WGS 84 (EPSG 4326) so that
 longitude/latitude coordinates are passed to \code{kulldorff()}.

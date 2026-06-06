@@ -139,7 +139,7 @@ utils::globalVariables(c(
 #' overlapping windows with LR > the `alpha`-level critical value from the
 #' same Monte Carlo distribution.
 #'
-#' Computations are delegated to [SpatialEpi::kulldorff()]. Municipality
+#' Computations are delegated to `SpatialEpi::kulldorff()`. Municipality
 #' centroids are derived from the polygon geometry using
 #' [sf::st_centroid()] after reprojecting to WGS 84 (EPSG 4326) so that
 #' longitude/latitude coordinates are passed to `kulldorff()`.
@@ -155,7 +155,7 @@ utils::globalVariables(c(
 #'   geometry and a `code_muni` column used to join to `df`.
 #' @param expected Character or `NULL`. Name of the column in `df` with
 #'   the expected number of cases under the null model. When `NULL`
-#'   (default), [SpatialEpi::kulldorff()] computes expected counts
+#'   (default), `SpatialEpi::kulldorff()` computes expected counts
 #'   internally from the overall rate.
 #' @param max_pop_frac Numeric in (0, 1]. Maximum fraction of the total
 #'   population that a single cluster window may contain. Default `0.5`.

@@ -143,21 +143,21 @@ utils::globalVariables(c(
 #'   \item{`"lag"` (SAR)}{
 #'     The outcome in unit \eqn{i} depends on a weighted average of outcomes
 #'     in neighbouring units (spatial lag). Estimated via
-#'     [spatialreg::lagsarlm()]. Contains a spatial lag parameter `rho`.
+#'     `spatialreg::lagsarlm()`. Contains a spatial lag parameter `rho`.
 #'   }
 #'   \item{`"error"` (SEM)}{
 #'     Spatial dependence enters through a spatially autocorrelated error term.
-#'     Estimated via [spatialreg::errorsarlm()]. Contains a spatial error
+#'     Estimated via `spatialreg::errorsarlm()`. Contains a spatial error
 #'     parameter `lambda`.
 #'   }
 #'   \item{`"durbin"` (SDM)}{
 #'     Extends the SAR model by including spatially lagged covariates (Durbin
-#'     terms). Estimated via [spatialreg::lagsarlm()] with `Durbin = TRUE`.
+#'     terms). Estimated via `spatialreg::lagsarlm()` with `Durbin = TRUE`.
 #'     Contains both `rho` and lagged-covariate coefficients.
 #'   }
 #'   \item{`"sac"` (SAC)}{
 #'     Contains both a spatial lag of the outcome (`rho`) and a spatial error
-#'     term (`lambda`). Estimated via [spatialreg::sacsarlm()].
+#'     term (`lambda`). Estimated via `spatialreg::sacsarlm()`.
 #'   }
 #' }
 #'
@@ -165,7 +165,7 @@ utils::globalVariables(c(
 #'
 #' For models with a spatial lag (`lag`, `durbin`, `sac`), the total effect of
 #' a covariate is decomposed into *direct* (own-unit), *indirect* (spillover),
-#' and *total* effects using [spatialreg::impacts()] with `R` simulations for
+#' and *total* effects using `spatialreg::impacts()` with `R` simulations for
 #' inference. For the `error` model impacts equal OLS slopes and no
 #' decomposition is meaningful; the `$impacts` element will be `NULL`.
 #'
@@ -209,7 +209,7 @@ utils::globalVariables(c(
 #'     \item{`$lambda`}{Numeric spatial error parameter (`NULL` for the
 #'       `lag` and `durbin` models).}
 #'     \item{`$impacts`}{`data.frame` with columns `term`, `direct`,
-#'       `indirect`, `total` (from [spatialreg::impacts()]), or `NULL` for
+#'       `indirect`, `total` (from `spatialreg::impacts()`), or `NULL` for
 #'       the `error` model or when impact computation fails.}
 #'     \item{`$aic`}{Numeric. AIC of the spatial model.}
 #'     \item{`$lm_aic`}{Numeric. AIC of the OLS baseline (same formula,
