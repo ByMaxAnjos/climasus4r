@@ -188,6 +188,13 @@ sus_data_filter_cid <- function(
   lang = "pt",
   verbose = TRUE
 ) {
+  
+  cli::cli_h1(switch(lang,
+      en = "climasus4r \u2014 Filter Data by ICD-10",
+      es = "climasus4r \u2014 Filtrar Datos por CIE-10",
+           "climasus4r \u2014 Filtrar Dados por CID-10"
+    ))
+  
   if (backend == "arrow") {
     result <- tryCatch(
       {
@@ -239,7 +246,6 @@ sus_data_filter_cid <- function(
   # ============================================================================
   # Input Validation
   # ============================================================================
-  cli::cli_h1("climasus4r - Filter Data ICD-10")
   if (!is.data.frame(df)) {
     df <- new_climasus_df(                                      
       dplyr::collect(df),                                                
@@ -788,8 +794,7 @@ sus_data_filter_cid <- function(
   # ============================================================================
   # Input Validation
   # ============================================================================
-  cli::cli_h1("climasus4r - Filter Data ICD-10")
-
+  
   # Detect backend type
   backend_type <- detect_backend_type(df)
 

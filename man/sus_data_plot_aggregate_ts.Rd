@@ -24,6 +24,9 @@ sus_data_plot_aggregate_ts(
   year_breaks = "3 months",
   base_size = 11,
   interactive = FALSE,
+  city = NULL,
+  use_cache = TRUE,
+  cache_dir = "~/.climasus4r_cache/spatial",
   lang = "pt",
   verbose = TRUE
 )
@@ -85,6 +88,17 @@ labels. Default \code{"\%b/\%y"}.}
 
 \item{interactive}{Logical. Return a \code{\link[plotly:ggplotly]{plotly::ggplotly()}} widget instead of
 a static ggplot2 object. Default \code{FALSE}.}
+
+\item{city}{Character vector of municipality names or 6-/7-digit IBGE codes.
+When supplied, the plot is filtered to those municipalities before
+rendering. Names are resolved through \code{municipio_meta}, with accent
+tolerance, using the same cache as \code{\link[=sus_data_filter_demographics]{sus_data_filter_demographics()}}.}
+
+\item{use_cache}{Logical. Cache municipality metadata to disk when city
+filtering or municipality labels are needed. Default \code{TRUE}.}
+
+\item{cache_dir}{Character. Directory for municipality metadata cache.
+Default \code{"~/.climasus4r_cache/spatial"}.}
 
 \item{lang}{Character. Language for labels and messages: \code{"pt"} (default),
 \code{"en"}, or \code{"es"}.}

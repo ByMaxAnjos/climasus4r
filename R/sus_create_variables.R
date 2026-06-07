@@ -220,6 +220,14 @@ sus_data_create_variables <- function(
   lang = "pt",
   verbose = TRUE
 ) {
+
+  cli::cli_h1(switch(lang,
+        en = "climasus4r \u2014 Create Derived Variables",
+        es = "climasus4r \u2014 Crear Variables
+      Derivadas",
+            "climasus4r \u2014 Criar Vari\u00e1veis
+      Derivadas"
+      ))
   validate_system_pipeline_support(df, "sus_data_create_variables", lang = lang)
 
   if (backend == "arrow") {
@@ -281,7 +289,6 @@ sus_data_create_variables <- function(
   lang,
   verbose
 ) {
-  cli::cli_h1("climasus4r - Create Derived Variables")
   # Validate inputs
   if (!is.data.frame(df)) {
     df <- new_climasus_df(                                      
@@ -413,6 +420,8 @@ sus_data_create_variables <- function(
   created_vars <- character(0)
 
   system <- sus_meta(df, "system")
+  climate_region_norm <- normalize_climate_region_internal(climate_region)
+  climate_region_norm <- normalize_climate_region_internal(climate_region)
 
   # ========================================================================
   # AGE COLUMN IDENTIFICATION AND CALCULATION
@@ -712,9 +721,10 @@ sus_data_create_variables <- function(
 
   if (create_calendar_vars) {
     # Auto-detect date column if not specified
+    date_col_was_supplied <- !is.null(date_col)
     if (is.null(date_col)) {
-      date_col <- detect_date_column(df, system)
-      if (verbose) {
+      date_col <- detect_date_column_for_variables(df, system)
+      if (verbose && !is.null(date_col)) {
         msg <- switch(
           lang,
           "en" = paste0("Auto-detected date column: ", date_col),
@@ -726,123 +736,137 @@ sus_data_create_variables <- function(
     }
 
     # Validate date column exists
-    if (!date_col %in% names(df)) {
-      stop(paste0("Date column '", date_col, "' not found in data frame"))
+    if (is.null(date_col)) {
+      if (verbose) {
+        cli::cli_alert_warning("No date column found. Calendar variables not created.")
+      }
+      create_calendar_vars <- FALSE
+    } else if (!date_col %in% names(df)) {
+      if (!date_col_was_supplied) {
+        if (verbose) {
+          cli::cli_alert_warning("No date column found. Calendar variables not created.")
+        }
+        create_calendar_vars <- FALSE
+      } else {
+        stop(paste0("Date column '", date_col, "' not found in data frame"))
+      }
     }
 
-    # Convert to Date if not already
-    if (!inherits(df[[date_col]], "Date")) {
-      df[[date_col]] <- as.Date(df[[date_col]])
-    }
+    if (isTRUE(create_calendar_vars)) {
+      # Convert to Date if not already
+      if (!inherits(df[[date_col]], "Date")) {
+        df[[date_col]] <- as.Date(df[[date_col]])
+      }
 
-    if (verbose) {
-      msg <- switch(
-        lang,
-        "en" = "Creating calendar variables...",
-        "pt" = "Criando variaveis de calendario...",
-        "es" = "Creando variables de calendario..."
-      )
-      cli::cli_alert_info(msg)
-    }
+      if (verbose) {
+        msg <- switch(
+          lang,
+          "en" = "Creating calendar variables...",
+          "pt" = "Criando variaveis de calendario...",
+          "es" = "Creando variables de calendario..."
+        )
+        cli::cli_alert_info(msg)
+      }
 
-    if (lang == "en") {
-      # Extract date components
-      df$year <- lubridate::year(df[[date_col]])
-      df$month <- lubridate::month(df[[date_col]])
-      df$day_of_week <- lubridate::wday(df[[date_col]], week_start = 1) # Monday = 1
-      df$day_of_year <- lubridate::yday(df[[date_col]])
-      df$quarter <- lubridate::quarter(df[[date_col]])
-      df$epidemiological_week <- lubridate::epiweek(df[[date_col]])
+      if (lang == "en") {
+        # Extract date components
+        df$year <- lubridate::year(df[[date_col]])
+        df$month <- lubridate::month(df[[date_col]])
+        df$day_of_week <- lubridate::wday(df[[date_col]], week_start = 1) # Monday = 1
+        df$day_of_year <- lubridate::yday(df[[date_col]])
+        df$quarter <- lubridate::quarter(df[[date_col]])
+        df$epidemiological_week <- lubridate::epiweek(df[[date_col]])
 
-      # Create month names
-      df$month_name <- get_month_names(df$month, lang)
+        # Create month names
+        df$month_name <- get_month_names(df$month, lang)
 
-      # Create day of week names
-      df$day_of_week_name <- get_day_names(df$day_of_week, lang)
+        # Create day of week names
+        df$day_of_week_name <- get_day_names(df$day_of_week, lang)
 
-      # Create weekend indicator
-      df$is_weekend <- df$day_of_week %in% c(6, 7)
+        # Create weekend indicator
+        df$is_weekend <- df$day_of_week %in% c(6, 7)
 
-      # Create semester if requested
-      df$semester <- ifelse(df$month <= 6, 1, 2)
+        # Create semester if requested
+        df$semester <- ifelse(df$month <= 6, 1, 2)
 
-      created_vars <- c(
-        created_vars,
-        "year",
-        "month",
-        "month_name",
-        "day_of_week",
-        "day_of_week_name",
-        "day_of_year",
-        "quarter",
-        "epidemiological_week",
-        "is_weekend",
-        "semester"
-      )
-    } else if (lang == "pt") {
-      # Extrair componentes da data
-      df$ano <- lubridate::year(df[[date_col]])
-      df$mes <- lubridate::month(df[[date_col]])
-      df$dia_semana <- lubridate::wday(df[[date_col]], week_start = 1)
-      df$dia_ano <- lubridate::yday(df[[date_col]])
-      df$trimestre <- lubridate::quarter(df[[date_col]])
-      df$semana_epidemiologica <- lubridate::epiweek(df[[date_col]])
+        created_vars <- c(
+          created_vars,
+          "year",
+          "month",
+          "month_name",
+          "day_of_week",
+          "day_of_week_name",
+          "day_of_year",
+          "quarter",
+          "epidemiological_week",
+          "is_weekend",
+          "semester"
+        )
+      } else if (lang == "pt") {
+        # Extrair componentes da data
+        df$ano <- lubridate::year(df[[date_col]])
+        df$mes <- lubridate::month(df[[date_col]])
+        df$dia_semana <- lubridate::wday(df[[date_col]], week_start = 1)
+        df$dia_ano <- lubridate::yday(df[[date_col]])
+        df$trimestre <- lubridate::quarter(df[[date_col]])
+        df$semana_epidemiologica <- lubridate::epiweek(df[[date_col]])
 
-      # Criar nomes
-      df$nome_mes <- get_month_names(df$mes, lang)
-      df$nome_dia_semana <- get_day_names(df$dia_semana, lang)
+        # Criar nomes
+        df$nome_mes <- get_month_names(df$mes, lang)
+        df$nome_dia_semana <- get_day_names(df$dia_semana, lang)
 
-      # Indicador de fim de semana
-      df$fim_semana <- df$dia_semana %in% c(6, 7)
+        # Indicador de fim de semana
+        df$fim_semana <- df$dia_semana %in% c(6, 7)
 
-      # Semestre
-      df$semestre <- ifelse(df$mes <= 6, 1, 2)
+        # Semestre
+        df$semestre <- ifelse(df$mes <= 6, 1, 2)
 
-      created_vars <- c(
-        created_vars,
-        "ano",
-        "mes",
-        "nome_mes",
-        "dia_semana",
-        "nome_dia_semana",
-        "dia_ano",
-        "trimestre",
-        "semana_epidemiologica",
-        "fim_semana",
-        "semestre"
-      )
-    } else {
-      # Extraer componentes de la fecha
-      df$anio <- lubridate::year(df[[date_col]])
-      df$mes <- lubridate::month(df[[date_col]])
-      df$dia_semana <- lubridate::wday(df[[date_col]], week_start = 1)
-      df$dia_anio <- lubridate::yday(df[[date_col]])
-      df$trimestre <- lubridate::quarter(df[[date_col]])
-      df$semana_epidemiologica <- lubridate::epiweek(df[[date_col]])
+        created_vars <- c(
+          created_vars,
+          "ano",
+          "mes",
+          "nome_mes",
+          "dia_semana",
+          "nome_dia_semana",
+          "dia_ano",
+          "trimestre",
+          "semana_epidemiologica",
+          "fim_semana",
+          "semestre"
+        )
+      } else {
+        # Extraer componentes de la fecha
+        df$anio <- lubridate::year(df[[date_col]])
+        df$mes <- lubridate::month(df[[date_col]])
+        df$dia_semana <- lubridate::wday(df[[date_col]], week_start = 1)
+        df$dia_anio <- lubridate::yday(df[[date_col]])
+        df$trimestre <- lubridate::quarter(df[[date_col]])
+        df$semana_epidemiologica <- lubridate::epiweek(df[[date_col]])
 
-      # Crear nombres
-      df$nombre_mes <- get_month_names(df$mes, lang)
-      df$nombre_dia_semana <- get_day_names(df$dia_semana, lang)
+        # Crear nombres
+        df$nombre_mes <- get_month_names(df$mes, lang)
+        df$nombre_dia_semana <- get_day_names(df$dia_semana, lang)
 
-      # Indicador de fin de semana
-      df$fin_semana <- df$dia_semana %in% c(6, 7)
+        # Indicador de fin de semana
+        df$fin_semana <- df$dia_semana %in% c(6, 7)
 
-      # Semestre
-      df$semestre <- ifelse(df$mes <= 6, 1, 2)
+        # Semestre
+        df$semestre <- ifelse(df$mes <= 6, 1, 2)
 
-      created_vars <- c(
-        created_vars,
-        "anio",
-        "mes",
-        "nombre_mes",
-        "dia_semana",
-        "nombre_dia_semana",
-        "dia_anio",
-        "trimestre",
-        "semana_epidemiologica",
-        "fin_semana",
-        "semestre"
-      )
+        created_vars <- c(
+          created_vars,
+          "anio",
+          "mes",
+          "nombre_mes",
+          "dia_semana",
+          "nombre_dia_semana",
+          "dia_anio",
+          "trimestre",
+          "semana_epidemiologica",
+          "fin_semana",
+          "semestre"
+        )
+      }
     }
   }
 
@@ -889,7 +913,7 @@ sus_data_create_variables <- function(
       )
       df[[season_climate_name]] <- get_climate_season(
         df[[month_var]],
-        hemisphere,
+        climate_region_norm,
         lang
       )
       created_vars <- c(created_vars, season_climate_name)
@@ -902,7 +926,7 @@ sus_data_create_variables <- function(
       )
       df[[dry_rainny_name]] <- get_dry_rainy_season(
         df[[month_var]],
-        hemisphere,
+        climate_region_norm,
         lang
       )
       created_vars <- c(created_vars, dry_rainny_name)
@@ -1110,10 +1134,9 @@ sus_data_create_variables <- function(
       }
     }
     
-    # Detect event date column (padronizada para SIH)
+    # Detect event date column (all standardized SUS systems)
     event_col <- NULL
-    event_patterns <- c("data_internacao", "admission_date", "data_evento", 
-                        "DT_INTER", "SP_DTINTER", "data_internacao_sp")
+    event_patterns <- date_column_candidates_for_variables(system)
     for (pattern in event_patterns) {
       if (pattern %in% col_names) {
         event_col <- pattern
@@ -1389,15 +1412,9 @@ sus_data_create_variables <- function(
   if (create_calendar_vars) {
     
     # Auto-detect date column
+    date_col_was_supplied <- !is.null(date_col)
     if (is.null(date_col)) {
-      date_patterns <- c("data_internacao", "data_internacao_sp", "DT_INTER", 
-                         "SP_DTINTER", "admission_date")
-      for (pattern in date_patterns) {
-        if (pattern %in% col_names) {
-          date_col <- pattern
-          break
-        }
-      }
+      date_col <- detect_date_column_from_names_for_variables(col_names, system)
       
       if (verbose && !is.null(date_col)) {
         msg <- switch(lang,
@@ -1444,7 +1461,72 @@ sus_data_create_variables <- function(
         created_vars <- c(created_vars, "ano", "mes", "trimestre")
       }
     } else {
-      cli::cli_alert_warning("No date column found. Calendar variables not created.")
+      if (date_col_was_supplied) {
+        cli::cli_abort("Date column '{date_col}' not found in data frame.")
+      } else {
+        cli::cli_alert_warning("No date column found. Calendar variables not created.")
+      }
+      create_calendar_vars <- FALSE
+    }
+  }
+
+  if (create_climate_vars && !create_calendar_vars) {
+    cli::cli_abort(
+      c(
+        "{.arg create_calendar_vars} is required but was set to {.val FALSE}.",
+        ">" = "First set {.code create_calendar_vars = TRUE} to enable climate features."
+      ),
+      call = NULL
+    )
+  }
+
+  if (create_climate_vars && create_calendar_vars) {
+    month_var <- if ("mes" %in% names(df)) "mes" else if ("month" %in% names(df)) "month" else NULL
+
+    if (!is.null(month_var)) {
+      if (is.null(climate_region_norm)) {
+        season_name <- switch(
+          lang,
+          "en" = "astronomical_season",
+          "pt" = "estacao_astronomica",
+          "es" = "estacion_astronomica"
+        )
+        season_expr <- season_case_when_expr(month_var, hemisphere, lang)
+        df <- df |>
+          dplyr::mutate(
+            !!season_name := !!season_expr
+          )
+        created_vars <- c(created_vars, season_name)
+      } else {
+        season_climate_name <- switch(
+          lang,
+          "en" = "climatic_season",
+          "pt" = "estacao_climatica",
+          "es" = "estacion_climatica"
+        )
+        dry_rainy_name <- switch(
+          lang,
+          "en" = "dry_rainy_season",
+          "pt" = "estacao_seca_chuvosa",
+          "es" = "estacion_seca_lluviosa"
+        )
+        climate_expr <- climate_season_case_when_expr(
+          month_var,
+          climate_region_norm,
+          lang
+        )
+        dry_rainy_expr <- dry_rainy_case_when_expr(
+          month_var,
+          climate_region_norm,
+          lang
+        )
+        df <- df |>
+          dplyr::mutate(
+            !!season_climate_name := !!climate_expr,
+            !!dry_rainy_name := !!dry_rainy_expr
+          )
+        created_vars <- c(created_vars, season_climate_name, dry_rainy_name)
+      }
     }
   }
   
@@ -1479,6 +1561,208 @@ sus_data_create_variables <- function(
 # ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
+
+#' Normalize climate-region input
+#' @keywords internal
+#' @noRd
+normalize_climate_region_internal <- function(climate_region) {
+  if (is.null(climate_region)) return(NULL)
+  region <- stringi::stri_trans_general(tolower(trimws(climate_region[1L])), "Latin-ASCII")
+  region <- gsub("[ _]+", "-", region)
+  aliases <- c(
+    norte = "norte",
+    nordeste = "nordeste",
+    "centro-oeste" = "centro-oeste",
+    centrooeste = "centro-oeste",
+    sudeste = "sudeste",
+    sul = "sul"
+  )
+  aliases[[region]] %||% region
+}
+
+#' Date-column candidates used by derived-variable creation
+#' @keywords internal
+#' @noRd
+date_column_candidates_for_variables <- function(system = NULL) {
+  system_base <- sub("-.*", "", system %||% "")
+
+  by_system <- list(
+    SIM = c("data_obito", "death_date", "fecha_muerte", "DTOBITO"),
+    SINASC = c("data_nascimento", "birth_date", "fecha_nacimiento", "DTNASC"),
+    SIH = c(
+      "data_internacao", "data_internacao_sp", "admission_date",
+      "sp_admission_date", "fecha_ingreso", "sp_fecha_ingreso",
+      "DT_INTER", "SP_DTINTER"
+    ),
+    SINAN = c(
+      "data_notificacao", "notification_date", "fecha_notificacion",
+      "data_primeiros_sintomas", "first_symptoms_date",
+      "data_diagnostico_sintoma", "data_investigacao",
+      "data_cadastro_investigacao", "data_conclusao_investigacao",
+      "data_cadastro_informacao", "data_conclusao_caso",
+      "DT_NOTIFIC", "DT_SIN_PRI", "DT_INVEST", "DTCADINV",
+      "DTCONINV", "DTCADINF", "DTCONCASO"
+    ),
+    CNES = c("data_atualizacao", "update_date", "fecha_actualizacion", "DT_COMPET")
+  )
+
+  common <- c(
+    "date", "data", "fecha", "event_date", "data_evento", "fecha_evento",
+    "data_obito", "death_date", "data_notificacao", "notification_date",
+    "data_internacao", "admission_date", "data_nascimento", "birth_date",
+    "DTOBITO", "DT_NOTIFIC", "DT_INTER", "DTNASC", "DT_SAIDA", "DT_EVENT"
+  )
+
+  unique(c(by_system[[system_base]], common))
+}
+
+#' Detect date column from column names
+#' @keywords internal
+#' @noRd
+detect_date_column_from_names_for_variables <- function(col_names, system = NULL) {
+  candidates <- date_column_candidates_for_variables(system)
+  found <- candidates[candidates %in% col_names]
+  if (length(found) > 0L) return(found[1L])
+
+  date_like <- col_names[grepl("(^date$|^data$|^fecha$|_date$|^data_|^fecha_|^DT)", col_names)]
+  if (length(date_like) > 0L) return(date_like[1L])
+
+  NULL
+}
+
+#' Detect date column from a data frame
+#' @keywords internal
+#' @noRd
+detect_date_column_for_variables <- function(df, system = NULL) {
+  found <- detect_date_column_from_names_for_variables(names(df), system)
+  if (!is.null(found)) return(found)
+
+  date_cols <- names(df)[vapply(df, function(x) {
+    inherits(x, c("Date", "POSIXct", "POSIXlt"))
+  }, logical(1L))]
+  if (length(date_cols) > 0L) return(date_cols[1L])
+
+  NULL
+}
+
+#' Case expression for astronomical season
+#' @keywords internal
+#' @noRd
+season_case_when_expr <- function(month_var, hemisphere, lang) {
+  labels <- switch(
+    lang,
+    "en" = c("Summer", "Autumn", "Winter", "Spring"),
+    "pt" = c("Verao", "Outono", "Inverno", "Primavera"),
+    "es" = c("Verano", "Otono", "Invierno", "Primavera")
+  )
+
+  if (hemisphere == "north") {
+    return(rlang::expr(dplyr::case_when(
+      .data[[!!month_var]] %in% c(6L, 7L, 8L) ~ !!labels[1L],
+      .data[[!!month_var]] %in% c(9L, 10L, 11L) ~ !!labels[2L],
+      .data[[!!month_var]] %in% c(12L, 1L, 2L) ~ !!labels[3L],
+      .data[[!!month_var]] %in% c(3L, 4L, 5L) ~ !!labels[4L],
+      .default = NA_character_
+    )))
+  }
+
+  rlang::expr(dplyr::case_when(
+    .data[[!!month_var]] %in% c(12L, 1L, 2L) ~ !!labels[1L],
+    .data[[!!month_var]] %in% c(3L, 4L, 5L) ~ !!labels[2L],
+    .data[[!!month_var]] %in% c(6L, 7L, 8L) ~ !!labels[3L],
+    .data[[!!month_var]] %in% c(9L, 10L, 11L) ~ !!labels[4L],
+    .default = NA_character_
+  ))
+}
+
+#' Case expression for Brazilian climatic season
+#' @keywords internal
+#' @noRd
+climate_season_case_when_expr <- function(month_var, region, lang) {
+  labels <- switch(
+    lang,
+    "pt" = c("Chuvosa", "Transicao", "Seca"),
+    "en" = c("Rainy", "Transition", "Dry"),
+    "es" = c("Lluviosa", "Transicion", "Seca")
+  )
+  no_dry <- switch(
+    lang,
+    "pt" = "Sem estacao seca definida",
+    "en" = "No defined dry season",
+    "es" = "Sin estacion seca definida"
+  )
+
+  switch(
+    region,
+    "norte" = rlang::expr(dplyr::case_when(
+      .data[[!!month_var]] %in% 1L:5L ~ !!labels[1L],
+      .data[[!!month_var]] %in% 6L:11L ~ !!labels[3L],
+      .data[[!!month_var]] == 12L ~ !!labels[2L],
+      .default = NA_character_
+    )),
+    "nordeste" = rlang::expr(dplyr::case_when(
+      .data[[!!month_var]] %in% 2L:7L ~ !!labels[1L],
+      .data[[!!month_var]] %in% c(8L, 9L, 10L, 11L, 12L, 1L) ~ !!labels[3L],
+      .default = NA_character_
+    )),
+    "centro-oeste" = rlang::expr(dplyr::case_when(
+      .data[[!!month_var]] %in% c(10L, 11L, 12L, 1L, 2L, 3L) ~ !!labels[1L],
+      .data[[!!month_var]] %in% 4L:9L ~ !!labels[3L],
+      .default = NA_character_
+    )),
+    "sudeste" = rlang::expr(dplyr::case_when(
+      .data[[!!month_var]] %in% c(10L, 11L, 12L, 1L, 2L, 3L) ~ !!labels[1L],
+      .data[[!!month_var]] %in% 4L:9L ~ !!labels[3L],
+      .default = NA_character_
+    )),
+    "sul" = rlang::expr(ifelse(!is.na(.data[[!!month_var]]), !!no_dry, NA_character_)),
+    rlang::expr(NA_character_)
+  )
+}
+
+#' Case expression for dry/rainy season
+#' @keywords internal
+#' @noRd
+dry_rainy_case_when_expr <- function(month_var, region, lang) {
+  labels <- switch(
+    lang,
+    "pt" = c("Chuvosa", "Seca"),
+    "en" = c("Rainy", "Dry"),
+    "es" = c("Lluviosa", "Seca")
+  )
+  no_dry <- switch(
+    lang,
+    "pt" = "Sem estacao seca definida",
+    "en" = "No defined dry season",
+    "es" = "Sin estacion seca definida"
+  )
+
+  switch(
+    region,
+    "norte" = rlang::expr(dplyr::case_when(
+      .data[[!!month_var]] %in% 1L:5L ~ !!labels[1L],
+      .data[[!!month_var]] %in% 6L:12L ~ !!labels[2L],
+      .default = NA_character_
+    )),
+    "nordeste" = rlang::expr(dplyr::case_when(
+      .data[[!!month_var]] %in% 2L:7L ~ !!labels[1L],
+      .data[[!!month_var]] %in% c(8L, 9L, 10L, 11L, 12L, 1L) ~ !!labels[2L],
+      .default = NA_character_
+    )),
+    "centro-oeste" = rlang::expr(dplyr::case_when(
+      .data[[!!month_var]] %in% c(10L, 11L, 12L, 1L, 2L, 3L) ~ !!labels[1L],
+      .data[[!!month_var]] %in% 4L:9L ~ !!labels[2L],
+      .default = NA_character_
+    )),
+    "sudeste" = rlang::expr(dplyr::case_when(
+      .data[[!!month_var]] %in% c(10L, 11L, 12L, 1L, 2L, 3L) ~ !!labels[1L],
+      .data[[!!month_var]] %in% 4L:9L ~ !!labels[2L],
+      .default = NA_character_
+    )),
+    "sul" = rlang::expr(ifelse(!is.na(.data[[!!month_var]]), !!no_dry, NA_character_)),
+    rlang::expr(NA_character_)
+  )
+}
 
 #' Try to Detect Existing Age Column
 #' 
@@ -1964,3 +2248,7 @@ detect_date_column_lazy <- function(col_names) {
   }
   return(NULL)
 }
+
+utils::globalVariables(c(
+  "climate_region_norm"
+))

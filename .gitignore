@@ -20,7 +20,8 @@
 .DS_Store
 Thumbs.db
 /.quarto/
-agents/
+.agents/
+AGENTS.md
 CLAUDE.md
 .claude/
 climasus4r.Rcheck/Rplots.pdf

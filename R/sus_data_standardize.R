@@ -592,9 +592,15 @@ sus_data_standardize <- function(
 .parse_sus_date <- function(x, col_name = "", verbose = FALSE) {
   if (inherits(x, c("Date", "POSIXct", "POSIXlt"))) return(as.Date(x))
   chr <- as.character(x)
+  non_empty <- !is.na(chr) & trimws(chr) != ""
+
+  if (!any(non_empty)) {
+    return(as.Date(rep(NA_character_, length(chr))))
+  }
+
   for (fmt in c("%Y-%m-%d", "%Y%m%d", "%d%m%Y")) {
     result <- suppressWarnings(as.Date(chr, format = fmt))
-    na_frac <- sum(is.na(result), na.rm = TRUE) / max(length(result), 1L)
+    na_frac <- sum(is.na(result[non_empty])) / max(sum(non_empty), 1L)
     if (na_frac <= 0.5) return(result)
   }
   if (verbose) cli::cli_alert_warning("Could not parse date column: {col_name}")
@@ -720,7 +726,7 @@ get_ui_messages_standardize <- function(lang = "en") {
   .get_ui_messages_std <- function(lang = "pt") {
     list(
       en = list(
-        standardize_title        = "Standardizing SUS Data",
+        standardize_title        = "climasus4r Standardizing SUS Data",
         detected_system          = "Detected system:",
         language                 = "Language:",
         translating_columns      = "Translating column names...",
@@ -730,7 +736,7 @@ get_ui_messages_standardize <- function(lang = "en") {
         standardization_complete = "Standardization complete:"
       ),
       pt = list(
-        standardize_title        = "Padronizando Dados SUS",
+        standardize_title        = "climasus4r Padronizando Dados SUS",
         detected_system          = "Sistema detectado:",
         language                 = "Idioma:",
         translating_columns      = "Traduzindo nomes de colunas...",
@@ -740,7 +746,7 @@ get_ui_messages_standardize <- function(lang = "en") {
         standardization_complete = "Padronizacao completa:"
       ),
       es = list(
-        standardize_title        = "Estandarizando Datos SUS",
+        standardize_title        = "climasus4r Estandarizando Datos SUS",
         detected_system          = "Sistema detectado:",
         language                 = "Idioma:",
         translating_columns      = "Traduciendo nombres de columnas...",

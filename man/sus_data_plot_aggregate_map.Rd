@@ -10,6 +10,7 @@ sus_data_plot_aggregate_map(
   map_type = c("bubble", "choropleth", "quantile_choropleth"),
   rate_per_100k = FALSE,
   period = NULL,
+  city = NULL,
   top_n = NULL,
   state_borders = TRUE,
   show_labels = TRUE,
@@ -47,6 +48,10 @@ equivalents.}
 \item{period}{Date scalar or \code{c(start, end)} vector.  When supplied, rows
 in \code{df} whose \code{date} column falls outside the interval are removed before
 aggregation.  \code{NULL} (default) uses all rows.}
+
+\item{city}{Character vector of municipality names or 6-/7-digit IBGE codes.
+When supplied, the map is restricted to those municipalities. Names are
+resolved through \code{municipio_meta} with accent tolerance.}
 
 \item{top_n}{Integer.  If supplied, only the top N municipalities by
 \code{total_cases} are labelled on the map.  \code{NULL} disables top-N labels.}

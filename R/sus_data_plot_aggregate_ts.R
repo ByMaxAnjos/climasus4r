@@ -22,7 +22,7 @@ utils::globalVariables(c(
   # trend
   ".year_val", ".annual_total", ".pct_change", ".label_pct",
   # shared
-  "date"
+  "date", "._ts_muni_key"
 ))
 
 # -- Local i18n ---------------------------------------------------------------
@@ -133,6 +133,21 @@ utils::globalVariables(c(
     pt = "M\u00E9dia de eventos notificados",
     en = "Mean reported events",
     es = "Media de eventos notificados"
+  ),
+  loading_meta = list(
+    pt = "Carregando metadados municipais...",
+    en = "Loading municipality metadata...",
+    es = "Cargando metadatos municipales..."
+  ),
+  city_filter = list(
+    pt = "Filtrando municipio(s): {city}",
+    en = "Filtering municipality/cities: {city}",
+    es = "Filtrando municipio(s): {city}"
+  ),
+  no_muni_col = list(
+    pt = "Nenhuma coluna de codigo municipal encontrada para aplicar {.arg city}.",
+    en = "No municipality-code column found to apply {.arg city}.",
+    es = "No se encontro columna de codigo municipal para aplicar {.arg city}."
   )
 )
 
@@ -210,6 +225,111 @@ utils::globalVariables(c(
 .ts_stage_ok <- function(stage) {
   valid_later <- c("aggregate", "spatial", "climate", "census")
   isTRUE(stage %in% valid_later)
+}
+
+#' @keywords internal
+#' @noRd
+.ts_muni_code_cols <- function() {
+  c(
+    "codigo_municipio_residencia",
+    "residence_municipality_code",
+    "codigo_municipio_ocorrencia",
+    "codigo_municipio_ocurrencia",
+    "occurrence_municipality_code",
+    "codigo_municipio_notificacao",
+    "codigo_municipio_notificacion",
+    "notification_municipality_code",
+    "codigo_municipio_nascimento",
+    "codigo_municipio_nacimiento",
+    "birth_municipality_code",
+    "codigo_municipio_paciente",
+    "patient_municipality_code",
+    "uf_municipio_estabelecimento",
+    "facility_uf_municipality",
+    "uf_municipio_establecimiento",
+    "codigo_municipio",
+    "municipality_code",
+    "code_muni",
+    "CODMUNRES",
+    "MUNI_RES"
+  )
+}
+
+#' @keywords internal
+#' @noRd
+.ts_is_muni_col <- function(col) {
+  if (is.null(col) || is.na(col)) return(FALSE)
+  col %in% .ts_muni_code_cols() ||
+    grepl("municipio|municipality|muni|ibge", col, ignore.case = TRUE)
+}
+
+#' @keywords internal
+#' @noRd
+.ts_detect_muni_col <- function(df, preferred = NULL) {
+  preferred <- preferred[!is.na(preferred) & preferred %in% names(df)]
+  preferred <- preferred[vapply(preferred, .ts_is_muni_col, logical(1L))]
+  if (length(preferred) > 0L) return(preferred[1L])
+
+  priority <- .ts_muni_code_cols()
+  found <- priority[priority %in% names(df)]
+  if (length(found) > 0L) return(found[1L])
+
+  fallback <- names(df)[vapply(names(df), .ts_is_muni_col, logical(1L))]
+  if (length(fallback) > 0L) return(fallback[1L])
+
+  NULL
+}
+
+#' @keywords internal
+#' @noRd
+.ts_load_muni_meta <- function(cache_dir, use_cache, lang, verbose) {
+  if (!exists("get_spatial_municipio_cache", mode = "function")) {
+    cli::cli_abort(
+      "Municipality metadata helper {.fn get_spatial_municipio_cache} is not available."
+    )
+  }
+  get_spatial_municipio_cache(cache_dir, use_cache, lang, verbose)
+}
+
+#' @keywords internal
+#' @noRd
+.ts_add_municipality_labels <- function(df, muni_cols, muni_meta) {
+  if (length(muni_cols) == 0L || is.null(muni_meta) || nrow(muni_meta) == 0L) {
+    return(list(df = df, replacements = list()))
+  }
+
+  meta <- muni_meta
+  meta$._ts_muni_key <- substr(as.character(meta$municipio), 1L, 6L)
+  name_col <- if ("name" %in% names(meta)) "name" else if ("no_accents" %in% names(meta)) "no_accents" else NULL
+  uf_col <- if ("abbrev_state" %in% names(meta)) "abbrev_state" else if ("uf_code" %in% names(meta)) "uf_code" else NULL
+
+  if (is.null(name_col)) {
+    return(list(df = df, replacements = list()))
+  }
+
+  labels <- as.character(meta[[name_col]])
+  if (!is.null(uf_col)) {
+    labels <- paste0(labels, " (", meta[[uf_col]], ")")
+  }
+
+  lookup <- stats::setNames(labels, meta$._ts_muni_key)
+  replacements <- list()
+
+  for (col in unique(muni_cols)) {
+    if (!col %in% names(df)) next
+    label_col <- paste0(col, "_nome")
+    if (label_col %in% names(df)) {
+      label_col <- make.unique(c(names(df), label_col), sep = "_")[length(names(df)) + 1L]
+    }
+
+    keys <- substr(as.character(df[[col]]), 1L, 6L)
+    values <- unname(lookup[keys])
+    values[is.na(values)] <- as.character(df[[col]])[is.na(values)]
+    df[[label_col]] <- values
+    replacements[[col]] <- label_col
+  }
+
+  list(df = df, replacements = replacements)
 }
 
 # =============================================================================
@@ -731,6 +851,10 @@ utils::globalVariables(c(
 #'   `"epidemic"` and `"seasonal"` plots.
 #' @param facet_col Character. Optional column for `facet_wrap()` panels.
 #' @param facet_ncol Integer. Number of facet columns. Default `3L`.
+#' @param city Character vector of municipality names or 6-/7-digit IBGE codes.
+#'   When supplied, the plot is filtered to those municipalities before
+#'   rendering. Names are resolved through `municipio_meta`, with accent
+#'   tolerance, using the same cache as [sus_data_filter_demographics()].
 #' @param plot_type Character. One or more of `"epidemic"`, `"seasonal"`,
 #'   `"heatmap"`, `"trend"`. When multiple types are supplied, plots are
 #'   assembled with [patchwork] (one per row). Default: `"epidemic"`.
@@ -758,6 +882,10 @@ utils::globalVariables(c(
 #' @param base_size Numeric. Base font size for the ggplot2 theme. Default `11`.
 #' @param interactive Logical. Return a [plotly::ggplotly()] widget instead of
 #'   a static ggplot2 object. Default `FALSE`.
+#' @param use_cache Logical. Cache municipality metadata to disk when city
+#'   filtering or municipality labels are needed. Default `TRUE`.
+#' @param cache_dir Character. Directory for municipality metadata cache.
+#'   Default `"~/.climasus4r_cache/spatial"`.
 #' @param lang Character. Language for labels and messages: `"pt"` (default),
 #'   `"en"`, or `"es"`.
 #' @param verbose Logical. Print progress messages. Default `TRUE`.
@@ -832,6 +960,9 @@ sus_data_plot_aggregate_ts <- function(
     year_breaks   = "3 months",
     base_size     = 11,
     interactive   = FALSE,
+    city          = NULL,
+    use_cache     = TRUE,
+    cache_dir     = "~/.climasus4r_cache/spatial",
     lang          = "pt",
     verbose       = TRUE
 ) {
@@ -964,6 +1095,45 @@ sus_data_plot_aggregate_ts <- function(
       "{.arg facet_col} '{facet_col}' not found in {.arg df}. Ignoring."
     )
     facet_col <- NULL
+  }
+
+  # -- 10b. Municipality labels and optional city filter -----------------------
+  muni_cols <- unique(c(group_col, facet_col))
+  muni_cols <- muni_cols[!is.na(muni_cols) & vapply(muni_cols, .ts_is_muni_col, logical(1L))]
+
+  city_muni_col <- NULL
+  if (!is.null(city) && length(city) > 0L) {
+    city_muni_col <- .ts_detect_muni_col(df, preferred = c(facet_col, group_col))
+    if (is.null(city_muni_col)) {
+      cli::cli_abort(.tsm("no_muni_col", lang))
+    }
+    muni_cols <- unique(c(muni_cols, city_muni_col))
+  }
+
+  if (length(muni_cols) > 0L) {
+    if (verbose) cli::cli_alert_info(.tsm("loading_meta", lang))
+    muni_meta <- .ts_load_muni_meta(cache_dir, use_cache, lang, verbose)
+
+    if (!is.null(city) && length(city) > 0L) {
+      resolved <- resolve_city_input_internal(city, muni_meta, lang, verbose)
+      city_codes6 <- unique(substr(resolved$codes, 1L, 6L))
+      city_label <- paste(city, collapse = ", ")
+      if (verbose) cli::cli_alert_info(.tsm("city_filter", lang, city = city_label))
+      df <- df |>
+        dplyr::mutate(._ts_muni_key = substr(as.character(.data[[city_muni_col]]), 1L, 6L)) |>
+        dplyr::filter(.data$._ts_muni_key %in% city_codes6) |>
+        dplyr::select(-._ts_muni_key)
+    }
+
+    labelled <- .ts_add_municipality_labels(df, muni_cols, muni_meta)
+    df <- labelled$df
+
+    if (!is.null(group_col) && group_col %in% names(labelled$replacements)) {
+      group_col <- labelled$replacements[[group_col]]
+    }
+    if (!is.null(facet_col) && facet_col %in% names(labelled$replacements)) {
+      facet_col <- labelled$replacements[[facet_col]]
+    }
   }
 
   # -- 11. Build palette --------------------------------------------------------

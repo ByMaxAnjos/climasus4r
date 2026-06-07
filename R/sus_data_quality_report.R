@@ -198,6 +198,7 @@ sus_data_quality_report <- function(
 # Map stage names to the function that advances TO that stage
 .qr_stage_fn_map <- c(
   import     = "sus_data_import()",
+  read       = "sus_data_read()",
   clean      = "sus_data_clean_encoding()",
   stand      = "sus_data_standardize()",
   filter_cid = "sus_data_filter_cid()",
@@ -225,6 +226,9 @@ sus_data_quality_report <- function(
   functions_applied <- unname(.qr_stage_fn_map[stages_reached])
   functions_applied <- functions_applied[!is.na(functions_applied)]
 
+  history_functions <- unique(unlist(lapply(history, .qr_detect_history_functions)))
+  functions_applied <- unique(c(functions_applied, history_functions))
+
   # Parse history entries: "[YYYY-MM-DD HH:MM:SS] message"
   parsed_steps <- lapply(history, function(entry) {
     ts  <- sub("^\\[(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})\\].*", "\\1", entry)
@@ -239,6 +243,30 @@ sus_data_quality_report <- function(
     n_history_entries = length(history),
     parsed_steps      = parsed_steps
   )
+}
+
+#' @noRd
+.qr_detect_history_functions <- function(entry) {
+  msg <- sub("^\\[\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\]\\s*", "", entry)
+  patterns <- list(
+    "sus_data_import()" = "Imported datasus|Imported DATASUS",
+    "sus_data_read()" = "Read .*files|Collected Arrow Dataset",
+    "sus_data_clean_encoding()" = "Cleaned character encoding",
+    "sus_data_standardize()" = "Standardized column names and types",
+    "sus_data_filter_cid()" = "Filtered by disease group|CID|ICD",
+    "sus_data_filter_demographics()" = "Demographic filters|Filtered demographics|City:",
+    "sus_data_create_variables()" = "Derived variables created|Create variables",
+    "sus_data_aggregate()" = "Temporal Data aggregated|Data aggregated",
+    "sus_join_spatial()" = "Spatial Data aggregated|Spatial join",
+    "sus_socio_add_census()" = "Added census data",
+    "sus_climate_aggregate()" = "Climate aggregation",
+    "sus_climate_inmet()" = "INMET data imported"
+  )
+
+  hits <- names(patterns)[vapply(patterns, function(rx) {
+    grepl(rx, msg, ignore.case = TRUE)
+  }, logical(1L))]
+  unname(hits)
 }
 
 
@@ -433,8 +461,15 @@ sus_data_quality_report <- function(
 .qr_geographic <- function(df, top_n) {
   out <- list()
 
-  muni_col <- .qr_col(df, c("residence_municipality_code", "municipality_code",
-                              "CODMUNRES", "municipio_residencia", "cod_municipio"))
+  muni_col <- .qr_col(df, c(
+    "codigo_municipio_residencia", "residence_municipality_code",
+    "codigo_municipio_ocorrencia", "occurrence_municipality_code",
+    "codigo_municipio_notificacao", "notification_municipality_code",
+    "codigo_municipio_nascimento", "birth_municipality_code",
+    "codigo_municipio_paciente", "patient_municipality_code",
+    "codigo_municipio", "municipality_code", "code_muni", "code_muni_7",
+    "CODMUNRES", "MUNI_RES", "municipio_residencia", "cod_municipio"
+  ))
   if (!is.null(muni_col)) {
     freq        <- as.data.frame(table(df[[muni_col]], useNA = "ifany"),
                                  stringsAsFactors = FALSE)
@@ -449,8 +484,11 @@ sus_data_quality_report <- function(
     )
   }
 
-  uf_col <- .qr_col(df, c("manager_uf", "uf_gestor", "UF_ZI", "SG_UF_NOT",
-                            "residence_uf", "CODUFRES", "notification_uf"))
+  uf_col <- .qr_col(df, c(
+    "uf_residencia", "residence_uf", "uf_ocorrencia", "occurrence_uf",
+    "uf_notificacao", "notification_uf", "manager_uf", "uf_gestor",
+    "UF_ZI", "SG_UF_NOT", "CODUFRES", "notification_uf"
+  ))
   if (!is.null(uf_col)) {
     freq_uf        <- as.data.frame(table(df[[uf_col]], useNA = "ifany"),
                                     stringsAsFactors = FALSE)
@@ -470,12 +508,20 @@ sus_data_quality_report <- function(
 #' @noRd
 .qr_derived <- function(df, stage) {
   expected <- list(
-    age_group        = c("age_group", "ibge_age_group", "faixa_etaria"),
+    age_group        = c("age_group", "grupo_idade", "grupo_edad"),
+    ibge_age_group   = c("ibge_age_group", "faixa_etaria_ibge", "grupo_edad_ibge"),
     sex_label        = c("sex", "sexo"),
-    climate_risk_grp = c("climate_risk_group", "grupo_risco_climatico"),
+    climate_risk_grp = c("climate_risk_group", "grupo_risco_climatico",
+                         "grupo_riesgo_climatico"),
     month            = c("month", "mes"),
     year             = c("year", "ano"),
-    epi_week         = c("epidemiological_week", "semana_epidemiologica")
+    quarter          = c("quarter", "trimestre"),
+    epi_week         = c("epidemiological_week", "semana_epidemiologica"),
+    season           = c("astronomical_season", "estacao_astronomica",
+                         "estacion_astronomica", "climatic_season",
+                         "estacao_climatica", "estacion_climatica"),
+    dry_rainy        = c("dry_rainy_season", "estacao_seca_chuvosa",
+                         "estacion_seca_lluviosa")
   )
 
   presence <- lapply(expected, function(patterns) {
@@ -609,14 +655,11 @@ sus_data_quality_report <- function(
     cli::cli_text("")
     cli::cli_text(paste0(.qrl("history_entries", lang), ": ",
                          cli::style_bold(length(history))))
-    for (h in utils::head(history, 5L)) {
+    for (h in history) {
       ts  <- sub("^\\[(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})\\].*", "\\1", h)
       msg <- sub("^\\[\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\]\\s*", "", h)
       cat(sprintf("  [%s]  %s\n", ts, msg))
     }
-    if (length(history) > 5L)
-      cat(sprintf("  ... (%d %s)\n", length(history) - 5L,
-                  .qrl("more_entries", lang)))
   }
 
   # ---- Section 1: Overview ------------------------------------------------------------------------------------------------------

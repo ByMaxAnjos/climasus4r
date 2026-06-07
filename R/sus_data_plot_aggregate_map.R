@@ -55,6 +55,9 @@ utils::globalVariables(c(
 #' @param period Date scalar or `c(start, end)` vector.  When supplied, rows
 #'   in `df` whose `date` column falls outside the interval are removed before
 #'   aggregation.  `NULL` (default) uses all rows.
+#' @param city Character vector of municipality names or 6-/7-digit IBGE codes.
+#'   When supplied, the map is restricted to those municipalities. Names are
+#'   resolved through `municipio_meta` with accent tolerance.
 #' @param top_n Integer.  If supplied, only the top N municipalities by
 #'   `total_cases` are labelled on the map.  `NULL` disables top-N labels.
 #' @param state_borders Logical.  Overlay state boundary polygons
@@ -128,6 +131,7 @@ sus_data_plot_aggregate_map <- function(
     map_type       = c("bubble", "choropleth", "quantile_choropleth"),
     rate_per_100k  = FALSE,
     period         = NULL,
+    city           = NULL,
     top_n          = NULL,
     state_borders  = TRUE,
     show_labels    = TRUE,
@@ -176,6 +180,8 @@ sus_data_plot_aggregate_map <- function(
       col_used          = "Coluna de desfecho usada: {col}",
       muni_col_used     = "Coluna municipal usada: {col}",
       period_filter     = "Filtrando per\u00edodo: {s} \u2013 {e}",
+      city_filter       = "Filtrando municipio(s): {city}",
+      no_city_match     = "Nenhum municipio informado em {.arg city} foi encontrado nos dados.",
       title_quantile    = "Incid\u00eancia municipal classificada por quintis",
       fill_label        = "Eventos notificados",
       rate_label        = "Taxa por 100.000 habitantes",
@@ -204,6 +210,8 @@ sus_data_plot_aggregate_map <- function(
       col_used          = "Outcome column used: {col}",
       muni_col_used     = "Municipality column used: {col}",
       period_filter     = "Filtering period: {s} \u2013 {e}",
+      city_filter       = "Filtering municipality/cities: {city}",
+      no_city_match     = "No municipality supplied in {.arg city} was found in the data.",
       fill_label        = "Reported events",
       rate_label        = "Rate per 100,000 population",
       title_quantile    = "Classified municipal incidence (quintiles)",
@@ -231,6 +239,8 @@ sus_data_plot_aggregate_map <- function(
       col_used          = "Columna de desenlace usada: {col}",
       muni_col_used     = "Columna municipal usada: {col}",
       period_filter     = "Filtrando per\u00edodo: {s} \u2013 {e}",
+      city_filter       = "Filtrando municipio(s): {city}",
+      no_city_match     = "Ningun municipio indicado en {.arg city} fue encontrado en los datos.",
       title_quantile    = "Incidencia municipal clasificada (quintiles)",
       fill_label        = "Eventos notificados",
       rate_label        = "Tasa por 100.000 habitantes",
@@ -384,6 +394,17 @@ sus_data_plot_aggregate_map <- function(
     muni_meta,
     by = c("._muni6" = "._code6")
   )
+
+  if (!is.null(city) && length(city) > 0L) {
+    resolved <- resolve_city_input_internal(city, muni_meta, lang, verbose)
+    city_codes6 <- unique(substr(resolved$codes, 1L, 6L))
+    city_label <- paste(city, collapse = ", ")
+    if (verbose) cli::cli_alert_info(glue::glue(msg$city_filter, city = city_label))
+    muni_data <- muni_data[muni_data$._muni6 %in% city_codes6, , drop = FALSE]
+    if (nrow(muni_data) == 0L) {
+      cli::cli_abort(msg$no_city_match)
+    }
+  }
 
   n_matched <- sum(!is.na(muni_data$lon))
   if (n_matched == 0L) {
@@ -692,6 +713,7 @@ sus_data_plot_aggregate_map <- function(
           map_type      = "bubble",
           rate_per_100k = rate_per_100k,
           period        = NULL,
+          city          = city,
           top_n         = top_n,
           state_borders = state_borders,
           show_labels   = show_labels,
