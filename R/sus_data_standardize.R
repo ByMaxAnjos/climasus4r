@@ -192,13 +192,18 @@ sus_data_standardize <- function(
     )
   }
 
-  if (system == "SIA") {
-    switch(
-      lang,
-      "en" = translations <- get_translation_dict_en_sia(),
-      "pt" = translations <- get_translation_dict_pt_sia(),
-      # default case (any other language)
-      translations <- get_translation_dict_es_sia()
+  if (startsWith(system, "SIA")) {
+    .sia_dict <- function(pt_fn, en_fn, es_fn) {
+      switch(lang, "en" = en_fn(), "pt" = pt_fn(), es_fn())
+    }
+    translations <- switch(
+      system,
+      "SIA-AM" = .sia_dict(get_translation_dict_pt_sia_am, get_translation_dict_en_sia_am, get_translation_dict_es_sia_am),
+      "SIA-AQ" = .sia_dict(get_translation_dict_pt_sia_aq, get_translation_dict_en_sia_aq, get_translation_dict_es_sia_aq),
+      "SIA-AR" = .sia_dict(get_translation_dict_pt_sia_ar, get_translation_dict_en_sia_ar, get_translation_dict_es_sia_ar),
+      "SIA-AD" = .sia_dict(get_translation_dict_pt_sia_ad, get_translation_dict_en_sia_ad, get_translation_dict_es_sia_ad),
+      "SIA-PS" = .sia_dict(get_translation_dict_pt_sia_ps, get_translation_dict_en_sia_ps, get_translation_dict_es_sia_ps),
+      switch(lang, "en" = get_translation_dict_en_sia(), "pt" = get_translation_dict_pt_sia(), get_translation_dict_es_sia())
     )
   }
   if (system == "CNES") {
@@ -678,7 +683,7 @@ get_ui_messages_standardize <- function(lang = "en") {
   #' @noRd
   .std_detect_system <- function(meta, col_names) {
     system <- meta$system %||% NULL
-    if (!is.null(system)) return(sub("-.*", "", system))  # "SIH-SP" → "SIH"
+    if (!is.null(system)) return(system)  # preserve sub-type, e.g. "SIH-SP"
     # Fallback: pass column names as a mock data frame to the column-heuristic
     detect_health_system(stats::setNames(vector("list", length(col_names)), col_names))
   }
@@ -687,37 +692,27 @@ get_ui_messages_standardize <- function(lang = "en") {
   #' @keywords internal
   #' @noRd
   .std_load_translations <- function(system, lang) {
-    system_base <- sub("-.*", "", system %||% "UNKNOWN")
-    tryCatch(
-      switch(system_base,
-        "SIM"    = switch(lang,
-                    "en" = get_translation_dict_en(),
-                    "pt" = get_translation_dict_pt(),
-                            get_translation_dict_es()),
-        "SIH"    = switch(lang,
-                    "en" = get_translation_dict_en_sih(),
-                    "pt" = get_translation_dict_pt_sih(),
-                            get_translation_dict_es_sih()),
-        "SINAN"  = switch(lang,
-                    "en" = get_translation_dict_en_sinan(),
-                    "pt" = get_translation_dict_pt_sinan(),
-                            get_translation_dict_es_sinan()),
-        "SIA"    = switch(lang,
-                    "en" = get_translation_dict_en_sia(),
-                    "pt" = get_translation_dict_pt_sia(),
-                            get_translation_dict_es_sia()),
-        "CNES"   = switch(lang,
-                    "en" = get_translation_dict_en_cnes(),
-                    "pt" = get_translation_dict_pt_cnes(),
-                            get_translation_dict_es_cnes()),
-        "SINASC" = switch(lang,
-                    "en" = get_translation_dict_en_sinasc(),
-                    "pt" = get_translation_dict_pt_sinasc(),
-                            get_translation_dict_es_sinasc()),
-        list(columns = list(), values = list())
-      ),
-      error = function(e) list(columns = list(), values = list())
-    )
+    system <- system %||% "UNKNOWN"
+    system_base <- sub("-.*", "", system)
+    .d <- function(pt_fn, en_fn, es_fn) switch(lang, "en" = en_fn(), "pt" = pt_fn(), es_fn())
+    tryCatch({
+      if (system_base == "SIM") return(.d(get_translation_dict_pt, get_translation_dict_en, get_translation_dict_es))
+      if (system_base == "SIH") return(.d(get_translation_dict_pt_sih, get_translation_dict_en_sih, get_translation_dict_es_sih))
+      if (system_base == "SINAN") return(.d(get_translation_dict_pt_sinan, get_translation_dict_en_sinan, get_translation_dict_es_sinan))
+      if (system_base == "CNES") return(.d(get_translation_dict_pt_cnes, get_translation_dict_en_cnes, get_translation_dict_es_cnes))
+      if (system_base == "SINASC") return(.d(get_translation_dict_pt_sinasc, get_translation_dict_en_sinasc, get_translation_dict_es_sinasc))
+      if (system_base == "SIA") {
+        return(switch(system,
+          "SIA-AM" = .d(get_translation_dict_pt_sia_am, get_translation_dict_en_sia_am, get_translation_dict_es_sia_am),
+          "SIA-AQ" = .d(get_translation_dict_pt_sia_aq, get_translation_dict_en_sia_aq, get_translation_dict_es_sia_aq),
+          "SIA-AR" = .d(get_translation_dict_pt_sia_ar, get_translation_dict_en_sia_ar, get_translation_dict_es_sia_ar),
+          "SIA-AD" = .d(get_translation_dict_pt_sia_ad, get_translation_dict_en_sia_ad, get_translation_dict_es_sia_ad),
+          "SIA-PS" = .d(get_translation_dict_pt_sia_ps, get_translation_dict_en_sia_ps, get_translation_dict_es_sia_ps),
+          .d(get_translation_dict_pt_sia, get_translation_dict_en_sia, get_translation_dict_es_sia)
+        ))
+      }
+      list(columns = list(), values = list())
+    }, error = function(e) list(columns = list(), values = list()))
   }
 
   #' UI messages for sus_data_standardize_arrow

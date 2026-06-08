@@ -501,8 +501,14 @@ sus_data_plot_aggregate_map <- function(
     } else {
       state_sf <- tryCatch(
         {
-          s <- geobr::read_state(year = 2020, simplified = TRUE,
-                                 showProgress = FALSE)
+          s <- get_spatial_data_with_cache(
+            level     = "state",
+            year      = 2020,
+            cache_dir = cache_dir,
+            use_cache = use_cache,
+            lang      = lang,
+            verbose   = verbose
+          )
           sf::st_transform(s, crs = 4326)
         },
         error = function(e) {
@@ -691,8 +697,13 @@ sus_data_plot_aggregate_map <- function(
 
     muni_poly <- tryCatch(
       {
-        mp <- geobr::read_municipality(year = 2020, simplified = TRUE,
-                                       showProgress = FALSE)
+        mp <- get_spatial_munic_cache(
+          level     = "munic",
+          cache_dir = cache_dir,
+          use_cache = use_cache,
+          lang      = lang,
+          verbose   = verbose
+        )
         sf::st_transform(mp, crs = 4326)
       },
       error = function(e) {

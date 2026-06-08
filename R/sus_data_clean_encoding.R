@@ -329,20 +329,24 @@ is_arrow_input <- inherits(df, c(
     }
   }
   
-  if (verbose) {
-      if (length(cols_to_correct) > 0) {
+  if (length(cols_to_correct) > 0) {
     for (col in cols_to_correct) {
-      df <- df |>
-        dplyr::mutate(
-          !!rlang::sym(col) := arrow::Expression$cast(
-            stringr::str_trim(!!rlang::sym(col)),
-            arrow::utf8()
-          )
-        )
+      col_sym <- rlang::sym(col)
+      # stri_conv(latin1 -> utf8) cannot run lazily in Arrow; it always pulls
+      # to R. Suppress that expected "Expression not supported" message.
+      withCallingHandlers(
+        df <- df |>
+          dplyr::mutate(!!col_sym := stringi::stri_conv(!!col_sym, "latin1", "utf8")),
+        warning = function(w) {
+          if (grepl("Expression not supported in Arrow", conditionMessage(w),
+                    fixed = TRUE)) {
+            invokeRestart("muffleWarning")
+          }
+        }
+      )
     }
-  } else {
-      cli::cli_alert_success(ui_msg$no_correction_needed)
-    }
+  } else if (verbose) {
+    cli::cli_alert_success(ui_msg$no_correction_needed)
   }
 
   # Update metadata using sus_meta() with auto-detection of backend

@@ -3685,6 +3685,876 @@ get_translation_dict_es_sia <- function() {
 }
 
 
+
+# ==============================================================================
+# APAC INTERNAL HELPERS (shared across SIA-AM, SIA-AQ, SIA-AR, SIA-AD)
+# ==============================================================================
+
+.apac_common_columns_pt <- function() {
+  c(
+    "AP_MVM"     = "data_processamento",
+    "AP_CMP"     = "data_competencia",
+    "AP_CONDIC"  = "condicao_gestao",
+    "AP_GESTAO"  = "codigo_gestao",
+    "AP_CODUNI"  = "codigo_unidade_saude",
+    "AP_UFMUN"   = "uf_municipio_estabelecimento",
+    "AP_TPUPS"   = "tipo_unidade_saude",
+    "AP_TIPPRE"  = "tipo_prestador",
+    "AP_MN_IND"  = "estabelecimento_mantido_individual",
+    "AP_CNPJCPF" = "cnpj_cpf_estabelecimento",
+    "AP_CNPJMNT" = "cnpj_mantenedora",
+    "AP_NATJUR"  = "natureza_juridica",
+    "AP_CODEMI"  = "codigo_orgao_emissor",
+    "AP_AUTORIZ" = "numero_autorizacao_apac",
+    "AP_APACANT" = "numero_apac_anterior",
+    "AP_PRIPAL"  = "procedimento_principal",
+    "AP_VL_AP"   = "valor_aprovado_apac",
+    "AP_DTSOLIC" = "data_solicitacao",
+    "AP_DTAUT"   = "data_autorizacao",
+    "AP_DTINIC"  = "data_inicio_validade_apac",
+    "AP_DTFIM"   = "data_fim_validade_apac",
+    "AP_UNISOL"  = "unidade_solicitante",
+    "AP_TPAPAC"  = "tipo_apac",
+    "AP_CNSPCN"  = "cns_paciente",
+    "AP_COIDADE" = "codigo_tipo_idade",
+    "AP_NUIDADE" = "idade_paciente",
+    "AP_SEXO"    = "sexo",
+    "AP_RACACOR" = "raca_cor",
+    "AP_ETNIA"   = "etnia_paciente",
+    "AP_MUNPCN"  = "municipio_residencia_paciente",
+    "AP_UFNACIO" = "uf_nacionalidade_paciente",
+    "AP_CEPPCN"  = "cep_paciente",
+    "AP_UFDIF"   = "diferenca_uf_residencia",
+    "AP_MNDIF"   = "diferenca_municipio_residencia",
+    "AP_TPATEN"  = "tipo_atendimento",
+    "AP_CATEND"  = "carater_atendimento",
+    "AP_DTOCOR"  = "data_ocorrencia",
+    "AP_OBITO"   = "obito",
+    "AP_ENCERR"  = "encerramento",
+    "AP_PERMAN"  = "permanencia",
+    "AP_ALTA"    = "alta",
+    "AP_TRANSF"  = "transferencia",
+    "AP_MOTSAI"  = "motivo_saida",
+    "AP_CIDPRI"  = "cid_principal",
+    "AP_CIDSEC"  = "cid_secundario",
+    "AP_CIDCAS"  = "cid_causas_associadas"
+  )
+}
+
+.apac_common_columns_en <- function() {
+  c(
+    "AP_MVM"     = "processing_date",
+    "AP_CMP"     = "competence_date",
+    "AP_CONDIC"  = "management_condition",
+    "AP_GESTAO"  = "management_code",
+    "AP_CODUNI"  = "health_unit_code",
+    "AP_UFMUN"   = "facility_uf_municipality",
+    "AP_TPUPS"   = "health_unit_type",
+    "AP_TIPPRE"  = "provider_type",
+    "AP_MN_IND"  = "maintained_by_individual",
+    "AP_CNPJCPF" = "facility_cnpj_cpf",
+    "AP_CNPJMNT" = "maintaining_entity_cnpj",
+    "AP_NATJUR"  = "legal_nature",
+    "AP_CODEMI"  = "issuing_entity_code",
+    "AP_AUTORIZ" = "apac_authorization_number",
+    "AP_APACANT" = "previous_apac_number",
+    "AP_PRIPAL"  = "main_procedure_code",
+    "AP_VL_AP"   = "approved_apac_value",
+    "AP_DTSOLIC" = "request_date",
+    "AP_DTAUT"   = "authorization_date",
+    "AP_DTINIC"  = "apac_validity_start_date",
+    "AP_DTFIM"   = "apac_validity_end_date",
+    "AP_UNISOL"  = "requesting_unit",
+    "AP_TPAPAC"  = "apac_type",
+    "AP_CNSPCN"  = "patient_cns_number",
+    "AP_COIDADE" = "age_type_code",
+    "AP_NUIDADE" = "patient_age",
+    "AP_SEXO"    = "sex",
+    "AP_RACACOR" = "race_color",
+    "AP_ETNIA"   = "patient_ethnicity",
+    "AP_MUNPCN"  = "patient_residence_municipality",
+    "AP_UFNACIO" = "patient_nationality_uf",
+    "AP_CEPPCN"  = "patient_zip_code",
+    "AP_UFDIF"   = "uf_residence_difference",
+    "AP_MNDIF"   = "municipality_residence_difference",
+    "AP_TPATEN"  = "care_type",
+    "AP_CATEND"  = "care_character",
+    "AP_DTOCOR"  = "occurrence_date",
+    "AP_OBITO"   = "death",
+    "AP_ENCERR"  = "closure",
+    "AP_PERMAN"  = "permanence",
+    "AP_ALTA"    = "discharge",
+    "AP_TRANSF"  = "transfer",
+    "AP_MOTSAI"  = "discharge_reason",
+    "AP_CIDPRI"  = "main_diagnosis_icd",
+    "AP_CIDSEC"  = "secondary_diagnosis_icd",
+    "AP_CIDCAS"  = "associated_causes_icd"
+  )
+}
+
+.apac_common_columns_es <- function() {
+  c(
+    "AP_MVM"     = "fecha_procesamiento",
+    "AP_CMP"     = "fecha_competencia",
+    "AP_CONDIC"  = "condicion_gestion",
+    "AP_GESTAO"  = "codigo_gestion",
+    "AP_CODUNI"  = "codigo_unidad_salud",
+    "AP_UFMUN"   = "uf_municipio_establecimiento",
+    "AP_TPUPS"   = "tipo_unidad_salud",
+    "AP_TIPPRE"  = "tipo_proveedor",
+    "AP_MN_IND"  = "establecimiento_mantenido_individual",
+    "AP_CNPJCPF" = "cnpj_cpf_establecimiento",
+    "AP_CNPJMNT" = "cnpj_entidad_mantenedora",
+    "AP_NATJUR"  = "naturaleza_juridica",
+    "AP_CODEMI"  = "codigo_organo_emisor",
+    "AP_AUTORIZ" = "numero_autorizacion_apac",
+    "AP_APACANT" = "numero_apac_anterior",
+    "AP_PRIPAL"  = "procedimiento_principal",
+    "AP_VL_AP"   = "valor_aprobado_apac",
+    "AP_DTSOLIC" = "fecha_solicitud",
+    "AP_DTAUT"   = "fecha_autorizacion",
+    "AP_DTINIC"  = "fecha_inicio_validez_apac",
+    "AP_DTFIM"   = "fecha_fin_validez_apac",
+    "AP_UNISOL"  = "unidad_solicitante",
+    "AP_TPAPAC"  = "tipo_apac",
+    "AP_CNSPCN"  = "numero_cns_paciente",
+    "AP_COIDADE" = "codigo_tipo_edad",
+    "AP_NUIDADE" = "edad_paciente",
+    "AP_SEXO"    = "sexo",
+    "AP_RACACOR" = "raza_color",
+    "AP_ETNIA"   = "etnia_paciente",
+    "AP_MUNPCN"  = "municipio_residencia_paciente",
+    "AP_UFNACIO" = "uf_nacionalidad_paciente",
+    "AP_CEPPCN"  = "cep_paciente",
+    "AP_UFDIF"   = "diferencia_uf_residencia",
+    "AP_MNDIF"   = "diferencia_municipio_residencia",
+    "AP_TPATEN"  = "tipo_atencion",
+    "AP_CATEND"  = "caracter_atencion",
+    "AP_DTOCOR"  = "fecha_ocurrencia",
+    "AP_OBITO"   = "fallecimiento",
+    "AP_ENCERR"  = "cierre",
+    "AP_PERMAN"  = "permanencia",
+    "AP_ALTA"    = "alta",
+    "AP_TRANSF"  = "transferencia",
+    "AP_MOTSAI"  = "motivo_alta",
+    "AP_CIDPRI"  = "cie_principal",
+    "AP_CIDSEC"  = "cie_secundario",
+    "AP_CIDCAS"  = "cie_causas_asociadas"
+  )
+}
+
+.apac_common_values_pt <- function() {
+  list(
+    "AP_SEXO"    = c("M" = "Masculino", "F" = "Feminino", "I" = "Ignorado"),
+    "AP_RACACOR" = c(
+      "01" = "Branca", "02" = "Preta", "03" = "Parda",
+      "04" = "Amarela", "05" = "Indigena", "99" = "Sem informacao"
+    ),
+    "AP_TPAPAC"  = c("1" = "APAC Inicial", "2" = "APAC de Continuidade"),
+    "AP_CATEND"  = c("01" = "Eletivo", "02" = "Urgencia"),
+    "AP_OBITO"   = c("1" = "Sim", "0" = "Nao"),
+    "AP_ENCERR"  = c("1" = "Sim", "0" = "Nao"),
+    "AP_PERMAN"  = c("1" = "Sim", "0" = "Nao"),
+    "AP_ALTA"    = c("1" = "Sim", "0" = "Nao"),
+    "AP_TRANSF"  = c("1" = "Sim", "0" = "Nao"),
+    "AP_UFDIF"   = c("1" = "Sim", "0" = "Nao"),
+    "AP_MNDIF"   = c("1" = "Sim", "0" = "Nao"),
+    "AP_MOTSAI"  = c(
+      "11" = "Alta curado", "12" = "Alta melhorado", "14" = "Alta a pedido",
+      "15" = "Alta com previsao de retorno", "21" = "Transferencia",
+      "41" = "Obito com DO", "42" = "Obito sem DO", "51" = "Encerramento administrativo"
+    )
+  )
+}
+
+.apac_common_values_en <- function() {
+  list(
+    "AP_SEXO"    = c("M" = "Male", "F" = "Female", "I" = "Ignored"),
+    "AP_RACACOR" = c(
+      "01" = "White", "02" = "Black", "03" = "Brown",
+      "04" = "Asian", "05" = "Indigenous", "99" = "No information"
+    ),
+    "AP_TPAPAC"  = c("1" = "Initial APAC", "2" = "Continuation APAC"),
+    "AP_CATEND"  = c("01" = "Elective", "02" = "Urgency"),
+    "AP_OBITO"   = c("1" = "Yes", "0" = "No"),
+    "AP_ENCERR"  = c("1" = "Yes", "0" = "No"),
+    "AP_PERMAN"  = c("1" = "Yes", "0" = "No"),
+    "AP_ALTA"    = c("1" = "Yes", "0" = "No"),
+    "AP_TRANSF"  = c("1" = "Yes", "0" = "No"),
+    "AP_UFDIF"   = c("1" = "Yes", "0" = "No"),
+    "AP_MNDIF"   = c("1" = "Yes", "0" = "No"),
+    "AP_MOTSAI"  = c(
+      "11" = "Discharge (cured)", "12" = "Discharge (improved)", "14" = "Discharge by request",
+      "15" = "Discharge with scheduled return", "21" = "Transfer",
+      "41" = "Death with death certificate", "42" = "Death without death certificate",
+      "51" = "Administrative closure"
+    )
+  )
+}
+
+.apac_common_values_es <- function() {
+  list(
+    "AP_SEXO"    = c("M" = "Masculino", "F" = "Femenino", "I" = "Ignorado"),
+    "AP_RACACOR" = c(
+      "01" = "Blanca", "02" = "Negra", "03" = "Parda",
+      "04" = "Asiatica", "05" = "Indigena", "99" = "Sin informacion"
+    ),
+    "AP_TPAPAC"  = c("1" = "APAC Inicial", "2" = "APAC de Continuidad"),
+    "AP_CATEND"  = c("01" = "Electivo", "02" = "Urgencia"),
+    "AP_OBITO"   = c("1" = "Si", "0" = "No"),
+    "AP_ENCERR"  = c("1" = "Si", "0" = "No"),
+    "AP_PERMAN"  = c("1" = "Si", "0" = "No"),
+    "AP_ALTA"    = c("1" = "Si", "0" = "No"),
+    "AP_TRANSF"  = c("1" = "Si", "0" = "No"),
+    "AP_UFDIF"   = c("1" = "Si", "0" = "No"),
+    "AP_MNDIF"   = c("1" = "Si", "0" = "No"),
+    "AP_MOTSAI"  = c(
+      "11" = "Alta curado", "12" = "Alta mejorado", "14" = "Alta a pedido",
+      "15" = "Alta con retorno programado", "21" = "Transferencia",
+      "41" = "Fallecimiento con certificado", "42" = "Fallecimiento sin certificado",
+      "51" = "Cierre administrativo"
+    )
+  )
+}
+
+# ==============================================================================
+# SIA-AM: APAC de Atencao Especializada em Saude Mental e Autismo
+# ==============================================================================
+
+#' Obtem o Dicionario de Traducao para o SIA-AM (Portugues)
+#' @keywords internal
+#' @noRd
+get_translation_dict_pt_sia_am <- function() {
+  columns <- c(
+    .apac_common_columns_pt(),
+    "AM_PESO"    = "peso_paciente",
+    "AM_ALTURA"  = "altura_paciente",
+    "AM_TRANSPL" = "realizou_transplante",
+    "AM_QTDTRAN" = "quantidade_transplantes",
+    "AM_GESTANT" = "paciente_gestante"
+  )
+  values <- c(
+    .apac_common_values_pt(),
+    list(
+      "AM_TRANSPL" = c("S" = "Sim", "N" = "Nao"),
+      "AM_GESTANT" = c("S" = "Sim", "N" = "Nao")
+    )
+  )
+  list(columns = columns, values = values)
+}
+
+#' Get the Translation Dictionary for SIA-AM (English)
+#' @keywords internal
+#' @noRd
+get_translation_dict_en_sia_am <- function() {
+  columns <- c(
+    .apac_common_columns_en(),
+    "AM_PESO"    = "patient_weight",
+    "AM_ALTURA"  = "patient_height",
+    "AM_TRANSPL" = "had_transplant",
+    "AM_QTDTRAN" = "transplant_count",
+    "AM_GESTANT" = "pregnant_patient"
+  )
+  values <- c(
+    .apac_common_values_en(),
+    list(
+      "AM_TRANSPL" = c("S" = "Yes", "N" = "No"),
+      "AM_GESTANT" = c("S" = "Yes", "N" = "No")
+    )
+  )
+  list(columns = columns, values = values)
+}
+
+#' Obtiene el Diccionario de Traduccion para SIA-AM (Espanol)
+#' @keywords internal
+#' @noRd
+get_translation_dict_es_sia_am <- function() {
+  columns <- c(
+    .apac_common_columns_es(),
+    "AM_PESO"    = "peso_paciente",
+    "AM_ALTURA"  = "altura_paciente",
+    "AM_TRANSPL" = "tuvo_trasplante",
+    "AM_QTDTRAN" = "cantidad_trasplantes",
+    "AM_GESTANT" = "paciente_gestante"
+  )
+  values <- c(
+    .apac_common_values_es(),
+    list(
+      "AM_TRANSPL" = c("S" = "Si", "N" = "No"),
+      "AM_GESTANT" = c("S" = "Si", "N" = "No")
+    )
+  )
+  list(columns = columns, values = values)
+}
+
+# ==============================================================================
+# SIA-AQ: APAC de Quimioterapia
+# ==============================================================================
+
+#' Obtem o Dicionario de Traducao para o SIA-AQ (Portugues)
+#' @keywords internal
+#' @noRd
+get_translation_dict_pt_sia_aq <- function() {
+  columns <- c(
+    .apac_common_columns_pt(),
+    "AQ_CID10"   = "cid_tratamento_quimio",
+    "AQ_CIDINI1" = "cid_condicao_inicial_1",
+    "AQ_CIDINI2" = "cid_condicao_inicial_2",
+    "AQ_CIDINI3" = "cid_condicao_inicial_3",
+    "AQ_CONTTR"  = "continuidade_tratamento",
+    "AQ_DTIDEN"  = "data_identificacao_tumor",
+    "AQ_DTINI1"  = "data_inicio_quimio_1",
+    "AQ_DTINI2"  = "data_inicio_quimio_2",
+    "AQ_DTINI3"  = "data_inicio_quimio_3",
+    "AQ_DTINTR"  = "data_inicio_tratamento",
+    "AQ_ESQU_P1" = "esquema_quimio_parte_1",
+    "AQ_ESQU_P2" = "esquema_quimio_parte_2",
+    "AQ_ESTADI"  = "estadiamento_tumor",
+    "AQ_GRAHIS"  = "grau_histopatologico",
+    "AQ_LINFIN"  = "linfonodos_infiltrados",
+    "AQ_MED01"   = "medicamento_01",
+    "AQ_MED02"   = "medicamento_02",
+    "AQ_MED03"   = "medicamento_03",
+    "AQ_MED04"   = "medicamento_04",
+    "AQ_MED05"   = "medicamento_05",
+    "AQ_MED06"   = "medicamento_06",
+    "AQ_MED07"   = "medicamento_07",
+    "AQ_MED08"   = "medicamento_08",
+    "AQ_MED09"   = "medicamento_09",
+    "AQ_MED10"   = "medicamento_10",
+    "AQ_TOTMAU"  = "total_medicamentos_usados",
+    "AQ_TOTMPL"  = "total_medicamentos_planejados",
+    "AQ_TRANTE"  = "tratamento_anterior"
+  )
+  values <- c(
+    .apac_common_values_pt(),
+    list(
+      "AQ_ESTADI" = c(
+        "0" = "In situ", "1" = "Estadio I", "2" = "Estadio II",
+        "3" = "Estadio III", "4" = "Estadio IV", "9" = "Sem estadiamento"
+      ),
+      "AQ_CONTTR" = c("1" = "Inicio de Tratamento", "2" = "Continuidade de Tratamento"),
+      "AQ_TRANTE" = c(
+        "0" = "Sem tratamento anterior", "1" = "Cirurgia", "2" = "Radioterapia",
+        "3" = "Quimioterapia", "4" = "Hormonioterapia", "5" = "Outros"
+      )
+    )
+  )
+  list(columns = columns, values = values)
+}
+
+#' Get the Translation Dictionary for SIA-AQ (English)
+#' @keywords internal
+#' @noRd
+get_translation_dict_en_sia_aq <- function() {
+  columns <- c(
+    .apac_common_columns_en(),
+    "AQ_CID10"   = "chemo_treatment_icd10",
+    "AQ_CIDINI1" = "initial_condition_icd_1",
+    "AQ_CIDINI2" = "initial_condition_icd_2",
+    "AQ_CIDINI3" = "initial_condition_icd_3",
+    "AQ_CONTTR"  = "treatment_continuation",
+    "AQ_DTIDEN"  = "tumor_identification_date",
+    "AQ_DTINI1"  = "chemo_start_date_1",
+    "AQ_DTINI2"  = "chemo_start_date_2",
+    "AQ_DTINI3"  = "chemo_start_date_3",
+    "AQ_DTINTR"  = "treatment_start_date",
+    "AQ_ESQU_P1" = "chemo_scheme_part_1",
+    "AQ_ESQU_P2" = "chemo_scheme_part_2",
+    "AQ_ESTADI"  = "tumor_staging",
+    "AQ_GRAHIS"  = "histopathological_grade",
+    "AQ_LINFIN"  = "infiltrated_lymph_nodes",
+    "AQ_MED01"   = "medication_01",
+    "AQ_MED02"   = "medication_02",
+    "AQ_MED03"   = "medication_03",
+    "AQ_MED04"   = "medication_04",
+    "AQ_MED05"   = "medication_05",
+    "AQ_MED06"   = "medication_06",
+    "AQ_MED07"   = "medication_07",
+    "AQ_MED08"   = "medication_08",
+    "AQ_MED09"   = "medication_09",
+    "AQ_MED10"   = "medication_10",
+    "AQ_TOTMAU"  = "total_medications_used",
+    "AQ_TOTMPL"  = "total_medications_planned",
+    "AQ_TRANTE"  = "previous_treatment"
+  )
+  values <- c(
+    .apac_common_values_en(),
+    list(
+      "AQ_ESTADI" = c(
+        "0" = "In situ", "1" = "Stage I", "2" = "Stage II",
+        "3" = "Stage III", "4" = "Stage IV", "9" = "Not staged"
+      ),
+      "AQ_CONTTR" = c("1" = "Treatment start", "2" = "Treatment continuation"),
+      "AQ_TRANTE" = c(
+        "0" = "No prior treatment", "1" = "Surgery", "2" = "Radiotherapy",
+        "3" = "Chemotherapy", "4" = "Hormone therapy", "5" = "Other"
+      )
+    )
+  )
+  list(columns = columns, values = values)
+}
+
+#' Obtiene el Diccionario de Traduccion para SIA-AQ (Espanol)
+#' @keywords internal
+#' @noRd
+get_translation_dict_es_sia_aq <- function() {
+  columns <- c(
+    .apac_common_columns_es(),
+    "AQ_CID10"   = "cie_tratamiento_quimio",
+    "AQ_CIDINI1" = "cie_condicion_inicial_1",
+    "AQ_CIDINI2" = "cie_condicion_inicial_2",
+    "AQ_CIDINI3" = "cie_condicion_inicial_3",
+    "AQ_CONTTR"  = "continuidad_tratamiento",
+    "AQ_DTIDEN"  = "fecha_identificacion_tumor",
+    "AQ_DTINI1"  = "fecha_inicio_quimio_1",
+    "AQ_DTINI2"  = "fecha_inicio_quimio_2",
+    "AQ_DTINI3"  = "fecha_inicio_quimio_3",
+    "AQ_DTINTR"  = "fecha_inicio_tratamiento",
+    "AQ_ESQU_P1" = "esquema_quimio_parte_1",
+    "AQ_ESQU_P2" = "esquema_quimio_parte_2",
+    "AQ_ESTADI"  = "estadificacion_tumor",
+    "AQ_GRAHIS"  = "grado_histopatologico",
+    "AQ_LINFIN"  = "ganglios_infiltrados",
+    "AQ_MED01"   = "medicamento_01",
+    "AQ_MED02"   = "medicamento_02",
+    "AQ_MED03"   = "medicamento_03",
+    "AQ_MED04"   = "medicamento_04",
+    "AQ_MED05"   = "medicamento_05",
+    "AQ_MED06"   = "medicamento_06",
+    "AQ_MED07"   = "medicamento_07",
+    "AQ_MED08"   = "medicamento_08",
+    "AQ_MED09"   = "medicamento_09",
+    "AQ_MED10"   = "medicamento_10",
+    "AQ_TOTMAU"  = "total_medicamentos_usados",
+    "AQ_TOTMPL"  = "total_medicamentos_planificados",
+    "AQ_TRANTE"  = "tratamiento_anterior"
+  )
+  values <- c(
+    .apac_common_values_es(),
+    list(
+      "AQ_ESTADI" = c(
+        "0" = "In situ", "1" = "Estadio I", "2" = "Estadio II",
+        "3" = "Estadio III", "4" = "Estadio IV", "9" = "Sin estadificacion"
+      ),
+      "AQ_CONTTR" = c("1" = "Inicio de tratamiento", "2" = "Continuidad del tratamiento"),
+      "AQ_TRANTE" = c(
+        "0" = "Sin tratamiento previo", "1" = "Cirugia", "2" = "Radioterapia",
+        "3" = "Quimioterapia", "4" = "Hormonoterapia", "5" = "Otros"
+      )
+    )
+  )
+  list(columns = columns, values = values)
+}
+
+# ==============================================================================
+# SIA-AR: APAC de Radioterapia
+# ==============================================================================
+
+#' Obtem o Dicionario de Traducao para o SIA-AR (Portugues)
+#' @keywords internal
+#' @noRd
+get_translation_dict_pt_sia_ar <- function() {
+  columns <- c(
+    .apac_common_columns_pt(),
+    "AR_CID10"   = "cid_tratamento_radioterapia",
+    "AR_CIDINI1" = "cid_condicao_inicial_1",
+    "AR_CIDINI2" = "cid_condicao_inicial_2",
+    "AR_CIDINI3" = "cid_condicao_inicial_3",
+    "AR_CIDTR1"  = "cid_tumor_radioterapia_1",
+    "AR_CIDTR2"  = "cid_tumor_radioterapia_2",
+    "AR_CIDTR3"  = "cid_tumor_radioterapia_3",
+    "AR_CONTTR"  = "continuidade_tratamento",
+    "AR_DTIDEN"  = "data_identificacao_tumor",
+    "AR_DTINI1"  = "data_inicio_radio_1",
+    "AR_DTINI2"  = "data_inicio_radio_2",
+    "AR_DTINI3"  = "data_inicio_radio_3",
+    "AR_DTINTR"  = "data_inicio_tratamento",
+    "AR_ESTADI"  = "estadiamento_tumor",
+    "AR_FIMAR1"  = "data_fim_radio_1",
+    "AR_FIMAR2"  = "data_fim_radio_2",
+    "AR_FIMAR3"  = "data_fim_radio_3",
+    "AR_FINALI"  = "finalidade_radioterapia",
+    "AR_GRAHIS"  = "grau_histopatologico",
+    "AR_INIAR1"  = "data_inicio_curso_radio_1",
+    "AR_INIAR2"  = "data_inicio_curso_radio_2",
+    "AR_INIAR3"  = "data_inicio_curso_radio_3",
+    "AR_LINFIN"  = "linfonodos_infiltrados",
+    "AR_NUMC1"   = "numero_campos_irradiacao_1",
+    "AR_NUMC2"   = "numero_campos_irradiacao_2",
+    "AR_NUMC3"   = "numero_campos_irradiacao_3",
+    "AR_SMRD"    = "numero_sessoes_radioterapia",
+    "AR_TRANTE"  = "tratamento_anterior"
+  )
+  values <- c(
+    .apac_common_values_pt(),
+    list(
+      "AR_ESTADI" = c(
+        "0" = "In situ", "1" = "Estadio I", "2" = "Estadio II",
+        "3" = "Estadio III", "4" = "Estadio IV", "9" = "Sem estadiamento"
+      ),
+      "AR_CONTTR" = c("1" = "Inicio de Tratamento", "2" = "Continuidade de Tratamento"),
+      "AR_TRANTE" = c(
+        "0" = "Sem tratamento anterior", "1" = "Cirurgia", "2" = "Radioterapia",
+        "3" = "Quimioterapia", "4" = "Hormonioterapia", "5" = "Outros"
+      ),
+      "AR_FINALI" = c(
+        "1" = "Curativo", "2" = "Paliativo", "3" = "Profilatico",
+        "4" = "Adjuvante", "5" = "Neoadjuvante", "9" = "Nao se aplica"
+      )
+    )
+  )
+  list(columns = columns, values = values)
+}
+
+#' Get the Translation Dictionary for SIA-AR (English)
+#' @keywords internal
+#' @noRd
+get_translation_dict_en_sia_ar <- function() {
+  columns <- c(
+    .apac_common_columns_en(),
+    "AR_CID10"   = "radiotherapy_treatment_icd10",
+    "AR_CIDINI1" = "initial_condition_icd_1",
+    "AR_CIDINI2" = "initial_condition_icd_2",
+    "AR_CIDINI3" = "initial_condition_icd_3",
+    "AR_CIDTR1"  = "tumor_icd_radiotherapy_1",
+    "AR_CIDTR2"  = "tumor_icd_radiotherapy_2",
+    "AR_CIDTR3"  = "tumor_icd_radiotherapy_3",
+    "AR_CONTTR"  = "treatment_continuation",
+    "AR_DTIDEN"  = "tumor_identification_date",
+    "AR_DTINI1"  = "radiotherapy_start_date_1",
+    "AR_DTINI2"  = "radiotherapy_start_date_2",
+    "AR_DTINI3"  = "radiotherapy_start_date_3",
+    "AR_DTINTR"  = "treatment_start_date",
+    "AR_ESTADI"  = "tumor_staging",
+    "AR_FIMAR1"  = "radiotherapy_end_date_1",
+    "AR_FIMAR2"  = "radiotherapy_end_date_2",
+    "AR_FIMAR3"  = "radiotherapy_end_date_3",
+    "AR_FINALI"  = "radiotherapy_purpose",
+    "AR_GRAHIS"  = "histopathological_grade",
+    "AR_INIAR1"  = "radiotherapy_course_start_1",
+    "AR_INIAR2"  = "radiotherapy_course_start_2",
+    "AR_INIAR3"  = "radiotherapy_course_start_3",
+    "AR_LINFIN"  = "infiltrated_lymph_nodes",
+    "AR_NUMC1"   = "radiation_fields_count_1",
+    "AR_NUMC2"   = "radiation_fields_count_2",
+    "AR_NUMC3"   = "radiation_fields_count_3",
+    "AR_SMRD"    = "radiotherapy_session_count",
+    "AR_TRANTE"  = "previous_treatment"
+  )
+  values <- c(
+    .apac_common_values_en(),
+    list(
+      "AR_ESTADI" = c(
+        "0" = "In situ", "1" = "Stage I", "2" = "Stage II",
+        "3" = "Stage III", "4" = "Stage IV", "9" = "Not staged"
+      ),
+      "AR_CONTTR" = c("1" = "Treatment start", "2" = "Treatment continuation"),
+      "AR_TRANTE" = c(
+        "0" = "No prior treatment", "1" = "Surgery", "2" = "Radiotherapy",
+        "3" = "Chemotherapy", "4" = "Hormone therapy", "5" = "Other"
+      ),
+      "AR_FINALI" = c(
+        "1" = "Curative", "2" = "Palliative", "3" = "Prophylactic",
+        "4" = "Adjuvant", "5" = "Neoadjuvant", "9" = "Not applicable"
+      )
+    )
+  )
+  list(columns = columns, values = values)
+}
+
+#' Obtiene el Diccionario de Traduccion para SIA-AR (Espanol)
+#' @keywords internal
+#' @noRd
+get_translation_dict_es_sia_ar <- function() {
+  columns <- c(
+    .apac_common_columns_es(),
+    "AR_CID10"   = "cie_tratamiento_radioterapia",
+    "AR_CIDINI1" = "cie_condicion_inicial_1",
+    "AR_CIDINI2" = "cie_condicion_inicial_2",
+    "AR_CIDINI3" = "cie_condicion_inicial_3",
+    "AR_CIDTR1"  = "cie_tumor_radioterapia_1",
+    "AR_CIDTR2"  = "cie_tumor_radioterapia_2",
+    "AR_CIDTR3"  = "cie_tumor_radioterapia_3",
+    "AR_CONTTR"  = "continuidad_tratamiento",
+    "AR_DTIDEN"  = "fecha_identificacion_tumor",
+    "AR_DTINI1"  = "fecha_inicio_radio_1",
+    "AR_DTINI2"  = "fecha_inicio_radio_2",
+    "AR_DTINI3"  = "fecha_inicio_radio_3",
+    "AR_DTINTR"  = "fecha_inicio_tratamiento",
+    "AR_ESTADI"  = "estadificacion_tumor",
+    "AR_FIMAR1"  = "fecha_fin_radio_1",
+    "AR_FIMAR2"  = "fecha_fin_radio_2",
+    "AR_FIMAR3"  = "fecha_fin_radio_3",
+    "AR_FINALI"  = "finalidad_radioterapia",
+    "AR_GRAHIS"  = "grado_histopatologico",
+    "AR_INIAR1"  = "fecha_inicio_curso_radio_1",
+    "AR_INIAR2"  = "fecha_inicio_curso_radio_2",
+    "AR_INIAR3"  = "fecha_inicio_curso_radio_3",
+    "AR_LINFIN"  = "ganglios_infiltrados",
+    "AR_NUMC1"   = "numero_campos_irradiacion_1",
+    "AR_NUMC2"   = "numero_campos_irradiacion_2",
+    "AR_NUMC3"   = "numero_campos_irradiacion_3",
+    "AR_SMRD"    = "numero_sesiones_radioterapia",
+    "AR_TRANTE"  = "tratamiento_anterior"
+  )
+  values <- c(
+    .apac_common_values_es(),
+    list(
+      "AR_ESTADI" = c(
+        "0" = "In situ", "1" = "Estadio I", "2" = "Estadio II",
+        "3" = "Estadio III", "4" = "Estadio IV", "9" = "Sin estadificacion"
+      ),
+      "AR_CONTTR" = c("1" = "Inicio de tratamiento", "2" = "Continuidad del tratamiento"),
+      "AR_TRANTE" = c(
+        "0" = "Sin tratamiento previo", "1" = "Cirugia", "2" = "Radioterapia",
+        "3" = "Quimioterapia", "4" = "Hormonoterapia", "5" = "Otros"
+      ),
+      "AR_FINALI" = c(
+        "1" = "Curativo", "2" = "Paliativo", "3" = "Profilactico",
+        "4" = "Adyuvante", "5" = "Neoadyuvante", "9" = "No aplica"
+      )
+    )
+  )
+  list(columns = columns, values = values)
+}
+
+# ==============================================================================
+# SIA-AD: APAC de Medicamentos e Dialise
+# ==============================================================================
+
+#' Obtem o Dicionario de Traducao para o SIA-AD (Portugues)
+#' @keywords internal
+#' @noRd
+get_translation_dict_pt_sia_ad <- function() {
+  list(columns = .apac_common_columns_pt(), values = .apac_common_values_pt())
+}
+
+#' Get the Translation Dictionary for SIA-AD (English)
+#' @keywords internal
+#' @noRd
+get_translation_dict_en_sia_ad <- function() {
+  list(columns = .apac_common_columns_en(), values = .apac_common_values_en())
+}
+
+#' Obtiene el Diccionario de Traduccion para SIA-AD (Espanol)
+#' @keywords internal
+#' @noRd
+get_translation_dict_es_sia_ad <- function() {
+  list(columns = .apac_common_columns_es(), values = .apac_common_values_es())
+}
+
+# ==============================================================================
+# SIA-PS: RAAS Psicossocial
+# ==============================================================================
+
+#' Obtem o Dicionario de Traducao para o SIA-PS (Portugues)
+#' @keywords internal
+#' @noRd
+get_translation_dict_pt_sia_ps <- function() {
+  columns <- c(
+    "CNES_EXEC"  = "cnes_estabelecimento_executor",
+    "GESTAO"     = "codigo_gestao",
+    "CONDIC"     = "condicao_gestao",
+    "UFMUN"      = "uf_municipio_estabelecimento",
+    "TPUPS"      = "tipo_unidade_saude",
+    "TIPPRE.."   = "tipo_prestador",
+    "MN_IND"     = "estabelecimento_mantido_individual",
+    "CNPJCPF"    = "cnpj_cpf_estabelecimento",
+    "CNPJMNT"    = "cnpj_mantenedora",
+    "NAT_JUR"    = "natureza_juridica",
+    "DT_PROCESS" = "data_processamento",
+    "CNS_PAC"    = "cns_paciente",
+    "DTNASC"     = "data_nascimento",
+    "TPIDADEPAC" = "tipo_idade_paciente",
+    "IDADEPAC"   = "idade_paciente",
+    "NACION_PAC" = "nacionalidade_paciente",
+    "SEXOPAC"    = "sexo_paciente",
+    "RACACOR"    = "raca_cor",
+    "ETNIA"      = "etnia_paciente",
+    "MUNPAC"     = "municipio_residencia_paciente",
+    "DT_ATEND"   = "data_atendimento",
+    "CATEND"     = "carater_atendimento",
+    "MOT_COB"    = "motivo_cobranca",
+    "DT_MOTCOB"  = "data_motivo_cobranca",
+    "CIDPRI"     = "cid_principal",
+    "CIDASSOC"   = "cid_associado",
+    "ORIGEM_PAC" = "origem_paciente",
+    "DT_INICIO"  = "data_inicio_atendimento",
+    "DT_FIM"     = "data_fim_atendimento",
+    "INICIO"     = "data_inicio_periodo",
+    "FIM"        = "data_fim_periodo",
+    "PERMANEN"   = "permanencia_dias",
+    "QTDATE"     = "quantidade_atendimentos",
+    "QTDPCN"     = "quantidade_pacientes",
+    "COB_ESF"    = "cobertura_esf",
+    "CNES_ESF"   = "cnes_equipe_esf",
+    "DESTINOPAC" = "destino_paciente",
+    "SIT_RUA"    = "situacao_rua",
+    "TP_DROGA"   = "tipo_dependencia_droga",
+    "LOC_REALIZ" = "local_realizacao",
+    "PA_PROC_ID" = "procedimento_id",
+    "PA_QTDPRO"  = "quantidade_produzida",
+    "PA_QTDAPR"  = "quantidade_aprovada",
+    "PA_SRV"     = "codigo_servico",
+    "PA_CLASS_S" = "classificacao_servico"
+  )
+  values <- list(
+    "SEXOPAC"    = c("M" = "Masculino", "F" = "Feminino", "I" = "Ignorado"),
+    "RACACOR"    = c(
+      "01" = "Branca", "02" = "Preta", "03" = "Parda",
+      "04" = "Amarela", "05" = "Indigena", "99" = "Sem informacao"
+    ),
+    "CATEND"     = c("01" = "Eletivo", "02" = "Urgencia"),
+    "SIT_RUA"    = c("1" = "Sim", "0" = "Nao"),
+    "COB_ESF"    = c("1" = "Sim", "0" = "Nao"),
+    "DESTINOPAC" = c(
+      "1" = "Alta curado", "2" = "Alta melhorado", "3" = "Alta a pedido",
+      "4" = "Alta por abandono", "5" = "Transferencia interna",
+      "6" = "Transferencia externa", "7" = "Obito", "8" = "Outros"
+    )
+  )
+  list(columns = columns, values = values)
+}
+
+#' Get the Translation Dictionary for SIA-PS (English)
+#' @keywords internal
+#' @noRd
+get_translation_dict_en_sia_ps <- function() {
+  columns <- c(
+    "CNES_EXEC"  = "executor_facility_cnes",
+    "GESTAO"     = "management_code",
+    "CONDIC"     = "management_condition",
+    "UFMUN"      = "facility_uf_municipality",
+    "TPUPS"      = "health_unit_type",
+    "TIPPRE.."   = "provider_type",
+    "MN_IND"     = "maintained_by_individual",
+    "CNPJCPF"    = "facility_cnpj_cpf",
+    "CNPJMNT"    = "maintaining_entity_cnpj",
+    "NAT_JUR"    = "legal_nature",
+    "DT_PROCESS" = "processing_date",
+    "CNS_PAC"    = "patient_cns",
+    "DTNASC"     = "birth_date",
+    "TPIDADEPAC" = "patient_age_type",
+    "IDADEPAC"   = "patient_age",
+    "NACION_PAC" = "patient_nationality",
+    "SEXOPAC"    = "patient_sex",
+    "RACACOR"    = "race_color",
+    "ETNIA"      = "patient_ethnicity",
+    "MUNPAC"     = "patient_municipality",
+    "DT_ATEND"   = "care_date",
+    "CATEND"     = "care_character",
+    "MOT_COB"    = "billing_reason",
+    "DT_MOTCOB"  = "billing_reason_date",
+    "CIDPRI"     = "main_diagnosis_icd",
+    "CIDASSOC"   = "associated_icd",
+    "ORIGEM_PAC" = "patient_origin",
+    "DT_INICIO"  = "care_start_date",
+    "DT_FIM"     = "care_end_date",
+    "INICIO"     = "period_start_date",
+    "FIM"        = "period_end_date",
+    "PERMANEN"   = "permanence_days",
+    "QTDATE"     = "care_count",
+    "QTDPCN"     = "patient_count",
+    "COB_ESF"    = "esf_coverage",
+    "CNES_ESF"   = "esf_team_cnes",
+    "DESTINOPAC" = "patient_destination",
+    "SIT_RUA"    = "street_situation",
+    "TP_DROGA"   = "drug_dependency_type",
+    "LOC_REALIZ" = "care_location",
+    "PA_PROC_ID" = "procedure_id",
+    "PA_QTDPRO"  = "quantity_produced",
+    "PA_QTDAPR"  = "quantity_approved",
+    "PA_SRV"     = "service_code",
+    "PA_CLASS_S" = "service_classification"
+  )
+  values <- list(
+    "SEXOPAC"    = c("M" = "Male", "F" = "Female", "I" = "Ignored"),
+    "RACACOR"    = c(
+      "01" = "White", "02" = "Black", "03" = "Brown",
+      "04" = "Asian", "05" = "Indigenous", "99" = "No information"
+    ),
+    "CATEND"     = c("01" = "Elective", "02" = "Urgency"),
+    "SIT_RUA"    = c("1" = "Yes", "0" = "No"),
+    "COB_ESF"    = c("1" = "Yes", "0" = "No"),
+    "DESTINOPAC" = c(
+      "1" = "Discharge (cured)", "2" = "Discharge (improved)", "3" = "Discharge by request",
+      "4" = "Discharge (abandoned)", "5" = "Internal transfer",
+      "6" = "External transfer", "7" = "Death", "8" = "Other"
+    )
+  )
+  list(columns = columns, values = values)
+}
+
+#' Obtiene el Diccionario de Traduccion para SIA-PS (Espanol)
+#' @keywords internal
+#' @noRd
+get_translation_dict_es_sia_ps <- function() {
+  columns <- c(
+    "CNES_EXEC"  = "cnes_establecimiento_ejecutor",
+    "GESTAO"     = "codigo_gestion",
+    "CONDIC"     = "condicion_gestion",
+    "UFMUN"      = "uf_municipio_establecimiento",
+    "TPUPS"      = "tipo_unidad_salud",
+    "TIPPRE.."   = "tipo_proveedor",
+    "MN_IND"     = "establecimiento_mantenido_individual",
+    "CNPJCPF"    = "cnpj_cpf_establecimiento",
+    "CNPJMNT"    = "cnpj_entidad_mantenedora",
+    "NAT_JUR"    = "naturaleza_juridica",
+    "DT_PROCESS" = "fecha_procesamiento",
+    "CNS_PAC"    = "cns_paciente",
+    "DTNASC"     = "fecha_nacimiento",
+    "TPIDADEPAC" = "tipo_edad_paciente",
+    "IDADEPAC"   = "edad_paciente",
+    "NACION_PAC" = "nacionalidad_paciente",
+    "SEXOPAC"    = "sexo_paciente",
+    "RACACOR"    = "raza_color",
+    "ETNIA"      = "etnia_paciente",
+    "MUNPAC"     = "municipio_residencia_paciente",
+    "DT_ATEND"   = "fecha_atencion",
+    "CATEND"     = "caracter_atencion",
+    "MOT_COB"    = "motivo_cobro",
+    "DT_MOTCOB"  = "fecha_motivo_cobro",
+    "CIDPRI"     = "cie_principal",
+    "CIDASSOC"   = "cie_asociado",
+    "ORIGEM_PAC" = "origen_paciente",
+    "DT_INICIO"  = "fecha_inicio_atencion",
+    "DT_FIM"     = "fecha_fin_atencion",
+    "INICIO"     = "fecha_inicio_periodo",
+    "FIM"        = "fecha_fin_periodo",
+    "PERMANEN"   = "dias_permanencia",
+    "QTDATE"     = "cantidad_atenciones",
+    "QTDPCN"     = "cantidad_pacientes",
+    "COB_ESF"    = "cobertura_esf",
+    "CNES_ESF"   = "cnes_equipo_esf",
+    "DESTINOPAC" = "destino_paciente",
+    "SIT_RUA"    = "situacion_calle",
+    "TP_DROGA"   = "tipo_dependencia_droga",
+    "LOC_REALIZ" = "lugar_realizacion",
+    "PA_PROC_ID" = "procedimiento_id",
+    "PA_QTDPRO"  = "cantidad_producida",
+    "PA_QTDAPR"  = "cantidad_aprobada",
+    "PA_SRV"     = "codigo_servicio",
+    "PA_CLASS_S" = "clasificacion_servicio"
+  )
+  values <- list(
+    "SEXOPAC"    = c("M" = "Masculino", "F" = "Femenino", "I" = "Ignorado"),
+    "RACACOR"    = c(
+      "01" = "Blanca", "02" = "Negra", "03" = "Parda",
+      "04" = "Asiatica", "05" = "Indigena", "99" = "Sin informacion"
+    ),
+    "CATEND"     = c("01" = "Electivo", "02" = "Urgencia"),
+    "SIT_RUA"    = c("1" = "Si", "0" = "No"),
+    "COB_ESF"    = c("1" = "Si", "0" = "No"),
+    "DESTINOPAC" = c(
+      "1" = "Alta curado", "2" = "Alta mejorado", "3" = "Alta a pedido",
+      "4" = "Alta por abandono", "5" = "Transferencia interna",
+      "6" = "Transferencia externa", "7" = "Fallecimiento", "8" = "Otros"
+    )
+  )
+  list(columns = columns, values = values)
+}
+
 #' Obtem o Dicionario de Traducao para o CNES (Portugues)
 #'
 #' @description

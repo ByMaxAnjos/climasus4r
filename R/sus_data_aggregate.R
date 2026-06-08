@@ -557,7 +557,7 @@ sus_data_aggregate <- function(df,
   )
 
   # DETECTAR SISTEMA
-  priority_groups <- system_priority[[system]]
+  priority_groups <- system_priority[[sub("-.*", "", system)]] %||% system_priority[[system]]
   if (is.null(priority_groups)) {
     priority_groups <- c("residencia", "ocorrencia", "estabelecimento", "generico")
   }
@@ -1306,13 +1306,15 @@ sus_data_aggregate <- function(df,
 #' @keywords internal
 #' @noRd
 get_smart_column_name <- function(system, fun_type, lang) {
-    
+
   # Generate intelligent name based on system
   if (fun_type == "count") {
     if (is.null(system)) {
       return("n")  # Generic fallback
     }
-    
+
+    system_key <- sub("-.*", "", system)  # strip sub-type ("SIA-AM" -> "SIA")
+
     # Language-specific naming
     if (lang == "en") {
       col_names <- list(
@@ -1342,10 +1344,10 @@ get_smart_column_name <- function(system, fun_type, lang) {
         "CNES" = "n_establecimientos"
       )
     }
-    
-    return(col_names[[system]])
+
+    return(col_names[[system_key]] %||% "n")
   }
-  
+
   # For other functions, return generic name
   return(paste0(fun_type, "_value"))
 }
@@ -1983,6 +1985,8 @@ get_smart_column_name <- function(system, fun_type, lang) {
   if (fun_type == "count") {
     if (is.null(system)) return("n")
 
+    system_key <- sub("-.*", "", system)  # strip sub-type ("SIA-AM" -> "SIA")
+
     if (lang == "en") {
       col_names <- list(
         SIM    = "n_deaths",
@@ -2011,7 +2015,7 @@ get_smart_column_name <- function(system, fun_type, lang) {
         CNES   = "n_establecimientos"
       )
     }
-    return(col_names[[system]])
+    return(col_names[[system_key]] %||% "n")
   }
   paste0(fun_type, "_value")
 }

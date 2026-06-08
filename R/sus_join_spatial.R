@@ -121,6 +121,7 @@ sus_spatial_join <- function(
   check_spatial(lang)
   # Get multilingual messages
   msg <- get_spatial_messages(lang)
+  if (verbose) cli::cli_h1(msg$title)
 
   # Validate level
   valid_levels <- c("munic", "cep", "schools","health_region","amazon",
@@ -241,8 +242,8 @@ sus_spatial_join <- function(
     systems_in_data <- system
     allowed_systems <- c("SIH", "CNES")
 
-    # Check if any system is allowed
-    if (!any(systems_in_data %in% allowed_systems)) {
+    # Check if any system is allowed (accepts sub-types like "SIH-SP", "CNES-LT")
+    if (!any(startsWith(systems_in_data, "SIH") | startsWith(systems_in_data, "CNES"))) {
       cli::cli_abort(msg$cep_restricted)
     }
 
@@ -591,16 +592,25 @@ sus_spatial_join <- function(
     
     # ATENcaO: Regiao de Saude nao tem 'code_muni' no geobr. Cruzar so por Estado multiplica as linhas.
     # Solucao: st_join otimizado usando os municipios unicos
-    unique_places <- suppressWarnings(sf::st_centroid(sf::st_make_valid(dplyr::distinct(result_sf, code_muni, .keep_all = TRUE))))
-    places_with_level <- sf::st_join(unique_places, spatial_var, left = FALSE) %>%
-      sf::st_drop_geometry() %>%
-      dplyr::select(code_muni, dplyr::any_of(names(spatial_var))) %>%
-      dplyr::distinct(code_muni, .keep_all = TRUE)
-      
+    all_centroids <- get_spatial_munic_centroids_cache(cache_dir, use_cache, lang, verbose)
+    unique_places  <- all_centroids[all_centroids$code_muni %in% result_sf$code_muni, ]
+    duck_result <- .duck_st_join(unique_places, spatial_var,
+                                 keep_cols = setdiff(names(spatial_var), attr(spatial_var, "sf_column")))
+    places_with_level <- if (!is.null(duck_result)) {
+      duck_result |>
+        dplyr::select(code_muni, dplyr::any_of(names(spatial_var))) |>
+        dplyr::distinct(code_muni, .keep_all = TRUE)
+    } else {
+      sf::st_join(unique_places, spatial_var, left = FALSE) |>
+        sf::st_drop_geometry() |>
+        dplyr::select(code_muni, dplyr::any_of(names(spatial_var))) |>
+        dplyr::distinct(code_muni, .keep_all = TRUE)
+    }
+
     df_temp <- sf::st_drop_geometry(result_sf) %>%
       dplyr::select(-dplyr::any_of(c("geom", "geometry"))) %>%
       dplyr::inner_join(places_with_level, by = "code_muni")
-      
+
     join_keys <- setdiff(intersect(names(spatial_var), names(df_temp)), attr(spatial_var, "sf_column"))
     result_sf <- dplyr::inner_join(spatial_var, df_temp, by = join_keys, relationship = "many-to-many")
   }
@@ -613,8 +623,15 @@ sus_spatial_join <- function(
     spatial_var <- sf::st_as_sf(spatial_var)
     spatial_var <- sf::st_make_valid(spatial_var)
 
-    unique_places <- suppressWarnings(sf::st_centroid(sf::st_make_valid(dplyr::distinct(result_sf, code_muni, .keep_all = TRUE))))
-    places_with_level <- sf::st_join(unique_places, spatial_var, left = FALSE) %>% sf::st_drop_geometry() %>% dplyr::select(code_muni, dplyr::any_of(names(spatial_var))) %>% dplyr::distinct(code_muni, .keep_all = TRUE)
+    all_centroids <- get_spatial_munic_centroids_cache(cache_dir, use_cache, lang, verbose)
+    unique_places  <- all_centroids[all_centroids$code_muni %in% result_sf$code_muni, ]
+    duck_result <- .duck_st_join(unique_places, spatial_var,
+                                 keep_cols = setdiff(names(spatial_var), attr(spatial_var, "sf_column")))
+    places_with_level <- if (!is.null(duck_result)) {
+      duck_result |> dplyr::select(code_muni, dplyr::any_of(names(spatial_var))) |> dplyr::distinct(code_muni, .keep_all = TRUE)
+    } else {
+      sf::st_join(unique_places, spatial_var, left = FALSE) |> sf::st_drop_geometry() |> dplyr::select(code_muni, dplyr::any_of(names(spatial_var))) |> dplyr::distinct(code_muni, .keep_all = TRUE)
+    }
     df_temp <- sf::st_drop_geometry(result_sf) %>% dplyr::select(-dplyr::any_of(c("geom", "geometry"))) %>% dplyr::inner_join(places_with_level, by = "code_muni")
     join_keys <- setdiff(intersect(names(spatial_var), names(df_temp)), attr(spatial_var, "sf_column"))
     result_sf <- dplyr::inner_join(spatial_var, df_temp, by = join_keys, relationship = "many-to-many")
@@ -648,8 +665,15 @@ sus_spatial_join <- function(
     spatial_var <- sf::st_as_sf(spatial_var)
     spatial_var <- sf::st_make_valid(spatial_var)
 
-    unique_places <- suppressWarnings(sf::st_centroid(sf::st_make_valid(dplyr::distinct(result_sf, code_muni, .keep_all = TRUE))))
-    places_with_level <- sf::st_join(unique_places, spatial_var, left = FALSE) %>% sf::st_drop_geometry() %>% dplyr::select(code_muni, dplyr::any_of(names(spatial_var))) %>% dplyr::distinct(code_muni, .keep_all = TRUE)
+    all_centroids <- get_spatial_munic_centroids_cache(cache_dir, use_cache, lang, verbose)
+    unique_places  <- all_centroids[all_centroids$code_muni %in% result_sf$code_muni, ]
+    duck_result <- .duck_st_join(unique_places, spatial_var,
+                                 keep_cols = setdiff(names(spatial_var), attr(spatial_var, "sf_column")))
+    places_with_level <- if (!is.null(duck_result)) {
+      duck_result |> dplyr::select(code_muni, dplyr::any_of(names(spatial_var))) |> dplyr::distinct(code_muni, .keep_all = TRUE)
+    } else {
+      sf::st_join(unique_places, spatial_var, left = FALSE) |> sf::st_drop_geometry() |> dplyr::select(code_muni, dplyr::any_of(names(spatial_var))) |> dplyr::distinct(code_muni, .keep_all = TRUE)
+    }
     df_temp <- sf::st_drop_geometry(result_sf) %>% dplyr::select(-dplyr::any_of(c("geom", "geometry"))) %>% dplyr::inner_join(places_with_level, by = "code_muni")
     join_keys <- setdiff(intersect(names(spatial_var), names(df_temp)), attr(spatial_var, "sf_column"))
     result_sf <- dplyr::inner_join(spatial_var, df_temp, by = join_keys, relationship = "many-to-many")
@@ -663,8 +687,15 @@ sus_spatial_join <- function(
     spatial_var$date <- NULL
     spatial_var <- sf::st_as_sf(spatial_var)
     spatial_var <- sf::st_make_valid(spatial_var)
-    unique_places <- suppressWarnings(sf::st_centroid(sf::st_make_valid(dplyr::distinct(result_sf, code_muni, .keep_all = TRUE))))
-    places_with_level <- sf::st_join(unique_places, spatial_var, left = FALSE) %>% sf::st_drop_geometry() %>% dplyr::select(code_muni, dplyr::any_of(names(spatial_var))) %>% dplyr::distinct(code_muni, .keep_all = TRUE)
+    all_centroids <- get_spatial_munic_centroids_cache(cache_dir, use_cache, lang, verbose)
+    unique_places  <- all_centroids[all_centroids$code_muni %in% result_sf$code_muni, ]
+    duck_result <- .duck_st_join(unique_places, spatial_var,
+                                 keep_cols = setdiff(names(spatial_var), attr(spatial_var, "sf_column")))
+    places_with_level <- if (!is.null(duck_result)) {
+      duck_result |> dplyr::select(code_muni, dplyr::any_of(names(spatial_var))) |> dplyr::distinct(code_muni, .keep_all = TRUE)
+    } else {
+      sf::st_join(unique_places, spatial_var, left = FALSE) |> sf::st_drop_geometry() |> dplyr::select(code_muni, dplyr::any_of(names(spatial_var))) |> dplyr::distinct(code_muni, .keep_all = TRUE)
+    }
     df_temp <- sf::st_drop_geometry(result_sf) %>% dplyr::select(-dplyr::any_of(c("geom", "geometry"))) %>% dplyr::inner_join(places_with_level, by = "code_muni")
     join_keys <- setdiff(intersect(names(spatial_var), names(df_temp)), attr(spatial_var, "sf_column"))
     result_sf <- dplyr::inner_join(spatial_var, df_temp, by = join_keys, relationship = "many-to-many")
@@ -778,7 +809,7 @@ sus_spatial_join <- function(
      )
   }
   
-  if (level == "health_facilities" && !system == "CNES") {
+  if (level == "health_facilities" && !startsWith(system %||% "", "CNES")) {
     if (verbose) {cli::cli_abort("The level {.val health_facilities} is only available for the {.code CNES} system.")}
   }
   if (level == "health_facilities") {
@@ -793,8 +824,10 @@ sus_spatial_join <- function(
     )
   }
 
-  if (level == "neighborhood" && !system %in% c("CNES", "SIH")) {
-    if (verbose) {cli::cli_abort("The level {.val neighborhood} is only available for the {.code CNES} system.")}
+  if (level == "neighborhood" &&
+      !startsWith(system %||% "", "CNES") &&
+      !startsWith(system %||% "", "SIH")) {
+    if (verbose) {cli::cli_abort("The level {.val neighborhood} is only available for the {.code CNES} or {.code SIH} system.")}
   }
   if (level == "neighborhood") { 
 
@@ -869,6 +902,79 @@ sus_spatial_join <- function(
 # ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
+
+
+#' Cache municipality centroids (point sf) for spatial joins.
+#' Computed once from the polygon cache; stored as GeoParquet or GPKG.
+#' @keywords internal
+#' @noRd
+get_spatial_munic_centroids_cache <- function(cache_dir, use_cache, lang, verbose) {
+  use_sfarrow <- requireNamespace("sfarrow", quietly = TRUE)
+  centroid_file <- file.path(
+    cache_dir,
+    if (use_sfarrow) "munic_centroids_.parquet" else "munic_centroids_.gpkg"
+  )
+
+  if (use_cache && file.exists(centroid_file)) {
+    result <- tryCatch({
+      if (use_sfarrow) sfarrow::st_read_parquet(centroid_file)
+      else             sf::st_as_sf(sf::st_read(centroid_file, quiet = TRUE))
+    }, error = function(e) NULL)
+    if (!is.null(result)) return(result)
+  }
+
+  munic_poly <- get_spatial_munic_cache("munic", cache_dir, use_cache, lang, verbose)
+  munic_centroids <- suppressWarnings(
+    sf::st_centroid(sf::st_make_valid(sf::st_transform(munic_poly, crs = 4326)))
+  )
+
+  if (use_cache) {
+    tryCatch({
+      if (use_sfarrow) sfarrow::st_write_parquet(obj = munic_centroids, dsn = centroid_file)
+      else             sf::st_write(munic_centroids, centroid_file, driver = "GPKG",
+                                    quiet = TRUE, delete_dsn = TRUE)
+    }, error = function(e) NULL)
+  }
+  munic_centroids
+}
+
+
+#' Spatial join (point-in-polygon) via DuckDB spatial extension.
+#' Returns NULL invisibly if DuckDB spatial is unavailable or fails.
+#' Falls back to sf::st_join in the caller.
+#' @keywords internal
+#' @noRd
+.duck_st_join <- function(pts_sf, poly_sf, keep_cols) {
+  if (!requireNamespace("duckdb", quietly = TRUE) ||
+      !requireNamespace("DBI",    quietly = TRUE)) return(invisible(NULL))
+  tryCatch({
+    con <- DBI::dbConnect(duckdb::duckdb(), dbdir = ":memory:")
+    on.exit(DBI::dbDisconnect(con, shutdown = TRUE), add = TRUE)
+
+    DBI::dbExecute(con, "LOAD spatial;")
+
+    pts_df  <- sf::st_drop_geometry(pts_sf)
+    pts_df$.__geom_wkt <- sf::st_as_text(sf::st_geometry(pts_sf))
+    poly_df <- sf::st_drop_geometry(poly_sf)
+    poly_df$.__geom_wkt <- sf::st_as_text(sf::st_geometry(poly_sf))
+
+    DBI::dbWriteTable(con, "pts",  pts_df,  overwrite = TRUE)
+    DBI::dbWriteTable(con, "poly", poly_df, overwrite = TRUE)
+
+    keep_sql <- paste(paste0("poly.", keep_cols), collapse = ", ")
+    result <- DBI::dbGetQuery(con, sprintf("
+      SELECT pts.*, %s
+      FROM pts
+      LEFT JOIN poly
+        ON ST_Within(
+             ST_GeomFromText(pts.__geom_wkt),
+             ST_GeomFromText(poly.__geom_wkt)
+           )
+    ", keep_sql))
+    result[[".__geom_wkt"]] <- NULL
+    result  # data.frame — callers drop geometry anyway
+  }, error = function(e) invisible(NULL))
+}
 
 
 #' Get Spatial Municipality Data with Caching
@@ -1046,7 +1152,8 @@ get_spatial_data_with_cache <- function(
   spatial_df <- switch(
     level,
      "state" = geobr::read_state(
-      cache = FALSE,
+      simplified   = TRUE,
+      cache        = FALSE,
       showProgress = verbose
     ),
     "schools" = geobr::read_schools(
@@ -1150,6 +1257,7 @@ get_spatial_data_with_cache <- function(
 get_spatial_messages <- function(lang) {
   messages <- list(
     en = list(
+      title = "climasus4r - Spatial Data Join",
       invalid_level = "Invalid geographic level specified.",
       valid_levels = "Valid levels are: 'state', 'munic', 'census', 'cep'.",
       system_column_missing = "Column 'system' not found in data. Please run detect_health_system() first.",
@@ -1177,6 +1285,7 @@ get_spatial_messages <- function(lang) {
       final_rows = "Final dataset rows: "
     ),
     pt = list(
+      title = "climasus4r - Junção Espacial de Dados",
       invalid_level = "Nivel geografico invalido especificado.",
       valid_levels = "Niveis validos sao: 'state', 'munic', 'census', 'cep'.",
       system_column_missing = "Coluna 'system' nao encontrada nos dados. Execute detect_health_system() primeiro.",
@@ -1204,6 +1313,7 @@ get_spatial_messages <- function(lang) {
       final_rows = "Linhas no dataset final: "
     ),
     es = list(
+      title = "climasus4r - Unión Espacial de Datos",
       invalid_level = "Nivel geografico invalido especificado.",
       valid_levels = "Niveles validos son: 'state', 'munic', 'census', 'cep'.",
       system_column_missing = "Columna 'system' no encontrada en los datos. Ejecute detect_health_system() primero.",

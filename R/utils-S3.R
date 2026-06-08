@@ -95,6 +95,7 @@
 .climasus_unsupported <- list(
   sus_data_create_variables = c(
     "SIH-SP", "SIH-RJ", "SIH-ER",
+    "CNES",
     "CNES-LT", "CNES-ST", "CNES-DC", "CNES-EQ", "CNES-SR", "CNES-HB",
     "CNES-PF", "CNES-EP", "CNES-RC", "CNES-IN", "CNES-EE", "CNES-EF", "CNES-GM"
   )
@@ -127,6 +128,24 @@ detect_backend_type <- function(df) {
   "unsupported"
 }
 
+#' Refine a base system name to a sub-type using column signatures when the
+#' sub-type was not preserved in sus_meta (e.g. data loaded from an old file).
+#' Returns the system unchanged if it already contains a sub-type or if no
+#' reliable column signature is found.
+#' @keywords internal
+#' @noRd
+.resolve_system_subtype <- function(df, system) {
+  if (grepl("-", system, fixed = TRUE)) return(system)
+  cols <- names(df)
+  switch(system,
+    "SIH" = {
+      if (any(grepl("_sp$", cols)) || any(grepl("^SP_", cols))) "SIH-SP"
+      else system
+    },
+    system
+  )
+}
+
 #' Check whether a pipeline function supports the system stored in sus_meta.
 #' Aborts early with a multilingual message if the system is in the blocked list.
 #' @keywords internal
@@ -134,6 +153,7 @@ detect_backend_type <- function(df) {
 validate_system_pipeline_support <- function(df, fn_name, lang = "pt") {
   system <- sus_meta(df, "system")
   if (is.null(system) || identical(system, "UNKNOWN")) return(invisible(NULL))
+  system <- .resolve_system_subtype(df, system)
   blocked <- .climasus_unsupported[[fn_name]]
   if (is.null(blocked) || !system %in% blocked) return(invisible(NULL))
   msg <- list(
@@ -300,12 +320,13 @@ validate_climasus_df <- function(x) {
     stop("sus_meta attribute is missing or invalid", call. = FALSE)
   }
 
-  # Validate system
+  # Validate system (accepts sub-systems like "SIH-SP" by checking the base prefix)
   if (!is.null(meta$system)) {
-    if (length(meta$system) != 1 || !meta$system %in% .climasus_systems) {
+    base_sys <- sub("-.*", "", meta$system)
+    if (length(meta$system) != 1 || !base_sys %in% .climasus_systems) {
       stop(
         sprintf(
-          "Invalid system '%s'. Must be one of: %s",
+          "Invalid system '%s'. Base must be one of: %s",
           meta$system,
           paste(.climasus_systems, collapse = ", ")
         ),
@@ -347,13 +368,16 @@ validate_climasus_df <- function(x) {
     stop("spatial must be a single logical value", call. = FALSE)
   }
 
-  # Check spatial consistency
-  is_sf <- inherits(x, "sf")
-  if (meta$spatial && !is_sf) {
-    warning("spatial = TRUE but object does not inherit from 'sf'", call. = FALSE)
+  # Check spatial consistency: climasus_df is always a plain tibble (sf class
+  # is stripped by new_climasus_df), so check for sfc geometry columns instead.
+  has_geom_col <- any(vapply(x, function(col) inherits(col, "sfc"), logical(1)))
+  is_sf        <- inherits(x, "sf")
+  spatial_present <- is_sf || has_geom_col
+  if (meta$spatial && !spatial_present) {
+    warning("spatial = TRUE but no geometry column (sfc) found in object", call. = FALSE)
   }
-  if (!meta$spatial && is_sf) {
-    warning("spatial = FALSE but object inherits from 'sf'", call. = FALSE)
+  if (!meta$spatial && spatial_present) {
+    warning("spatial = FALSE but object has geometry data", call. = FALSE)
   }
 
   # Validate backend

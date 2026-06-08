@@ -190,9 +190,9 @@ sus_data_filter_cid <- function(
 ) {
   
   cli::cli_h1(switch(lang,
-      en = "climasus4r \u2014 Filter Data by ICD-10",
-      es = "climasus4r \u2014 Filtrar Datos por CIE-10",
-           "climasus4r \u2014 Filtrar Dados por CID-10"
+      en = "climasus4r - Filter Data by ICD-10",
+      es = "climasus4r - Filtrar Datos por CIE-10",
+           "climasus4r - Filtrar Dados por CID-10"
     ))
   
   if (backend == "arrow") {

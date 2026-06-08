@@ -635,6 +635,19 @@ detect_health_system <- function(df) {
   # PT: codigo_procedimento, cid_principal, numero_autorizacao, codigo_ocupacao
   # ES: codigo_procedimiento, cie_principal, numero_autorizacion, codigo_ocupacion
   
+  # APAC sub-types (AM = saude mental/autismo, AQ = quimioterapia, AR = radioterapia, AD = dialise)
+  apac_indicators <- c("AP_PRIPAL", "AP_CODUNI", "AP_AUTORIZ", "AP_CIDPRI")
+  if (sum(apac_indicators %in% cols) >= 2) {
+    if (any(c("AM_PESO", "AM_ALTURA", "AM_GESTANT") %in% cols)) return("SIA-AM")
+    if (any(c("AQ_CID10", "AQ_ESTADI", "AQ_MED01") %in% cols))  return("SIA-AQ")
+    if (any(c("AR_CID10", "AR_ESTADI", "AR_SMRD") %in% cols))   return("SIA-AR")
+    return("SIA-AD")
+  }
+
+  # RAAS Psicossocial
+  ps_indicators <- c("SIT_RUA", "DESTINOPAC", "CNES_EXEC", "TP_DROGA")
+  if (sum(ps_indicators %in% cols) >= 2) return("SIA-PS")
+
   sia_indicators <- c(
     # Original DATASUS
     "PA_PROC_ID", "PA_CIDPRI", "PA_AUTORIZ", "PA_CBOCOD",
@@ -645,7 +658,7 @@ detect_health_system <- function(df) {
     # Spanish
     "codigo_procedimiento", "cie_principal", "numero_autorizacion", "codigo_ocupacion"
   )
-  
+
   if (sum(sia_indicators %in% cols) >= 2) {
     return("SIA")
   }

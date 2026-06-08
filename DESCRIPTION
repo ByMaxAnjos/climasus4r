@@ -63,6 +63,7 @@ Suggests:
     geobr,
     geocodebr,
     sfarrow,
+    duckspatial,
     knitr,
     rmarkdown,
     ggplot2,

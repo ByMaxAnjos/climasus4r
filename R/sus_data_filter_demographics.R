@@ -156,11 +156,9 @@ sus_data_filter_demographics <- function(df,
                                           verbose           = TRUE) {
 
   cli::cli_h1(switch(lang,
-      en = "climasus4r \u2014 Filter Demographic Data",
-      es = "climasus4r \u2014 Filtrar Datos 
-    Demogr\u00e1ficos",  
-           "climasus4r \u2014 Filtrar Dados 
-    Demogr\u00e1ficos"   # pt (default)
+      en = "climasus4r - Filter Demographic Data",
+      es = "climasus4r - Filtrar Datos Demogr\u00e1ficos",
+           "climasus4r - Filtrar Dados Demogr\u00e1ficos"
     ))
   
   if (backend == "arrow") {
