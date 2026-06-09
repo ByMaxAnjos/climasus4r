@@ -12,8 +12,15 @@
 #'     \item `"families"` - Family microdata
 #'     \item `"mortality"` - Mortality microdata
 #'     \item `"emigration"` - Emigration microdata
-#'     \item `"tracts"` - Census tract aggregate data (coming soon...)
+#'     \item `"tracts"` - Census tract aggregate data (setores censitarios).
+#'       Use `tracts_dataset` to select which tract table to download.
 #'   }
+#' @param tracts_dataset Character string. Relevant only when `dataset = "tracts"`.
+#'   Selects which censobr tract table to download. Options: `"Basico"` (default),
+#'   `"Domicilio01"`, `"Domicilio02"`, `"DomicilioRenda"`,
+#'   `"Pessoa01"` through `"Pessoa13"`,
+#'   `"ResponsavelRenda"`, `"ResponsavelRendaSexo"`.
+#'   See `censobr::read_tracts()` for full variable listings per table.
 #' @param year Integer specifying census year. Options: `2010` (default) or `2000`.
 #'   Note: Dataset availability varies by year.
 #' @param census_vars Character vector specifying census variables to add. Use `sus_census_select()` to select available variables.
@@ -100,6 +107,7 @@
 sus_census_join <- function(
   df,
   dataset = "population",
+  tracts_dataset = "Basico",
   year = 2010,
   census_vars = NULL,
   aggregation_fun = "sum",
@@ -160,6 +168,23 @@ sus_census_join <- function(
       valid = paste(valid_funs, collapse = ", ")
     ))
   }
+
+  if (dataset == "tracts") {
+    valid_tracts_datasets <- c(
+      "Basico", "Domicilio01", "Domicilio02", "DomicilioRenda",
+      "Pessoa01", "Pessoa02", "Pessoa03", "Pessoa04", "Pessoa05",
+      "Pessoa06", "Pessoa07", "Pessoa08", "Pessoa09", "Pessoa10",
+      "Pessoa11", "Pessoa12", "Pessoa13",
+      "ResponsavelRenda", "ResponsavelRendaSexo"
+    )
+    if (!tracts_dataset %in% valid_tracts_datasets) {
+      cli::cli_abort(glue::glue(
+        msg$error_invalid_tracts_dataset,
+        valid = paste(valid_tracts_datasets, collapse = ", ")
+      ))
+    }
+  }
+
   # Check if data is climasus_df
   if (inherits(df, "climasus_df")) {
 
@@ -364,26 +389,36 @@ sus_census_join <- function(
     dataset,
     "population" = censobr::read_population,
     "households" = censobr::read_households,
-    "families" = censobr::read_families,
-    "mortality" = censobr::read_mortality,
-    "emigration" = censobr::read_emigration,
-    "tracts" = censobr::read_tracts
+    "families"   = censobr::read_families,
+    "mortality"  = censobr::read_mortality,
+    "emigration" = censobr::read_emigration
   )
 
   if (verbose) {
-    cli::cli_alert_info(glue::glue(
-      msg$fetching_census,
-      dataset = dataset,
-      year = year
-    ))
+    fetch_label <- if (dataset == "tracts") {
+      glue::glue(msg$tracts_loading, tracts_dataset = tracts_dataset, year = year)
+    } else {
+      glue::glue(msg$fetching_census, dataset = dataset, year = year)
+    }
+    cli::cli_alert_info(fetch_label)
   }
 
-  census_data <- read_fn(
-    year = year,
-    showProgress = verbose,
-    cache = TRUE,
-    verbose = FALSE
-  )
+  if (dataset == "tracts") {
+    census_data <- censobr::read_tracts(
+      year         = year,
+      dataset      = tracts_dataset,
+      showProgress = verbose,
+      cache        = TRUE,
+      verbose      = FALSE
+    )
+  } else {
+    census_data <- read_fn(
+      year         = year,
+      showProgress = verbose,
+      cache        = TRUE,
+      verbose      = FALSE
+    )
+  }
 
 #  # Filter municipalities BEFORE loading to RAM (Performance optimization)
   unique_munis <- unique(as.integer(df$code_muni_7))
@@ -400,7 +435,13 @@ sus_census_join <- function(
   # 5. AGGREGATION
   # ==========================================================================
   if (verbose) {
-    cli::cli_alert_info(glue::glue(msg$aggregating, mode = aggregation_fun))
+    agg_label <- if (dataset == "tracts") {
+      glue::glue(msg$tracts_aggregating, tracts_dataset = tracts_dataset,
+                 n = length(unique_munis), mode = aggregation_fun)
+    } else {
+      glue::glue(msg$aggregating, mode = aggregation_fun)
+    }
+    cli::cli_alert_info(agg_label)
   }
   census_data_filtered <- census_data %>%
   dplyr::filter(.data$code_muni %in% !!unique_munis)
@@ -411,7 +452,14 @@ sus_census_join <- function(
     cols_to_select <- unique(c("code_muni", census_vars))
     cols_to_select <- intersect(cols_to_select, available_cols)
   } else {
-    cols_to_select <- setdiff(available_cols, c("code_state", "abbrev_state", "name_state", "code_region", "name_region", "code_weighting"))
+    geo_meta_cols <- c("code_state", "abbrev_state", "name_state",
+                       "code_region", "name_region", "code_weighting")
+    if (dataset == "tracts") {
+      geo_meta_cols <- c(geo_meta_cols, "code_tract", "code_district",
+                         "code_subdistrict", "zone", "tipo_setor",
+                         "situacao_setor_detalhada")
+    }
+    cols_to_select <- setdiff(available_cols, geo_meta_cols)
   }
 
   census_data_filtered <- census_data %>% dplyr::select(dplyr::all_of(cols_to_select))
@@ -590,6 +638,7 @@ get_census_messages <- function(lang) {
       error_df_type = "Input 'df' must be a data.frame or sf object",
       error_invalid_dataset = "Invalid dataset. Must be one of: {valid}",
       error_invalid_fun = "Invalid aggregation function. Must be one of: {valid}",
+      error_invalid_tracts_dataset = "Invalid tracts_dataset. Must be one of: {valid}",
       detecting_geo_col = "Detecting municipality column...",
       no_geo_cols = "No municipality code column found. Please standardize your data first.",
       converting_6_to_7 = "Converting 6-digit codes to 7-digit IBGE standard...",
@@ -597,9 +646,11 @@ get_census_messages <- function(lang) {
       column_not_found = "Column not found in data frame: ",
       configuring_cache = "Configuring censobr cache in: {dir}",
       fetching_census = "Fetching {dataset} data for {year}...",
+      tracts_loading = "Loading census tracts table '{tracts_dataset}' ({year})...",
       filtering_munis = "Filtering data for {n} municipalities...",
       vars_not_found = "Variables not found in dataset: {vars}",
       aggregating = "Aggregating microdata (Mode: {mode})...",
+      tracts_aggregating = "Aggregating tracts '{tracts_dataset}' to {n} municipalities (Mode: {mode})...",
       joining = "Joining census data to health data...",
       preserving_geom = "Preserving spatial geometries...",
       success = "Census data added successfully!",
@@ -610,6 +661,7 @@ get_census_messages <- function(lang) {
       error_df_type = "O input 'df' deve ser um data.frame ou objeto sf",
       error_invalid_dataset = "Dataset invalido. Deve ser um de: {valid}",
       error_invalid_fun = "Funcao de agregacao invalida. Deve ser uma de: {valid}",
+      error_invalid_tracts_dataset = "tracts_dataset invalido. Deve ser um de: {valid}",
       detecting_geo_col = "Detectando coluna de municipio...",
       no_geo_cols = "Nenhuma coluna de codigo de municipio encontrada. Padronize seus dados primeiro.",
       converting_6_to_7 = "Convertendo codigos de 6 digitos para o padrao de 7 digitos do IBGE...",
@@ -617,9 +669,11 @@ get_census_messages <- function(lang) {
       column_not_found = "Coluna nao encontrada no data frame: ",
       configuring_cache = "Configurando cache do censobr em: {dir}",
       fetching_census = "Buscando dados de {dataset} para {year}...",
+      tracts_loading = "Carregando tabela de setores censitarios '{tracts_dataset}' ({year})...",
       filtering_munis = "Filtrando dados para {n} municipios...",
       vars_not_found = "Variaveis nao encontradas no dataset: {vars}",
       aggregating = "Agregando microdados (Modo: {mode})...",
+      tracts_aggregating = "Agregando setores '{tracts_dataset}' para {n} municipios (Modo: {mode})...",
       joining = "Unindo dados do censo aos dados de saude...",
       preserving_geom = "Preservando geometrias espaciais...",
       success = "Dados do censo adicionados com sucesso!",
@@ -630,6 +684,7 @@ get_census_messages <- function(lang) {
       error_df_type = "El input 'df' debe ser un data.frame o objeto sf",
       error_invalid_dataset = "Dataset invalido. Debe ser uno de: {valid}",
       error_invalid_fun = "Funcion de agregacion invalida. Debe ser una de: {valid}",
+      error_invalid_tracts_dataset = "tracts_dataset invalido. Debe ser uno de: {valid}",
       detecting_geo_col = "Detectando columna de municipio...",
       no_geo_cols = "No se encontro ninguna columna de codigo de municipio. Estandarice sus datos primero.",
       converting_6_to_7 = "Convirtiendo codigos de 6 digitos al estandar de 7 digitos del IBGE...",
@@ -637,9 +692,11 @@ get_census_messages <- function(lang) {
       column_not_found = "Columna no encontrada en el data frame: ",
       configuring_cache = "Configurando cache de censobr en: {dir}",
       fetching_census = "Buscando datos de {dataset} para {year}...",
+      tracts_loading = "Cargando tabla de sectores censales '{tracts_dataset}' ({year})...",
       filtering_munis = "Filtrando datos para {n} municipios...",
       vars_not_found = "Variables no encontradas en el dataset: {vars}",
       aggregating = "Agregando microdatos (Modo: {mode})...",
+      tracts_aggregating = "Agregando sectores '{tracts_dataset}' a {n} municipios (Modo: {mode})...",
       joining = "Uniendo datos del censo a los datos de salud...",
       preserving_geom = "Preservando geometrias espaciales...",
       success = "Datos del censo agregados con exito!",

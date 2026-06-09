@@ -39,7 +39,7 @@ order as \code{\link[=sus_climate_plot_aggregate]{sus_climate_plot_aggregate()}}
 \code{n_procedimentos}, \code{n_estabelecimentos} and their English / Spanish
 equivalents.}
 
-\item{map_type}{Character.  \code{"bubble"} (default) or \code{"choropleth"}.}
+\item{map_type}{Character.  \code{"bubble"} (default), \code{"choropleth"} or \code{"quantile_choropleth"}}
 
 \item{rate_per_100k}{Logical.  If \code{TRUE}, divides \code{total_cases} by \code{pop_25}
 (from \code{municipio_meta}) and multiplies by 1e5 to compute incidence per

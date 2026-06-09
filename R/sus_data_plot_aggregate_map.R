@@ -48,7 +48,7 @@ utils::globalVariables(c(
 #'   `n_obitos`, `n_internacoes`, `n_nascimentos`, `n_casos`,
 #'   `n_procedimentos`, `n_estabelecimentos` and their English / Spanish
 #'   equivalents.
-#' @param map_type Character.  `"bubble"` (default) or `"choropleth"`.
+#' @param map_type Character.  `"bubble"` (default), `"choropleth"` or `"quantile_choropleth"` 
 #' @param rate_per_100k Logical.  If `TRUE`, divides `total_cases` by `pop_25`
 #'   (from `municipio_meta`) and multiplies by 1e5 to compute incidence per
 #'   100,000 inhabitants.  Default `FALSE`.
@@ -484,6 +484,18 @@ sus_data_plot_aggregate_map <- function(
   # Scale transformation
   sc_trans <- if (log_scale) "log1p" else "identity"
 
+  # Colorbar breaks: on a log1p scale ggplot2 auto-breaks cluster and overlap;
+  # compute 5 evenly-spaced positions in transformed space instead.
+  .fv_rng <- range(muni_data$fill_var, na.rm = TRUE)
+  fill_breaks <- if (log_scale && .fv_rng[2L] > 0) {
+    raw <- expm1(seq(log1p(max(.fv_rng[1L], 0)),
+                     log1p(.fv_rng[2L]),
+                     length.out = 5L))
+    signif(raw, 2L)
+  } else {
+    ggplot2::waiver()
+  }
+
   # ---------------------------------------------------------------------------
   # 14.  State borders (geobr)
   # ---------------------------------------------------------------------------
@@ -530,6 +542,7 @@ sus_data_plot_aggregate_map <- function(
     colors   = color_vec,
     trans    = sc_trans,
     name     = fill_lbl,
+    breaks   = fill_breaks,
     labels   = scales::label_comma(),
     na.value = "#EBEBEB",
     guide    = "none"

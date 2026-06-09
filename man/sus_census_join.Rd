@@ -7,6 +7,7 @@
 sus_census_join(
   df,
   dataset = "population",
+  tracts_dataset = "Basico",
   year = 2010,
   census_vars = NULL,
   aggregation_fun = "sum",
@@ -29,8 +30,16 @@ sus_census_join(
 \item \code{"families"} - Family microdata
 \item \code{"mortality"} - Mortality microdata
 \item \code{"emigration"} - Emigration microdata
-\item \code{"tracts"} - Census tract aggregate data (coming soon...)
+\item \code{"tracts"} - Census tract aggregate data (setores censitarios).
+Use \code{tracts_dataset} to select which tract table to download.
 }}
+
+\item{tracts_dataset}{Character string. Relevant only when \code{dataset = "tracts"}.
+Selects which censobr tract table to download. Options: \code{"Basico"} (default),
+\code{"Domicilio01"}, \code{"Domicilio02"}, \code{"DomicilioRenda"},
+\code{"Pessoa01"} through \code{"Pessoa13"},
+\code{"ResponsavelRenda"}, \code{"ResponsavelRendaSexo"}.
+See \code{censobr::read_tracts()} for full variable listings per table.}
 
 \item{year}{Integer specifying census year. Options: \code{2010} (default) or \code{2000}.
 Note: Dataset availability varies by year.}

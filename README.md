@@ -91,66 +91,6 @@ Após a instalação, carregue o pacote sempre que iniciar uma nova sessão no R
 library(climasus4r)
 ```
 
-### **Sistemas Suportados**
-
-O pacote permite, por meio do pacote microdatsus, o acesso simplificado aos principais sistemas de informação do DATASUS, cobrindo epidemiologia, mortalidade, internações e rede assistencial:
-
-#### **1. SIM (Sistema de Informação sobre Mortalidade)**
-* `"SIM-DO"`: Declarações de Óbito (Dataset completo)
-* `"SIM-DOFET"`: Óbitos Fetais
-* `"SIM-DOEXT"`: Óbitos por Causas Externas
-* `"SIM-DOINF"`: Óbitos Infantis
-* `"SIM-DOMAT"`: Óbitos Maternos
-
-#### **2. SIH (Sistema de Informação Hospitalar)**
-* `"SIH-RD"`: AIH (Autorizações de Internação Hospitalar) - Geral
-* `"SIH-RJ"`: AIH - Específico para o Rio de Janeiro
-* `"SIH-SP"`: AIH - Específico para São Paulo
-* `"SIH-ER"`: Prontuários de Emergência
-
-#### **3. SINAN (Sistema de Informação de Agravos de Notificação)**
-* `"SINAN-DENGUE"`: Casos de Dengue
-* `"SINAN-CHIKUNGUNYA"`: Casos de Chikungunya
-* `"SINAN-ZIKA"`: Casos de Zika vírus
-* `"SINAN-MALARIA"`: Casos de Malária
-* `"SINAN-CHAGAS"`: Casos de Doença de Chagas
-* `"SINAN-LEISHMANIOSE-VISCERAL"`: Leishmaniose Visceral
-* `"SINAN-LEISHMANIOSE-TEGUMENTAR"`: Leishmaniose Tegumentar
-* `"SINAN-LEPTOSPIROSE"`: Casos de Leptospirose
-
-#### **4. SIA (Sistema de Informação Ambulatorial)**
-* `"SIA-AB"`: Atenção Básica
-* `"SIA-ABO"`: Procedimentos Odontológicos
-* `"SIA-ACF"`: Assistência Farmacêutica
-* `"SIA-AD"`: Alta Complexidade/Diferenciada
-* `"SIA-AN"`: Atenção Domiciliar
-* `"SIA-AM"`: Ambulatório de Especialidades
-* `"SIA-AQ"`: Ações Estratégicas
-* `"SIA-AR"`: Regulação
-* `"SIA-ATD"`: Urgência/Emergência
-* `"SIA-PA"`: Procedimentos Ambulatoriais em Hospital
-* `"SIA-PS"`: Atenção Psicossocial
-* `"SIA-SAD"`: Atenção Especializada
-
-#### **5. CNES (Cadastro Nacional de Estabelecimentos de Saúde)**
-* `"CNES-LT"`: Leitos
-* `"CNES-ST"`: Profissionais de Saúde
-* `"CNES-DC"`: Equipamentos (Detalhado)
-* `"CNES-EQ"`: Equipamentos (Resumo)
-* `"CNES-SR"`: Serviços Especializados
-* `"CNES-HB"`: Leitos Hospitalares
-* `"CNES-PF"`: Pessoal Físico (Profissionais)
-* `"CNES-EP"`: Participantes do Ensino
-* `"CNES-RC"`: Classificação Hospitalar
-* `"CNES-IN"`: Indicadores Hospitalares
-* `"CNES-EE"`: Entidades de Ensino
-* `"CNES-EF"`: Instalações de Ensino
-* `"CNES-GM"`: Gestão e Apoio
-
-#### **6. SINASC (Sistema de Informação sobre Nascidos Vivos)**
-* `"SINASC"`: Declarações de Nascidos Vivos
-
-
 ## Início Rápido
 
 ```r
@@ -190,630 +130,258 @@ sus_data_export(df_analise,
 
 ---
 
-## Exemplo: Infraestrutura de Dados ✅ 
+# climasus4r — Catálogo Completo de Funções
 
-A Fase 1 do `climasus4r` fornece um **pipeline end-to-end completo** para preparação de dados de saúde, desde a aquisição bruta até dados prontos para análise. Com **9 funções principais**, você pode transformar dados do DATASUS em séries temporais agregadas, padronizadas e prontas para modelagem em minutos.
+> Pipeline integrado de análise saúde-clima-ambiente no Brasil.  
+> ~65 funções exportadas · 81 arquivos R · idiomas: `pt` (padrão), `en`, `es`
 
-### Arquitetura do Pipeline
+---
+
+## Pipeline de Processamento
 
 ```
-DADOS BRUTOS (DATASUS)
-    ↓
-[1] sus_data_import()           → Aquisição paralela
-    ↓
-[2] sus_data_clean_encoding()   → Correção de encoding
-    ↓
-[3] sus_data_standardize()      → Padronização multilíngue
-    ↓
-[4] sus_data_filter_cid()       → Filtragem por doença
-    ↓
-[5] sus_create_variables()      → Criação de variáveis
-    ↓
-[6] sus_data_filter_demographics() → Filtragem demográfica
-    ↓
-[7] sus_data_quality_report()   → Verificação de qualidade
-    ↓
-[8] sus_data_aggregate()        → Agregação temporal
-    ↓
-[9] sus_data_export()           → Exportação com metadados
-    ↓
-DADOS PRONTOS PARA ANÁLISE
+sus_data_import() / sus_data_read()
+        ↓
+sus_data_clean_encoding() → sus_data_standardize()
+        ↓
+sus_data_filter_cid() → sus_data_filter_demographics() → sus_data_create_variables()
+        ↓
+sus_data_aggregate()
+        ↓
+sus_spatial_join()  |  sus_climate_*/sus_grid_*  |  sus_socio_add_census()
+        ↓
+sus_mod_dlnm() / sus_mod_casecrossover() / sus_mod_ml() / sus_mod_spatial_*() ...
+        ↓
+sus_mod_plot_*() / sus_data_plot_*() / sus_data_export()
 ```
 
 ---
 
-### Funções Principais
+## 1. Metadados e Classe Central
 
-#### 1. `sus_data_import()` - Aquisição de Dados
-
-Importe dados do DATASUS com suporte a **processamento paralelo** para múltiplos estados e anos.
-
-```r
-# Um único estado e ano
-df <- sus_data_import(uf = "RJ", year = 2022, system = "SIM-DO")
-
-# Múltiplos estados e anos com processamento paralelo
-df <- sus_data_import(
-  uf = c("RJ", "SP", "MG", "ES"),
-  year = 2018:2022,
-  system = "SIM-DO",
-  parallel = TRUE,
-  workers = 4
-)
-```
-
-**Recursos:**
-- ✅ Cache automático para evitar downloads redundantes
-- ✅ Processamento paralelo para aquisição de dados mais rápida
-- ✅ Barras de progresso com feedback do `cli`
+| Função | Arquivo | Input | Output | Descrição |
+|--------|---------|-------|--------|-----------|
+| `sus_meta()` | `climasus_meta.R` | `x` (climasus_df), `field`, `add_history`, `valid_values` | lista / campo / climasus_df atualizado | Lê ou escreve metadados do pipeline (stage, type, system, history) |
 
 ---
 
-#### 2. `sus_data_clean_encoding()` - Correção de Codificação
+## 2. Importação
 
-Detecte e corrija problemas de codificação de caracteres automaticamente.
-
-```r
-df_limpo <- sus_data_clean_encoding(df_bruto, lang = "pt", verbose = TRUE)
-```
-
-**O que faz:**
-- Verifica todas as colunas de texto em busca de problemas de codificação
-- Corrige conflitos comuns entre Latin1 e UTF-8
-- Informa quais colunas foram corrigidas
-- Atua como uma rede de segurança após o pré-processamento do `microdatasus`
-- Suporta mensagens multilíngues (EN/PT/ES)
+| Função | Arquivo | Input | Output (stage) | Descrição |
+|--------|---------|-------|----------------|-----------|
+| `sus_data_import()` | `sus_data_import.R` | `system`, `uf`, `year`, `month`, `lang` | `"import"` | Baixa dados via microdatasus (SIM, SIH, SINAN, SIA, CNES, SINASC) |
+| `sus_data_read()` | `sus_data_read.R` | `path`, `system`, `lang` | `"import"` | Lê arquivos SUS locais (.dbc, .parquet, .csv) |
 
 ---
 
-#### 3. `sus_data_standardize()` - Padronização de Dados
+## 3. Preparação e Limpeza
 
-Padronize nomes de colunas e valores categóricos com **suporte multilíngue**.
-
-```r
-# Padronização em inglês (padrão)
-df_en <- sus_data_standardize(df_limpo, lang = "en")
-
-# Padronização em português
-df_pt <- sus_data_standardize(df_limpo, lang = "pt")
-
-# Padronização em espanhol
-df_es <- sus_data_standardize(df_limpo, lang = "es")
-```
-
-**Transformações:**
-
-| Original (DATASUS) | Inglês | Português | Espanhol |
-|--------------------|------------------|--------------|----------------|
-| `DTOBITO` | `death_date` | `data_obito` | `fecha_muerte` |
-| `SEXO` | `sex` | `sexo` | `sexo` |
-| `RACACOR` | `race` | `raca` | `raza` |
-| `CAUSABAS` | `underlying_cause` | `causa_basica` | `causa_basica` |
-| `TIPOBITO` | `death_type` | `tipo_obito` | `tipo_muerte` |
-
-**Cobertura:**
-- 189 colunas traduzidas (todos os sistemas)
-- 94 mapeamentos de valores categóricos
-- 3 idiomas (EN/PT/ES)
+| Função | Arquivo | Input (stage) | Output (stage) | Descrição |
+|--------|---------|---------------|----------------|-----------|
+| `sus_data_clean_encoding()` | `sus_data_clean_encoding.R` | `"import"` | `"clean"` | Corrige encoding Latin-1/UTF-8 e caracteres malformados |
+| `sus_data_standardize()` | `sus_data_standardize.R` | `"clean"` | `"stand"` | Padroniza nomes de colunas e tipos entre sistemas SUS |
 
 ---
 
-#### 4. `sus_data_filter_cid()` - Filtragem CID-10
+## 4. Filtragem e Derivação
 
-Filtre dados por códigos CID-10 com **mais de 50 grupos de doenças predefinidos** e opções de correspondência flexíveis.
-
-```r
-# Filtrar por grupo de doenças (mais fácil!)
-df_respiratorias <- sus_data_filter_cid(
-  df,
-  disease_group = "respiratory",
-  lang = "pt"
-)
-
-# Filtrar por códigos CID explícitos
-df_cardio <- sus_data_filter_cid(
-  df,
-  icd_codes = "I00-I99",
-  match_type = "starts_with",
-  lang = "pt"
-)
-
-# Filtrar por códigos específicos
-df_iam <- sus_data_filter_cid(
-  df,
-  icd_codes = c("I21", "I22"),  # Infarto agudo do miocárdio
-  match_type = "starts_with",
-  lang = "pt"
-)
-```
-
-**Mais de 54 Grupos de Doenças Predefinidos:**
-
-| Categoria | Grupos | Exemplos | Descrição |
-|-------------------------|--------|--------------------------------------------------------------------------------|--------------------------------|
-| **Doenças Infecciosas** | 15 | `dengue`, `zika`, `chikungunya`, `malaria`, `tuberculose`, `covid19`, `hidricas`, `vetoriais` | Infecções sensíveis ao clima |
-| **Cardiovasculares** | 6 | `cardiovasculares`, `hipertensivas`, `isquemicas_coracao`, `cerebrovasculares`, `insuficiencia_cardiaca` | Condições relacionadas ao calor |
-| **Respiratórias** | 6 | `respiratorias`, `respiratorias_agudas`, `respiratorias_cronicas`, `pneumonia`, `asma`, `dpoc` | Impactos da qualidade do ar |
-| **Neoplasias** | 2 | `neoplasias`, `neoplasias_malignas` | Carga de câncer |
-| **Endócrinas/Metabólicas** | 2 | `diabetes`, `metabolicas` | Doenças crônicas |
-| **Causas Externas** | 6 | `causas_externas`, `acidentes`, `violencia`, `acidentes_transporte`, `afogamento`, `exposicao_calor` | Desastres climáticos |
-| **Especiais Clima-Saúde** | 4 | `sensiveis_clima_todas`, `relacionadas_calor`, `relacionadas_frio`, `clima_extremo` | Prioridades epidemiológicas |
-| **Por Faixa Etária** | 2 | `respiratorias_pediatricas`, `cardiovasculares_idosos` | Populações vulneráveis |
-| **Sindrômicos** | 3 | `sindrome_febril`, `sindrome_respiratoria`, `sindrome_diarreica` | Vigilância |
-
-**Listar todos os grupos disponíveis:**
-```r
-# Listar todos os grupos
-list_disease_groups(lang = "pt")
-
-# Listar apenas grupos sensíveis ao clima
-list_disease_groups(climate_sensitive_only = TRUE, lang = "pt")
-
-# Obter detalhes sobre um grupo específico
-get_disease_group_details("dengue", lang = "pt")
-```
+| Função | Arquivo | Input (stage) | Output (stage) | Descrição |
+|--------|---------|---------------|----------------|-----------|
+| `sus_data_filter_cid()` | `sus_data_filter_cid.R` | `"stand"` | `"filter_cid"` | Filtra por capítulos ou códigos CID-10 |
+| `sus_data_filter_demographics()` | `sus_data_filter_demographics.R` | `"filter_cid"` | `"filter_demo"` | Filtra por faixa etária, sexo e localidade de residência |
+| `sus_data_create_variables()` | `sus_create_variables.R` | `"filter_demo"` | `"derive"` | Cria variáveis derivadas (grupos etários, dia da semana, sazonalidade) |
+| `sus_filter_cid_explore()` | `sus_filter_cid_explore.R` | `df`, `lang`, `output` | viewer / tibble | Navegador interativo de grupos CID-10 |
+| `sus_data_cid_select()` | `sus_data_filter_cid.R` | `df`, `cid_group`, `lang` | climasus_df filtrado | Seleção de desfechos por grupo CID predefinido |
 
 ---
 
-#### 5. `sus_create_variables()` - Criação de Variáveis Epidemiológicas
+## 5. Agregação e Exportação
 
-Crie automaticamente variáveis de **idade**, **calendário** e **sazonalidade** essenciais para análises de séries temporais e DLNM.
-
-```r
-df_com_vars <- sus_create_variables(
-  df,
-  create_age_groups = TRUE,
-  age_breaks = c(0, 5, 15, 25, 45, 65, Inf),
-  age_labels = c("0-4", "5-14", "15-24", "25-44", "45-64", "65+"),
-  create_calendar_vars = TRUE,
-  lang = "pt"
-)
-```
-
-**Variáveis Criadas:**
-
-| Tipo | Variáveis | Descrição |
-|------|-----------|-----------|
-| **Idade** | `age_years`, `age_group` | Idade em anos + faixas etárias personalizáveis |
-| **Calendário** | `year`, `month`, `day`, `weekday`, `week`, `quarter` | Variáveis temporais para controle de confundidores |
-| **Sazonalidade** | `season` | Estações brasileiras (Verão, Outono, Inverno, Primavera) |
-
-**Cálculo Inteligente de Idade (3 Níveis):**
-
-A função usa uma hierarquia de 3 níveis para calcular idade:
-
-1. **TIER 1**: Busca coluna de idade direta (ex: `IDADE`, `age_years`)
-2. **TIER 2**: Calcula de datas (PADRÃO OURO): `Data do Evento - Data de Nascimento`
-3. **TIER 3**: Decodifica código DATASUS (ex: `4035` → 35 anos, `3024` → 2 anos)
-
-**Sazonalidade Brasileira (Hemisfério Sul):**
-
-```r
-# Estações alinhadas com o calendário brasileiro
-# Verão:     Dez-Jan-Fev (início: 1º Dezembro)
-# Outono:    Mar-Abr-Mai (início: 1º Março)
-# Inverno:   Jun-Jul-Ago (início: 1º Junho)
-# Primavera: Set-Out-Nov (início: 1º Setembro)
-```
-
-**Exemplo:**
-```r
-# Criar variáveis para análise de dengue (sensível à sazonalidade)
-df_dengue <- df |>
-  sus_data_filter_cid(disease_group = "dengue", lang = "pt") |>
-  sus_create_variables(
-    create_age_groups = TRUE,
-    age_breaks = c(0, 15, 60, Inf),
-    age_labels = c("Criancas", "Adultos", "Idosos"),
-    create_calendar_vars = TRUE,
-    lang = "pt"
-  )
-```
+| Função | Arquivo | Input | Output | Descrição |
+|--------|---------|-------|--------|-----------|
+| `sus_data_aggregate()` | `sus_data_aggregate.R` | climasus_df, `by`, `unit`, `lang` | `"aggregate"` | Agrega registros por município × data × variável |
+| `sus_data_export()` | `sus_data_export.R` | climasus_df, `path`, `format` | arquivo .parquet / .duckdb | Exporta dados processados |
+| `sus_data_quality_report()` | `sus_data_quality_report.R` | climasus_df, `lang`, `output` | HTML/PDF | Relatório diagnóstico de completude e consistência |
 
 ---
 
-#### 6. `sus_data_filter_demographics()` - Filtragem Demográfica
+## 6. Visualização de Dados de Saúde
 
-Filtre dados por **idade**, **sexo** e **raça/cor** com suporte multilíngue.
-
-```r
-# Filtrar crianças menores de 5 anos
-df_pediatrico <- sus_data_filter_demographics(
-  df,
-  age_range = c(0, 5),
-  sex = c("Masculino"),
-  lang = "pt"
-)
-
-# Filtrar idosos do sexo masculino
-df_idosos_masc <- sus_data_filter_demographics(
-  df,
-  age_range = c(65, Inf),
-  sex = "male",
-  lang = "en"
-)
-
-# Filtrar adultos por raça/cor
-df_adultos_pretos <- sus_data_filter_demographics(
-  df,
-  age_range = c(18, 60),
-  race = "black",
-  lang = "en"
-)
-```
-
-**Opções de Filtragem:**
-
-| Parâmetro | Opções | Descrição |
-|-----------|--------|-----------|
-| `age_range` | `c(min, max)` | Intervalo de idade em anos (use `Inf` para sem limite) |
-| `sex` | `"male"`, `"female"`, `"ignoared"` | Sexo biológico |
-| `race` | `"white"`, `"black"`, `"brown"`, `"yellow"`, `"indigenous"` | Raça/cor (IBGE) |
+| Função | Arquivo | Input | Output | Descrição |
+|--------|---------|-------|--------|-----------|
+| `sus_data_plot_demographics()` | `sus_data_plot_demographics.R` | climasus_df, `lang` | ggplot2 | Pirâmide etária, sexo, distribuições demográficas |
+| `sus_data_plot_aggregate_ts()` | `sus_data_plot_aggregate_ts.R` | climasus_df, `by`, `lang` | ggplot2 | Série temporal de desfechos agregados |
+| `sus_data_plot_aggregate_map()` | `sus_data_plot_aggregate_map.R` | climasus_df, `year`, `lang` | ggplot2 / mapa | Mapa por município dos desfechos |
 
 ---
 
-#### 7. `sus_data_quality_report()` - Relatório de Qualidade de Dados
+## 7. Integração Espacial
 
-Gere relatórios abrangentes de qualidade de dados com **verificações automáticas** e **visualizações**.
-
-```r
-# Gerar relatório completo
-relatorio <- sus_data_quality_report(
-  df,
-  output_format = "html",
-  output_path = "relatorio_qualidade.html",
-  lang = "pt"
-)
-
-# Apenas verificações (sem salvar)
-verificacoes <- sus_data_quality_report(
-  df,
-  output_format = "console",
-  lang = "pt"
-)
-```
-
-**Verificações Incluídas:**
-
-| Categoria | Verificações | Descrição |
-|-----------|--------------|-----------|
-| **Completude** | % valores ausentes por coluna | Identifica colunas problemáticas |
-| **Consistência** | Datas inválidas, idades negativas | Detecta erros lógicos |
-| **Duplicatas** | Registros duplicados | Identifica possíveis erros de importação |
-| **Distribuições** | Histogramas, tabelas de frequência | Visualiza padrões nos dados |
-| **Cobertura Temporal** | Gaps na série temporal | Identifica períodos faltantes |
-
-**Formatos de Saída:**
-- `"console"`: Imprime no console
-- `"html"`: Relatório HTML interativo
-- `"pdf"`: Relatório PDF para publicação
-
+| Função | Arquivo | Input | Output (stage) | Descrição |
+|--------|---------|-------|----------------|-----------|
+| `sus_spatial_join()` | `sus_join_spatial.R` | climasus_df, `level` (munic/state/biome), `lang`, `use_cache` | `"spatial"` + sf | Vincula dados SUS a limites administrativos brasileiros via geobr |
 
 ---
 
-#### 8. `sus_data_aggregate()` - Agregação Temporal
+## 8. Dados Climáticos — Estações INMET
 
-Agregue dados em séries temporais com **flexibilidade temporal máxima** e **preenchimento automático de gaps**.
+| Função | Arquivo | Input | Output | Descrição |
+|--------|---------|-------|--------|-----------|
+| `sus_climate_inmet()` | `sus_climate_inmet.R` | `stations`, `start_date`, `end_date`, `lang` | type="inmet" | Importa dados horários INMET (temperatura, umidade, chuva, vento) |
+| `sus_climate_fill_inmet()` | `sus_climate_fill_gap.R` | climasus_df (inmet), `method` | type="filled" | Preenche lacunas por interpolação espacial ou regressão |
+| `sus_climate_normals()` | `sus_climate_normals.R` | `stations`, `period`, `lang` | normais climatológicas | Médias de 30 anos por estação |
+| `sus_climate_normals_meta()` | `sus_climate_normals.R` | `stations`, `lang` | tibble de metadados | Lista normais disponíveis por estação |
+| `sus_climate_anomaly()` | `sus_climate_anomaly.R` | `observed`, `normals`, `method`, `vars` | type="anomaly" | Anomalias climáticas (absoluta / relativa / padronizada) |
+| `sus_climate_aggregate()` | `sus_climate_aggregate.R` | health_data, climate_data, `climate_var`, `temporal_strategy`, `lag_days` | climasus_df integrado | Integra clima ao dado de saúde com 10 estratégias temporais |
+| `sus_climate_compute_heatwaves()` | `sus_climate_compute_heatwaves.R` | climasus_df, `method`, `baseline_*`, `percentile` | lista climasus_hw (`$events`, `$daily`, `$summary`) | Detecta ondas de calor (WHO, WMO, ECCA, local) |
+| `sus_climate_compute_spi()` | `sus_climate_compute_spi.R` | climasus_df, `scale`, `lang` | SPI | Índice Padronizado de Precipitação |
+| `sus_climate_compute_spei()` | `sus_climate_compute_spei.R` | climasus_df, `scale`, `lang` | SPEI | Índice de Precipitação-Evapotranspiração Padronizado |
+| `sus_climate_compute_indicators()` | `sus_climate_compute_indicators.R` | climasus_df, `indicators`, `region`, `keep_source_vars` | wbgt_c, hi_c, utci_c, pet_c, cdd_c, hdd_c… | 15+ índices bioclimáticos e de estresse térmico |
 
-```r
-# Agregação mensal (padrão)
-df_mensal <- sus_data_aggregate(
-  df,
-  time_unit = "month",
-  date_col = "death_date",
-  lang = "pt"
-)
+**Auxiliares de Ondas de Calor:**
 
-# Agregação semanal
-df_semanal <- sus_data_aggregate(
-  df,
-  time_unit = "week",
-  lang = "pt"
-)
+| Função | Arquivo | Input | Output | Descrição |
+|--------|---------|-------|--------|-----------|
+| `hw_get_events()` | `sus_climate_compute_heatwaves.R` | climasus_hw | tibble de eventos | Extrai eventos discretos de onda de calor |
+| `hw_count_by_year()` | `sus_climate_compute_heatwaves.R` | climasus_hw | tibble anual | Contagem anual de eventos e dias de onda de calor |
+| `hw_active_days()` | `sus_climate_compute_heatwaves.R` | climasus_hw | tibble filtrado | Filtra dias com onda de calor ativa |
 
-# Agregação sazonal (estações brasileiras)
-df_sazonal <- sus_data_aggregate(
-  df,
-  time_unit = "season",
-  lang = "pt"
-)
+**Visualização Climática:**
 
-# Agregação por pentads (5 dias) para ondas de calor
-df_pentads <- sus_data_aggregate(
-  df,
-  time_unit = "5 days",
-  lang = "pt"
-)
-```
-
-**Unidades Temporais Suportadas:**
-
-| Unidade | Sintaxe | Uso Epidemiológico |
-|---------|---------|-------------------|
-| **Diária** | `"day"` | DLNM, análises de curto prazo |
-| **Pentads** | `"5 days"` | Ondas de calor (efeito cumulativo) |
-| **Semanal** | `"week"` | Padrão epidemiológico |
-| **Quinzenal** | `"2 weeks"` | Malária, doenças com incubação longa |
-| **Mensal** | `"month"` | Tendências, padrões sazonais |
-| **Trimestral** | `"quarter"` ou `"3 months"` | Relatórios SUS |
-| **Semestral** | `"6 months"` | Avaliação de políticas |
-| **Anual** | `"year"` | Mudanças climáticas de longo prazo |
-| **Sazonal** | `"season"` | Dengue, Influenza (estações brasileiras) |
-
-**Recursos:**
-- ✅ Preenchimento automático de gaps com zeros
-- ✅ Sazonalidade brasileira (Hemisfério Sul)
-- ✅ Agregação por múltiplos grupos (ex: por município)
-- ✅ Suporte a qualquer unidade temporal via `lubridate`
-
-**Exemplo Avançado:**
-```r
-# Agregação mensal por município e faixa etária
-df_agregado <- df |>
-  sus_create_variables(age_groups = TRUE, lang = "pt") |>
-  sus_data_aggregate(
-    time_unit = "month",
-    group_by = c("municipality_code", "age_group"),
-    lang = "pt"
-  )
-```
+| Função | Arquivo | Input | Output | Descrição |
+|--------|---------|-------|--------|-----------|
+| `sus_climate_plot_aggregate()` | `sus_climate_plot_aggregate.R` | climasus_df, `lang` | ggplot2 | Série temporal de variáveis climáticas |
+| `sus_climate_plot_fill()` | `sus_climate_plot_fill.R` | climasus_df, `lang` | ggplot2 | Padrão de dados faltantes e preenchimento |
+| `sus_climate_plot_heatwaves()` | `sus_climate_plot_heatwaves.R` | climasus_hw, `lang` | ggplot2 | Timeline e frequência das ondas de calor |
 
 ---
 
-#### 9. `sus_data_export()` - Exportação com Metadados
+## 9. Dados Gradeados — Satélite / Reanálise
 
-Exporte dados com **metadados completos** para garantir reprodutibilidade.
-
-```r
-# Exportar como CSV com metadados
-sus_data_export(
-  df,
-  file_path = "dados_analise.csv",
-  format = "csv",
-  include_metadata = TRUE,
-  lang = "pt"
-)
-
-# Exportar como RDS (formato R nativo)
-sus_data_export(
-  df,
-  file_path = "dados_analise.rds",
-  format = "rds",
-  include_metadata = TRUE,
-  lang = "pt"
-)
-
-# Exportar como Parquet (formato eficiente)
-sus_data_export(
-  df,
-  file_path = "dados_analise.parquet",
-  format = "parquet",
-  include_metadata = TRUE,
-  lang = "pt"
-)
-```
-
-**Metadados Incluídos:**
-
-| Informação | Descrição |
-|------------|-----------|
-| **Data de Criação** | Timestamp da exportação |
-| **Versão do Pacote** | Versão do `climasus4r` usada |
-| **Pipeline Aplicado** | Funções e parâmetros usados |
-| **Sistema de Saúde** | SIM, SINASC, SINAN, etc. |
-| **Período Temporal** | Anos e UFs incluídos |
-| **Transformações** | Filtros e agregações aplicados |
-| **Dicionário de Dados** | Descrição de cada coluna |
-
-**Formatos Suportados:**
-- `"csv"`: Texto delimitado (universal)
-- `"rds"`: Formato R nativo (preserva tipos)
-- `"parquet"`: Formato colunar eficiente (recomendado para big data)
+| Função | Arquivo | Input | Output | Descrição |
+|--------|---------|-------|--------|-----------|
+| `sus_grid_chirps()` | `sus_grid_chirps.R` | `bbox`, datas, `lang` | precipitação CHIRPS | Chuva diária 0,05° |
+| `sus_grid_era5()` | `sus_grid_era5.R` | `bbox`, `variables`, datas | ERA5 | Temperatura, umidade, vento, radiação |
+| `sus_grid_fires()` | `sus_grid_fires.R` | `bbox`, datas | queimadas | Focos de incêndio FIRMS/PRODES |
+| `sus_grid_pdsi()` | `sus_grid_pdsi.R` | `bbox`, datas | PDSI | Índice Palmer de Severidade de Seca |
+| `sus_grid_smvi()` | `sus_grid_smvi.R` | `bbox`, `indices`, datas | NDVI/NDWI/EVI | Índices de vegetação e umidade do solo |
+| `sus_grid_prodes()` | `sus_grid_prodes.R` | `bbox`, `year` | desmatamento | Desmatamento acumulado PRODES/INPE |
+| `sus_grid_pollution_cams()` | `sus_grid_pollution_cams.R` | `bbox`, `pollutants`, datas | poluentes CAMS | Qualidade do ar Copernicus |
+| `sus_grid_pollution_ghap()` | `sus_grid_pollution_ghap.R` | `bbox`, datas | PM2.5 GHAP | Material particulado fino |
+| `sus_grid_pollution_merra2()` | `sus_grid_pollution_merra2.R` | `bbox`, `variables`, datas | aerossóis MERRA-2 | Aerossóis e gases NASA |
+| `sus_grid_join()` | `sus_grid_join.R` | health_df, grid_df, `by` | climasus_df integrado | Vincula dados gradeados ao dataset por município × data |
 
 ---
 
-### Exemplos de Pipelines Completos
+## 10. Dados Socioeconômicos — Censo
 
-#### Pipeline 1: Análise de Doenças Respiratórias Pediátricas
-
-```r
-library(climasus4r)
-
-# Preparar dados de doenças respiratórias em crianças < 5 anos
-df_resp_ped <- sus_data_import(
-  uf = c("SP", "RJ", "MG"),
-  year = 2018:2023,
-  system = "SIM-DO",
-  parallel = TRUE
-) |>
-  sus_data_clean_encoding(lang = "pt") |>
-  sus_data_standardize(lang = "pt") |>
-  sus_data_filter_cid(disease_group = "respiratory", lang = "pt") |>
-  sus_create_variables(
-    create_age_groups = TRUE,
-    age_breaks = c(0, 1, 5, Inf),
-    age_labels = c("< 1 ano", "1-4 anos", "5+ anos"),
-    lang = "pt"
-  ) |>
-  sus_data_filter_demographics(
-    age_range = c(0, 5),
-    sex = c("Feminino", "Masculino"),
-    lang = "pt"
-  ) |>
-  sus_data_aggregate(
-    time_unit = "month",
-    group_by = "age_group",
-    lang = "pt"
-  )
-#Save
-  sus_data_export(df_resp_ped,
-    file_path = "respiratorias_pediatricas_sudeste_2018_2023.csv",
-    format = "csv",
-    include_metadata = TRUE,
-    lang = "pt"
-  )
-```
-
-#### Pipeline 2: Análise de Dengue com Sazonalidade
-
-```r
-# Preparar dados de dengue com foco em sazonalidade
-df_dengue <- sus_data_import(
-  uf = "AM",
-  year = 2015:2023,
-  system = "SINAN-DENGUE",
-  parallel = TRUE,
-) |>
-  sus_data_clean_encoding(lang = "pt") |>
-  sus_data_standardize(lang = "pt") |>
-  sus_create_variables(
-    create_age_groups = TRUE,
-    create_calendar_vars = TRUE,
-    lang = "pt"
-  ) |>
-  sus_data_aggregate(
-    time_unit = "season",  # Agregação por estação
-    lang = "pt"
-  )
-  #save
-  sus_data_export(df_dengue,
-    file_path = "dengue_sazonal_amazonas_2015_2023.csv",
-    format = "csv",
-    include_metadata = TRUE,
-    lang = "pt"
-  )
-```
-
-#### Pipeline 3: Análise de Mortalidade Cardiovascular em Idosos
-
-```r
-# Preparar dados de mortalidade cardiovascular em idosos
-df_cardio_idosos <- sus_data_import(
-  uf = "AM",
-  ano = 2020:2023,
-  sistema = "SIM-DO"
-) |>
-  sus_data_clean_encoding(lang = "pt") |>
-  sus_data_standardize(lang = "pt") |>
-  sus_data_filter_cid(disease_group = "cardiovascular", lang = "pt") |>
-  sus_create_variables(
-    create_age_groups = TRUE,
-    age_breaks = c(0, 65, 75, 85, Inf),
-    age_labels = c("< 65", "65-74", "75-84", "85+"),
-    create_calendar_vars = TRUE,
-    lang = "pt"
-  ) |>
-  sus_data_filter_demographics(
-    age_range = c(65, Inf),  # Apenas idosos
-    lang = "pt"
-  ) |>
-  sus_data_quality_report(
-    output_format = "html",
-    output_path = "relatorio_qualidade_cardio_idosos.html",
-    lang = "pt"
-  ) |>
-  sus_data_aggregate(
-    time_unit = "week",
-    group_by = "age_group",
-    lang = "pt"
-  ) |>
-  sus_data_export(
-    file_path = "cardio_idosos_sp_2020_2023.parquet",
-    format = "parquet",
-    include_metadata = TRUE,
-    lang = "pt"
-  )
-```
-
-#### Pipeline 4: Análise de Ondas de Calor
-
-```r
-# Preparar dados para análise de ondas de calor usando pentads (5 dias)
-df_calor <- sus_data_import(
-  uf = c("AM", "RO"),
-  year = 2023,
-  system = "SIM-DO",
-  parallel = TRUE
-) |>
-  sus_data_clean_encoding(lang = "pt") |>
-  sus_data_standardize(lang = "pt") |>
-  sus_data_filter_cid(disease_group = "heat_related", lang = "pt") |>
-  sus_create_variables(
-    create_age_groups = TRUE,
-    lang = "pt"
-  ) |>
-  sus_data_aggregate(
-    time_unit = "5 days",  # Pentads para efeito cumulativo
-    lang = "pt"
-  ) |>
-  sus_data_export(
-    file_path = "ondas_calor_pentads_sp_rj_2023.csv",
-    format = "csv",
-    include_metadata = TRUE,
-    lang = "pt"
-  )
-```
+| Função | Arquivo | Input | Output (stage) | Descrição |
+|--------|---------|-------|----------------|-----------|
+| `sus_census_select()` | `sus_census_explore.R` | `dataset`, `year`, `lang` | data.frame / vetor | Navega variáveis censitárias disponíveis (censobr) |
+| `sus_socio_add_census()` | `sus_socio_add_census.R` | climasus_df, `variables`, `year` | `"census"` | Vincula renda, escolaridade, saneamento ao dataset |
 
 ---
 
-## Funções Helper
+## 11. Modelagem Epidemiológica
 
-### Grupos de Doenças
+### 11a. Exposição-Resposta
 
-```r
-# Listar todos os grupos disponíveis
-grupos <- list_disease_groups(lang = "pt")
+| Função | Arquivo | Input | Output (S3) | Descrição |
+|--------|---------|-------|-------------|-----------|
+| `sus_mod_dlnm()` | `sus_mod_dlnm.R` | climasus_df, `outcome_col`, `climate_col`, `lag_max`, `argvar`, `arglag`, `family`, `covariates`, `ref_value`, `alpha`, `lang` | `climasus_dlnm` | DLNM — superfície lag-exposição para associação clima-saúde |
+| `sus_mod_casecrossover()` | `sus_mod_casecrossover.R` | climasus_df, `outcome_col`, `exposure_col`, `stratum`, `lag`, `method`, `family`, `alpha`, `lang` | `climasus_casecrossover` | Caso-cruzado com estratificação temporal; Poisson condicional ou clogit |
+| `sus_mod_its()` | `sus_mod_its.R` | climasus_df, `outcome_col`, `interruption_dates`, `harmonics`, `family`, `covariates`, `alpha`, `lang` | `climasus_its` | Série temporal interrompida para avaliação de intervenções |
+| `sus_mod_excess()` | `sus_mod_excess.R` | climasus_df, `outcome_col`, `control_period`, `study_period`, `method`, `dof_per_year`, `family`, `alpha`, `lang` | `climasus_excess` | Excesso de mortalidade/morbidade via contrafactual spline/Serfling |
 
-# Listar apenas grupos sensíveis ao clima
-grupos_clima <- list_disease_groups(climate_sensitive_only = TRUE, lang = "pt")
+### 11b. Análise de Impacto
 
-# Obter detalhes de um grupo específico
-detalhes <- get_disease_group_details("dengue", lang = "pt")
-```
+| Função | Arquivo | Input | Output (S3) | Descrição |
+|--------|---------|-------|-------------|-----------|
+| `sus_mod_af()` | `sus_mod_af.R` | `climasus_dlnm`, `threshold`, `range`, `by`, `nsim`, `alpha`, `lang` | `climasus_af` | Fração e número atribuível ao calor/frio a partir do DLNM |
+| `sus_mod_burden()` | `sus_mod_burden.R` | lista de `climasus_dlnm`, `component`, `rank_by`, `top_n`, `nsim`, `alpha`, `lang` | `climasus_burden` | Carga de doença e ranking de cidades; curvas de concentração |
+
+### 11c. Pooling Multi-cidade
+
+| Função | Arquivo | Input | Output (S3) | Descrição |
+|--------|---------|-------|-------------|-----------|
+| `sus_mod_pool()` | `sus_mod_pool.R` | lista de `climasus_dlnm`, `exposure_range`, `n_grid`, `blup`, `method`, `lang` | `climasus_pool` | Pooling dois estágios via mvmeta |
+| `sus_mod_metaregression()` | `sus_mod_metaregression.R` | lista de `climasus_dlnm`, `covariates`, `covariate_cols`, `blup`, `method`, `lang` | `climasus_metaregression` | Meta-regressão com covariáveis de cidade; BLUPs preditivos |
+
+### 11d. Machine Learning e Sensibilidade
+
+| Função | Arquivo | Input | Output (S3) | Descrição |
+|--------|---------|-------|-------------|-----------|
+| `sus_mod_ml()` | `sus_mod_ml.R` | climasus_df, `outcome_col`, `feature_cols`, `id_col`, `objective`, `nrounds`, `seed`, `lang` | `climasus_ml` | XGBoost para predição de desfechos em saúde |
+| `sus_mod_sensitivity()` | `sus_mod_sensitivity.R` | lista de `climasus_dlnm`, `hot_percentile`, `cold_percentile`, `stratum_labels`, `alpha`, `lang` | `climasus_sensitivity` | Comparação de RR por estratos de vulnerabilidade |
 
 ---
 
-## Agenda
+## 12. Epidemiologia Espacial e Espaço-Temporal
 
-### ✅ Fase 1: Infraestrutura de Dados
-* ✅ Aquisição de dados em paralelo
-* ✅ Correção de codificação
-* ✅ Padronização multilíngue
-* ✅ Filtragem por CID-10
-* ✅ Criação de variáveis epidemiológicas
-* ✅ Filtragem demográfica
-* ✅ Relatórios de qualidade
-* ✅ Agregação temporal flexível
-* ✅ Exportação com metadados
+| Função | Arquivo | Input | Output | Descrição |
+|--------|---------|-------|--------|-----------|
+| `sus_mod_spatial_weights()` | `sus_mod_spatial_weights.R` | sf (climasus_df), `style`, `order` | pesos espaciais | Matriz de contiguidade/distância |
+| `sus_mod_spatial_moran()` | `sus_mod_spatial_moran.R` | climasus_df (spatial), weights, `var_col` | I de Moran global e LISA | Autocorrelação espacial |
+| `sus_mod_spatial_scan()` | `sus_mod_spatial_scan.R` | climasus_df, `outcome_col`, `pop_col`, `method` | clusters | Estatística de varredura espacial |
+| `sus_mod_spatial_bayes()` | `sus_mod_spatial_bayes.R` | climasus_df (spatial), `outcome_col`, `model` | suavização Bayesiana | Modelos BYM / ICAR |
+| `sus_mod_spatial_reg()` | `sus_mod_spatial_reg.R` | climasus_df (spatial), `formula`, `type` | SAR / SEM / SDM | Regressão espacial |
+| `sus_mod_spacetime_bayes()` | `sus_mod_spacetime_bayes.R` | climasus_df (spatial+temporal), `model` | INLA / Stan | Modelo Bayesiano espaço-temporal |
+| `sus_mod_spacetime_exceedance()` | `sus_mod_spacetime_exceedance.R` | `climasus_spacetime_bayes`, `threshold` | probabilidades | Excedências espaço-temporais |
+| `sus_mod_spacetime_predict()` | `sus_mod_spacetime_predict.R` | `climasus_spacetime_bayes`, `newdata` | predições | Predições espaço-temporais |
+| `sus_mod_vulnerability_index()` | `sus_mod_vulnerability_index.R` | climasus_df, `exposure_cols`, `sensitivity_cols`, `adaptive_cols`, `method` | índice composto | Índice de Vulnerabilidade Climática |
+| `sus_mod_swot()` | `sus_mod_swot.R` | climasus_df, `dimensions`, `lang` | `climasus_swot` | Análise SWOT do sistema de saúde frente ao clima |
 
-### 🔄 Fase 2: Integração Socioeconômica e territorial (Em Andamento)
-* ✅ Vinculação de limites geográficos
-* ✅ Integração de dados socioeconômicos do IBGE (população, PIB, renda, etc)
-* Operações espaciais ponderadas pela população
-* Cálculo de indicadores sociais e de saúde.
+---
 
-### 📅 Fase 3: Integração Climática e Ambiental (Planejada)
-* Importação de dados meteorológicos do INMET e NOAA
-* Integração com dados do CCSRO e FIORES (INCT-CONEXAO)
-* Integração de dados de qualidade do ar 
-* Processamento de dados de satélite 
-* * Cálculo de indicadores climáticos e de saúde.
+## 13. Visualização de Modelos
 
-### 📅 Fase 4: Análise Espacial (Planejada)
-* Suavização espacial bayesiana
-* Detecção de clusters espaciais (SaTScan, Kulldorff)
-* Indicadores locais de associação espacial (LISA)
-* Modelos de regressão espacial
-* Modelos de risco relativo às internações e mortes
-* Modelo bivariado quasi poison
+| Função | Arquivo | Input | Output | Descrição |
+|--------|---------|-------|--------|-----------|
+| `sus_mod_plot_dlnm()` | `sus_mod_plot_dlnm.R` | `climasus_dlnm`, `type` (surface/exposure/lag) | ggplot2 / plotly | Curva exposição-resposta, lag-resposta, superfície 3D |
+| `sus_mod_plot_af()` | `sus_mod_plot_af.R` | `climasus_af` | ggplot2 | Fração atribuível por período e limiar |
+| `sus_mod_plot_burden()` | `sus_mod_plot_burden.R` | `climasus_burden` | ggplot2 | Ranking de carga de doença; curva de Lorenz |
+| `sus_mod_plot_pool()` | `sus_mod_plot_pool.R` | `climasus_pool`, `type` | ggplot2 | Curvas pooled + BLUPs; forest plot |
+| `sus_mod_plot_ml()` | `sus_mod_plot_ml.R` | `climasus_ml`, `type` (importance/shap/pred) | ggplot2 | Importância de variáveis e SHAP values |
+| `sus_mod_plot_sensitivity()` | `sus_mod_plot_sensitivity.R` | `climasus_sensitivity` | ggplot2 | Heatmap de RR por estratos de vulnerabilidade |
+| `sus_mod_plot_spatial_bayes()` | `sus_mod_plot_spatial_bayes.R` | `climasus_spatial_bayes` | ggplot2 / tmap | Mapas suavizados Bayesianos (SIR, risco relativo) |
+| `sus_mod_plot_spatial_moran()` | `sus_mod_plot_spatial_moran.R` | `climasus_moran` | ggplot2 | Moran scatterplot e LISA map |
+| `sus_mod_plot_spatial_scan()` | `sus_mod_plot_spatial_scan.R` | `climasus_scan` | ggplot2 / tmap | Mapa de clusters detectados |
+| `sus_mod_plot_spacetime()` | `sus_mod_plot_spacetime.R` | `climasus_spacetime_bayes`, `type` | ggplot2 / animação | Animação espaço-temporal / facet-map |
+| `sus_mod_plot_vulnerability()` | `sus_mod_plot_vulnerability.R` | climasus_df (vulnerability) | ggplot2 / tmap | Mapas e perfis de vulnerabilidade |
+| `sus_mod_plot_swot()` | `sus_mod_plot_swot.R` | `climasus_swot` | ggplot2 | Quadrante SWOT |
 
-### 📅 Fase 5: Análise Temporal e Preditiva (Planejada)
-* Modelos não lineares de defasagem distribuída (DLNM)
-* Cálculo de fração atribuível
-* Decomposição de séries temporais
-* Wrappers de previsão de aprendizado de máquina
-* Modelo de bioprognose baseado na previsão do tempo para 3 dias futuros
-* Modelos de bioprognose baseados em cenários climáticos de curto (3 meses) médio (5-10 anos) e longo prazo (50-100 anos)
+---
+
+## 14. Infraestrutura e Utilitários
+
+| Função | Arquivo | Input | Output | Descrição |
+|--------|---------|-------|--------|-----------|
+| `sus_as_arrow()` | `utils-S3.R` | climasus_df | Arrow Table (lazy) | Converte para backend Arrow/Parquet |
+| `sus_as_duckdb()` | `utils-S3.R` | climasus_df | DuckDB relation | Converte para backend DuckDB |
+| `write_parquet_climasus()` | `sus_data_export.R` | climasus_df, `path` | arquivo .parquet | Serializa com metadados embutidos no schema Arrow |
+| `write_duckdb_climasus()` | `sus_data_export.R` | climasus_df, `con`, `name` | tabela DuckDB | Persiste com tabela companion de metadados |
+| `sus_cache_clear()` | `utils.R` | — | logical | Limpa cache global de downloads |
+| `sus_cache_info()` | `utils.R` | — | lista | Estatísticas de uso do cache |
+| `sus_install_deps()` | `utils.R` | `packages`, `lang` | logical | Instala dependências opcionais (sf, arrow, censobr…) |
+| `%>%` | `utils-pipe.R` | — | objeto encadeado | Re-exportação do pipe magrittr |
+
+---
+
+## Resumo por Estágio do Pipeline
+
+| # | Estágio | Funções-chave | Propósito |
+|---|---------|---------------|-----------|
+| 1 | **Importação** | `sus_data_import`, `sus_data_read` | Baixar/ler dados SUS brutos |
+| 2 | **Limpeza** | `sus_data_clean_encoding`, `sus_data_standardize` | Preparar dados |
+| 3 | **Filtragem** | `sus_data_filter_cid`, `sus_data_filter_demographics` | Selecionar subconjuntos |
+| 4 | **Derivação** | `sus_data_create_variables`, `sus_data_aggregate` | Calcular variáveis e agregar |
+| 5 | **Espacial** | `sus_spatial_join` | Vincular a geometrias |
+| 6 | **Clima (Estações)** | `sus_climate_inmet`, `sus_climate_aggregate`, `sus_climate_compute_*` | Integrar INMET |
+| 7 | **Clima (Grade)** | `sus_grid_chirps`, `sus_grid_era5`, `sus_grid_pollution_*` | Integrar satélite/reanálise |
+| 8 | **Socioeconômico** | `sus_socio_add_census` | Vincular censo |
+| 9 | **Modelagem** | `sus_mod_dlnm`, `sus_mod_casecrossover`, `sus_mod_ml`, `sus_mod_spatial_*` | Análise epidemiológica |
+| 10 | **Visualização** | `sus_mod_plot_*`, `sus_data_plot_*`, `sus_climate_plot_*` | Gráficos e mapas |
+| 11 | **Exportação** | `sus_data_export`, `write_parquet_climasus` | Persistir resultados |
 
 ---
 
