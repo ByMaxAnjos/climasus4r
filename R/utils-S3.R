@@ -47,7 +47,7 @@
   # Create variable and aggregation
   "derive", "agg",
   # climate
-  "inmet", "filled", "normals",
+  "inmet", "filled", "normals", "uniplu",
   # spatial
   "munic", "cep", "schools", "health_region", "amazon",
   "semiarid", "biomes", "conservation_units", "disaster_risk_area",

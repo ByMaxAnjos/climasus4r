@@ -45,8 +45,8 @@ columns for indicators that support uncertainty quantification
 \value{
 The input \code{climasus_df} with additional columns prefixed \code{ind_}:
 \itemize{
-\item \verb{ind_<id>} — computed value
-\item \verb{ind_<id>_low} / \verb{ind_<id>_high} — confidence-interval bounds
+\item \verb{ind_<id>} \u2014 computed value
+\item \verb{ind_<id>_low} / \verb{ind_<id>_high} \u2014 confidence-interval bounds
 (only for Poisson/Binomial indicators when \code{add_ci = TRUE})
 }
 \code{sus_meta} is updated to \code{type = "indicators"} with a history entry.

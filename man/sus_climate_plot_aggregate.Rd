@@ -14,7 +14,9 @@ sus_climate_plot_aggregate(
   alpha = 0.05,
   interactive = FALSE,
   lang = "pt",
-  verbose = TRUE
+  verbose = TRUE,
+  title = NULL,
+  source = NULL
 )
 }
 \arguments{
@@ -34,8 +36,10 @@ If \code{NULL} (default) all columns that match the naming conventions of
 \item{plot_type}{Character. One of:
 \describe{
 \item{\code{"timeseries"}}{Dual-axis time-series: rescaled climate exposure
-(area) overlaid on health outcome (line + points). One panel per
-climate column if multiple columns are present.}
+(ribbon) overlaid on health outcome (line + points). When multiple
+climate columns are provided and \code{patchwork} is installed, one panel
+per variable is stacked vertically via \code{patchwork::wrap_plots()}. Falls
+back to the first column only when \code{patchwork} is not available.}
 \item{\code{"scatter"}}{Scatter plot with loess/GAM smooth: climate exposure
 on x-axis, health outcome on y-axis. Shows the marginal association
 ignoring temporal structure.}
@@ -64,19 +68,25 @@ Default \code{30L}.}
 (default \code{0.05}; bounds drawn at \eqn{\pm 2/\sqrt{n}}).}
 
 \item{interactive}{Logical. If \code{TRUE}, returns a \code{plotly} interactive
-version. Requires \code{plotly} to be installed. Default \code{FALSE}.}
+version built with \code{plotly::plot_ly()} for proper dual-axis support
+(\code{plotly::ggplotly()} is avoided as it breaks secondary axes for
+\code{"timeseries"}). Requires \code{plotly} to be installed. Default \code{FALSE}.}
 
 \item{lang}{Character. Language for axis labels and titles:
 \code{"pt"} (default), \code{"en"}, \code{"es"}.}
 
 \item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+
+\item{title}{Character or \code{NULL}. Override the auto-generated plot title.
+Default \code{NULL} uses the built-in multilingual title.}
+
+\item{source}{Character or \code{NULL}. Data source attribution prepended to the
+plot caption. Default \code{NULL}.}
 }
 \value{
-A \code{ggplot2} object (or a \code{plotly} object when
-\code{interactive = TRUE}). If \code{climate_cols} contains more than one column
-and \code{plot_type \%in\% c("timeseries", "distribution")}, a list of
-\code{ggplot2} objects is returned (one per column) wrapped in an invisible
-\code{patchwork} when \code{patchwork} is installed.
+A \code{ggplot2} object, a \code{patchwork} object (when multiple climate
+columns are supplied and \code{patchwork} is installed for \code{"timeseries"} or
+\code{"scatter"} plot types), or a \code{plotly} object when \code{interactive = TRUE}.
 }
 \description{
 \code{sus_climate_plot_aggregate()} produces exploratory visualisations for the

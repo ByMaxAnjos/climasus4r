@@ -81,7 +81,10 @@ reference:
       - sus_data_aggregate
       - sus_spatial_join
       - sus_census_join
+      - sus_socio_compute_indicators
+      - sus_socio_list_indicators
       - sus_climate_inmet
+      - sus_climate_uniplu
       - sus_climate_fill_inmet
       - sus_climate_aggregate
       - sus_climate_compute_indicators
