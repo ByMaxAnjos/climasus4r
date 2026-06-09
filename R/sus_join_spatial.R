@@ -55,7 +55,7 @@
 #' }
 #' @references
 #' Pereira, R.H.M.; Goncalves, C.N.; et. all (2019) geobr: Loads Shapefiles of Official Spatial Data Sets of Brazil. GitHub repository - https://github.com/ipeaGIT/geobr.
-#' Pereira, Rafael H. M.; Barbosa, Rogerio J. (2023) censobr: Download Data from Brazil’s Population Census. R package version v0.4.0, https://CRAN.R-project.org/package=censobr. DOI: 10.32614/CRAN.package.censobr.
+#' Pereira, Rafael H. M.; Barbosa, Rogerio J. (2023) censobr: Download Data from Brazil's Population Census. R package version v0.4.0, https://CRAN.R-project.org/package=censobr. DOI: 10.32614/CRAN.package.censobr.
 #'
 #' @examples
 #' \dontrun{
@@ -647,7 +647,7 @@ sus_spatial_join <- function(
     spatial_var$name_muni <- NULL
     spatial_var$code_state <- NULL
     
-    # Ajuste de 7 para 6 dígitos do IBGE
+    # Ajuste de 7 para 6 digitos do IBGE
     spatial_var$code_muni <- substr(as.character(spatial_var$code_muni), 1, 6)
     result_sf$code_muni <- as.character(result_sf$code_muni)
     
@@ -836,7 +836,7 @@ sus_spatial_join <- function(
     )
     spatial_var <- sf::st_make_valid(spatial_var)
 
-    # Join espacial nativo (assumindo que result_sf já possui os pontos geocodificados dos CEPs)
+    # Join espacial nativo (assumindo que result_sf ja possui os pontos geocodificados dos CEPs)
     result_sf <- sf::st_join(result_sf, spatial_var)
   }
 
@@ -972,7 +972,7 @@ get_spatial_munic_centroids_cache <- function(cache_dir, use_cache, lang, verbos
            )
     ", keep_sql))
     result[[".__geom_wkt"]] <- NULL
-    result  # data.frame — callers drop geometry anyway
+    result  # data.frame -- callers drop geometry anyway
   }, error = function(e) invisible(NULL))
 }
 
@@ -1285,7 +1285,7 @@ get_spatial_messages <- function(lang) {
       final_rows = "Final dataset rows: "
     ),
     pt = list(
-      title = "climasus4r - Junção Espacial de Dados",
+      title = "climasus4r - Jun\u00E7\u00E3o Espacial de Dados",
       invalid_level = "Nivel geografico invalido especificado.",
       valid_levels = "Niveis validos sao: 'state', 'munic', 'census', 'cep'.",
       system_column_missing = "Coluna 'system' nao encontrada nos dados. Execute detect_health_system() primeiro.",
@@ -1313,7 +1313,7 @@ get_spatial_messages <- function(lang) {
       final_rows = "Linhas no dataset final: "
     ),
     es = list(
-      title = "climasus4r - Unión Espacial de Datos",
+      title = "climasus4r - Uni\u00F3n Espacial de Datos",
       invalid_level = "Nivel geografico invalido especificado.",
       valid_levels = "Niveles validos son: 'state', 'munic', 'census', 'cep'.",
       system_column_missing = "Columna 'system' no encontrada en los datos. Ejecute detect_health_system() primero.",

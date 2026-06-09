@@ -112,5 +112,5 @@ sf_census <- sus_spatial_join(
 }
 \references{
 Pereira, R.H.M.; Goncalves, C.N.; et. all (2019) geobr: Loads Shapefiles of Official Spatial Data Sets of Brazil. GitHub repository - https://github.com/ipeaGIT/geobr.
-Pereira, Rafael H. M.; Barbosa, Rogerio J. (2023) censobr: Download Data from Brazil’s Population Census. R package version v0.4.0, https://CRAN.R-project.org/package=censobr. DOI: 10.32614/CRAN.package.censobr.
+Pereira, Rafael H. M.; Barbosa, Rogerio J. (2023) censobr: Download Data from Brazil's Population Census. R package version v0.4.0, https://CRAN.R-project.org/package=censobr. DOI: 10.32614/CRAN.package.censobr.
 }

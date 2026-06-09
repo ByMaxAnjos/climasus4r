@@ -401,8 +401,8 @@
 #'
 #' @return The input `climasus_df` with additional columns prefixed `ind_`:
 #'   \itemize{
-#'     \item `ind_<id>` \u2014 computed value
-#'     \item `ind_<id>_low` / `ind_<id>_high` \u2014 confidence-interval bounds
+#'     \item `ind_<id>` — computed value
+#'     \item `ind_<id>_low` / `ind_<id>_high` — confidence-interval bounds
 #'       (only for Poisson/Binomial indicators when `add_ci = TRUE`)
 #'   }
 #'   `sus_meta` is updated to `type = "indicators"` with a history entry.
