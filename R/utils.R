@@ -199,6 +199,7 @@ check_spatial <- function(lang = "pt") {
 #' the Arrow C++ library dependencies, especially on Linux systems.
 #' @param lang Language for messages: "pt", "en", or "es".
 #' @param verbose Logical. Should detailed messages be printed?
+#' @importFrom utils capture.output
 #' @noRd
 enable_arrow <- function(
   lang = "pt",
@@ -267,16 +268,26 @@ enable_arrow <- function(
   # Helper function to check if installation was successful
   check_success <- function() requireNamespace("arrow", quietly = TRUE)
 
+  # Wrapper: suppress all R-level output and warnings from install.packages().
+  # Note: output from compiled sub-processes (R CMD INSTALL) cannot be redirected
+  # from R; only suppressable via system-level redirects outside R's control.
+  .quiet_install <- function(expr) {
+    tmp <- tempfile()
+    on.exit(unlink(tmp), add = TRUE)
+    tryCatch(
+      suppressWarnings(
+        capture.output(force(expr), file = tmp, type = "output")
+      ),
+      error   = function(e) invisible(NULL),
+      warning = function(w) invisible(NULL)
+    )
+  }
+
   # Attempt 1: Standard CRAN install (works on Windows/Mac, sometimes Linux)
   if (verbose) {
     cli::cli_alert_info(msg$install_cran)
   }
-  try(
-    {
-      utils::install.packages("arrow")
-    },
-    silent = TRUE
-  )
+  .quiet_install(utils::install.packages("arrow"))
   if (check_success()) {
     if (verbose) {
       cli::cli_alert_success(msg$ok)
@@ -288,14 +299,11 @@ enable_arrow <- function(
   if (verbose) {
     cli::cli_alert_info(msg$install_not_cran)
   }
-  try(
-    {
-      Sys.setenv("NOT_CRAN" = "true")
-      utils::install.packages("arrow")
-      Sys.unsetenv("NOT_CRAN")
-    },
-    silent = TRUE
-  )
+  .quiet_install({
+    Sys.setenv("NOT_CRAN" = "true")
+    utils::install.packages("arrow")
+    Sys.unsetenv("NOT_CRAN")
+  })
   if (check_success()) {
     if (verbose) {
       cli::cli_alert_success(msg$ok)
@@ -303,23 +311,15 @@ enable_arrow <- function(
     return(invisible(TRUE))
   }
 
-  # Attempt 3: RStudio Package Manager (RSPM) - Good fallback for Linux
-  # This requires detecting the OS, which is complex. We'll use a simplified approach
-  # by trying the R-Universe repository which often has pre-compiled binaries.
+  # Attempt 3: RStudio Package Manager / R-Universe (pre-compiled binaries for Linux)
   if (verbose) {
     cli::cli_alert_info(msg$install_rspm)
   }
-  try(
-    {
-      utils::install.packages(
-        "arrow",
-        repos = c(
-          "https://apache.r-universe.dev",
-          "https://cloud.r-project.org"
-        )
-      )
-    },
-    silent = TRUE
+  .quiet_install(
+    utils::install.packages(
+      "arrow",
+      repos = c("https://apache.r-universe.dev", "https://cloud.r-project.org")
+    )
   )
   if (check_success()) {
     if (verbose) {
@@ -332,15 +332,12 @@ enable_arrow <- function(
   if (verbose) {
     cli::cli_alert_info(msg$install_manual)
   }
-  try(
-    {
-      Sys.setenv("LIBARROW_BINARY" = "false", "LIBARROW_MINIMAL" = "false")
-      utils::install.packages("arrow")
-      Sys.unsetenv("LIBARROW_BINARY")
-      Sys.unsetenv("LIBARROW_MINIMAL")
-    },
-    silent = TRUE
-  )
+  .quiet_install({
+    Sys.setenv("LIBARROW_BINARY" = "false", "LIBARROW_MINIMAL" = "false")
+    utils::install.packages("arrow")
+    Sys.unsetenv("LIBARROW_BINARY")
+    Sys.unsetenv("LIBARROW_MINIMAL")
+  })
   if (check_success()) {
     if (verbose) {
       cli::cli_alert_success(msg$ok)
@@ -353,32 +350,22 @@ enable_arrow <- function(
 }
 
 #' @title Check Arrow Engine Status
-#' @description Checks if the 'arrow' package is installed and attempts to enable it if missing.
+#' @description Checks if the 'arrow' package is installed. Emits one quiet
+#'   informational message when arrow is absent; does NOT attempt auto-install.
+#'   Call `sus_install_deps()` or `enable_arrow()` explicitly to install arrow.
 #' @param lang Language for messages: "pt", "en", or "es".
 #' @noRd
 check_arrow <- function(lang = "pt") {
-
   if (!requireNamespace("arrow", quietly = TRUE)) {
-
     msg <- switch(
       lang,
-      pt = "Motor Arrow nao detectado. Tentando ativar automaticamente...",
-      en = "Arrow engine not detected. Trying to enable automatically...",
-      es = "Motor Arrow no detectado. Intentando activarlo automaticamente..."
+      pt = "Pacote 'arrow' nao disponivel. Usando backend tibble (compativel com todos os ambientes).",
+      en = "Package 'arrow' not available. Using tibble backend (compatible with all environments).",
+      es = "Paquete 'arrow' no disponible. Usando backend tibble (compatible con todos los entornos)."
     )
-
     cli::cli_alert_info(msg)
-
-    tryCatch(
-      enable_arrow(lang = lang, verbose = FALSE), # Do not print verbose messages during check
-      error = function(e) {
-        # Re-throw the error from enable_arrow
-        cli::cli_alert_warning(e$message)
-      }
-    )
   }
-
-  invisible(TRUE)
+  invisible(requireNamespace("arrow", quietly = TRUE))
 }
 
 

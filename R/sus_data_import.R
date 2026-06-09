@@ -472,17 +472,18 @@ sus_data_import <- function(uf = NULL,
       }
     )
 
-    # Restrict city search to requested UF(s) — prevents cross-state name matches
+    # Restrict city search to requested UF(s) — prevents cross-state name matches.
+    # Falls back to searching all municipalities when uf_code column is absent
+    # or when the UF filter would return 0 rows (e.g. stale cache with old schema).
     if (!is.null(uf) && !is.null(muni_meta_import) &&
         !identical(tolower(uf), "all")) {
-      muni_meta_import <- muni_meta_import[
-        toupper(muni_meta_import$uf_code) %in% toupper(uf), , drop = FALSE
-      ]
-      if (nrow(muni_meta_import) == 0L) {
-        cli::cli_alert_warning(
-          "Nenhum municipio encontrado para UF(s) '{paste(uf,collapse=',')}'."
-        )
-        muni_meta_import <- NULL
+      if ("uf_code" %in% names(muni_meta_import)) {
+        uf_filtered <- muni_meta_import[
+          toupper(muni_meta_import$uf_code) %in% toupper(uf), , drop = FALSE
+        ]
+        if (nrow(uf_filtered) > 0L) {
+          muni_meta_import <- uf_filtered
+        }
       }
     }
 
@@ -1220,8 +1221,11 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
   if (!lang %in% c("en", "pt", "es"))
     cli::cli_abort("{.arg lang} deve ser um de: 'en', 'pt', 'es'.")
   
-  #Check if arrow pak installed
-  #check_arrow(lang=lang)
+  # Fail fast if arrow is absent — triggers clean fallback to tibble backend
+  if (!requireNamespace("arrow", quietly = TRUE)) {
+    cli::cli_abort("arrow not available", call = NULL)
+  }
+
   arrow_threads = NULL
   # Thread pool do Arrow: independente do future, gerenciado por libarrow C++
   n_arrow_threads <- arrow_threads %||% parallel::detectCores(logical = FALSE)
@@ -1417,17 +1421,18 @@ if (!is.null(city) || !is.null(municipality_code)) {
       }
     )
 
-    # Restrict city search to requested UF(s) — prevents cross-state name matches
+    # Restrict city search to requested UF(s) — prevents cross-state name matches.
+    # Falls back to searching all municipalities when uf_code column is absent
+    # or when the UF filter would return 0 rows (e.g. stale cache with old schema).
     if (!is.null(uf) && !is.null(muni_meta_import) &&
         !identical(tolower(uf), "all")) {
-      muni_meta_import <- muni_meta_import[
-        toupper(muni_meta_import$uf_code) %in% toupper(uf), , drop = FALSE
-      ]
-      if (nrow(muni_meta_import) == 0L) {
-        cli::cli_alert_warning(
-          "Nenhum municipio encontrado para UF(s) '{paste(uf,collapse=',')}'."
-        )
-        muni_meta_import <- NULL
+      if ("uf_code" %in% names(muni_meta_import)) {
+        uf_filtered <- muni_meta_import[
+          toupper(muni_meta_import$uf_code) %in% toupper(uf), , drop = FALSE
+        ]
+        if (nrow(uf_filtered) > 0L) {
+          muni_meta_import <- uf_filtered
+        }
       }
     }
 
