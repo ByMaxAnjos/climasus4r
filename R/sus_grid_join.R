@@ -190,7 +190,27 @@ sus_grid_join <- function(
   }
 
   # ── 9. Materialise both to plain tibbles before joining ───────────────────────
-  health_tbl <- tibble::as_tibble(health_data)
+  # Drop sf/sfc geometry columns: handle both sf-class objects and plain
+  # data frames that carry a geometry column from a previous spatial join.
+  geom_cols <- character(0)
+  sf_col_attr <- attr(health_data, "sf_column")
+  if (!is.null(sf_col_attr) && sf_col_attr %in% names(health_data)) {
+    geom_cols <- sf_col_attr
+  } else {
+    # Detect any sfc columns (geometry stored without sf class)
+    is_sfc <- vapply(names(health_data),
+                     function(nm) inherits(health_data[[nm]], "sfc"),
+                     logical(1L))
+    geom_cols <- names(is_sfc)[is_sfc]
+  }
+  if (inherits(health_data, "sf") && requireNamespace("sf", quietly = TRUE)) {
+    health_tbl <- tibble::as_tibble(sf::st_drop_geometry(health_data))
+  } else if (length(geom_cols) > 0L) {
+    health_tbl <- tibble::as_tibble(
+      health_data[, setdiff(names(health_data), geom_cols), drop = FALSE])
+  } else {
+    health_tbl <- tibble::as_tibble(health_data)
+  }
   grid_tbl   <- tibble::as_tibble(
     grid_data[, c(by, grid_cols), drop = FALSE])
 

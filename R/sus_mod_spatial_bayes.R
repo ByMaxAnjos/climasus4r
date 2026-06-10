@@ -558,15 +558,16 @@ sus_mod_spatial_bayes <- function(
   fixed_df <- data.frame(
     term    = beta_rows,
     mean    = as.numeric(sum_res[beta_rows, "Mean"]),
-    sd      = as.numeric(sum_res[beta_rows, "SD"]),
+    sd      = if ("SD" %in% colnames(sum_res)) as.numeric(sum_res[beta_rows, "SD"]) else NA_real_,
     lower95 = as.numeric(sum_res[beta_rows, "2.5%"]),
     upper95 = as.numeric(sum_res[beta_rows, "97.5%"]),
     stringsAsFactors = FALSE,
     row.names = NULL
   )
 
-  # -- 5b. Random effects (phi samples) ----------------------------------------
-  phi_samples <- fit$samples$phi  # matrix: n_eff x n_areas
+  # -- 5b. Random effects (psi/phi/theta samples depending on model) -----------
+  re_slot <- switch(model, bym = "psi", leroux = "phi", independent = "theta")
+  phi_samples <- fit$samples[[re_slot]]  # matrix: n_eff x n_areas
 
   n_iter_effective <- nrow(phi_samples)
 
