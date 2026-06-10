@@ -547,7 +547,9 @@
                   e$message
                 )
               )
-              return(station_df)
+              station_df |>
+                dplyr::select(-dplyr::starts_with("is_imputed_")) |>
+                dplyr::mutate(is_imputed = FALSE)
             }
           )
         },
@@ -571,6 +573,11 @@
         )
       # ---- Rename is_imputed → is_imputed_<var> ----
       flag_col <- paste0("is_imputed_", var)
+      # Drop pre-existing flag column (present when input is type="filled") to
+      # prevent duplicate column after rename below
+      if (flag_col %in% names(df_var_filled)) {
+        df_var_filled <- dplyr::select(df_var_filled, -dplyr::all_of(flag_col))
+      }
       df_var_filled <- df_var_filled %>%
         dplyr::rename(!!rlang::sym(flag_col) := is_imputed)
 
@@ -586,11 +593,6 @@
       # NOVO: Remove estações ruins do df_filled ANTES de atualizar
       df_filled <- df_filled %>%
         dplyr::filter(!!rlang::sym(station_col) %in% valid_stations_v)
-
-      # Agora atualiza apenas com estações válidas
-      if (!flag_col %in% colnames(df_filled)) {
-        df_filled[[flag_col]] <- FALSE
-      }
 
       # No merge, converter para o tipo original
 

@@ -529,7 +529,7 @@ sus_climate_compute_heatwaves <- function(
       window_days <- ((d - 15L):(d + 15L) - 1L) %% 366L + 1L
       sub <- dplyr::filter(st_data, yday %in% window_days)
 
-      dplyr::as_tibble(
+      tibble::tibble(
         station_code = st,
         yday         = d,
         tmax_p   = if (sum(!is.na(sub$tmax))     >= 10L)
@@ -736,8 +736,8 @@ sus_climate_compute_heatwaves <- function(
     )
 
     purrr::map(unique(daily$station_code), function(st) {
-      st_data <- dplyr::filter(daily, station_code == st) |>
-        dplyr::arrange(date_day)
+      st_data <- dplyr::filter(daily, .data[["station_code"]] == st) |>
+        dplyr::arrange(.data[["date_day"]])
 
       flag <- st_data[[col]]
       if (all(is.na(flag)) || !any(flag, na.rm = TRUE)) return(NULL)
@@ -763,7 +763,7 @@ sus_climate_compute_heatwaves <- function(
 
         dur <- as.integer(diff(range(sub$date_day)) + 1L)
 
-        dplyr::as_tibble(
+        tibble::tibble(
           station_code       = st,
           method             = m_name,
           start_date         = as.Date(min(sub$date_day), origin = "1970-01-01"),
@@ -817,7 +817,10 @@ sus_climate_compute_heatwaves <- function(
       })()
   }) |>
     list_rbind() |>
-    dplyr::arrange(station_code, method, start_date)
+    (\(ev) {
+      if (nrow(ev) == 0L) return(ev)
+      dplyr::arrange(ev, .data[["station_code"]], .data[["method"]], .data[["start_date"]])
+    })()
 }
 
 
@@ -830,7 +833,7 @@ sus_climate_compute_heatwaves <- function(
 .hw_build_summary <- function(events, daily, method) {
 
   if (nrow(events) == 0L) {
-    return(dplyr::as_tibble(
+    return(tibble::tibble(
       year = integer(), station_code = character(), method = character(),
       n_events = integer(), total_days_hw = integer(),
       mean_duration = double(), max_duration = integer(),
