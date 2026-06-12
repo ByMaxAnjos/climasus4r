@@ -253,6 +253,27 @@ articles:
       - climate_indicators
       - tutorial_clima_inmet
       - ondas_de_calor
+  - title: "Trilha do Pipeline em 9 Etapas"
+    contents:
+      - 01-importacao
+      - 02-encoding-padronizacao
+      - 03-filtragem
+      - 04-variaveis-agregacao
+      - 05-juncao-espacial
+      - 06-socioeconomico
+      - 07-clima-estacoes
+      - 08-clima-grade
+      - 09-modelagem
+  - title: "Modelagem Avançada"
+    contents:
+      - mod-01-dlnm
+      - mod-02-atribuivel
+      - mod-03-crossover-its
+      - mod-04-multicidade
+      - mod-05-ml
+      - mod-06-espacial
+      - mod-07-bayes
+      - mod-08-vulnerabilidade-swot
 
 
       
