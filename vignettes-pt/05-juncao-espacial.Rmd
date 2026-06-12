@@ -1,0 +1,310 @@
+---
+title: "Tutorial 5: Junção Espacial"
+author: "Equipe climasus4r"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output:
+  html_document:
+    css: _tutorial-style.css
+    toc: true
+    toc_float: true
+    number_sections: false
+---
+
+```{r setup, include=FALSE}
+# ATENÇÃO — estratégia de pré-renderização.
+# Este tutorial NÃO executa downloads de geometrias durante a renderização.
+# Todas as figuras e tabelas foram geradas UMA vez pelo script
+# scripts/tutorial_05_juncao_espacial.R e são apenas carregadas aqui
+# (PNG via include_graphics; RDS via readRDS). Por isso, os chunks de ensino
+# abaixo usam eval = FALSE: o código é mostrado, mas não é executado no knit.
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+
+# Helpers para exibir artefatos de forma robusta: se o arquivo ainda não foi
+# gerado (script de geração não executado), mostram uma nota em vez de quebrar
+# o knit. Assim a vignette renderiza a qualquer momento.
+fig_ou_nota <- function(path, nota) {
+  if (file.exists(path)) knitr::include_graphics(path)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+tbl_ou_nota <- function(path, nota, caption = NULL) {
+  if (file.exists(path)) knitr::kable(readRDS(path), caption = caption)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+.nota_gerar <- "Artefato indisponível — rode `Rscript scripts/tutorial_05_juncao_espacial.R` (a partir da raiz do pacote) para gerá-lo."
+```
+
+# Objetivo
+
+Ao final deste tutorial você será capaz de **atribuir uma geometria a cada
+registro de saúde** — ligando a série temporal construída na etapa anterior às
+**unidades geográficas oficiais do Brasil** (municípios, biomas, regiões de
+saúde, regiões metropolitanas, áreas urbanas, terras indígenas, CEP) — com
+`sus_spatial_join()`, e a **integrar dados ambientais em grade** ao pipeline de
+saúde com `sus_grid_join()`.
+
+A junção espacial é a **quinta etapa** do pipeline do `climasus4r`. Ela
+transforma uma tabela "comum" (saúde × data × código municipal) em um objeto
+**`sf`** com geometria explícita, requisito para mapear, calcular vizinhança e —
+fundamental no caso condutor — cruzar com indicadores socioeconômicos (Tutorial
+6) e com clima em grade (Tutorial 8).
+
+# Contexto científico
+
+Estudos de clima e saúde são, por natureza, **espaciais**: a exposição
+(temperatura, poluição) e o desfecho (óbitos, internações) ocorrem em lugares
+concretos. Ligar o dado de saúde à sua unidade geográfica permite mapear
+desigualdades, controlar confundidores contextuais e definir a **unidade de
+análise**. Essa escolha não é neutra: o **Problema da Unidade de Área
+Modificável** (MAUP; Openshaw, 1984) mostra que resultados estatísticos podem
+mudar conforme a escala (município vs. setor) e o particionamento (regiões de
+saúde vs. metropolitanas) adotados.
+
+No Brasil, as geometrias oficiais vêm do **IBGE** e são acessadas pelo pacote
+`geobr` (Pereira et al., 2019). O `climasus4r` encapsula esse acesso em
+`sus_spatial_join()`, acrescentando **cache** de geometrias e **normalização de
+códigos** — um ponto sensível, pois o código municipal do IBGE tem **7 dígitos**
+(com dígito verificador), enquanto os Sistemas de Informação em Saúde
+costumam gravar **6 dígitos**. A função alinha as duas representações
+automaticamente. O sistema de referência de coordenadas adotado é o **SIRGAS
+2000** (EPSG:4674), padrão oficial brasileiro, reprojetado para WGS84
+(EPSG:4326) quando se calculam centroides.
+
+> **Chapéu do geógrafo.** Três cuidados atravessam esta etapa: (i) o **CRS**
+> (use sempre SIRGAS 2000 / WGS84 de forma consistente); (ii) a diferença entre
+> código IBGE de **6 e 7 dígitos** (resolvida pela função); e (iii) o **MAUP** —
+> a escala e o recorte escolhidos afetam a inferência, então documente-os.
+
+> **Caso condutor.** Investigamos **temperatura e desfechos em idosos (60+) na
+> Região Metropolitana de São Paulo, 2014–2019**. Nesta etapa, ligamos a série
+> de óbitos respiratórios (saída do Tutorial 4) aos **municípios da RMSP**,
+> obtendo o objeto espacial que o Tutorial 6 (Socioeconômico) usará.
+
+# Dados utilizados
+
+| Insumo | Origem | Papel no caso |
+|--------|--------|---------------|
+| `caso_serie.rds` | Tutorial 4 (série agregada por município × data) | Entrada de saúde |
+| Geometrias municipais | IBGE via `geobr::read_municipality()` | Polígonos da RMSP |
+| Grade climática (demonstração) | sintética (clima real entra no T8) | Ilustra `sus_grid_join()` |
+
+A entrada é o objeto **`dados/caso_serie.rds`** (carregado com guarda
+`file.exists()`; na ausência, o script usa um exemplo mínimo sintético). A saída
+é **`dados/caso_espacial.rds`**, que alimenta o Tutorial 6.
+
+# Pipeline completo
+
+Os blocos abaixo reproduzem o que o script
+`scripts/tutorial_05_juncao_espacial.R` executa. Comece carregando o pacote:
+
+```{r carregar}
+library(climasus4r)
+```
+
+## Carregar a série de saúde (saída do Tutorial 4)
+
+```{r carregar-entrada}
+# A etapa anterior salvou a série agregada (óbitos respiratórios × município × data).
+caso_serie  <- readRDS("dados/caso_serie.rds")
+serie_saude <- if (is.data.frame(caso_serie)) caso_serie else caso_serie$serie
+```
+
+## Ligar a série aos municípios com `sus_spatial_join()`
+
+`sus_spatial_join()` **detecta automaticamente** a coluna de código municipal
+(`join_col = NULL`), baixa as geometrias do `geobr` (com cache) e devolve um
+objeto **`sf`** em `stage = "spatial"`. O nível padrão é `"munic"`:
+
+```{r spatial-join-munic}
+caso_espacial <- sus_spatial_join(
+  df        = serie_saude,
+  level     = "munic",     # município (padrão)
+  join_col  = NULL,         # auto-detecção da coluna geográfica
+  lang      = "pt",
+  use_cache = TRUE,         # reaproveita geometrias já baixadas
+  cache_dir = "~/.climasus4r_cache/spatial",
+  verbose   = TRUE
+)
+```
+
+A função aceita muitos **outros níveis** geográficos — basta trocar `level`:
+
+```{r spatial-join-niveis}
+# Bioma (chapéu ambiental):
+sf_bioma <- sus_spatial_join(serie_saude, level = "biomes", lang = "pt")
+
+# Região metropolitana:
+sf_metro <- sus_spatial_join(serie_saude, level = "metro_area", lang = "pt")
+
+# Geocodificação por CEP (somente sistemas SIH e CNES, gera POINTs):
+sf_cep   <- sus_spatial_join(df_sih, level = "cep", lang = "pt")
+```
+
+## Integrar dados ambientais em grade com `sus_grid_join()`
+
+`sus_grid_join()` é a **ponte** entre o pipeline ambiental (`sus_grid_*`, que
+produz objetos em `stage = "climate"`) e o pipeline de saúde. Ele une as duas
+tabelas pela chave espaço-temporal `c("code_muni", "date")` (clima real entra no
+Tutorial 8; aqui o uso é ilustrativo):
+
+```{r grid-join}
+# grid_clim é a saída de uma função sus_grid_*() (ERA5, CHIRPS, ...), stage = "climate"
+caso_clima <- sus_grid_join(
+  health_data = caso_espacial,
+  grid_data   = grid_clim,
+  by          = c("code_muni", "date"),  # chave espaço-temporal
+  type_out    = NULL,                      # herda o type do grid
+  lang        = "pt",
+  verbose     = TRUE
+)
+
+sus_meta(caso_clima, "stage")  # "climate"
+```
+
+> **Granularidade temporal.** Se a saúde for **mensal** e a grade **diária**, o
+> join por `date` gera muitos `NA`. Nesse caso, agregue a grade antes (com
+> `sus_climate_aggregate()`) ou, para grades **anuais** (ex.: PRODES), una só por
+> `by = c("code_muni")` — o valor anual é replicado para todos os meses.
+
+Ao final desta etapa temos `caso_espacial` — a série de saúde **com geometria**,
+salva para o Tutorial 6.
+
+# Características das funções
+
+## `sus_spatial_join()`
+
+Liga dados de saúde a geometrias oficiais do Brasil (`geobr`) ou geocodifica CEP.
+Exige um `climasus_df` em `stage` mínimo `"stand"` e devolve um objeto `sf` em
+`stage = "spatial"`.
+
+| Argumento | Essencial? | Descrição |
+|-----------|------------|-----------|
+| `df` | sim | `climasus_df` (mín. padronizado) com coluna de identificador geográfico |
+| `level` | sim | Unidade geográfica. `"munic"` (padrão); `"biomes"`, `"health_region"`, `"amazon"`, `"semiarid"`, `"conservation_units"`, `"disaster_risk_area"`, `"indigenous_land"`, `"urban_area"`, `"metro_area"`, `"urban_concentrations"`, `"pop_arrangements"`, `"schools"`, `"health_facilities"`, `"neighborhood"`, `"cep"` |
+| `join_col` | opcional | Coluna com o código geográfico; `NULL` (padrão) auto-detecta |
+| `use_cache` / `cache_dir` | recomendado | Cache de geometrias em `~/.climasus4r_cache/spatial` |
+| `lang` / `verbose` | opcional | Idioma (`"pt"`, `"en"`, `"es"`) e mensagens de progresso |
+
+**Restrições por sistema:** `"cep"` e `"neighborhood"` só para **SIH/CNES**;
+`"health_facilities"` só para **CNES**.
+
+**Retorno:** objeto `sf` (`climasus_df`, `stage = "spatial"`, `type = level`) com
+as colunas originais mais `geometry` — **POLYGON/MULTIPOLYGON** para níveis de
+área, **POINT** para `"cep"`/`"health_facilities"`.
+
+**Normalização de códigos.** Aceita códigos municipais de **6 ou 7 dígitos** (o
+verificador é tratado automaticamente); CEP é preenchido com zeros à esquerda
+(8 caracteres); todas as chaves são coagidas a texto. A junção de área é um
+`inner_join` — códigos sem geometria correspondente são **descartados** (veja a
+Figura 3).
+
+## `sus_grid_join()`
+
+Une a saída de qualquer `sus_grid_*()` (em `stage = "climate"`) a um
+`climasus_df` de saúde (em `stage` `"spatial"`, `"aggregate"` ou `"census"`),
+produzindo um `climasus_df` em `stage = "climate"`.
+
+| Argumento | Essencial? | Descrição |
+|-----------|------------|-----------|
+| `health_data` | sim | `climasus_df` de saúde com `code_muni` e `date` |
+| `grid_data` | sim | `climasus_df` em `stage = "climate"` (saída de `sus_grid_*`) |
+| `by` | opcional | Chave de junção; padrão `c("code_muni", "date")`; use `c("code_muni")` para grade anual |
+| `type_out` | opcional | Sobrescreve o `type` do resultado; `NULL` herda do grid |
+| `lang` / `verbose` | opcional | Idioma e mensagens |
+
+**Retorno:** `climasus_df` (`stage = "climate"`) com as colunas de saúde mais as
+variáveis ambientais; usa **`left_join`**, então linhas de saúde sem grade
+correspondente recebem `NA`. A geometria `sf` é descartada antes do join (a
+junção é tabular, pela chave). A função **avisa** sobre colisão de nomes de
+coluna e sobre **descasamento de granularidade temporal**.
+
+# Formalização
+
+A junção de área pode ser vista como um mapeamento da chave municipal
+$k$ (código IBGE) para a geometria $G(k)$ do conjunto de geometrias
+$\mathcal{G}$:
+
+$$
+\text{join}(r) =
+\begin{cases}
+(r,\, G(k_r)) & \text{se } k_r \in \mathcal{G} \quad (\text{inner: descarta o resto}) \\[4pt]
+\varnothing   & \text{caso contrário}
+\end{cases}
+$$
+
+onde $r$ é um registro de saúde e $k_r$ seu código municipal. A **taxa de
+correspondência** (controle de qualidade da Figura 3) é
+
+$$
+\text{cobertura} = \frac{\bigl|\{\,k : k \in \mathcal{K}_{\text{entrada}} \cap \mathcal{K}_{\text{geobr}}\,\}\bigr|}
+{\bigl|\mathcal{K}_{\text{entrada}}\bigr|},
+$$
+
+a fração dos códigos de entrada $\mathcal{K}_{\text{entrada}}$ que encontram
+geometria em $\mathcal{K}_{\text{geobr}}$. Para `sus_grid_join()`, a fração de
+linhas com clima ausente é $\frac{1}{n}\sum_{i=1}^{n} \mathbf{1}\{x_i = \text{NA}\}$,
+diretamente reportada na mensagem de conclusão.
+
+# Resultados ilustrados
+
+```{r fig-mapa, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/geo_mapa_obitos.png",
+            "Figura 1 indisponível: o mapa requer sf + geobr e acesso à internet. Reexecute o script de geração.")
+```
+
+**Figura 1.** Mapa coroplético dos óbitos respiratórios por município após a
+junção espacial (RMSP, 2014–2019). Cada polígono carrega agora o desfecho de
+saúde — base para mapear desigualdades e cruzar com indicadores contextuais.
+
+```{r fig-serie, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/geo_serie.png", .nota_gerar)
+```
+
+**Figura 2.** Série mensal preservada após a junção. A junção espacial **adiciona
+geometria sem alterar a estrutura temporal**: a dimensão tempo segue intacta para
+a modelagem (Tutorial 9).
+
+```{r fig-cobertura, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/geo_cobertura.png", .nota_gerar)
+```
+
+**Figura 3.** Diagnóstico de cobertura da junção. Como `sus_spatial_join()` usa
+`inner_join`, códigos municipais sem geometria correspondente no `geobr` são
+descartados. Verificar essa taxa é um controle de qualidade essencial (evita
+perda silenciosa de registros).
+
+```{r tab-resumo, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/geo_resumo.rds", .nota_gerar,
+            caption = "Tabela 1. Resumo da junção espacial (nível, CRS, linhas antes/depois, geometria).")
+```
+
+```{r tab-amostra, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/geo_amostra.rds", .nota_gerar,
+            caption = "Tabela 2. Amostra das colunas-chave do objeto sf resultante (geometria omitida).")
+```
+
+# Referências
+
+- Openshaw, S. (1984). *The Modifiable Areal Unit Problem*. CATMOG 38. Norwich:
+  Geo Books.
+- Pereira, R. H. M., Gonçalves, C. N., et al. (2019). *geobr: Loads Shapefiles
+  of Official Spatial Data Sets of Brazil*. GitHub: <https://github.com/ipeaGIT/geobr>.
+- Pereira, R. H. M., & Barbosa, R. J. (2023). *censobr: Download Data from
+  Brazil's Population Census*. R package v0.4.0.
+  DOI: 10.32614/CRAN.package.censobr.
+- IBGE — Instituto Brasileiro de Geografia e Estatística. Sistema de referência
+  geocêntrico SIRGAS 2000.
+
+---
+
+# Navegação
+
+- [Voltar ao hub de tutoriais](tutorials.html)
+- **Anterior:** Tutorial 4 — Criação de Variáveis e Agregação
+- **Próximo:** Tutorial 6 — Vínculo Socioeconômico (em breve)
+
+> **Como reproduzir as figuras.** Rode uma única vez, a partir da raiz do pacote:
+> `Rscript scripts/tutorial_05_juncao_espacial.R`. O script lê
+> `dados/caso_serie.rds` (Tutorial 4), salva as figuras em
+> `vignettes-pt/figuras/`, as tabelas em `vignettes-pt/dados/` e o objeto
+> espacial (`caso_espacial.rds`) que o Tutorial 6 carregará.
+```

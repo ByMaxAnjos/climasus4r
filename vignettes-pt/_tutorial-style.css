@@ -1,0 +1,342 @@
+/* ==========================================================================
+   climasus4r — Tema "Climate Forest" para páginas de tutorial (html_document)
+   Reutiliza as variáveis :root e as classes de card de vignettes-pt/tutorials.Rmd
+   ========================================================================== */
+
+:root {
+  --cf-bg-page: #F1F8E9;         /* Fundo da página (Menta suave) */
+  --cf-card-bg: #FFFFFF;         /* Fundo do card */
+  --cf-primary: #2E7D32;         /* Verde Floresta (Títulos, Bordas) */
+  --cf-secondary: #558B2F;       /* Verde Folha (Ícones) */
+  --cf-accent: #EF6C00;          /* Laranja Queimado (Botões/Badges) */
+  --cf-text-main: #1B5E20;       /* Texto escuro */
+  --cf-text-light: #52665A;      /* Texto de descrição */
+  --cf-shadow: 0 10px 30px -10px rgba(46, 125, 50, 0.15);
+}
+
+/* ==========================================================================
+   Página geral
+   ========================================================================== */
+
+body {
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: #2c3e30;
+  background-color: #ffffff;
+  line-height: 1.7;
+  font-size: 16px;
+}
+
+.main-container,
+.container-fluid {
+  max-width: 980px;
+}
+
+/* ==========================================================================
+   Títulos
+   ========================================================================== */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+h1 {
+  color: var(--cf-primary);
+  border-bottom: 3px solid var(--cf-primary);
+  padding-bottom: 0.35em;
+  margin-top: 1.4em;
+}
+
+h2 {
+  color: var(--cf-primary);
+  border-bottom: 1px solid rgba(46, 125, 50, 0.25);
+  padding-bottom: 0.25em;
+  margin-top: 1.8em;
+}
+
+h3 {
+  color: var(--cf-secondary);
+  margin-top: 1.4em;
+}
+
+h4, h5, h6 {
+  color: var(--cf-text-main);
+}
+
+/* ==========================================================================
+   Links
+   ========================================================================== */
+
+a {
+  color: var(--cf-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--cf-accent);
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   Tabelas (cabeçalho verde claro, linhas zebradas, bordas arredondadas)
+   ========================================================================== */
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 1.5em 0;
+  font-size: 0.95rem;
+  border: 1px solid rgba(46, 125, 50, 0.18);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--cf-shadow);
+}
+
+table thead th {
+  background-color: #E8F5E9;
+  color: var(--cf-text-main);
+  font-weight: 700;
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 2px solid var(--cf-primary);
+}
+
+table tbody td {
+  padding: 10px 14px;
+  border-top: 1px solid rgba(46, 125, 50, 0.10);
+}
+
+table tbody tr:nth-child(even) {
+  background-color: #F6FBF2;
+}
+
+table tbody tr:hover {
+  background-color: #ECF6E6;
+}
+
+/* ==========================================================================
+   Blocos e trechos de código
+   ========================================================================== */
+
+code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  background-color: #f1f5f9;
+  color: #1b5e20;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+pre {
+  background-color: #f1f5f9;
+  border: 1px solid rgba(46, 125, 50, 0.15);
+  border-left: 4px solid var(--cf-secondary);
+  border-radius: 8px;
+  padding: 1em 1.2em;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+
+pre code {
+  background-color: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: 0.88em;
+}
+
+/* ==========================================================================
+   Citações
+   ========================================================================== */
+
+blockquote {
+  border-left: 4px solid var(--cf-secondary);
+  background-color: var(--cf-bg-page);
+  color: var(--cf-text-light);
+  margin: 1.4em 0;
+  padding: 0.6em 1.2em;
+  border-radius: 0 8px 8px 0;
+}
+
+/* ==========================================================================
+   Legenda de figura
+   ========================================================================== */
+
+img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  margin: 1.2em auto 0.4em auto;
+}
+
+.fig-legenda {
+  display: block;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--cf-text-light);
+  font-style: italic;
+  margin: 0 auto 1.8em auto;
+  max-width: 90%;
+  line-height: 1.5;
+}
+
+.fig-legenda strong,
+.fig-legenda b {
+  color: var(--cf-text-main);
+  font-style: normal;
+}
+
+/* ==========================================================================
+   Callouts: nota (informativo) e aviso (atenção)
+   ========================================================================== */
+
+.tut-nota,
+.tut-aviso {
+  border-radius: 10px;
+  padding: 1em 1.2em 1em 3rem;
+  margin: 1.6em 0;
+  position: relative;
+  line-height: 1.6;
+  box-shadow: var(--cf-shadow);
+}
+
+.tut-nota {
+  background-color: #E8F5E9;
+  border-left: 5px solid var(--cf-primary);
+  color: var(--cf-text-main);
+}
+
+.tut-aviso {
+  background-color: #FFF3E0;
+  border-left: 5px solid var(--cf-accent);
+  color: #7a3e00;
+}
+
+.tut-nota::before,
+.tut-aviso::before {
+  position: absolute;
+  left: 1rem;
+  top: 1em;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
+.tut-nota::before {
+  content: "\1F343"; /* folha */
+}
+
+.tut-aviso::before {
+  content: "\26A0"; /* sinal de atenção */
+}
+
+.tut-nota p:last-child,
+.tut-aviso p:last-child {
+  margin-bottom: 0;
+}
+
+/* ==========================================================================
+   Grade e cards de tutorial (reaproveitados de tutorials.Rmd)
+   ========================================================================== */
+
+.tutorial-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 2rem 0;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.tutorial-card {
+  background: var(--cf-card-bg);
+  border-radius: 12px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(46, 125, 50, 0.1);
+  border-left: 5px solid var(--cf-primary);
+  box-shadow: var(--cf-shadow);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.tutorial-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 15px 35px -10px rgba(46, 125, 50, 0.25);
+  border-color: var(--cf-secondary);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.2rem;
+}
+
+.card-icon {
+  color: var(--cf-secondary);
+  background-color: #E8F5E9;
+  padding: 10px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-badge {
+  background-color: var(--cf-bg-page);
+  color: var(--cf-primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  border: 1px solid rgba(46, 125, 50, 0.2);
+}
+
+.card-title {
+  color: var(--cf-text-main);
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.2;
+}
+
+.card-description {
+  color: var(--cf-text-light);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  flex-grow: 1;
+  margin-bottom: 2rem;
+}
+
+.card-cta-button {
+  background-color: var(--cf-primary);
+  color: white !important;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-cta-button:hover {
+  background-color: var(--cf-secondary);
+  text-decoration: none;
+  transform: translateX(4px);
+}
+
+.tutorial-card svg {
+  width: 24px;
+  height: 24px;
+}

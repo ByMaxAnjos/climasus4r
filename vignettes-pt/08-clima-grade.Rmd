@@ -1,0 +1,573 @@
+---
+title: "Tutorial 8: Dados Climáticos e Ambientais em Grade"
+author: "Equipe climasus4r"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output:
+  html_document:
+    css: _tutorial-style.css
+    toc: true
+    toc_float: true
+    number_sections: false
+---
+
+```{r setup, include=FALSE}
+# ATENÇÃO — estratégia de pré-renderização.
+# Este tutorial NÃO executa downloads durante a renderização. Todas as figuras e
+# tabelas foram geradas UMA vez pelo script scripts/tutorial_08_clima_grade.R e
+# são apenas carregadas aqui (PNG via include_graphics; RDS via readRDS).
+# Por isso, os chunks de ensino abaixo usam eval = FALSE: o código é mostrado,
+# mas não é executado no momento do knit.
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+
+# Helpers para exibir artefatos de forma robusta: se o arquivo ainda não foi
+# gerado (script de geração não executado), mostram uma nota em vez de quebrar
+# o knit. Assim a vignette renderiza a qualquer momento.
+fig_ou_nota <- function(path, nota) {
+  if (file.exists(path)) knitr::include_graphics(path)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+tbl_ou_nota <- function(path, nota, caption = NULL) {
+  if (file.exists(path)) knitr::kable(readRDS(path), caption = caption)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+.nota_gerar <- "Artefato indisponível — rode `Rscript scripts/tutorial_08_clima_grade.R` (a partir da raiz do pacote) para gerá-lo."
+```
+
+# Objetivo
+
+Ao final deste tutorial você será capaz de **integrar dados climáticos e
+ambientais em grade** (sensoriamento remoto e reanálise) à sua série de saúde:
+importar o **ERA5-Land** (~10 km) com `sus_grid_era5()` e agregá-lo a polígonos
+municipais; conhecer a família completa `sus_grid_*` (precipitação CHIRPS,
+focos de queimada, secas PDSI/SMVI, desmatamento PRODES e poluição
+CAMS/GHAP/MERRA-2); e derivar **indicadores climáticos para epidemiologia**:
+anomalias (`sus_climate_anomaly()`), índices bioclimáticos
+(`sus_climate_compute_indicators()`), ondas de calor
+(`sus_climate_compute_heatwaves()` + `sus_climate_plot_heatwaves()`) e os
+índices de seca **SPI** (`sus_climate_compute_spi()`) e **SPEI**
+(`sus_climate_compute_spei()`).
+
+Esta é a **oitava etapa** do pipeline: enquanto o Tutorial 7 construiu a
+exposição climática a partir de **estações** INMET (medições pontuais), aqui
+construímos uma exposição **alternativa e complementar em grade** — cobertura
+espacial contínua, sem lacunas de observação — que alimentará o modelo DLNM do
+Tutorial 9.
+
+# Contexto científico
+
+## Estação vs. pixel: duas formas de medir a exposição
+
+Uma estação meteorológica mede o clima em um **ponto**; um produto em grade
+representa o valor **médio de um pixel** (uma célula de área fixa). O
+**ERA5-Land** (Muñoz-Sabater et al., 2021) é uma **reanálise**: um modelo
+físico de superfície terrestre alimentado por observações, que produz campos
+horários contínuos desde 1950 em resolução de ~0,1° (**~10 km** no equador).
+Para o Brasil, o projeto *ERA5-Land Daily Aggregates for Latin America*
+(Saldanha, Zenodo, CC-BY 4.0) disponibiliza agregados **diários** prontos, sem
+chave de API — é essa a fonte usada por `sus_grid_era5()`.
+
+Três cuidados de quem trabalha com sensoriamento remoto/reanálise:
+
+1. **Resolução e representatividade.** Um pixel de ~10 km é uma média areal:
+   suaviza extremos locais (ilhas de calor urbanas, microclimas de vale) que
+   uma estação pontual captura. Em contrapartida, cobre municípios **sem
+   estação** e não tem dados faltantes. Para um município extenso como São
+   Paulo (~1.500 km²), dezenas de pixels são agregados ao polígono — o
+   `climasus4r` faz isso com média **ponderada pela área** de interseção
+   (via `exactextractr`), o que evita viés de borda.
+2. **Unidades físicas.** Os arquivos NetCDF originais vêm em unidades do
+   sistema internacional: temperatura em **Kelvin** (conversão K → °C:
+   subtrair 273,15), precipitação em **metros** (m → mm: multiplicar por
+   1.000) e pressão em **Pa** (Pa → hPa: dividir por 100). `sus_grid_era5()`
+   aplica essas conversões automaticamente e entrega colunas canônicas
+   (`tair_dry_bulb_c`, `rainfall_mm`, ...).
+3. **Validação cruzada.** Reanálise não substitui observação: o recomendado é
+   comparar a série de grade com a estação INMET mais próxima (Tutorial 7)
+   antes de escolher a exposição do modelo — diferenças sistemáticas (viés)
+   são esperadas e documentáveis.
+
+## Dos campos brutos aos indicadores epidemiológicos
+
+A literatura de clima-saúde raramente usa a temperatura bruta diretamente:
+
+- **Anomalias** (WMO, 2017) tornam cidades com climas distintos comparáveis e
+  apontam os dias extremos a correlacionar com picos de mortalidade
+  (Gasparrini et al., 2017);
+- **Ondas de calor** definidas por percentis e duração (Perkins & Alexander,
+  2013; Geirinhas et al., 2018) e pelo *Excess Heat Factor* — EHF (Nairn &
+  Fawcett, 2015) capturam o efeito agudo do calor sustentado;
+- **SPI** (McKee et al., 1993) e **SPEI** (Vicente-Serrano et al., 2010)
+  padronizam seca/umidade em múltiplas escalas temporais — relevantes para
+  doenças diarreicas, leptospirose e arboviroses;
+- **Índices bioclimáticos** (UTCI, Bröde et al., 2012; WBGT, Liljegren et al.,
+  2008; HI, Rothfusz, 1990) combinam temperatura, umidade, vento e radiação em
+  uma única medida de estresse térmico humano.
+
+> **Caso condutor.** Seguimos com **temperatura e desfechos de saúde em idosos
+> (60+) na RM de São Paulo, 2014–2019**. Neste tutorial importamos o ERA5-Land
+> para o município de São Paulo e derivamos anomalias, ondas de calor e
+> SPI/SPEI. O resultado (`caso_clima_grade.rds`) entra no Tutorial 9 como
+> exposição alternativa/complementar à de estação (`caso_clima_estacao.rds`,
+> Tutorial 7).
+
+# Dados utilizados
+
+| Fonte | Função | Resolução | Variáveis | Papel no caso |
+|-------|--------|-----------|-----------|---------------|
+| ERA5-Land (Zenodo) | `sus_grid_era5()` | ~10 km, diária | Tmédia, Tmáx, Tmín, precipitação | Exposição de grade principal |
+| Série de saúde (T4) | `dados/caso_serie.rds` | Município × dia | Óbitos J00–J99/I00–I99, 60+ | Esqueleto temporal/espacial |
+
+Entrada encadeada: `dados/caso_serie.rds` (Tutorial 4). Saída:
+`dados/caso_clima_grade.rds` (lista com a série diária ERA5-Land, a série
+saúde+clima alinhada, SPI/SPEI mensais e os eventos de onda de calor).
+
+A família `sus_grid_*` cobre outras fontes ambientais com a **mesma
+gramática** (anos/meses, `municipalities` como objeto `sf`, agregação por
+pixel→polígono, cache):
+
+| Função | Fonte | Tema |
+|--------|-------|------|
+| `sus_grid_chirps()` | CHIRPS (0,05°) | Precipitação (Funk et al., 2015) |
+| `sus_grid_fires()` | INPE/Queimadas | Focos de calor |
+| `sus_grid_pdsi()` | PDSI | Seca (índice de Palmer) |
+| `sus_grid_smvi()` | SMVI | Seca-relâmpago (umidade do solo) |
+| `sus_grid_prodes()` | PRODES/TerraBrasilis | Desmatamento |
+| `sus_grid_pollution_cams()` | CAMS/Copernicus | Poluição do ar (reanálise) |
+| `sus_grid_pollution_ghap()` | GHAP | PM2.5 em alta resolução |
+| `sus_grid_pollution_merra2()` | MERRA-2/NASA | Aerossóis e poluentes |
+| `sus_grid_join()` | — | Junta grades à base de saúde por `code_muni` × `date` |
+
+# Pipeline completo
+
+Os blocos abaixo reproduzem o que `scripts/tutorial_08_clima_grade.R` executa.
+Comece carregando o pacote e a série de saúde encadeada:
+
+```{r carregar}
+library(climasus4r)
+
+caso_serie <- readRDS("dados/caso_serie.rds")  # série diária de saúde (T4)
+```
+
+## Importar ERA5-Land para o município de São Paulo
+
+Primeiro obtemos o polígono municipal (objeto `sf` via `geobr`) e então
+chamamos `sus_grid_era5()`. A função baixa os NetCDF do Zenodo (sem chave de
+API), converte unidades (K → °C; m → mm) e agrega cada pixel ao polígono com
+média ponderada pela área:
+
+```{r import-era5}
+library(geobr)
+
+sp_geom <- read_municipality(code_muni = "SP", year = 2020)
+sp_geom <- sp_geom[as.character(sp_geom$code_muni) == "3550308", ]  # São Paulo
+
+era5_sp <- sus_grid_era5(
+  years          = 2014:2019,
+  months         = 1:12,
+  vars           = c("t2m", "t2m_max", "t2m_min", "tp"),
+  municipalities = sp_geom,    # sf -> agrega raster ao polígono
+  agg_fun        = "mean",     # média areal (ponderada) do município
+  use_cache      = TRUE,       # NetCDF reaproveitados em ~/.climasus4r_cache/era5
+  parallel       = FALSE,
+  lang           = "pt",
+  verbose        = TRUE
+)
+
+sus_meta(era5_sp, "stage")  # "climate"
+sus_meta(era5_sp, "type")   # "era5_land"
+```
+
+O retorno é um `climasus_df` com `code_muni`, `date` e uma coluna por
+variável: `tair_dry_bulb_c` (t2m), `tair_max_c` (t2m_max), `tair_min_c`
+(t2m_min) e `rainfall_mm` (tp).
+
+```{r tab-resumo, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/grid_resumo.rds", .nota_gerar,
+            caption = "Tabela 1. Resumo da série diária ERA5-Land para São Paulo, 2014–2019.")
+```
+
+## Anomalias climáticas
+
+`sus_climate_anomaly()` compara observações às **normais climatológicas** do
+INMET (de `sus_climate_normals()`), com três métodos — absoluto, relativo e
+padronizado:
+
+```{r anomalia}
+normais <- sus_climate_normals(
+  period     = "1991-2020",
+  target_var = c("t_max", "t_min", "t_mean_comp", "precipitation")
+)
+
+anom <- sus_climate_anomaly(
+  observed   = clima_estacao,        # climasus_df do T7 (estações INMET)
+  normals    = normais,
+  method     = "standardized",       # z-score: comparável entre cidades
+  time_scale = "monthly",
+  lang       = "pt"
+)
+```
+
+Como a série ERA5-Land usa `code_muni` (e não `station_code` casado às
+normais INMET), o script de geração ilustra a **mesma matemática** com a
+climatologia mensal derivada da própria série — obs − média do mês e o
+z-score correspondente (ver fórmulas adiante).
+
+## Indicadores bioclimáticos (demonstrativo)
+
+`sus_climate_compute_indicators()` calcula WBGT, HI, THI, UTCI, PET,
+graus-dia (CDD/HDD/GDD) e outros, a partir de dados **horários** com
+temperatura, umidade (`rh_mean_porc`), radiação (`sr_kj_m2`) e vento
+(`ws_2_m_s`):
+
+```{r indicadores}
+clima_ind <- sus_climate_compute_indicators(
+  df         = clima_horario,                  # T7 (INMET horário) ou ERA5 com td2m/u10/v10/sp
+  indicators = c("wbgt", "hi", "utci"),
+  region     = "atlantic_forest",              # limiares adaptados ao bioma
+  lang       = "pt"
+)
+```
+
+A série ERA5-Land mínima deste tutorial (apenas temperatura e chuva) não traz
+umidade/vento/radiação; em fluxo real, aplique a função sobre o INMET horário
+(T7) ou peça `vars = "all"` em `sus_grid_era5()` (inclui `td2m`, `u10`, `v10`,
+`sp`).
+
+## Ondas de calor
+
+`sus_climate_compute_heatwaves()` espera um `climasus_df` em
+`stage = "climate"` com `date`, `station_code` e colunas de temperatura.
+Adaptamos a série de grade a esse contrato (`station_code = code_muni`) e
+aplicamos três métodos:
+
+```{r ondas-calor}
+hw <- sus_climate_compute_heatwaves(
+  df             = era5_hw,                   # ERA5 adaptado ao contrato de estação
+  method         = c("WHO", "WMO", "INMET"),  # ou "all" (inclui EHF, UTCI, WBGT, HI)
+  baseline_start = "2014-01-01",              # período de referência dos percentis
+  baseline_end   = "2019-12-31",
+  percentile     = 90,                        # P90 para WHO/WMO
+  lang           = "pt"
+)
+
+hw$events    # um evento por linha: início, fim, duração, pico, intensidade
+hw$daily     # flags diárias hw_who, hw_wmo, hw_inmet, hw_any
+hw$summary   # resumo anual por estação e método
+```
+
+A visualização pronta vem de `sus_climate_plot_heatwaves()`:
+
+```{r plot-hw}
+sus_climate_plot_heatwaves(
+  hw,
+  type        = "trend",     # ou "timeline", "calendar", "intensity"
+  interactive = FALSE,       # TRUE -> plotly
+  lang        = "pt"
+)
+```
+
+## SPI e SPEI: secas e períodos úmidos
+
+Ambas as funções exigem dados **mensais** (uma linha por município × mês, com
+`date` no 1º dia do mês). Agregamos a série diária: precipitação por **soma**,
+temperatura por **média**:
+
+```{r spi-spei}
+mensal <- era5_sp |>
+  dplyr::mutate(date_m = as.Date(format(date, "%Y-%m-01"))) |>
+  dplyr::summarise(
+    rainfall_mm     = sum(rainfall_mm, na.rm = TRUE),
+    tair_dry_bulb_c = mean(tair_dry_bulb_c, na.rm = TRUE),
+    .by = c("code_muni", "date_m")
+  ) |>
+  dplyr::rename(date = date_m)
+
+# SPI: apenas precipitação (gamma + zeros)
+spi <- sus_climate_compute_spi(
+  df     = mensal,
+  var    = "rainfall_mm",        # padrão é "rainfall_chirps_mm" (sus_grid_chirps)
+  scales = c(1L, 3L, 6L),        # série de 6 anos: escalas curtas
+  min_n  = 24L,                  # mínimo de 24 meses para ajustar a distribuição
+  lang   = "pt"
+)
+
+# SPEI: balanço hídrico P - PET (PET de Thornthwaite, só temperatura)
+spei <- sus_climate_compute_spei(
+  df         = spi,
+  rain_var   = "rainfall_mm",
+  pet_method = "thornthwaite",   # ou "column" com pet_var = "pet_mm"
+  temp_var   = "tair_dry_bulb_c",
+  scales     = c(1L, 3L, 6L),
+  min_n      = 24L,
+  lang       = "pt"
+)
+
+names(spei)  # ..., spi_1mo, spi_3mo, spi_6mo, spei_1mo, spei_3mo, spei_6mo
+```
+
+> **Nota metodológica.** A OMM recomenda **≥ 30 anos** de calibração para
+> SPI/SPEI (`ref_start`/`ref_end`). Com 6 anos (72 meses) os índices deste
+> caso são **ilustrativos**: em pesquisa real, calibre com CHIRPS 1981–2010
+> (`sus_grid_chirps()`) ou ERA5-Land desde 1950.
+
+## Encadeamento: alinhar clima de grade à saúde e salvar para o T9
+
+Por fim, juntamos a temperatura ERA5-Land diária à série de saúde por `date`
+e salvamos o pacote de exposição de grade que o Tutorial 9 usará:
+
+```{r encadear}
+saude_clima <- dplyr::left_join(
+  caso_serie,
+  era5_sp |> dplyr::select(date, tair_dry_bulb_c, tair_max_c,
+                           tair_min_c, rainfall_mm),
+  by = "date"
+)
+
+caso_clima_grade <- list(
+  era5_diario = era5_sp,
+  saude_clima = saude_clima,
+  spi_spei    = spei,
+  ondas_calor = hw$events
+)
+saveRDS(caso_clima_grade, "dados/caso_clima_grade.rds")
+```
+
+# Características das funções
+
+## `sus_grid_era5()`
+
+Porta de entrada do ERA5-Land: baixa agregados diários do Zenodo (Saldanha,
+1950–2025) e agrega pixels a polígonos municipais.
+
+| Argumento | Essencial? | Descrição |
+|-----------|------------|-----------|
+| `years` | sim | Anos (1950–2025), ex.: `2014:2019` |
+| `months` | opcional | Meses 1–12 (padrão: todos) |
+| `vars` | opcional | Apelidos ERA5: `"t2m"`, `"t2m_max"`, `"t2m_min"`, `"td2m"`, `"u10"`, `"v10"`, `"sp"`, `"tp"` ou `"all"` (padrão `c("t2m","tp")`) |
+| `municipalities` | recomendado | Objeto `sf` com os polígonos (detecta `code_muni`/`CD_MUN`); `NULL` devolve só os caminhos NetCDF |
+| `agg_fun` | opcional | Agregação pixel→polígono via `exactextractr`: `"mean"` (padrão, ponderada por área), `"sum"`, `"median"`, `"min"`, `"max"` |
+| `use_cache` / `cache_dir` | recomendado | Reusa NetCDF baixados (`~/.climasus4r_cache/era5`) |
+| `parallel` / `workers` | opcional | Downloads em paralelo; respeita o `future::plan()` do usuário |
+| `lang` / `verbose` | opcional | Idioma (`"pt"`, `"en"`, `"es"`) e mensagens |
+
+**Retorno:** `climasus_df` [`stage = "climate"`, `type = "era5_land"`] com
+`code_muni`, `date` e colunas canônicas já em unidades práticas
+(`tair_dry_bulb_c` em °C, `rainfall_mm` em mm, `patm_hpa` em hPa).
+
+## `sus_climate_anomaly()`
+
+| Argumento | Descrição |
+|-----------|-----------|
+| `observed` | `climasus_df` de `sus_climate_inmet()` ou `sus_climate_aggregate()` |
+| `normals` | `climasus_df` de `sus_climate_normals()` (colunas `codigo`, `mes`, `decada`, `var_code`, `valor`) |
+| `vars` | Mapa coluna observada → `var_code` das normais, ex.: `c(tair_max_c = "t_max")`; `NULL` autodetecta |
+| `method` | `"absolute"` (padrão), `"relative"`, `"standardized"` ou `"all"` |
+| `time_scale` | `"monthly"` (padrão) ou `"decadal"` (decêndios de 10 dias) |
+| `station_col` / `date_col` | Nomes das colunas de estação e data (`"station_code"`, `"date"`) |
+
+**Retorno:** `climasus_df` [`stage = "climate"`, `type = "anomaly"`], uma linha
+por estação × ano × mês, com `{v}_obs`, `{v}_normal`, `{v}_anomaly` e, conforme
+o método, `{v}_anomaly_pct` e `{v}_anomaly_std`.
+
+## `sus_climate_compute_indicators()`
+
+| Argumento | Descrição |
+|-----------|-----------|
+| `df` | Dados horários de `sus_climate_inmet()`/`sus_climate_fill_inmet()` |
+| `indicators` | `"all"` (padrão) ou códigos: `"wbgt"`, `"hi"`, `"thi"`, `"wcet"`, `"wct"`, `"et"`, `"utci"`, `"pet"`, `"cdd"`, `"hdd"`, `"gdd"`, `"diurnal_range"`, `"vapor_pressure"`, `"heat_stress_risk"`, `"koppen_humidity"` |
+| `region` | `"auto"` (padrão) ou bioma: `"amazon"`, `"cerrado"`, `"caatinga"`, `"atlantic_forest"`, `"pampa"`, `"pantanal"`, `"southeast"`, `"south"` |
+| `confidence_flags` | Flags `_flag_extreme`/`_flag_high`/`_flag_low` por indicador |
+| `verify_physics` | Verifica radiação solar contra limites extraterrestres |
+| `compute_uncertainty` | IC 95% por Monte Carlo (200 simulações) |
+
+**Retorno:** `climasus_df` com colunas como `wbgt_c`, `hi_c`, `utci_c` —
+pré-requisito dos métodos UTCI/WBGT/HI de ondas de calor.
+
+## `sus_climate_compute_heatwaves()`
+
+| Argumento | Descrição |
+|-----------|-----------|
+| `df` | `climasus_df` [`stage="climate"`, type `inmet`/`filled`/`indicators`] com `date`, `station_code` e temperaturas |
+| `method` | `"WHO"`, `"WMO"`, `"INMET"`, `"EHF"`, `"UTCI"`, `"WBGT"`, `"HI"` ou `"all"` (métodos sem coluna requerida são pulados com aviso) |
+| `baseline_start` / `baseline_end` | Período de referência dos limiares; `NULL` usa a série toda |
+| `percentile` | Percentil dos limiares (padrão 90) |
+| `min_duration` | Dias consecutivos mínimos; `NULL` usa o padrão de cada método (WHO=3, WMO=5, INMET=5, EHF=3...) |
+
+**Retorno:** lista `climasus_hw` com `events` (eventos discretos), `daily`
+(flags diárias `hw_<método>`, `hw_any`) e `summary` (resumo anual).
+Visualização com `sus_climate_plot_heatwaves(hw_result, type = "timeline" |
+"calendar" | "intensity" | "trend", interactive, lang)`.
+
+## `sus_climate_compute_spi()` e `sus_climate_compute_spei()`
+
+| Argumento | SPI | SPEI |
+|-----------|-----|------|
+| `df` | mensal, com `code_muni` + `date` | idem |
+| variável de chuva | `var` (padrão `"rainfall_chirps_mm"`) | `rain_var` |
+| PET | — | `pet_method = "column"` (`pet_var`) ou `"thornthwaite"` (`temp_var`) |
+| `scales` | escalas em meses (padrão `c(1,3,6,12)`) | idem |
+| `ref_start` / `ref_end` | período de calibração (OMM: ≥ 30 anos) | idem |
+| `min_n` | mínimo de meses válidos por município (padrão 24) | idem |
+
+**Retorno:** o `climasus_df` de entrada com colunas `spi_{s}mo` /
+`spei_{s}mo` (`type = "spi"` / `"spei"`). Distribuições: gamma com mistura
+para zeros (SPI); log-logística de 3 parâmetros via L-momentos (SPEI).
+
+# Fórmulas
+
+**Anomalia** (WMO, 2017). Para a variável $x$ no mês $m$ do ano $t$, com
+normal climatológica $\bar{x}_m$ e desvio-padrão interanual $\sigma_m$:
+
+$$
+A_{t,m} = x_{t,m} - \bar{x}_m
+\qquad\text{(absoluta, °C)}
+$$
+
+$$
+Z_{t,m} = \frac{x_{t,m} - \bar{x}_m}{\sigma_m}
+\qquad\text{(padronizada, z-score)}
+$$
+
+O método `"relative"` divide por $|\bar{x}_m|$ e multiplica por 100 (%, usual
+para precipitação).
+
+**SPI** (McKee et al., 1993). A precipitação acumulada em $s$ meses,
+$P_s$, é ajustada a uma distribuição gamma (com probabilidade $p_0$ de meses
+secos) e transformada à normal padrão:
+
+$$
+\mathrm{SPI}_s = \Phi^{-1}\!\big[\, p_0 + (1 - p_0)\, F_\gamma(P_s)\,\big]
+$$
+
+onde $F_\gamma$ é a CDF gamma e $\Phi^{-1}$ a inversa da normal padrão.
+Valores $\le -1$ indicam seca moderada; $\le -1{,}5$ severa; $\le -2$ extrema.
+
+**SPEI** (Vicente-Serrano et al., 2010). Substitui $P$ pelo **balanço hídrico
+climático** acumulado, sensível ao aquecimento:
+
+$$
+D = P - \mathrm{PET}, \qquad
+\mathrm{SPEI}_s = \Phi^{-1}\!\big[\, F_{LL}\!\big(\textstyle\sum_s D\big)\,\big]
+$$
+
+com $F_{LL}$ a CDF log-logística de 3 parâmetros e PET estimada por
+Thornthwaite (1948) quando só há temperatura.
+
+**EHF — Excess Heat Factor** (Nairn & Fawcett, 2015). Combina a anomalia
+contra o clima ($\mathrm{EHI}_{sig}$) e contra os 30 dias recentes
+(aclimatação, $\mathrm{EHI}_{acc}$):
+
+$$
+\mathrm{EHI}_{sig} = \bar{T}_3 - T_{95}, \qquad
+\mathrm{EHI}_{acc} = \bar{T}_3 - \bar{T}_{30}
+$$
+
+$$
+\mathrm{EHF} = \mathrm{EHI}_{sig} \times \max(1,\ \mathrm{EHI}_{acc})
+$$
+
+onde $\bar{T}_3$ e $\bar{T}_{30}$ são as médias de $T_{mean}$ nos últimos 3 e
+30 dias e $T_{95}$ é o percentil 95 do baseline. Os métodos WHO/WMO, por sua
+vez, exigem $T_{max} > P_{90}(T_{max})$ (WMO também $T_{min} > P_{90}(T_{min})$)
+por um número mínimo de dias consecutivos.
+
+# Resultados ilustrados
+
+```{r fig-serie, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/grid_serie.png", .nota_gerar)
+```
+
+**Figura 1.** Temperatura média diária do ERA5-Land (~10 km) agregada ao
+município de São Paulo, 2014–2019. Note a suavidade típica do valor areal:
+a média de dezenas de pixels atenua extremos pontuais que uma estação
+registraria — é a contrapartida da cobertura espacial completa.
+
+```{r fig-anomalia, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/grid_anomalia.png", .nota_gerar)
+```
+
+**Figura 2.** Anomalia mensal de temperatura (observado − normal mensal),
+São Paulo, 2014–2019. Barras laranjas (positivas) marcam meses mais quentes
+que a climatologia local; é exatamente este sinal — e não a temperatura
+absoluta — que viaja entre cidades em análises multicêntricas.
+
+```{r tab-eventos, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/grid_eventos_hw.rds", .nota_gerar,
+            caption = "Tabela 2. Eventos de onda de calor detectados (amostra): método, início, fim, duração e intensidade.")
+```
+
+```{r fig-hw, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/grid_ondas_calor.png", .nota_gerar)
+```
+
+**Figura 3.** Ondas de calor detectadas por ano e método (WHO/WMO/INMET) na
+série ERA5-Land de São Paulo, 2014–2019. Métodos mais exigentes (WMO: limiar
+duplo Tmáx **e** Tmín por ≥ 5 dias) detectam menos eventos que o critério WHO
+(P90 de Tmáx por ≥ 3 dias) — a escolha deve refletir o mecanismo fisiológico
+de interesse (calor diurno vs. noites quentes sem alívio).
+
+```{r fig-spi, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/grid_spi_spei.png", .nota_gerar)
+```
+
+**Figura 4.** SPI-3 vs. SPEI-3 mensais (linhas tracejadas: ±1 = limiar
+moderado). Quando a temperatura sobe sem mudança na chuva, o SPEI cai mais que
+o SPI — a evapotranspiração potencial amplia o déficit hídrico. A crise
+hídrica paulista de 2014–2015 é o tipo de episódio que esses índices
+sinalizam com antecedência para desfechos como doenças diarreicas.
+
+# Referências
+
+- Bröde, P., et al. (2012). Deriving the operational procedure for the
+  Universal Thermal Climate Index (UTCI). *International Journal of
+  Biometeorology*, 56(3), 481–494.
+- Funk, C., et al. (2015). The climate hazards infrared precipitation with
+  stations — a new environmental record for monitoring extremes.
+  *Scientific Data*, 2, 150066.
+- Gasparrini, A., et al. (2017). Projections of temperature-related excess
+  mortality under climate change scenarios. *The Lancet Planetary Health*,
+  1(9), e360–e367.
+- Geirinhas, J. L., et al. (2018). Climatic and synoptic characterization of
+  heat waves in Brazil. *International Journal of Climatology*, 38(4),
+  1760–1776.
+- Liljegren, J. C., et al. (2008). Modeling the wet bulb globe temperature
+  using standard meteorological measurements. *Journal of Occupational and
+  Environmental Hygiene*, 5(10), 645–655.
+- McKee, T. B., Doesken, N. J., & Kleist, J. (1993). The relationship of
+  drought frequency and duration to time scales. *Proceedings of the 8th
+  Conference on Applied Climatology*, AMS, 179–184.
+- Muñoz-Sabater, J., et al. (2021). ERA5-Land: a state-of-the-art global
+  reanalysis dataset for land applications. *Earth System Science Data*,
+  13(9), 4349–4383.
+- Nairn, J. R., & Fawcett, R. J. B. (2015). The Excess Heat Factor: a metric
+  for heatwave intensity and its use in classifying heatwave severity.
+  *International Journal of Environmental Research and Public Health*, 12(1),
+  227–253.
+- Perkins, S. E., & Alexander, L. V. (2013). On the measurement of heat waves.
+  *Journal of Climate*, 26(13), 4500–4517.
+- Rothfusz, L. P. (1990). The heat index "equation". NWS Technical Attachment
+  SR/SSD 90-23.
+- Saldanha, R. ERA5-Land Daily Aggregates for Latin America (1950–2025).
+  Zenodo. <https://zenodo.org/doi/10.5281/zenodo.10013254>. CC-BY 4.0.
+- Thornthwaite, C. W. (1948). An approach toward a rational classification of
+  climate. *Geographical Review*, 38(1), 55–94.
+- Vicente-Serrano, S. M., Beguería, S., & López-Moreno, J. I. (2010). A
+  multiscalar drought index sensitive to global warming: the Standardized
+  Precipitation Evapotranspiration Index. *Journal of Climate*, 23(7),
+  1696–1718.
+- WMO (2017). *WMO Guidelines on the Calculation of Climate Normals*
+  (WMO-No. 1203). Genebra.
+
+---
+
+# Navegação
+
+- [Voltar ao hub de tutoriais](tutorials.html)
+- **Anterior:** [Tutorial 7 — Clima por Estações (INMET)](07-clima-estacoes.html)
+- **Próximo:** [Tutorial 9 — Modelagem Epidemiológica (DLNM)](09-modelagem.html)
+
+> **Como reproduzir as figuras.** Rode uma única vez, a partir da raiz do
+> pacote: `Rscript scripts/tutorial_08_clima_grade.R`. O script carrega a
+> série de saúde do Tutorial 4 (`dados/caso_serie.rds`), salva as figuras em
+> `vignettes-pt/figuras/`, as tabelas em `vignettes-pt/dados/` e a base
+> encadeada `caso_clima_grade.rds` que o Tutorial 9 carregará.

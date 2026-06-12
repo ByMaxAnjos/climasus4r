@@ -1,0 +1,891 @@
+---
+title: "Modelagem 06: Modelos Espaciais — Autocorrelação, Regressão e Varredura"
+author: "Equipe climasus4r"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output:
+  html_document:
+    css: _tutorial-style.css
+    toc: true
+    toc_float: true
+    number_sections: false
+---
+
+```{r setup, include=FALSE}
+# ATENÇÃO — estratégia de pré-renderização.
+# Este tutorial NÃO executa modelos durante a renderização. Todas as figuras e
+# tabelas foram geradas UMA vez pelo script scripts/modelagem_06_espacial.R e
+# são apenas carregadas aqui (PNG via include_graphics; RDS via readRDS).
+# Por isso, os chunks de ensino abaixo usam eval = FALSE: o código é mostrado,
+# mas não é executado no momento do knit.
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+
+# Helpers para exibir artefatos de forma robusta: se o arquivo ainda não foi
+# gerado (script de geração não executado), mostram uma nota em vez de quebrar
+# o knit. Assim a vignette renderiza a qualquer momento.
+fig_ou_nota <- function(path, nota) {
+  if (file.exists(path)) knitr::include_graphics(path)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+tbl_ou_nota <- function(path, nota, caption = NULL) {
+  if (file.exists(path)) knitr::kable(readRDS(path), caption = caption)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+.nota_gerar <- "Artefato indisponível — rode `Rscript scripts/modelagem_06_espacial.R` (a partir da raiz do pacote) para gerá-lo."
+```
+
+---
+
+# Objetivo
+
+Ao final deste tutorial você será capaz de:
+
+1. Construir uma **matriz de pesos espaciais** Queen a partir de polígonos de
+   municípios com `sus_mod_spatial_weights()`;
+2. Calcular e interpretar o **I de Moran global** e os **clusters LISA locais**
+   (HH/LL/HL/LH) com `sus_mod_spatial_moran()` e `sus_mod_plot_spatial_moran()`;
+3. Ajustar e comparar modelos de **regressão espacial** (SAR, SEM, SDM, SAC)
+   com `sus_mod_spatial_reg()`, extraindo coeficientes e impactos
+   direto/indireto/total;
+4. Detectar **clusters geográficos de excesso de casos** com a estatística de
+   varredura de Kulldorff via `sus_mod_spatial_scan()` e
+   `sus_mod_plot_spatial_scan()`.
+
+Este tutorial cobre a **etapa de análise espacial** do pipeline climasus4r — a
+que precede os modelos Bayesianos espaciais (Tutorial 07) e segue os modelos de
+Machine Learning (Tutorial 05).
+
+---
+
+# Contexto científico
+
+## Por que a dimensão espacial importa em saúde ambiental?
+
+Dados de saúde coletados em municípios vizinhos raramente são independentes
+entre si. A dependência espacial emerge de fatores compartilhados (clima,
+poluição, acesso a serviços, comportamento social) que variam suavemente no
+espaço. Ignorá-la produz estimadores ineficientes, intervalos de confiança
+incorretos e, em última análise, inferências equivocadas sobre a associação
+exposição–desfecho (Anselin, 1988; Bivand, Pebesma & Gomez-Rubio, 2013).
+
+A análise espacial clássica em epidemiologia envolve três perguntas:
+
+- **Existe dependência espacial?** (testes de autocorrelação)
+- **Onde estão os clusters?** (LISA, varredura de Kulldorff)
+- **O efeito de uma exposição se propaga para municípios vizinhos?**
+  (spillovers; regressão espacial)
+
+> **Nota sobre CRS e unidades.** As funções `sus_mod_spatial_weights()` e
+> `sus_mod_spatial_moran()` aceitam objetos `sf` em qualquer CRS, mas o
+> parâmetro `snap` de `poly2nb()` é interpretado **nas unidades do CRS
+> utilizado**. Para CRS geográfico (graus, e.g. SIRGAS 2000 / EPSG:4674,
+> padrão do `geobr`), o valor `snap = 1e-3` corresponde a
+> ≈ 0,001° ≈ 100 m, adequado para fechar pequenas lacunas nas fronteiras
+> dos polígonos municipais do IBGE. Para CRS projetados em metros (e.g.
+> SIRGAS2000 / UTM), valores entre `1` e `100` metros são mais apropriados.
+>
+> **MAUP (Problema da Unidade de Área Modificável).** Os resultados desta
+> etapa dependem da escala de agregação adotada (município, microrregião,
+> UF). Um I de Moran calculado a nível municipal pode diferir
+> significativamente do calculado a nível de microrregião, mesmo com os
+> mesmos dados brutos. Isso se deve ao MAUP (Openshaw & Taylor, 1979):
+> a forma e o tamanho das unidades espaciais influenciam todos os
+> indicadores derivados. Recomenda-se verificar a robustez dos resultados
+> em pelo menos duas escalas antes de fazer inferências (Fotheringham &
+> Wong, 1991).
+
+## I de Moran
+
+O I de Moran global (Moran, 1950) mede se valores altos (ou baixos) tendem a
+ocorrer próximos uns dos outros. Ele é definido como:
+
+$$I = \frac{n}{\sum_{i}\sum_{j}w_{ij}} \frac{\sum_{i}\sum_{j}w_{ij}(x_i-\bar{x})(x_j-\bar{x})}{\sum_{i}(x_i-\bar{x})^2}$$
+
+onde $n$ é o número de unidades espaciais, $\sum_{i}\sum_{j} w_{ij}$
+é a soma total dos pesos espaciais, $x_i$ é o valor da variável de interesse
+na unidade $i$, $\bar{x}$ é a média global, e $w_{ij}$ é o peso
+espacial entre as unidades $i$ e $j$ (com $w_{ii} = 0$).
+
+Com pesos **row-standardizados** (`style = "W"`), cada $w_{ij} = 1/n_i$,
+onde $n_i$ é o número de vizinhos de $i$, e $S_0 = n$. Assim, o lag
+espacial $Wz_i = \sum_j w_{ij} z_j$ é simplesmente a média ponderada dos
+valores nos vizinhos.
+
+Valores de $I$ próximos a $+1$ indicam **clustering positivo** (similaridade
+espacial); $I \approx -1$ indica **dispersão espacial** (unidades com valores
+altos cercadas por baixos, e vice-versa); $I \approx E[I] = -1/(n-1)$
+indica distribuição aleatória.
+
+A inferência é feita por permutação Monte Carlo — `sus_mod_spatial_moran()`
+usa `spdep::moran.mc()` para o teste global e `spdep::localmoran_perm()`
+para os testes locais LISA.
+
+## LISA — Indicadores Locais de Associação Espacial
+
+Os indicadores LISA (Anselin, 1995) decompõem o I global em contribuições
+individuais de cada unidade, permitindo identificar **hotspots** (HH: alto
+cercado de alto), **coldspots** (LL: baixo cercado de baixo) e **outliers
+espaciais** (HL e LH). A classificação usa o diagrama de Moran
+($z_i$ vs. $Wz_i$, o lag espacial de $z$):
+
+| Quadrante | $z_i$ | $Wz_i$ | Interpretação |
+|-----------|-------|---------|---------------|
+| HH | > 0 | > 0 | Hotspot (ponto quente) |
+| LL | < 0 | < 0 | Coldspot (ponto frio) |
+| HL | > 0 | < 0 | Outlier alto em região baixa |
+| LH | < 0 | > 0 | Outlier baixo em região alta |
+| NS | — | — | Não significativo |
+
+## Modelos de regressão espacial
+
+Quando a autocorrelação espacial é confirmada, modelos OLS são inadequados.
+O climasus4r implementa quatro famílias de modelos via `spatialreg`
+(Bivand & Piras, 2015):
+
+| Modelo | Sigla | Parâmetro | Equação simplificada |
+|--------|-------|-----------|----------------------|
+| Spatial Autoregressive | SAR | $\rho$ | $y = \rho W y + X\beta + \varepsilon$ |
+| Spatial Error | SEM | $\lambda$ | $y = X\beta + u;\; u = \lambda W u + \varepsilon$ |
+| Spatial Durbin | SDM | $\rho$ + $\theta$ | $y = \rho W y + X\beta + WX\theta + \varepsilon$ |
+| Spatial Autocorrelation | SAC | $\rho$, $\lambda$ | $y = \rho W_1 y + X\beta + u;\; u = \lambda W_2 u + \varepsilon$ |
+
+Para modelos SAR/SDM/SAC, o efeito total de uma covariável é decomposto em
+**impacto direto** (própria unidade) + **impacto indireto** (spillover para
+vizinhos) = **impacto total** (LeSage & Pace, 2009).
+
+## Estatística de varredura de Kulldorff
+
+O método de Kulldorff (1997) impõe janelas circulares de raio variável sobre
+o mapa e, para cada janela candidata $Z$, calcula a razão de verossimilhança
+(LR) sob o modelo Poisson, **somente quando** a taxa interna excede a taxa
+externa ($C_{in}/E_{in} > C_{out}/E_{out}$):
+
+$$
+\text{LR}(Z) = \mathbb{1}\!\left[\frac{C_{in}}{E_{in}} > \frac{C_{out}}{E_{out}}\right]
+\cdot
+\left(\frac{C_{in}}{E_{in}}\right)^{\!C_{in}}
+\left(\frac{C_{out}}{E_{out}}\right)^{\!C_{out}}
+$$
+
+onde $C_{in}$ e $E_{in}$ são, respectivamente, os casos observados e
+esperados **dentro** da janela, e $C_{out}$ e $E_{out}$ os correspondentes
+**fora** da janela. A janela com o maior LR é o **cluster mais provável**;
+seu p-valor é obtido por comparação com a distribuição empírica de máximos
+LR sob $n_{sim}$ permutações de Monte Carlo (sob a hipótese nula de
+distribuição uniforme de casos proporcionalmente à população).
+
+A função `sus_mod_spatial_scan()` delega o cálculo a
+`SpatialEpi::kulldorff()`, que exige coordenadas geográficas
+(longitude/latitude, WGS 84). Por isso, os centroides dos polígonos são
+reprojetados para EPSG:4326 internamente antes do cálculo.
+
+---
+
+# Dados utilizados
+
+O caso condutor é: **"Temperatura e desfechos de saúde em idosos (60+) na
+Região Metropolitana de São Paulo, 2014–2019"** (causas respiratórias
+J00–J99).
+
+Para esta etapa utilizamos:
+
+| Objeto | Arquivo | Conteúdo |
+|--------|---------|----------|
+| `rmsp_sf` | `dados/caso_espacial.rds` | sf da RMSP com `n_obitos` e `pop` por município |
+| `mod_weights` | `dados/mod_weights.rds` | Pesos Queen construídos neste tutorial |
+
+Se `caso_espacial.rds` estiver ausente ou incompleto, o script de geração
+sintetiza um painel mínimo realista da RMSP com 39 municípios, preservando
+gradientes espaciais plausíveis para fins didáticos.
+
+> **Código IBGE de municípios.** O climasus4r usa o **código IBGE de 7 dígitos**
+> como identificador único de municípios (e.g. `3550308` para São Paulo-SP). Os
+> dois primeiros dígitos identificam a UF (35 = São Paulo) e os cinco seguintes
+> identificam o município dentro da UF. Certifique-se de que a coluna `code_muni`
+> no seu `sf` siga esse padrão — o `geobr` já a fornece corretamente. Códigos de
+> 6 dígitos (padrão antigo) devem ser convertidos antes de usar as funções
+> `sus_mod_spatial_*()`.
+
+
+---
+
+# Pipeline completo
+
+Carregue o pacote e os dados antes de qualquer análise. Os caminhos abaixo
+assumem que o script é executado a partir da **raiz do pacote**
+(`climasus4r/`), que é onde o script `scripts/modelagem_06_espacial.R`
+salva os artefatos.
+
+```{r carregar}
+library(climasus4r)
+library(dplyr)
+
+# Dados espaciais da RMSP (gerados por scripts/modelagem_06_espacial.R)
+# Caminhos relativos à raiz do pacote (não à pasta vignettes-pt/).
+rmsp_sf <- if (file.exists("vignettes-pt/dados/caso_espacial.rds")) {
+  obj <- readRDS("vignettes-pt/dados/caso_espacial.rds")
+  # Converter para sf e agregar por município (média do período)
+  if (requireNamespace("sf", quietly = TRUE) &&
+      "geom" %in% names(obj) &&
+      inherits(obj[["geom"]], "sfc")) {
+    sf_obj <- sf::st_as_sf(obj)
+    dplyr::group_by(sf_obj, code_muni) |>
+      dplyr::summarise(
+        n_obitos  = mean(n_obitos, na.rm = TRUE),
+        name_muni = dplyr::first(name_muni),
+        pop       = mean(pop, na.rm = TRUE),
+        temp_med  = mean(temp_med, na.rm = TRUE),
+        .groups   = "drop"
+      )
+  } else {
+    message("Objeto sf não encontrado; verifique caso_espacial.rds.")
+    NULL
+  }
+} else {
+  message("Execute scripts/modelagem_06_espacial.R para gerar os dados.")
+  NULL
+}
+
+# Calcular taxa de mortalidade por 100 mil habitantes
+if (!is.null(rmsp_sf) && !"taxa_obitos" %in% names(rmsp_sf)) {
+  rmsp_sf$taxa_obitos <- rmsp_sf$n_obitos / rmsp_sf$pop * 1e5
+}
+```
+
+## Passo 1 — Construir a matriz de pesos espaciais
+
+**Contiguidade Queen vs. Rook.** A contiguidade Queen considera dois
+municípios vizinhos quando seus polígonos **compartilham um vértice ou uma
+aresta** (8 direções). A contiguidade Rook restringe a vizinhança a
+municípios que **compartilham uma aresta** (4 direções). Para polígonos
+municipais do IBGE, onde municípios podem se tocar apenas num ponto, a
+contiguidade Queen é a mais adequada e é o padrão do pacote (`queen = TRUE`).
+
+**Row-standardização (`style = "W"`).** Com essa normalização, cada peso
+$w_{ij} = 1/n_i$ (onde $n_i$ é o número de vizinhos de $i$), de forma que
+$\sum_j w_{ij} = 1$ para toda unidade $i$ com vizinhos. Isso facilita a
+interpretação do lag espacial $Wz_i$ como uma **média dos valores nos
+vizinhos** e é o estilo padrão para I de Moran e modelos SAR/SEM.
+
+```{r pesos}
+mod_weights <- sus_mod_spatial_weights(
+  municipalities = rmsp_sf,
+  style          = "W",        # row-standardised: sum(w_ij) = 1 para cada i
+  queen          = TRUE,       # contiguidade Queen (vértice ou aresta)
+  snap           = 1e-3,       # tolerância para gaps (em graus, CRS SIRGAS2000)
+  zero_policy    = TRUE,       # permite ilhas espaciais (sem vizinho)
+  return_matrix  = FALSE,      # não retorna a matriz densa W (economia de memória)
+  lang           = "pt",
+  verbose        = TRUE
+)
+print(mod_weights)
+
+# Salvar para reuso em tutoriais subsequentes (Tutorial 07 — Bayes Espacial)
+save_tbl(mod_weights, "mod_weights")
+```
+
+## Passo 2 — Autocorrelação espacial global + LISA
+
+```{r moran}
+# Dados tabulares sem geometria (sus_mod_spatial_moran aceita data.frame ou
+# climasus_df; a coluna code_muni deve estar presente)
+df_tabular <- sf::st_drop_geometry(rmsp_sf)
+
+# A taxa já foi calculada no passo de carregamento; verificar e recalcular
+# se necessário
+if (!"taxa_obitos" %in% names(df_tabular)) {
+  df_tabular$taxa_obitos <- df_tabular$n_obitos / df_tabular$pop * 1e5
+}
+
+moran_resultado <- sus_mod_spatial_moran(
+  df           = df_tabular,
+  outcome      = "taxa_obitos",  # coluna numérica de desfecho (arg: "outcome")
+  W            = mod_weights,    # climasus_weights do passo anterior
+  municipalities = NULL,         # NULL: usa todas as linhas na ordem de W
+  permutations = 999L,
+  alpha        = 0.05,
+  adjust_p     = "fdr",          # correção FDR (Benjamini-Hochberg)
+  lang         = "pt",
+  verbose      = TRUE
+)
+print(moran_resultado)
+```
+
+```{r plot-moran-mapa}
+# Mapa LISA de clusters (HH/LL/HL/LH/NS)
+sus_mod_plot_spatial_moran(
+  x              = moran_resultado,
+  municipalities = rmsp_sf,
+  type           = "map",
+  alpha          = 0.05,
+  lang           = "pt"
+)
+```
+
+```{r plot-moran-scatter}
+# Diagrama de dispersão de Moran (z vs. Wz)
+sus_mod_plot_spatial_moran(
+  x    = moran_resultado,
+  type = "scatter",
+  lang = "pt"
+)
+```
+
+```{r plot-moran-both}
+# Ambos os painéis lado a lado (requer patchwork)
+sus_mod_plot_spatial_moran(
+  x              = moran_resultado,
+  municipalities = rmsp_sf,
+  type           = "both",
+  lang           = "pt"
+)
+```
+
+## Passo 3 — Regressão espacial (SAR / SEM / SDM / SAC)
+
+```{r reg-sar}
+# Garantir que df_reg não contém geometria (sus_mod_spatial_reg descarta
+# automaticamente, mas é boa prática passar um data.frame puro)
+df_reg <- sf::st_drop_geometry(rmsp_sf)
+
+# Verificar / calcular taxa
+if (!"taxa_obitos" %in% names(df_reg)) {
+  df_reg$taxa_obitos <- df_reg$n_obitos / df_reg$pop * 1e5
+}
+
+# Modelo SAR (Spatial Lag) — rho: spillover do desfecho entre municípios
+# Estimado via spatialreg::lagsarlm() com método de ML exato ("eigen")
+reg_sar <- sus_mod_spatial_reg(
+  df          = df_reg,
+  formula     = taxa_obitos ~ temp_med,
+  W           = mod_weights,
+  model       = "lag",      # SAR: y = rho * W*y + X*beta + epsilon
+  method      = "eigen",    # ML exato; use "LU" ou "Chebyshev" para n > 2.000
+  zero_policy = TRUE,
+  lang        = "pt",
+  verbose     = TRUE
+)
+print(reg_sar)
+
+# Impactos direto/indireto/total (calculados internamente com R = 200 simulações)
+# $impacts é NULL para modelos SEM (sem lag do desfecho)
+reg_sar$impacts
+
+# Diagnóstico: I de Moran nos resíduos — deve ser não-significativo se o modelo
+# capturou a autocorrelação espacial adequadamente
+reg_sar$moran_residuals
+```
+
+```{r reg-sem}
+# Modelo SEM (Spatial Error) — lambda: erro espacialmente autocorrelacionado
+# Indicado quando a autocorrelação é devida a variáveis omitidas espacialmente
+# estruturadas (e.g. poluição não mensurada, gradientes socioeconômicos)
+reg_sem <- sus_mod_spatial_reg(
+  df      = df_reg,
+  formula = taxa_obitos ~ temp_med,
+  W       = mod_weights,
+  model   = "error",   # SEM: y = X*beta + u; u = lambda * W*u + epsilon
+  lang    = "pt",
+  verbose = FALSE
+)
+
+# Comparação de AIC: menor AIC = melhor ajuste (penalizando complexidade)
+# OLS ignora autocorrelação; SAR/SEM incorporam de formas distintas
+data.frame(
+  modelo = c("OLS", "SAR", "SEM"),
+  AIC    = c(reg_sar$lm_aic, reg_sar$aic, reg_sem$aic)
+)
+```
+
+```{r reg-sdm}
+# Modelo SDM (Spatial Durbin) — rho + covariáveis defasadas espacialmente
+# Estimado via lagsarlm(Durbin = TRUE): inclui W*X além do W*y
+# Recomendado quando há razão para acreditar que covariáveis de municípios
+# vizinhos também afetam o desfecho (e.g. temperatura regional)
+reg_sdm <- sus_mod_spatial_reg(
+  df      = df_reg,
+  formula = taxa_obitos ~ temp_med,
+  W       = mod_weights,
+  model   = "durbin",  # SDM: y = rho*W*y + X*beta + W*X*theta + epsilon
+  lang    = "pt",
+  verbose = FALSE
+)
+reg_sdm$impacts   # direto, indireto e total por covariável
+```
+
+```{r reg-sac}
+# Modelo SAC (rho + lambda) — modelo mais geral; lag do desfecho E erro espacial
+# Estimado via spatialreg::sacsarlm(); usa a mesma matriz W para ambos
+# os componentes por padrão
+reg_sac <- sus_mod_spatial_reg(
+  df      = df_reg,
+  formula = taxa_obitos ~ temp_med,
+  W       = mod_weights,
+  model   = "sac",   # SAC: y = rho*W*y + X*beta + u; u = lambda*W*u + epsilon
+  lang    = "pt",
+  verbose = FALSE
+)
+reg_sac$rho    # parâmetro de lag do desfecho
+reg_sac$lambda # parâmetro de erro espacial
+```
+
+## Passo 4 — Detecção de clusters: varredura de Kulldorff
+
+```{r scan}
+# sus_mod_spatial_scan() requer um data.frame com code_muni, cases e population.
+# Os centroides dos polígonos são reprojetados para WGS 84 (EPSG:4326)
+# internamente para calcular as distâncias usadas pelas janelas circulares.
+df_scan <- data.frame(
+  code_muni  = as.character(rmsp_sf$code_muni),
+  cases      = as.integer(round(rmsp_sf$n_obitos)),
+  population = as.integer(rmsp_sf$pop),
+  stringsAsFactors = FALSE
+)
+
+scan_resultado <- sus_mod_spatial_scan(
+  df             = df_scan,
+  cases          = "cases",
+  population     = "population",
+  municipalities = rmsp_sf,
+  expected       = NULL,      # NULL → Poisson simples (taxa global × pop_i)
+  max_pop_frac   = 0.5,       # janela máxima contém ≤ 50% da pop. total
+  n_simulations  = 999L,      # para publicação use 9999L
+  alpha          = 0.05,
+  lang           = "pt",
+  verbose        = TRUE
+)
+print(scan_resultado)
+
+# Cluster mais provável: location_ids, RR, log_lik, p_value
+scan_resultado$most_likely_cluster
+
+# Clusters secundários (lista de listas, mesma estrutura)
+scan_resultado$secondary_clusters
+```
+
+```{r plot-scan-rr}
+# Mapa de Risco Relativo (escala contínua divergente)
+sus_mod_plot_spatial_scan(
+  x              = scan_resultado,
+  municipalities = rmsp_sf,
+  show_rr        = TRUE,
+  alpha          = 0.05,
+  lang           = "pt"
+)
+```
+
+```{r plot-scan-cat}
+# Mapa categórico (mais provável / secundário / fundo)
+sus_mod_plot_spatial_scan(
+  x              = scan_resultado,
+  municipalities = rmsp_sf,
+  show_rr        = FALSE,
+  alpha          = 0.05,
+  lang           = "pt"
+)
+```
+
+---
+
+# Características das funções
+
+## `sus_mod_spatial_weights()` — Matriz de pesos
+
+**Objetivo.** Constrói um objeto `climasus_weights` (subclasse de lista) com
+a estrutura de vizinhança espacial necessária para todos os demais modelos
+espaciais do climasus4r.
+
+**Argumentos principais:**
+
+| Argumento | Padrão | Significado |
+|-----------|--------|-------------|
+| `municipalities` | — | `sf` com polígonos de municípios |
+| `style` | `"W"` | Normalização: `"W"` (row-std), `"B"` (binário), `"C"`, `"U"`, `"S"`, `"minmax"` |
+| `queen` | `TRUE` | `TRUE` = Queen (vértice ou aresta); `FALSE` = Rook (só aresta) |
+| `snap` | `NULL` → `1e-3` | Tolerância para gaps em fronteiras |
+| `zero_policy` | `TRUE` | Permite ilhas (municípios sem vizinho) |
+| `return_matrix` | `FALSE` | Retornar a matriz densa $W$ ($n \times n$) |
+
+**Retorno (`climasus_weights`):**
+
+```
+$listw      — objeto spdep::listw pronto para modelagem
+$nb         — lista de vizinhos (spdep::nb)
+$n_regions  — número total de regiões
+$n_islands  — número de ilhas (sem vizinhos)
+$island_ids — códigos das ilhas (vetor de caracteres, vazio se nenhuma)
+$W          — matriz densa W n×n (NULL se return_matrix = FALSE)
+$style      — estilo de normalização usado
+$call       — chamada original
+```
+
+> **Dica prática.** Para dados do IBGE com CRS geográfico (SIRGAS2000 /
+> EPSG:4674), use `snap = 1e-3` (padrão). Para polígonos em CRS projetado
+> (metros), ajuste `snap` para 1–100 m. Municípios sem vizinhos (ilhas,
+> e.g. Fernando de Noronha) não causam erro com `zero_policy = TRUE`, mas
+> resultam em lag espacial `NA` — verifique `$island_ids`. Use
+> `style = "B"` (binário) somente quando quiser ponderar pela presença de
+> vizinhança sem normalizar pelo número de vizinhos (e.g. em modelos
+> Bayesianos do tipo ICAR).
+
+---
+
+## `sus_mod_spatial_moran()` — I de Moran global + LISA
+
+**Objetivo.** Testa a autocorrelação espacial global pelo I de Moran (via
+permutação Monte Carlo) e classifica cada unidade em um quadrante LISA.
+
+**Argumentos principais:**
+
+| Argumento | Padrão | Significado |
+|-----------|--------|-------------|
+| `df` | — | `data.frame` ou `climasus_df` com `code_muni` e a coluna de desfecho |
+| `outcome` | — | Nome da coluna numérica de desfecho (e.g. `"taxa_obitos"`) |
+| `W` | — | Objeto `climasus_weights` de `sus_mod_spatial_weights()` |
+| `municipalities` | `NULL` | Vetor de `code_muni` para filtrar/reordenar `df` |
+| `permutations` | `999L` | Permutações Monte Carlo (`nsim` em `spdep::moran.mc`) |
+| `alpha` | `0.05` | Nível de significância para classificação LISA |
+| `adjust_p` | `"fdr"` | Correção de múltiplos testes: `"fdr"`, `"bonferroni"`, `"none"` |
+
+**Retorno (`climasus_spatial_moran`):**
+
+```
+$global       — data.frame com I, E.I, Var.I, Z.I, p_value, p_simulated
+$local        — data.frame com code_muni, Ii, Z.Ii, p_raw, p_adj, quadrant
+$n_HH         — número de hotspots (HH)
+$n_LL         — número de coldspots (LL)
+$n_HL         — número de outliers HL
+$n_LH         — número de outliers LH
+$outcome_name — nome da coluna de desfecho
+$call         — chamada original
+```
+
+> **Sobre `p_value` vs `p_simulated`.** O `p_value` no slot `$global` é
+> o p-valor assintótico (distribuição normal). O `p_simulated` é o p-valor
+> por permutação Monte Carlo — preferível para amostras pequenas (n < 30
+> municípios) ou distribuições assimétricas. Para os testes LISA locais
+> (`$local`), os p-valores já são por permutação condicional
+> (`spdep::localmoran_perm()`), corrigidos pelo método especificado em
+> `adjust_p`.
+
+---
+
+## `sus_mod_plot_spatial_moran()` — Visualização LISA
+
+**Objetivo.** Produz um mapa coroplético LISA e/ou um diagrama de dispersão
+de Moran a partir de um objeto `climasus_spatial_moran`.
+
+**Tipos disponíveis (`type=`):**
+
+| `type` | Descrição | Requer `municipalities` |
+|--------|-----------|------------------------|
+| `"map"` | Mapa coroplético HH/LL/HL/LH/NS | Sim |
+| `"scatter"` | Diagrama de dispersão $z$ vs. $Wz$ | Não |
+| `"both"` | Ambos lado a lado via patchwork | Sim |
+
+**Retorno:** objeto `ggplot` (ou lista nomeada `list(map, scatter)` se
+patchwork não estiver disponível para `type = "both"`).
+
+---
+
+## `sus_mod_spatial_reg()` — Regressão espacial
+
+**Objetivo.** Ajusta modelos de máxima verossimilhança SAR/SEM/SDM/SAC via
+o pacote `spatialreg`, reporta coeficientes, parâmetros espaciais, impactos
+e Moran dos resíduos.
+
+**Modelos disponíveis (`model=`):**
+
+| `model` | Família | Parâmetro espacial | Estimado via |
+|---------|---------|--------------------|--------------|
+| `"lag"` | SAR | $\rho$ | `spatialreg::lagsarlm()` |
+| `"error"` | SEM | $\lambda$ | `spatialreg::errorsarlm()` |
+| `"durbin"` | SDM | $\rho$ + $\theta_{WX}$ | `spatialreg::lagsarlm(Durbin=TRUE)` |
+| `"sac"` | SAC | $\rho$ + $\lambda$ | `spatialreg::sacsarlm()` |
+
+**Argumentos principais:**
+
+| Argumento | Padrão | Significado |
+|-----------|--------|-------------|
+| `df` | — | `data.frame` ou `climasus_df` (geometria `sf` é descartada automaticamente) |
+| `formula` | — | Fórmula R padrão (`desfecho ~ cov1 + cov2`) |
+| `W` | — | Objeto `climasus_weights` de `sus_mod_spatial_weights()` |
+| `model` | `"lag"` | Família de modelo (ver tabela acima) |
+| `method` | `"eigen"` | Método de estimação: `"eigen"` (ML exato), `"LU"`, `"Chebyshev"`, `"MC"` |
+| `zero_policy` | `TRUE` | Permite ilhas (municípios sem vizinhos) |
+| `lang` | `"pt"` | Idioma das mensagens |
+| `verbose` | `TRUE` | Exibir mensagens de progresso |
+
+**Retorno (`climasus_spatial_reg`):**
+
+```
+$model           — tipo de modelo ("lag", "error", "durbin", "sac")
+$model_label     — rótulo legível ("SAR (Spatial Lag)", ...)
+$coefficients    — data.frame: term, estimate, std_error, z_value, p_value
+$rho             — parâmetro de lag espacial ρ (NULL para SEM)
+$lambda          — parâmetro de erro espacial λ (NULL para SAR/SDM)
+$impacts         — data.frame: term, direct, indirect, total
+                   (calculado com R = 200 via spatialreg::impacts();
+                    NULL para SEM, onde os impactos = coeficientes OLS)
+$aic             — AIC do modelo espacial
+$lm_aic          — AIC do baseline OLS (mesma fórmula, mesmos dados)
+$moran_residuals — lista: I, p_value, z (teste de Moran nos resíduos)
+$fitted          — valores ajustados
+$residuals       — resíduos do modelo
+$call            — chamada original
+```
+
+> **Diagnóstico de resíduos.** O elemento `$moran_residuals` contém o
+> resultado de `spdep::moran.test()` aplicado aos resíduos do modelo.
+> Um p-valor **não significativo** (> 0,05) indica que o modelo espacial
+> absorveu adequadamente a autocorrelação. Se o Moran dos resíduos
+> permanecer significativo mesmo após o SAR/SEM, considere o SDM
+> (covariáveis defasadas) ou um modelo Bayesianos hierárquico (Tutorial 07).
+
+---
+
+## `sus_mod_spatial_scan()` — Varredura de Kulldorff
+
+**Objetivo.** Aplica a estatística de varredura circular de Kulldorff para
+detectar o cluster mais provável e clusters secundários de excesso de casos,
+com inferência por Monte Carlo.
+
+**Argumentos principais:**
+
+| Argumento | Padrão | Significado |
+|-----------|--------|-------------|
+| `df` | — | `data.frame` com `code_muni`, colunas de `cases` e `population` |
+| `cases` | — | Nome da coluna de contagem de casos (inteiros ≥ 0) |
+| `population` | — | Nome da coluna de população em risco |
+| `municipalities` | — | `sf` com polígonos e `code_muni` |
+| `expected` | `NULL` | Nome da coluna de esperados (NULL: taxa global × pop_i) |
+| `max_pop_frac` | `0.5` | Fração máxima da pop. total em uma única janela |
+| `n_simulations` | `999L` | Simulações Monte Carlo (use `9999L` para publicação) |
+| `alpha` | `0.05` | Nível de significância para clusters secundários |
+| `lang` | `"pt"` | Idioma das mensagens |
+| `verbose` | `TRUE` | Exibir mensagens de progresso |
+
+**Retorno (`climasus_spatial_scan`):**
+
+```
+$most_likely_cluster — lista: location_ids (code_muni), observed, expected,
+                       RR (razão de verossimilhança de excesso), log_lik, p_value
+$secondary_clusters  — lista de listas com a mesma estrutura
+$n_clusters          — total de clusters significativos (incluindo o mais provável)
+$data                — tibble: code_muni, cases, population, expected, in_mlc
+$meta                — parâmetros: cases_col, population_col, max_pop_frac,
+                       n_simulations, alpha, n_municipalities, call_time
+$call                — chamada original
+```
+
+> **CRS e centroides.** A função `sus_mod_spatial_scan()` usa
+> `sf::st_centroid()` após reprojetar os polígonos para WGS 84 (EPSG:4326),
+> pois `SpatialEpi::kulldorff()` requer coordenadas em longitude/latitude.
+> O objeto `municipalities` pode estar em qualquer CRS — a reprojeção é
+> feita internamente. A janela de varredura é circular no espaço geográfico
+> (lat/lon), não no espaço projetado.
+
+---
+
+## `sus_mod_plot_spatial_scan()` — Mapa de clusters
+
+**Objetivo.** Renderiza um mapa coroplético dos resultados do scan de
+Kulldorff com codificação de RR contínuo ou categórica.
+
+**Argumento `show_rr`:**
+
+| `show_rr` | Codificação | Escala |
+|-----------|-------------|--------|
+| `TRUE` (padrão) | Risco Relativo do cluster (contínuo) | Gradiente divergente (navy–branco–vermelho, centro em RR = 1) |
+| `FALSE` | Rótulo do cluster (categórico) | Cores discretas por cluster |
+
+**Retorno:** objeto `ggplot`.
+
+---
+
+# Resultados ilustrados
+
+## Figura 1 — Mapa LISA de clusters de mortalidade respiratória (RMSP)
+
+O mapa a seguir exibe a classificação LISA de cada município da RMSP com base
+na taxa de mortalidade respiratória média do período 2014–2019. Municípios
+em **vermelho (HH)** formam hotspots espaciais — apresentam taxa elevada e
+estão cercados por vizinhos de taxa igualmente elevada.
+
+```{r fig-lisa-mapa, eval=TRUE, echo=FALSE, fig.cap="**Figura 1.** Mapa de clusters LISA (autocorrelação espacial local) para a taxa de mortalidade respiratória em idosos na RMSP, 2014–2019. HH = hotspot; LL = coldspot; HL/LH = outlier espacial; NS = não significativo (FDR 5%)."}
+fig_ou_nota(
+  "figuras/modmoran_lisa_mapa.png",
+  .nota_gerar
+)
+```
+
+## Figura 2 — Diagrama de dispersão de Moran
+
+O diagrama de dispersão posiciona cada município no plano ($z_i$, $Wz_i$):
+a inclinação da reta de regressão corresponde ao I de Moran global. Pontos
+no quadrante superior-direito (HH) e inferior-esquerdo (LL) evidenciam
+clustering positivo; pontos nos quadrantes cruzados (HL, LH) são outliers
+espaciais.
+
+```{r fig-lisa-scatter, eval=TRUE, echo=FALSE, fig.cap="**Figura 2.** Diagrama de dispersão de Moran — valor padronizado da taxa de mortalidade (z) versus lag espacial (Wz). A inclinação da reta cinza corresponde ao I de Moran global. Pontos coloridos segundo o quadrante LISA."}
+fig_ou_nota(
+  "figuras/modmoran_lisa_scatter.png",
+  .nota_gerar
+)
+```
+
+## Tabela 1 — I de Moran global
+
+```{r tbl-moran, eval=TRUE, echo=FALSE}
+tbl_ou_nota(
+  "dados/modmoran_moran_global.rds",
+  .nota_gerar,
+  caption = "**Tabela 1.** I de Moran global para a taxa de mortalidade respiratória. p_simulated: p-valor por permutação Monte Carlo (999 permutações); p_value: p-valor assintótico."
+)
+```
+
+## Figura 3 — Impactos direto, indireto e total (SAR)
+
+No modelo SAR, o coeficiente $\beta$ de uma covariável **não representa
+diretamente o efeito sobre o desfecho** — porque a matriz $(I - \rho W)^{-1}$
+propaga qualquer choque por toda a rede de vizinhos. Os impactos são
+decompostos em (LeSage & Pace, 2009):
+
+- **Impacto direto**: efeito médio da covariável no **próprio município**;
+- **Impacto indireto** (spillover): efeito médio nos **municípios vizinhos**,
+  mediado por $\rho$ e pela estrutura de $W$;
+- **Impacto total** = direto + indireto.
+
+O pacote usa `spatialreg::impacts()` com R = 200 simulações (distribuição
+de referência por Monte Carlo) para construir os intervalos de confiança.
+
+```{r fig-sar-impactos, eval=TRUE, echo=FALSE, fig.cap="**Figura 3.** Decomposição dos impactos direto, indireto e total da temperatura média sobre a taxa de mortalidade respiratória. Modelo SAR (spatial lag), R = 200 simulações via spatialreg::impacts()."}
+fig_ou_nota(
+  "figuras/modmoran_sar_impactos.png",
+  .nota_gerar
+)
+```
+
+## Tabela 2 — Coeficientes do modelo SAR
+
+```{r tbl-sar, eval=TRUE, echo=FALSE}
+tbl_ou_nota(
+  "dados/modmoran_coef_sar.rds",
+  .nota_gerar,
+  caption = "**Tabela 2.** Coeficientes do modelo SAR (spatial lag). std_error: erro padrão; z_value: estatística z; p_value: p-valor bilateral (testes t assintóticos)."
+)
+```
+
+## Tabela 3 — Comparação de AIC (OLS / SAR / SEM)
+
+A escolha entre OLS, SAR e SEM pode ser guiada pelo AIC (critério de
+informação de Akaike). O modelo com menor AIC (penalizando a complexidade)
+é preferível. Uma redução substancial de AIC no SAR ou SEM em relação ao
+OLS confirma que a autocorrelação espacial é relevante.
+
+```{r tbl-aic, eval=TRUE, echo=FALSE}
+tbl_ou_nota(
+  "dados/modmoran_aic_comparacao.rds",
+  .nota_gerar,
+  caption = "**Tabela 3.** Comparação de AIC entre OLS, SAR (spatial lag) e SEM (spatial error). Menor AIC = melhor ajuste penalizado pela complexidade."
+)
+```
+
+## Tabela 4 — Diagnóstico: I de Moran nos resíduos (SAR)
+
+Após o ajuste do modelo SAR, o I de Moran nos resíduos deve ser
+não-significativo, indicando que a autocorrelação espacial foi capturada
+adequadamente. Um Moran residual ainda significativo sugere especificação
+insuficiente e orienta para modelos mais complexos (SDM ou Bayes hierárquico).
+
+```{r tbl-moran-res, eval=TRUE, echo=FALSE}
+tbl_ou_nota(
+  "dados/modmoran_moran_residuos_sar.rds",
+  .nota_gerar,
+  caption = "**Tabela 4.** I de Moran nos resíduos do modelo SAR. z: estatística padronizada; p_value: p-valor assintótico."
+)
+```
+
+## Figura 4 — Mapa de Risco Relativo (Kulldorff, RR contínuo)
+
+O mapa a seguir exibe o RR de cada município pertencente a um cluster
+significativo detectado pelo scan de Kulldorff. Municípios em vermelho
+intenso pertencem ao cluster com maior excesso de risco. Municípios sem
+cor (cinza claro) fazem parte do fundo — não pertencem a nenhum cluster.
+
+```{r fig-scan-rr, eval=TRUE, echo=FALSE, fig.cap="**Figura 4.** Mapa de Risco Relativo (RR) do cluster mais provável detectado pelo scan circular de Kulldorff (999 simulações). Bordas espessas indicam municípios em cluster significativo (α = 5%)."}
+fig_ou_nota(
+  "figuras/modmoran_scan_rr.png",
+  .nota_gerar
+)
+```
+
+## Figura 5 — Mapa categórico de clusters (Kulldorff)
+
+A versão categórica distingue visualmente o **cluster mais provável** dos
+**clusters secundários** e do fundo, facilitando a comunicação com gestores
+de saúde que precisam identificar regiões prioritárias de intervenção.
+
+```{r fig-scan-cat, eval=TRUE, echo=FALSE, fig.cap="**Figura 5.** Mapa categórico de clusters espaciais (scan de Kulldorff). Vermelho = cluster mais provável; outras cores = clusters secundários; cinza = fundo (sem cluster)."}
+fig_ou_nota(
+  "figuras/modmoran_scan_cat.png",
+  .nota_gerar
+)
+```
+
+---
+
+# Referências
+
+Anselin, L. (1988). *Spatial Econometrics: Methods and Models*. Kluwer
+Academic Publishers.
+
+Anselin, L. (1995). Local indicators of spatial association — LISA.
+*Geographical Analysis*, 27(2), 93–115.
+
+Bivand, R. S., Pebesma, E., & Gomez-Rubio, V. (2013).
+*Applied Spatial Data Analysis with R* (2nd ed.). Springer.
+
+Bivand, R. S., & Piras, G. (2015). Comparing implementations of estimation
+methods for spatial econometrics. *Journal of Statistical Software*,
+63(18), 1–36.
+
+Bivand, R. S., & Wong, D. W. S. (2018). Comparing implementations of
+global indicators of spatial association. *TEST*, 27(3), 716–748.
+
+Fotheringham, A. S., & Wong, D. W. S. (1991). The modifiable areal unit
+problem in multivariate statistical analysis. *Environment and Planning A*,
+23(7), 1025–1044.
+
+Kulldorff, M. (1997). A spatial scan statistic. *Communications in
+Statistics — Theory and Methods*, 26(6), 1481–1496.
+
+Kulldorff, M., & Nagarwalla, N. (1995). Spatial disease clusters: detection
+and inference. *Statistics in Medicine*, 14(8), 799–810.
+
+LeSage, J., & Pace, R. K. (2009). *Introduction to Spatial Econometrics*.
+CRC Press / Taylor & Francis.
+
+Moran, P. A. P. (1950). Notes on continuous stochastic phenomena.
+*Biometrika*, 37(1–2), 17–23.
+
+Openshaw, S., & Taylor, P. J. (1979). A million or so correlation
+coefficients: three experiments on the modifiable areal unit problem. In
+N. Wrigley (Ed.), *Statistical Applications in the Spatial Sciences*
+(pp. 127–144). Pion.
+
+Tiefelsdorf, M., Griffith, D. A., & Boots, B. (1999). A variance-
+stabilizing coding scheme for spatial link matrices. *Environment and
+Planning A*, 31(1), 165–180.
+
+---
+
+# Navegação
+
+- [Voltar ao hub de tutoriais](tutorials.html)
+- **Anterior:** [Modelagem 05 — Machine Learning](mod-05-ml.html)
+- **Próximo:** [Modelagem 07 — Bayes Espacial](mod-07-bayes.html)
+
+> **Como reproduzir as figuras.** Rode uma única vez, a partir da raiz do pacote:
+> `Rscript scripts/modelagem_06_espacial.R`. O script salva as figuras em
+> `vignettes-pt/figuras/`, as tabelas em `vignettes-pt/dados/` e o objeto
+> `mod_weights.rds` que o Tutorial 07 (Bayes Espacial) carregará.
