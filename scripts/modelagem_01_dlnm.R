@@ -85,7 +85,8 @@ path_clima <- file.path("vignettes-pt", "dados", "caso_clima_estacao.rds")
 saude_diaria <- NULL
 if (file.exists(path_saude)) {
   caso_serie <- readRDS(path_saude)
-  saude_df   <- dplyr::as_tibble(caso_serie)
+  # caso_serie pode ser lista com $serie_diaria ou um tibble plano
+  saude_df   <- if (is.data.frame(caso_serie)) dplyr::as_tibble(caso_serie) else dplyr::as_tibble(caso_serie$serie_diaria)
   col_data   <- .detectar_data(saude_df)
   if (!is.na(col_data)) {
     saude_df[["date"]] <- as.Date(saude_df[[col_data]])

@@ -156,7 +156,8 @@ if (file.exists(path_saude) && file.exists(path_clima)) {
   tryCatch({
     ss <- readRDS(path_saude)
     cc <- readRDS(path_clima)
-    ss_tb <- dplyr::as_tibble(ss)
+    # caso_serie pode ser lista com $serie_diaria ou tibble plano
+    ss_tb <- if (is.data.frame(ss)) dplyr::as_tibble(ss) else dplyr::as_tibble(ss$serie_diaria)
     col_d <- .detectar_data(ss_tb)
     if (!is.na(col_d)) {
       ss_tb[["date"]] <- as.Date(ss_tb[[col_d]])

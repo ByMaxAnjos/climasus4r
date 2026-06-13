@@ -118,7 +118,19 @@ if (is.null(mod_dlnm)) {
 # ---- caso_socio.rds (indicadores socioeconomicos) ---------------------------
 caso_socio <- NULL
 if (file.exists("vignettes-pt/dados/caso_socio.rds")) {
-  caso_socio <- tryCatch(readRDS("vignettes-pt/dados/caso_socio.rds"), error = function(e) NULL)
+  caso_socio <- tryCatch({
+    raw_cs <- readRDS("vignettes-pt/dados/caso_socio.rds")
+    # Remover geometria se for objeto sf
+    if (inherits(raw_cs, c("sf", "sfc"))) {
+      if (requireNamespace("sf", quietly = TRUE)) {
+        raw_cs <- sf::st_drop_geometry(raw_cs)
+      } else {
+        geom_cols <- vapply(raw_cs, function(x) inherits(x, c("sfc", "sfg")), logical(1))
+        raw_cs <- raw_cs[, !geom_cols, drop = FALSE]
+      }
+    }
+    as.data.frame(raw_cs)
+  }, error = function(e) NULL)
 }
 if (is.null(caso_socio)) {
   message("  [aviso] caso_socio.rds ausente. Sintetizando painel socioeconomico realista.")
@@ -179,11 +191,33 @@ exposure_df$tmax_media[exposure_df$city %in%
 # ---- Pilar S: Sensibilidade Populacional ------------------------------------
 # Indicadores: % idosos, % doenca cronica, (+ metricas DLNM se disponiveis)
 sensitivity_df <- caso_socio[, c("city",
-  intersect(c("pct_idosos", "pct_doenca_cr"), names(caso_socio)))]
+  intersect(c("pct_idosos", "pct_doenca_cr"), names(caso_socio))), drop = FALSE]
+sensitivity_df <- as.data.frame(sensitivity_df)
+if (!"pct_idosos" %in% names(sensitivity_df)) {
+  set.seed(101L)
+  sensitivity_df$pct_idosos    <- round(runif(nrow(sensitivity_df), 10, 22), 1)
+}
+if (!"pct_doenca_cr" %in% names(sensitivity_df)) {
+  set.seed(102L)
+  sensitivity_df$pct_doenca_cr <- round(runif(nrow(sensitivity_df), 18, 38), 1)
+}
 
 # ---- Pilar AC: Capacidade Adaptativa ----------------------------------------
 adaptive_capacity_df <- caso_socio[, c("city",
-  intersect(c("hdi", "pct_agua", "densidade_ubs"), names(caso_socio)))]
+  intersect(c("hdi", "pct_agua", "densidade_ubs"), names(caso_socio))), drop = FALSE]
+adaptive_capacity_df <- as.data.frame(adaptive_capacity_df)
+if (!"hdi" %in% names(adaptive_capacity_df)) {
+  set.seed(103L)
+  adaptive_capacity_df$hdi           <- round(runif(nrow(adaptive_capacity_df), 0.72, 0.87), 3)
+}
+if (!"pct_agua" %in% names(adaptive_capacity_df)) {
+  set.seed(104L)
+  adaptive_capacity_df$pct_agua      <- round(runif(nrow(adaptive_capacity_df), 65, 98), 1)
+}
+if (!"densidade_ubs" %in% names(adaptive_capacity_df)) {
+  set.seed(105L)
+  adaptive_capacity_df$densidade_ubs <- round(runif(nrow(adaptive_capacity_df), 1.5, 8.0), 2)
+}
 
 
 # =============================================================================

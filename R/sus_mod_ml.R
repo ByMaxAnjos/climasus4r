@@ -61,7 +61,7 @@ utils::globalVariables(c(
 
 #' @keywords internal
 #' @noRd
-.mrl <- function(key, lang, ...) {
+.mrl_ml <- function(key, lang, ...) {
   entry <- .ml_labels[[key]]
   if (is.null(entry)) return(key)
   msg <- entry[[lang]] %||% entry[["pt"]]
@@ -222,7 +222,7 @@ sus_mod_ml <- function(
     cli::cli_alert_warning("Unsupported language {.val {lang}}. Using {.val pt}.")
     lang <- "pt"
   }
-  if (verbose) cli::cli_h1(.mrl("title", lang))
+  if (verbose) cli::cli_h1(.mrl_ml("title", lang))
 
   # ── 3. Validate objective ─────────────────────────────────────────────────────
   ok_obj <- c("count:poisson", "reg:squarederror", "binary:logistic")
@@ -278,7 +278,7 @@ sus_mod_ml <- function(
 
   if (n_na > 0L) {
     pct <- round(n_na / n_total * 100, 1)
-    if (verbose) cli::cli_alert_warning(.mrl("warn_na", lang, n_na = n_na, pct = pct))
+    if (verbose) cli::cli_alert_warning(.mrl_ml("warn_na", lang, n_na = n_na, pct = pct))
     df <- df[!na_rows, , drop = FALSE]
   }
 
@@ -290,9 +290,9 @@ sus_mod_ml <- function(
       "Only {n_obs} rows after NA removal. Need at least {2L * nfold} for {nfold}-fold CV."
     )
   if (n_obs < 100L && verbose)
-    cli::cli_alert_warning(.mrl("warn_few_obs", lang, n_obs = n_obs))
+    cli::cli_alert_warning(.mrl_ml("warn_few_obs", lang, n_obs = n_obs))
 
-  if (verbose) cli::cli_alert_info(.mrl("step_prepare", lang,
+  if (verbose) cli::cli_alert_info(.mrl_ml("step_prepare", lang,
     n_obs = n_obs, n_feat = n_feat, objective = objective))
 
   # ── 7. Build matrices ─────────────────────────────────────────────────────────
@@ -313,7 +313,7 @@ sus_mod_ml <- function(
   )
 
   # ── 8. Cross-validation to find best nrounds ──────────────────────────────────
-  if (verbose) cli::cli_alert_info(.mrl("step_cv", lang, nfold = nfold))
+  if (verbose) cli::cli_alert_info(.mrl_ml("step_cv", lang, nfold = nfold))
 
   # Build fold IDs: group-aware if id_col provided, random otherwise
   fold_ids <- .ml_make_folds(df, id_col, nfold, seed)
@@ -336,7 +336,7 @@ sus_mod_ml <- function(
   cv_df       <- as.data.frame(cv_log$evaluation_log)
   test_col    <- grep("test_.*_mean$", names(cv_df), value = TRUE)[1L]
   best_nrounds <- which.min(cv_df[[test_col]])
-  if (verbose) cli::cli_alert_info(.mrl("step_train", lang,
+  if (verbose) cli::cli_alert_info(.mrl_ml("step_train", lang,
     best_nrounds = best_nrounds, eta = eta))
 
   # ── 9. Out-of-fold (OOF) predictions via manual k-fold with best_nrounds ─────
@@ -386,7 +386,7 @@ sus_mod_ml <- function(
   fitted_vals <- stats::predict(final_model, dtrain)
 
   # ── 11. Feature importance ────────────────────────────────────────────────────
-  if (verbose) cli::cli_alert_info(.mrl("step_importance", lang))
+  if (verbose) cli::cli_alert_info(.mrl_ml("step_importance", lang))
 
   imp_raw  <- xgboost::xgb.importance(model = final_model)
   imp_tbl  <- tibble::as_tibble(imp_raw) |>
@@ -428,7 +428,7 @@ sus_mod_ml <- function(
 
   # ── 14. Report ────────────────────────────────────────────────────────────────
   top_feat <- if (nrow(imp_tbl) > 0L) imp_tbl$Feature[1L] else "N/A"
-  if (verbose) cli::cli_alert_success(.mrl("done", lang,
+  if (verbose) cli::cli_alert_success(.mrl_ml("done", lang,
     rmse_cv = round(perf$RMSE_cv, 3),
     mae_cv  = round(perf$MAE_cv,  3),
     r2_cv   = round(perf$R2_cv,   3),

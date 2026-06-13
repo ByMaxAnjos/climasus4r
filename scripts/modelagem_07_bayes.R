@@ -118,8 +118,8 @@ if (file.exists("vignettes-pt/dados/caso_espacial.rds")) {
   }
 }
 
-if (is.null(rmsp_sf) || nrow(rmsp_sf) < 3L) {
-  message("   [AVISO] caso_espacial.rds ausente ou insuficiente. ",
+if (is.null(rmsp_sf) || nrow(rmsp_sf) < 10L) {
+  message("   [AVISO] caso_espacial.rds ausente ou com municipios insuficientes (< 10). ",
           "Sintetizando painel RMSP minimo para fins didaticos.")
 
   if (!requireNamespace("sf", quietly = TRUE)) {
@@ -349,10 +349,12 @@ if (is.null(painel_st) || nrow(painel_st) < N_MUNI * 2L) {
   anos_v    <- 2014:2019
 
   painel_rows <- lapply(seq_len(N_MUNI), function(i) {
-    muni_code <- as.character(RMSP_CODES[i])
-    pop_i     <- rmsp_sf$pop[rmsp_sf$code_muni == muni_code]
+    muni_code  <- as.character(RMSP_CODES[i])
+    pop_i      <- rmsp_sf$pop[rmsp_sf$code_muni == muni_code]
     if (length(pop_i) == 0) pop_i <- 5e5
-    exp_i     <- pop_i / sum(rmsp_sf$pop) * sum(rmsp_sf$n_obitos)
+    temp_med_i <- rmsp_sf$temp_med[rmsp_sf$code_muni == muni_code]
+    if (length(temp_med_i) == 0) temp_med_i <- rnorm(1, 21, 1.5)
+    exp_i      <- pop_i / sum(rmsp_sf$pop) * sum(rmsp_sf$n_obitos)
 
     # Risco relativo latente: cluster espacial nos primeiros 8 municipios
     rr_spat <- if (i <= 8L) exp(rnorm(1, 0.4, 0.1)) else exp(rnorm(1, 0, 0.1))
@@ -367,8 +369,7 @@ if (is.null(painel_st) || nrow(painel_st) < N_MUNI * 2L) {
         ano       = ano_j,
         n_obitos  = as.integer(max(0L, round(rpois(1, lambda)))),
         pop       = as.integer(pop_i),
-        temp_med  = rmsp_sf$temp_med[rmsp_sf$code_muni == muni_code] +
-                    rnorm(1, 0, 0.3),
+        temp_med  = temp_med_i + rnorm(1, 0, 0.3),
         stringsAsFactors = FALSE
       )
     })
