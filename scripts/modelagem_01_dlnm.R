@@ -72,7 +72,6 @@ message(">> Bloco 0: carregando entradas (caso_serie.rds + caso_clima_estacao.rd
 
 path_saude <- file.path("vignettes-pt", "dados", "caso_serie.rds")
 path_clima <- file.path("vignettes-pt", "dados", "caso_clima_estacao.rds")
-
 # Helper: detecta coluna de data de forma robusta
 .detectar_data <- function(df) {
   cand <- intersect(c("date", "data", "dia", "data_obito"), names(df))

@@ -63,7 +63,6 @@ obitos <- sus_data_import(
   uf        = "SP",
   year      = ANOS,
   system    = "SIM-DO",
-  backend   = "tibble",
   use_cache = TRUE,
   parallel  = TRUE,
   workers   = 4,
@@ -80,7 +79,7 @@ internacoes <- tryCatch(
     year      = ANOS,
     month     = 6:8,
     system    = "SIH-RD",
-    backend   = "tibble",
+    backend   = "arrow",
     use_cache = TRUE,
     parallel  = TRUE,
     workers   = 4,
@@ -98,7 +97,7 @@ dengue <- tryCatch(
     uf        = "SP",
     year      = ANOS,
     system    = "SINAN-DENGUE",
-    backend   = "tibble",
+    backend   = "arrow",
     use_cache = TRUE,
     lang      = "pt",
     verbose   = TRUE
@@ -124,7 +123,7 @@ obitos_muni_sp <- tryCatch(
     year              = ANOS,
     system            = "SIM-DO",
     municipality_code = "3550308",   # municipio de Sao Paulo
-    backend           = "tibble",
+    backend           = "arrow",
     use_cache         = TRUE,
     lang              = "pt",
     verbose           = TRUE

@@ -25,3 +25,6 @@ AGENTS.md
 CLAUDE.md
 .claude/
 climasus4r.Rcheck/Rplots.pdf
+
+# Artefatos grandes de dados brutos gerados pelos scripts de tutorial (> 100 MB)
+vignettes-pt/dados/caso_base_importado.rds

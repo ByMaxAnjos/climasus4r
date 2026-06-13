@@ -108,13 +108,19 @@ obitos <- sus_data_import(
   uf        = "SP",
   year      = 2014:2019,
   system    = "SIM-DO",
-  backend   = "tibble",   # "arrow" (lazy, padrão) ou "tibble" (em memória)
+  backend   = "arrow",   # "arrow" (lazy, padrão) ou "tibble" (em memória)
   use_cache = TRUE,        # reaproveita downloads anteriores
   parallel  = TRUE,        # baixa anos em paralelo
   workers   = 4,
   lang      = "pt"
 )
 ```
+
+**Visualizar dados**
+```{r}
+dplyr::glimpse(obitos)
+```
+
 
 ## Importar um sistema mensal (SIH-RD)
 
@@ -135,6 +141,12 @@ internacoes <- sus_data_import(
 )
 ```
 
+**Visualizar dados**
+```{r}
+dplyr::glimpse(internacoes)
+```
+
+
 ## Importar notificações (SINAN-DENGUE)
 
 ```{r import-sinan}
@@ -146,6 +158,13 @@ dengue <- sus_data_import(
   lang      = "pt"
 )
 ```
+
+
+**Visualizar dados**
+```{r}
+dplyr::glimpse(dengue)
+```
+
 
 ## Recorte espacial: por região ou por município
 
@@ -162,6 +181,13 @@ obitos_sudeste <- sus_data_import(
 )
 ```
 
+
+**Visualizar dados**
+```{r}
+dplyr::glimpse(obitos_sudeste)
+```
+
+
 Ou restringir a um **município** por código IBGE (ou nome em `city`). O filtro é
 resolvido para o código IBGE **antes** do download:
 
@@ -176,13 +202,19 @@ obitos_muni_sp <- sus_data_import(
 )
 ```
 
+
+**Visualizar dados**
+```{r}
+dplyr::glimpse(obitos_muni_sp)
+```
+
 ## (Opcional) Reler dados já exportados
 
 Depois de exportar a base (com `sus_data_export()`), você pode relê-la em sessões
 futuras sem baixar de novo, com `sus_data_read()` — que detecta o formato
 automaticamente:
 
-```{r read}
+```{r read, eval = FALSE}
 obitos <- sus_data_read("output/sim_sp_2014_2019.parquet")
 ```
 
@@ -203,7 +235,7 @@ paralelismo.
 | `year` | sim | Ano(s) com 4 dígitos (ex.: `2014:2019`) |
 | `system` | sim | Sistema/subsistema (ver tabela de sistemas abaixo) |
 | `month` | só mensais | Mês(es) 1–12; **obrigatório** para SIH, CNES e SIA; ignorado em SIM, SINAN e SINASC |
-| `backend` | opcional | `"arrow"` (lazy, padrão) ou `"tibble"` (em memória) |
+| `backend` | opcional | `"arrow"` (lazy, padrão, muito rápido) ou `"tibble"` (em memória) |
 | `city` / `municipality_code` | opcional | Restringe a municípios (nome ou código IBGE de 6/7 dígitos) |
 | `use_cache` | recomendado | `TRUE` reaproveita downloads; `cache_dir` define a pasta |
 | `force_redownload` | opcional | `TRUE` ignora o cache e rebaixa tudo |
