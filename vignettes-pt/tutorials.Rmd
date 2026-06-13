@@ -290,7 +290,7 @@ title: "Tutoriais"
     </div>
     <h3 class="card-title">DLNM</h3>
     <p class="card-description">Modelos de Defasagem Distribuída Não-Linear. Estime relações exposição–resposta com estrutura de defasagem entre temperatura e desfechos de saúde.</p>
-    <a href="#" class="card-cta-button is-soon">Em breve</a>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/mod-01-dlnm.html" class="card-cta-button">Ver Tutorial →</a>
   </div>
 
   <div class="tutorial-card">
@@ -302,7 +302,7 @@ title: "Tutoriais"
     </div>
     <h3 class="card-title">Carga Atribuível &amp; Excesso</h3>
     <p class="card-description">Calcule frações atribuíveis (AF), número atribuível (AN), excesso de mortalidade e carga de doença imputável à exposição climática.</p>
-    <a href="#" class="card-cta-button is-soon">Em breve</a>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/mod-02-atribuivel.html" class="card-cta-button">Ver Tutorial →</a>
   </div>
 
   <div class="tutorial-card">
@@ -314,7 +314,7 @@ title: "Tutoriais"
     </div>
     <h3 class="card-title">Case-Crossover &amp; ITS</h3>
     <p class="card-description">Controles de confundimento na série temporal: delineamento case-crossover condicional e análise de séries temporais interrompidas (ITS).</p>
-    <a href="#" class="card-cta-button is-soon">Em breve</a>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/mod-03-crossover-its.html" class="card-cta-button">Ver Tutorial →</a>
   </div>
 
   <div class="tutorial-card">
@@ -326,7 +326,7 @@ title: "Tutoriais"
     </div>
     <h3 class="card-title">Pooling &amp; Meta-regressão</h3>
     <p class="card-description">Combine resultados de múltiplas cidades com pooling multivariado, explore heterogeneidade com meta-regressão e avalie robustez com análise de sensibilidade.</p>
-    <a href="#" class="card-cta-button is-soon">Em breve</a>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/mod-04-multicidade.html" class="card-cta-button">Ver Tutorial →</a>
   </div>
 
   <div class="tutorial-card">
@@ -338,7 +338,7 @@ title: "Tutoriais"
     </div>
     <h3 class="card-title">Machine Learning</h3>
     <p class="card-description">Aplique XGBoost e outros algoritmos de ML para previsão de desfechos de saúde e identificação de preditores climáticos e socioeconômicos.</p>
-    <a href="#" class="card-cta-button is-soon">Em breve</a>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/mod-05-ml.html" class="card-cta-button">Ver Tutorial →</a>
   </div>
 
   <div class="tutorial-card">
@@ -350,7 +350,7 @@ title: "Tutoriais"
     </div>
     <h3 class="card-title">Modelagem Espacial</h3>
     <p class="card-description">Autocorrelação espacial (Moran), regressão espacial (SAR/CAR frequentista) e varredura espacial para detecção de clusters de risco.</p>
-    <a href="#" class="card-cta-button is-soon">Em breve</a>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/mod-06-espacial.html" class="card-cta-button">Ver Tutorial →</a>
   </div>
 
   <div class="tutorial-card">
@@ -362,7 +362,7 @@ title: "Tutoriais"
     </div>
     <h3 class="card-title">Bayes Espacial &amp; Espaço-temporal</h3>
     <p class="card-description">Modelos BYM2/CAR bayesianos para suavização espacial de risco, modelos espaço-temporais e probabilidade de excedência via CARBayes/INLA.</p>
-    <a href="#" class="card-cta-button is-soon">Em breve</a>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/mod-07-bayes.html" class="card-cta-button">Ver Tutorial →</a>
   </div>
 
   <div class="tutorial-card">
@@ -374,7 +374,7 @@ title: "Tutoriais"
     </div>
     <h3 class="card-title">Vulnerabilidade &amp; SWOT</h3>
     <p class="card-description">Construa índices de vulnerabilidade climática (framework IPCC) integrando exposição, sensibilidade e capacidade adaptativa, e sintetize com análise SWOT.</p>
-    <a href="#" class="card-cta-button is-soon">Em breve</a>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/mod-08-vulnerabilidade-swot.html" class="card-cta-button">Ver Tutorial →</a>
   </div>
 
 </div>
