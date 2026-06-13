@@ -113,7 +113,10 @@ utils::globalVariables(c(
   entry <- .moran_msgs[[key]]
   if (is.null(entry)) return(key)
   msg <- entry[[lang]] %||% entry[["pt"]]
-  if (...length() > 0L) msg <- glue::glue(msg, .envir = rlang::env(...))
+  if (...length() > 0L) {
+    vars <- list(...)
+    for (nm in names(vars)) msg <- gsub(sprintf("\\{%s\\}", nm), as.character(vars[[nm]]), msg)
+  }
   msg
 }
 

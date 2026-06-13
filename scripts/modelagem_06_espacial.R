@@ -91,8 +91,8 @@
   }
 
   # Fallback: sintetizar painel minimo realista da RMSP (39 municipios)
-  if (is.null(rmsp_sf) || nrow(rmsp_sf) < 3L) {
-    message("   [AVISO] caso_espacial.rds ausente ou insuficiente. ",
+  if (is.null(rmsp_sf) || nrow(rmsp_sf) < 10L) {
+    message("   [AVISO] caso_espacial.rds ausente ou com municipios insuficientes (< 10). ",
             "Sintetizando painel RMSP minimo para fins didaticos.")
 
     if (!requireNamespace("sf", quietly = TRUE)) {
@@ -148,8 +148,8 @@
     for (i in seq_len(n_muni)) {
       ix <- (i - 1L) %% nx
       iy <- (i - 1L) %/% nx
-      xmin <- lon_base + ix * d; xmax <- xmin + d * 0.9
-      ymin <- lat_base - iy * d; ymax <- ymin - d * 0.9
+      xmin <- lon_base + ix * d; xmax <- xmin + d
+      ymin <- lat_base - iy * d; ymax <- ymin - d
       grid_list[[i]] <- sf::st_polygon(list(rbind(
         c(xmin, ymin), c(xmax, ymin), c(xmax, ymax),
         c(xmin, ymax), c(xmin, ymin)

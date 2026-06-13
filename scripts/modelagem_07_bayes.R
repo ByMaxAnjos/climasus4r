@@ -140,8 +140,8 @@ if (is.null(rmsp_sf) || nrow(rmsp_sf) < 10L) {
   for (i in seq_len(N_MUNI)) {
     ix <- (i - 1L) %% nx
     iy <- (i - 1L) %/% nx
-    xmin <- lon_base + ix * d; xmax <- xmin + d * 0.9
-    ymin <- lat_base - iy * d; ymax <- ymin - d * 0.9
+    xmin <- lon_base + ix * d; xmax <- xmin + d
+    ymin <- lat_base - iy * d; ymax <- ymin - d
     grid_list[[i]] <- sf::st_polygon(list(rbind(
       c(xmin, ymin), c(xmax, ymin), c(xmax, ymax),
       c(xmin, ymax), c(xmin, ymin)

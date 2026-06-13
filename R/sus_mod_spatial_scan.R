@@ -112,7 +112,10 @@ utils::globalVariables(c(
   if (is.null(entry)) return(key)
   txt <- entry[[lang]] %||% entry[["pt"]]
   dots <- list(...)
-  if (length(dots) > 0L) glue::glue(txt, .envir = list2env(dots)) else txt
+  if (length(dots) > 0L) {
+    for (nm in names(dots)) txt <- gsub(sprintf("\\{%s\\}", nm), as.character(dots[[nm]]), txt)
+  }
+  txt
 }
 
 
