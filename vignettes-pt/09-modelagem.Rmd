@@ -398,8 +398,3 @@ tbl_ou_nota("dados/mod_af_resumo.rds", .nota_gerar,
 - **Anterior:** [Tutorial 8 — Dados Climáticos e Ambientais em Grade](08-clima-grade.html)
 - Este é o **último tutorial** da série do pipeline `climasus4r`.
 
-> **Como reproduzir as figuras.** Rode uma única vez, a partir da raiz do pacote:
-> `Rscript scripts/tutorial_09_modelagem.R`. O script carrega
-> `caso_serie.rds` e `caso_clima_estacao.rds`, ajusta o DLNM e a fração
-> atribuível, salva as figuras em `vignettes-pt/figuras/`, as tabelas em
-> `vignettes-pt/dados/` e as saídas tidy do modelo em `caso_modelo.rds`.

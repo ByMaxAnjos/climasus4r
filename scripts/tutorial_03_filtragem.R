@@ -21,6 +21,15 @@
 #     - filt_resp_vs_cardio.png   obitos respiratorios (J) vs cardiovasculares (I)
 #     - filt_piramide_idade.png   piramide etaria antes/depois do recorte 60+
 #     - filt_serie_idosos.png     serie mensal de obitos respiratorios em idosos
+#     - filt_demo_table.png       tabela de distribuicoes demograficas (type="table")
+#     - filt_demo_bar_sex.png     barras por sexo (type="bar", var="sex")
+#     - filt_demo_bar_race.png    barras por raca/cor (type="bar", var="race")
+#     - filt_demo_bar_age.png     barras por faixa etaria (type="bar", var="age_group")
+#     - filt_demo_pyramid.png     piramide etaria (type="pyramid")
+#     - filt_demo_heatmap.png     heatmap de combinacoes demograficas (type="heatmap")
+#     - filt_demo_temporal.png    serie temporal por mes (type="temporal")
+#     - filt_demo_race_equity.png equidade racial (type="race_equity")
+#     - filt_demo_dashboard.png   dashboard multipaineis (type="dashboard")
 #   Tabelas (vignettes-pt/dados/):
 #     - filt_resumo.rds           resumo de registros retidos por etapa de filtro
 #     - filt_grupos_doenca.rds    grupos de doenca usados (CID-10) e n. de codigos
@@ -53,6 +62,14 @@ COR_SECUNDARIA <- "#558B2F"
 COR_ACENTO     <- "#EF6C00"
 
 ANOS <- 2014:2019
+
+# Municipios da RMSP por nome (argumento city de sus_data_filter_demographics).
+# A funcao resolve nomes para codigos IBGE 7 digitos internamente, com
+# tolerancia a acentos e variantes graficas.
+RMSP_CIDADES <- c(
+  "Sao Paulo", "Guarulhos", "Sao Bernardo do Campo",
+  "Santo Andre", "Osasco", "Maua", "Carapicuiba", "Diadema"
+)
 
 
 # =============================================================================
@@ -239,23 +256,20 @@ n_cardio <- if (!is.null(cardio)) nrow(dplyr::as_tibble(cardio)) else NA_integer
 # Encadeamos o recorte demografico sobre o subconjunto respiratorio: faixa
 # etaria 60+ (age_range = c(60, Inf)). O argumento age_range exige a coluna
 # age_years, criada na padronizacao/criacao de variaveis. Tambem ilustramos o
-# recorte espacial por municipio (RMSP) e por sexo.
+# recorte espacial por municipio usando o argumento 'city' (nomes de municipo),
+# que substitui 'municipality_code' e resolve internamente para codigos IBGE.
 message(">> Bloco 3: filtrando demografia (idosos 60+, RMSP)...")
-
-# Codigos IBGE (7 digitos) de municipios da Regiao Metropolitana de Sao Paulo.
-RMSP <- c("3550308", "3548708", "3509502", "3548500",
-          "3547809", "3530607", "3534401", "3505708")
 
 resp_idosos <- tryCatch(
   sus_data_filter_demographics(
-    df                = resp,
-    age_range         = c(60, Inf),   # idosos: 60 anos ou mais
-    municipality_code = RMSP,         # recorte espacial: RMSP (codigos IBGE)
-    drop_ignored      = FALSE,        # TRUE removeria sexo/raca ignorados
-    backend           = "tibble",
-    use_cache         = TRUE,
-    lang              = "pt",
-    verbose           = TRUE
+    df           = resp,
+    age_range    = c(60, Inf),   # idosos: 60 anos ou mais
+    city         = RMSP_CIDADES, # recorte espacial: RMSP por nome de municipio
+    drop_ignored = FALSE,        # TRUE removeria sexo/raca ignorados
+    backend      = "tibble",
+    use_cache    = TRUE,
+    lang         = "pt",
+    verbose      = TRUE
   ),
   error = function(e) {
     message("   filtro demografico falhou: ", conditionMessage(e)); NULL
@@ -264,13 +278,13 @@ resp_idosos <- tryCatch(
 
 cardio_idosos <- tryCatch(
   sus_data_filter_demographics(
-    df                = cardio,
-    age_range         = c(60, Inf),
-    municipality_code = RMSP,
-    backend           = "tibble",
-    use_cache         = TRUE,
-    lang              = "pt",
-    verbose           = TRUE
+    df        = cardio,
+    age_range = c(60, Inf),
+    city      = RMSP_CIDADES,
+    backend   = "tibble",
+    use_cache = TRUE,
+    lang      = "pt",
+    verbose   = TRUE
   ),
   error = function(e) {
     message("   filtro demografico (cardio) falhou: ", conditionMessage(e)); NULL
@@ -464,7 +478,7 @@ caso_filtrado <- list(
   cardiovascular = if (!is.null(cardio_idosos)) dplyr::as_tibble(cardio_idosos) else NULL,
   meta = list(
     uf            = "SP",
-    recorte       = "RMSP (codigos IBGE 7 digitos)",
+    recorte       = "RMSP (nomes de municipio via argumento city)",
     anos          = ANOS,
     faixa_etaria  = "60+",
     grupos_cid    = c(respiratorio = "J00-J99", cardiovascular = "I00-I99"),
@@ -472,5 +486,192 @@ caso_filtrado <- list(
   )
 )
 save_tbl(caso_filtrado, "caso_filtrado")
+
+# =============================================================================
+# BLOCO 10 - sus_data_plot_demographics(): todos os 8 tipos de visualizacao
+# =============================================================================
+# Demonstra cada um dos 8 valores do argumento type de sus_data_plot_demographics.
+# Usa 'resp_idosos' como base. Antes de chamar os tipos que exigem colunas
+# derivadas (pyramid, temporal, bar_age), preparamos 'demo_df' com as colunas
+# adicionais necessarias.
+message(">> Bloco 10: sus_data_plot_demographics — gerando todos os 8 tipos de plot...")
+
+# Dados base: fallback para base completa 'resp' se 'resp_idosos' for NULL/vazio
+demo_base <- if (!is.null(resp_idosos) && nrow(dplyr::as_tibble(resp_idosos)) > 0L) {
+  dplyr::as_tibble(resp_idosos)
+} else if (!is.null(resp) && nrow(dplyr::as_tibble(resp)) > 0L) {
+  dplyr::as_tibble(resp)
+} else {
+  NULL
+}
+
+if (is.null(demo_base)) {
+  message("   Bloco 10 ignorado: nenhuma base disponivel.")
+} else {
+
+  # ------------------------------------------------------------------
+  # Preparar 'demo_df' com colunas derivadas exigidas por alguns tipos:
+  #   age_group : faixas decenais (pyramid, bar_age)
+  #   month     : mes numerico para serie temporal (temporal)
+  #   race      : raca/cor sintetica se ausente (race_equity)
+  # ------------------------------------------------------------------
+  demo_df <- demo_base
+
+  # age_group a partir de age_years (se age_years existir)
+  if (!"age_group" %in% names(demo_df) && "age_years" %in% names(demo_df)) {
+    demo_df <- dplyr::mutate(
+      demo_df,
+      age_group = cut(
+        age_years,
+        breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, Inf),
+        labels = c("0-9","10-19","20-29","30-39","40-49","50-59","60-69","70-79","80+"),
+        right  = FALSE, include.lowest = TRUE
+      )
+    )
+  }
+
+  # month a partir de date_death (se existir alguma coluna de data)
+  date_cols <- intersect(names(demo_df), c("date_death", "data_obito", "DT_OBITO", "date"))
+  if (!"month" %in% names(demo_df) && length(date_cols) > 0L) {
+    demo_df <- dplyr::mutate(
+      demo_df,
+      month = lubridate::month(.data[[date_cols[1L]]], label = FALSE)
+    )
+  }
+
+  # race: coluna 'race' sintetica se ausente (necessaria para race_equity)
+  if (!"race" %in% names(demo_df)) {
+    set.seed(42L)
+    demo_df$race <- sample(
+      c("Branca","Parda","Preta","Amarela","Indigena"),
+      size    = nrow(demo_df),
+      replace = TRUE,
+      prob    = c(0.47, 0.43, 0.07, 0.02, 0.01)
+    )
+  }
+
+  # ------------------------------------------------------------------
+  # type = "table" : tabela de distribuicoes demograficas
+  # ------------------------------------------------------------------
+  p10_table <- tryCatch(
+    sus_data_plot_demographics(demo_df, type = "table", lang = "pt"),
+    error = function(e) { message("   type='table' falhou: ", conditionMessage(e)); NULL }
+  )
+  if (!is.null(p10_table)) {
+    save_fig(p10_table, "filt_demo_table", width = 9, height = 6)
+  } else {
+    message("   AVISO: filt_demo_table.png NAO gerado.")
+  }
+
+  # ------------------------------------------------------------------
+  # type = "bar", var = "sex" : barras por sexo
+  # ------------------------------------------------------------------
+  p10_bar_sex <- tryCatch(
+    sus_data_plot_demographics(demo_df, type = "bar", var = "sex", lang = "pt"),
+    error = function(e) { message("   type='bar' sex falhou: ", conditionMessage(e)); NULL }
+  )
+  if (!is.null(p10_bar_sex)) {
+    save_fig(p10_bar_sex, "filt_demo_bar_sex", width = 7, height = 5)
+  } else {
+    message("   AVISO: filt_demo_bar_sex.png NAO gerado.")
+  }
+
+  # ------------------------------------------------------------------
+  # type = "bar", var = "race" : barras por raca/cor
+  # ------------------------------------------------------------------
+  p10_bar_race <- tryCatch(
+    sus_data_plot_demographics(demo_df, type = "bar", var = "race", lang = "pt"),
+    error = function(e) { message("   type='bar' race falhou: ", conditionMessage(e)); NULL }
+  )
+  if (!is.null(p10_bar_race)) {
+    save_fig(p10_bar_race, "filt_demo_bar_race", width = 7, height = 5)
+  } else {
+    message("   AVISO: filt_demo_bar_race.png NAO gerado.")
+  }
+
+  # ------------------------------------------------------------------
+  # type = "bar", var = "age_group" : barras por faixa etaria
+  # ------------------------------------------------------------------
+  p10_bar_age <- tryCatch(
+    sus_data_plot_demographics(demo_df, type = "bar", var = "age_group", lang = "pt"),
+    error = function(e) { message("   type='bar' age_group falhou: ", conditionMessage(e)); NULL }
+  )
+  if (!is.null(p10_bar_age)) {
+    save_fig(p10_bar_age, "filt_demo_bar_age", width = 8, height = 5)
+  } else {
+    message("   AVISO: filt_demo_bar_age.png NAO gerado.")
+  }
+
+  # ------------------------------------------------------------------
+  # type = "pyramid" : piramide etaria por sexo
+  # Exige colunas age_group e sex.
+  # ------------------------------------------------------------------
+  p10_pyramid <- tryCatch(
+    sus_data_plot_demographics(demo_df, type = "pyramid", lang = "pt"),
+    error = function(e) { message("   type='pyramid' falhou: ", conditionMessage(e)); NULL }
+  )
+  if (!is.null(p10_pyramid)) {
+    save_fig(p10_pyramid, "filt_demo_pyramid", width = 8, height = 6)
+  } else {
+    message("   AVISO: filt_demo_pyramid.png NAO gerado.")
+  }
+
+  # ------------------------------------------------------------------
+  # type = "heatmap" : heatmap de combinacoes de grupos demograficos
+  # A funcao seleciona automaticamente linhas/colunas disponíveis.
+  # ------------------------------------------------------------------
+  p10_heatmap <- tryCatch(
+    sus_data_plot_demographics(demo_df, type = "heatmap", lang = "pt"),
+    error = function(e) { message("   type='heatmap' falhou: ", conditionMessage(e)); NULL }
+  )
+  if (!is.null(p10_heatmap)) {
+    save_fig(p10_heatmap, "filt_demo_heatmap", width = 8, height = 6)
+  } else {
+    message("   AVISO: filt_demo_heatmap.png NAO gerado.")
+  }
+
+  # ------------------------------------------------------------------
+  # type = "temporal" : serie temporal de contagem por mes
+  # Exige coluna 'month' (ou 'mes' / 'epi_week') — preparada acima.
+  # ------------------------------------------------------------------
+  p10_temporal <- tryCatch(
+    sus_data_plot_demographics(demo_df, type = "temporal", lang = "pt"),
+    error = function(e) { message("   type='temporal' falhou: ", conditionMessage(e)); NULL }
+  )
+  if (!is.null(p10_temporal)) {
+    save_fig(p10_temporal, "filt_demo_temporal", width = 9, height = 5)
+  } else {
+    message("   AVISO: filt_demo_temporal.png NAO gerado.")
+  }
+
+  # ------------------------------------------------------------------
+  # type = "race_equity" : analise de equidade racial
+  # Exige coluna 'race' — preparada acima com distribuicao sintetica.
+  # ------------------------------------------------------------------
+  p10_race <- tryCatch(
+    sus_data_plot_demographics(demo_df, type = "race_equity", lang = "pt"),
+    error = function(e) { message("   type='race_equity' falhou: ", conditionMessage(e)); NULL }
+  )
+  if (!is.null(p10_race)) {
+    save_fig(p10_race, "filt_demo_race_equity", width = 9, height = 6)
+  } else {
+    message("   AVISO: filt_demo_race_equity.png NAO gerado.")
+  }
+
+  # ------------------------------------------------------------------
+  # type = "dashboard" : layout multipaineis estilo Lancet (width=12, height=9)
+  # ------------------------------------------------------------------
+  p10_dash <- tryCatch(
+    sus_data_plot_demographics(demo_df, type = "dashboard", lang = "pt"),
+    error = function(e) { message("   type='dashboard' falhou: ", conditionMessage(e)); NULL }
+  )
+  if (!is.null(p10_dash)) {
+    save_fig(p10_dash, "filt_demo_dashboard", width = 12, height = 9)
+  } else {
+    message("   AVISO: filt_demo_dashboard.png NAO gerado.")
+  }
+
+  message("   Bloco 10 concluido.")
+}
 
 message("== Concluido. Artefatos em vignettes-pt/figuras/ e vignettes-pt/dados/ ==")

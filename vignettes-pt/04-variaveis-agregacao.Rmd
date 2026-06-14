@@ -423,8 +423,3 @@ tbl_ou_nota("dados/agg_resumo.rds", .nota_gerar,
 - [Voltar ao hub de tutoriais](tutorials.html)
 - **Anterior:** [Tutorial 3 — Filtragem (CID-10 e demografia)](03-filtragem.html)
 - **Próximo:** Tutorial 5 — Junção Espacial (em breve)
-
-> **Como reproduzir as figuras.** Rode uma única vez, a partir da raiz do pacote:
-> `Rscript scripts/tutorial_04_variaveis_agregacao.R`. O script salva as figuras
-> em `vignettes-pt/figuras/`, as tabelas em `vignettes-pt/dados/` e a série
-> temporal (`caso_serie.rds`) que o Tutorial 5 carregará.

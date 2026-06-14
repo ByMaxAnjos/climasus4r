@@ -302,9 +302,4 @@ tbl_ou_nota("dados/geo_amostra.rds", .nota_gerar,
 - **Anterior:** Tutorial 4 — Criação de Variáveis e Agregação
 - **Próximo:** Tutorial 6 — Vínculo Socioeconômico (em breve)
 
-> **Como reproduzir as figuras.** Rode uma única vez, a partir da raiz do pacote:
-> `Rscript scripts/tutorial_05_juncao_espacial.R`. O script lê
-> `dados/caso_serie.rds` (Tutorial 4), salva as figuras em
-> `vignettes-pt/figuras/`, as tabelas em `vignettes-pt/dados/` e o objeto
-> espacial (`caso_espacial.rds`) que o Tutorial 6 carregará.
 ```

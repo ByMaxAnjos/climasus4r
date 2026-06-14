@@ -566,8 +566,3 @@ sinalizam com antecedência para desfechos como doenças diarreicas.
 - **Anterior:** [Tutorial 7 — Clima por Estações (INMET)](07-clima-estacoes.html)
 - **Próximo:** [Tutorial 9 — Modelagem Epidemiológica (DLNM)](09-modelagem.html)
 
-> **Como reproduzir as figuras.** Rode uma única vez, a partir da raiz do
-> pacote: `Rscript scripts/tutorial_08_clima_grade.R`. O script carrega a
-> série de saúde do Tutorial 4 (`dados/caso_serie.rds`), salva as figuras em
-> `vignettes-pt/figuras/`, as tabelas em `vignettes-pt/dados/` e a base
-> encadeada `caso_clima_grade.rds` que o Tutorial 9 carregará.

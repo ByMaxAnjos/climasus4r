@@ -358,9 +358,4 @@ temperatura nas etapas de clima e modelagem.
 - **Anterior:** [Tutorial 2 — Encoding e Padronização](02-encoding-padronizacao.html)
 - **Próximo:** Tutorial 4 — Criação de Variáveis e Agregação (em breve)
 
-> **Como reproduzir as figuras.** Rode uma única vez, a partir da raiz do pacote:
-> `Rscript scripts/tutorial_03_filtragem.R`. O script carrega
-> `dados/caso_padronizado.rds`, salva as figuras em `vignettes-pt/figuras/`, as
-> tabelas em `vignettes-pt/dados/` e a base filtrada (`caso_filtrado.rds`) que o
-> Tutorial 4 carregará.
 ```

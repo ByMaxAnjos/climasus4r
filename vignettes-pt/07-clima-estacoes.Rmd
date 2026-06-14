@@ -442,8 +442,3 @@ escolha que reflete o mecanismo biológico de interesse no modelo final.
 - **Anterior:** Tutorial 6 — Vínculo Socioeconômico (Censo)
 - **Próximo:** Tutorial 8 — Clima em Grade e Dados Ambientais (ERA5/CHIRPS)
 
-> **Como reproduzir as figuras.** Rode uma única vez, a partir da raiz do
-> pacote: `Rscript scripts/tutorial_07_clima_estacoes.R`. O script carrega a
-> série de saúde do Tutorial 4 (`dados/caso_serie.rds`), salva as figuras em
-> `vignettes-pt/figuras/`, as tabelas em `vignettes-pt/dados/` e a base
-> encadeada `caso_clima_estacao.rds` que o Tutorial 8 carregará.

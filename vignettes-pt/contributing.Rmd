@@ -429,14 +429,14 @@ Nossa equipe é organizada em **vários níveis de engajamento**, desde lideran�
 
 <div class="pathway-box" style="line-height: 2;">
   <strong style="display: block; margin-bottom: 8px;">🚀 Perfil de Contribuição:</strong>
-  <span class="badge">Contribuidor</span> • 
+  <span class="badge">Contribuidor(a)</span> • 
   <span class="badge">Documentação & Suporte</span> • 
   <span class="badge">Assistente de Pesquisa</span> • 
-  <span class="badge">Desenvolvedor Assistente</span> • 
-  <span class="badge">Desenvolvedor Sênior</span> • 
-  <span class="badge">Engenheiro de Software</span> • 
-  <span class="badge">Consultor Científico</span> • 
-  <span class="badge">Coordenador</span>
+  <span class="badge">Desenvolvedor(a) Assistente</span> • 
+  <span class="badge">Desenvolvedor(a) Sênior</span> • 
+  <span class="badge">Engenheiro(a) de Software</span> • 
+  <span class="badge">Pesquisador(a)</span> • 
+  <span class="badge">Coordenador(a)</span>
 </div>
 
 ---
@@ -514,7 +514,7 @@ Este papel é atribuído pelo mantenedor atual do projeto baseado em contribuiç
 
 ## 🔬 Equipe Científica
 
-### Consultor Científico
+### Pesquisador(a)
 
 <div class="role-card">
 <span class="badge badge-science">VALIDAÇÃO CIENTÍFICA</span>
@@ -560,7 +560,7 @@ Este papel é atribuído pelo mantenedor atual do projeto baseado em contribuiç
 
 </div>
 
-### Contribuidor do Projeto
+### Contribuidor(a) do Projeto
 
 <div class="role-card">
 <span class="badge badge-community">COLABORADOR</span>
@@ -586,7 +586,7 @@ Responda estas perguntas rápidas:
 <li><strong>Quero escrever código e tenho experiência:</strong> → Desenvolvedor Sênior ou Engenheiro de Software</li>
 <li><strong>Quero escrever código mas estou aprendendo:</strong> → Desenvolvedor Assistente</li>
 <li><strong>Sou pesquisador e quero usar o pacote:</strong> → Assistente de Pesquisa</li>
-<li><strong>Sou especialista em métodos:</strong> → Consultor Científico</li>
+<li><strong>Sou especialista em métodos:</strong> → Pesquisador(a)</li>
 <li><strong>Gosto de escrever e ajudar pessoas:</strong> → Documentação & Suporte</li>
 <li><strong>Quero ajudar sem compromisso fixo:</strong> → Contribuidor do Projeto</li>
 </ul>

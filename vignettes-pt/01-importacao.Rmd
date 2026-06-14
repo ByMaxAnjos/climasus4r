@@ -353,7 +353,3 @@ partida para os recortes (idosos, causas respiratórias) dos próximos tutoriais
 - [Voltar ao hub de tutoriais](tutorials.html)
 - **Próximo:** Tutorial 2 — Encoding e Padronização (em breve)
 
-> **Como reproduzir as figuras.** Rode uma única vez, a partir da raiz do pacote:
-> `Rscript scripts/tutorial_01_importacao.R`. O script salva as figuras em
-> `vignettes-pt/figuras/`, as tabelas em `vignettes-pt/dados/` e a base bruta
-> (`caso_base_importado.rds`) que o Tutorial 2 carregará.

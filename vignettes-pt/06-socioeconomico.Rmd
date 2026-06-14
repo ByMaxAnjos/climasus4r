@@ -409,9 +409,3 @@ temperatura–saúde dos próximos tutoriais.
 - [Voltar ao hub de tutoriais](tutorials.html)
 - **Anterior:** Tutorial 5 — Junção Espacial
 - **Próximo:** Tutorial 7 — Clima Baseado em Estações (INMET)
-
-> **Como reproduzir as figuras.** Rode uma única vez, a partir da raiz do
-> pacote: `Rscript scripts/tutorial_06_socioeconomico.R`. O script carrega
-> `dados/caso_espacial.rds` (Tutorial 5), salva as figuras em
-> `vignettes-pt/figuras/`, as tabelas em `vignettes-pt/dados/` e o objeto
-> enriquecido (`caso_socio.rds`) que o Tutorial 7 carregará.
