@@ -351,5 +351,5 @@ partida para os recortes (idosos, causas respiratórias) dos próximos tutoriais
 # Navegação
 
 - [Voltar ao hub de tutoriais](tutorials.html)
-- **Próximo:** Tutorial 2 — Encoding e Padronização (em breve)
+- **Próximo:** [Tutorial 2 — Encoding e Padronização](01-importacao.html)
 

@@ -407,5 +407,5 @@ temperatura–saúde dos próximos tutoriais.
 # Navegação
 
 - [Voltar ao hub de tutoriais](tutorials.html)
-- **Anterior:** Tutorial 5 — Junção Espacial
-- **Próximo:** Tutorial 7 — Clima Baseado em Estações (INMET)
+- **Anterior:** [Tutorial 5 — Junção Espacial](05-juncao-espacial.html)
+- **Próximo:** [Tutorial 7 — Clima Baseado em Estações (INMET)](07-clima-estacoes.html)

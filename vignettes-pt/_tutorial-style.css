@@ -1,342 +1,253 @@
-/* ==========================================================================
-   climasus4r — Tema "Climate Forest" para páginas de tutorial (html_document)
-   Reutiliza as variáveis :root e as classes de card de vignettes-pt/tutorials.Rmd
-   ========================================================================== */
-
+/* ── Variáveis de Cores Modernas ────────────────── */
 :root {
-  --cf-bg-page: #F1F8E9;         /* Fundo da página (Menta suave) */
-  --cf-card-bg: #FFFFFF;         /* Fundo do card */
-  --cf-primary: #2E7D32;         /* Verde Floresta (Títulos, Bordas) */
-  --cf-secondary: #558B2F;       /* Verde Folha (Ícones) */
-  --cf-accent: #EF6C00;          /* Laranja Queimado (Botões/Badges) */
-  --cf-text-main: #1B5E20;       /* Texto escuro */
-  --cf-text-light: #52665A;      /* Texto de descrição */
-  --cf-shadow: 0 10px 30px -10px rgba(46, 125, 50, 0.15);
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
 }
 
-/* ==========================================================================
-   Página geral
-   ========================================================================== */
+html {
+  scroll-behavior: smooth;
+}
 
 body {
-  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  color: #2c3e30;
-  background-color: #ffffff;
-  line-height: 1.7;
-  font-size: 16px;
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 18px;
+  color: var(--text-main);
+  background-color: #fff;
+  line-height: 1.6;
 }
 
-.main-container,
-.container-fluid {
-  max-width: 980px;
-}
-
-/* ==========================================================================
-   Títulos
-   ========================================================================== */
-
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+/* ── Títulos com Inter-spacing ─────────────────── */
+h1, h2, h3, h4 {
+  font-family: 'Inter', sans-serif;
   font-weight: 700;
-  line-height: 1.25;
+  color: var(--dark-green);
 }
 
-h1 {
-  color: var(--cf-primary);
-  border-bottom: 3px solid var(--cf-primary);
-  padding-bottom: 0.35em;
-  margin-top: 1.4em;
+h1.title {
+  font-size: 2.8em;
+  border-bottom: 4px solid var(--primary-color);
+  padding-bottom: 10px;
+  margin-bottom: 1.5rem;
 }
 
 h2 {
-  color: var(--cf-primary);
-  border-bottom: 1px solid rgba(46, 125, 50, 0.25);
-  padding-bottom: 0.25em;
-  margin-top: 1.8em;
+  margin-top: 2rem;
+  border-left: 4px solid var(--primary-color);
+  padding-left: 1rem;
 }
 
-h3 {
-  color: var(--cf-secondary);
-  margin-top: 1.4em;
+/* ── Code Blocks Estilizados ────────────────────── */
+pre.r, pre.sourceCode {
+  background-color: var(--code-bg);
+  border: 1px solid #e1e1e1;
+  border-left: 5px solid var(--primary-color) !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  padding: 1rem;
 }
 
-h4, h5, h6 {
-  color: var(--cf-text-main);
-}
-
-/* ==========================================================================
-   Links
-   ========================================================================== */
-
-a {
-  color: var(--cf-primary);
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-a:hover {
-  color: var(--cf-accent);
-  text-decoration: underline;
-}
-
-/* ==========================================================================
-   Tabelas (cabeçalho verde claro, linhas zebradas, bordas arredondadas)
-   ========================================================================== */
-
-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+/* ── Custom Callouts (Estilo Quarto) ────────────── */
+.callout {
+  padding: 1.2em 1.5em;
   margin: 1.5em 0;
-  font-size: 0.95rem;
-  border: 1px solid rgba(46, 125, 50, 0.18);
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: var(--cf-shadow);
-}
-
-table thead th {
-  background-color: #E8F5E9;
-  color: var(--cf-text-main);
-  font-weight: 700;
-  text-align: left;
-  padding: 12px 14px;
-  border-bottom: 2px solid var(--cf-primary);
-}
-
-table tbody td {
-  padding: 10px 14px;
-  border-top: 1px solid rgba(46, 125, 50, 0.10);
-}
-
-table tbody tr:nth-child(even) {
-  background-color: #F6FBF2;
-}
-
-table tbody tr:hover {
-  background-color: #ECF6E6;
-}
-
-/* ==========================================================================
-   Blocos e trechos de código
-   ========================================================================== */
-
-code {
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  background-color: #f1f5f9;
-  color: #1b5e20;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.9em;
-}
-
-pre {
-  background-color: #f1f5f9;
-  border: 1px solid rgba(46, 125, 50, 0.15);
-  border-left: 4px solid var(--cf-secondary);
   border-radius: 8px;
-  padding: 1em 1.2em;
+  border-left: 6px solid;
+  background-color: var(--bg-light);
+}
+
+.callout-note {
+  background-color: #f0f7ff;
+  border-color: #007bff;
+}
+
+.callout-tip {
+  background-color: #e8f5e9;
+  border-color: #1D9E75;
+}
+
+.callout-warning {
+  background-color: #fff3e0;
+  border-color: #ff9800;
+}
+
+.callout-info {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+}
+
+/* ── Workflow container ─────────────────────────── */
+.workflow-container {
+  background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  border: 1px solid var(--fc-border);
   overflow-x: auto;
-  line-height: 1.5;
 }
 
-pre code {
-  background-color: transparent;
-  color: inherit;
-  padding: 0;
-  font-size: 0.88em;
+.workflow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'Inter', monospace;
+  font-size: 0.8rem;
 }
 
-/* ==========================================================================
-   Citações
-   ========================================================================== */
-
-blockquote {
-  border-left: 4px solid var(--cf-secondary);
-  background-color: var(--cf-bg-page);
-  color: var(--cf-text-light);
-  margin: 1.4em 0;
-  padding: 0.6em 1.2em;
-  border-radius: 0 8px 8px 0;
+.workflow-step {
+  background: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  white-space: nowrap;
 }
 
-/* ==========================================================================
-   Legenda de figura
-   ========================================================================== */
-
-img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 8px;
-  display: block;
-  margin: 1.2em auto 0.4em auto;
+.workflow-arrow {
+  color: var(--primary-color);
+  font-weight: bold;
+  font-size: 1.2rem;
 }
 
-.fig-legenda {
-  display: block;
+/* ── Feature cards ───────────────────────────────── */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.feature-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e1e1e1;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   text-align: center;
-  font-size: 0.88rem;
-  color: var(--cf-text-light);
-  font-style: italic;
-  margin: 0 auto 1.8em auto;
-  max-width: 90%;
-  line-height: 1.5;
 }
 
-.fig-legenda strong,
-.fig-legenda b {
-  color: var(--cf-text-main);
-  font-style: normal;
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
 }
 
-/* ==========================================================================
-   Callouts: nota (informativo) e aviso (atenção)
-   ========================================================================== */
-
-.tut-nota,
-.tut-aviso {
-  border-radius: 10px;
-  padding: 1em 1.2em 1em 3rem;
-  margin: 1.6em 0;
-  position: relative;
-  line-height: 1.6;
-  box-shadow: var(--cf-shadow);
+.feature-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
 }
 
-.tut-nota {
-  background-color: #E8F5E9;
-  border-left: 5px solid var(--cf-primary);
-  color: var(--cf-text-main);
-}
-
-.tut-aviso {
-  background-color: #FFF3E0;
-  border-left: 5px solid var(--cf-accent);
-  color: #7a3e00;
-}
-
-.tut-nota::before,
-.tut-aviso::before {
-  position: absolute;
-  left: 1rem;
-  top: 1em;
+.feature-card h3 {
+  margin-top: 0;
+  color: var(--primary-color);
   font-size: 1.1rem;
-  line-height: 1.4;
 }
 
-.tut-nota::before {
-  content: "\1F343"; /* folha */
-}
-
-.tut-aviso::before {
-  content: "\26A0"; /* sinal de atenção */
-}
-
-.tut-nota p:last-child,
-.tut-aviso p:last-child {
+.feature-card p {
+  font-size: 0.85rem;
+  color: var(--text-main);
   margin-bottom: 0;
 }
 
-/* ==========================================================================
-   Grade e cards de tutorial (reaproveitados de tutorials.Rmd)
-   ========================================================================== */
-
-.tutorial-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  padding: 2rem 0;
-  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+/* ── Table styling ───────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
 }
 
-.tutorial-card {
-  background: var(--cf-card-bg);
-  border-radius: 12px;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid rgba(46, 125, 50, 0.1);
-  border-left: 5px solid var(--cf-primary);
-  box-shadow: var(--cf-shadow);
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  position: relative;
-  overflow: hidden;
+th, td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e1e1e1;
 }
 
-.tutorial-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 15px 35px -10px rgba(46, 125, 50, 0.25);
-  border-color: var(--cf-secondary);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1.2rem;
-}
-
-.card-icon {
-  color: var(--cf-secondary);
-  background-color: #E8F5E9;
-  padding: 10px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.card-badge {
-  background-color: var(--cf-bg-page);
-  color: var(--cf-primary);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  text-transform: uppercase;
-  border: 1px solid rgba(46, 125, 50, 0.2);
-}
-
-.card-title {
-  color: var(--cf-text-main);
-  font-size: 1.35rem;
-  font-weight: 700;
-  margin: 0 0 0.75rem 0;
-  line-height: 1.2;
-}
-
-.card-description {
-  color: var(--cf-text-light);
-  font-size: 0.95rem;
-  line-height: 1.6;
-  flex-grow: 1;
-  margin-bottom: 2rem;
-}
-
-.card-cta-button {
-  background-color: var(--cf-primary);
-  color: white !important;
-  font-size: 0.9rem;
+th {
+  background-color: var(--bg-light);
   font-weight: 600;
+  color: var(--dark-green);
+}
+
+tr:hover {
+  background-color: var(--bg-light);
+}
+
+/* ── Figure styling ─────────────────────────────── */
+.figure {
+  margin: 1.5rem 0;
   text-align: center;
-  text-decoration: none;
-  padding: 12px 20px;
+}
+
+.figure img {
   border-radius: 8px;
-  transition: background-color 0.2s ease, transform 0.2s ease;
-  align-self: flex-start;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  max-width: 100%;
+  height: auto;
+}
+
+.figure .caption {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* ── Botão GitHub aprimorado ───────────────────── */
+.github-feedback-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-}
-
-.card-cta-button:hover {
-  background-color: var(--cf-secondary);
+  background-color: #24292e;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
   text-decoration: none;
-  transform: translateX(4px);
+  font-family: sans-serif;
+  transition: background-color 0.2s;
+  margin-top: 1rem;
 }
 
-.tutorial-card svg {
-  width: 24px;
-  height: 24px;
+.github-feedback-btn:hover {
+  background-color: #2c3e50;
+  color: white;
+  text-decoration: none;
+}
+
+/* ── Responsive ─────────────────────────────────── */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+  
+  h1.title {
+    font-size: 2rem;
+  }
+  
+  .workflow-steps {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .workflow-arrow {
+    transform: rotate(90deg);
+  }
+  
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  th, td {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-card,
+  .github-feedback-btn {
+    transition: none;
+  }
 }

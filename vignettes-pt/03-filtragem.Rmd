@@ -356,6 +356,4 @@ temperatura nas etapas de clima e modelagem.
 
 - [Voltar ao hub de tutoriais](tutorials.html)
 - **Anterior:** [Tutorial 2 — Encoding e Padronização](02-encoding-padronizacao.html)
-- **Próximo:** Tutorial 4 — Criação de Variáveis e Agregação (em breve)
-
-```
+- **Próximo:** [Tutorial 4 — Criação de Variáveis e Agregação](04-variaveis-agregacao.html)

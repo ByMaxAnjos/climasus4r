@@ -439,6 +439,6 @@ escolha que reflete o mecanismo biológico de interesse no modelo final.
 # Navegação
 
 - [Voltar ao hub de tutoriais](tutorials.html)
-- **Anterior:** Tutorial 6 — Vínculo Socioeconômico (Censo)
-- **Próximo:** Tutorial 8 — Clima em Grade e Dados Ambientais (ERA5/CHIRPS)
+- **Anterior:** [Tutorial 6 — Vínculo Socioeconômico (Censo)](06-socioeconomico.html)
+- **Próximo:** [Tutorial 8 — Clima em Grade e Dados Ambientais (ERA5/CHIRPS)](08-clima-grade.html)
 

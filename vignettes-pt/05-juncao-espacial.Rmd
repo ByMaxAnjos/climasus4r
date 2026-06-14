@@ -299,7 +299,7 @@ tbl_ou_nota("dados/geo_amostra.rds", .nota_gerar,
 # Navegação
 
 - [Voltar ao hub de tutoriais](tutorials.html)
-- **Anterior:** Tutorial 4 — Criação de Variáveis e Agregação
-- **Próximo:** Tutorial 6 — Vínculo Socioeconômico (em breve)
+- **Anterior:** [Tutorial 4 — Criação de Variáveis e Agregação]()
+- **Próximo:** [Tutorial 6 — Vínculo Socioeconômico](06-socioeconomico.html)
 
 ```
