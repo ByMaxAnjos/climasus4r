@@ -259,6 +259,7 @@ articles:
       - climate_indicators
       - tutorial_clima_inmet
       - ondas_de_calor
+      - ondas_de_frio
   - title: "Trilha do Pipeline em 9 Etapas"
     contents:
       - 01-importacao
