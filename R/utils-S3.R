@@ -61,8 +61,9 @@
   "threshold_exceedance", "weighted_window", "cold_wave_exceedance",
   # Climate-bioindicators
   "indicators",
-  # Heatwave detection output
+  # Heatwave / coldwave detection output
   "heatwaves",
+  "coldwaves",
   # Statistical model outputs
   "dlnm_model", "glm_model", "compare_model",
   # Spatial model outputs

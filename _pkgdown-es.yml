@@ -94,6 +94,8 @@ reference:
       - sus_climate_plot_aggregate
       - sus_climate_compute_heatwaves
       - sus_climate_plot_heatwaves
+      - sus_climate_compute_coldwaves
+      - sus_climate_plot_coldwaves
       - hw_active_days
       - hw_count_by_year
       - hw_get_events

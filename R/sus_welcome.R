@@ -108,11 +108,12 @@ sus_welcome <- function(
          name = c(pt = "INTEGRAÇÃO CLIMÁTICA",   en = "CLIMATE DATA",            es = "DATOS CLIMÁTICOS"),
          fns  = c("sus_climate_inmet()", "sus_climate_fill_gap()", "sus_climate_aggregate()",
                   "sus_grid_era5()", "sus_grid_chirps()", "sus_grid_pollution_cams()",
-                  "sus_grid_fires()", "sus_climate_compute_heatwaves()", "sus_climate_compute_spei()"),
+                  "sus_grid_fires()", "sus_climate_compute_heatwaves()", "sus_climate_compute_coldwaves()",
+                  "sus_climate_compute_spei()"),
          desc = c(
-           pt = "Estações INMET, ERA5, CHIRPS, qualidade do ar (CAMS, MERRA-2), incêndios, ondas de calor, SPEI/SPI",
-           en = "INMET stations, ERA5, CHIRPS, air quality (CAMS, MERRA-2), fires, heat waves, SPEI/SPI",
-           es = "Estaciones INMET, ERA5, CHIRPS, calidad del aire (CAMS, MERRA-2), incendios, olas de calor, SPEI/SPI"
+           pt = "Estações INMET, ERA5, CHIRPS, qualidade do ar (CAMS, MERRA-2), incêndios, ondas de calor e frio, SPEI/SPI",
+           en = "INMET stations, ERA5, CHIRPS, air quality (CAMS, MERRA-2), fires, heat and cold waves, SPEI/SPI",
+           es = "Estaciones INMET, ERA5, CHIRPS, calidad del aire (CAMS, MERRA-2), incendios, olas de calor y frío, SPEI/SPI"
          )),
     list(num = 7, color = "cyan",
          name = c(pt = "SOCIOECONÔMICO",          en = "SOCIOECONOMIC",           es = "SOCIOECONÓMICO"),
@@ -139,7 +140,8 @@ sus_welcome <- function(
            # Dados de saúde
            "sus_data_plot_demographics()", "sus_data_plot_aggregate_ts()", "sus_data_plot_aggregate_map()",
            # Clima
-           "sus_climate_plot_aggregate()", "sus_climate_plot_fill()", "sus_climate_plot_heatwaves()",
+           "sus_climate_plot_aggregate()", "sus_climate_plot_fill()",
+           "sus_climate_plot_heatwaves()", "sus_climate_plot_coldwaves()",
            # Modelos
            "sus_mod_plot_dlnm()", "sus_mod_plot_af()", "sus_mod_plot_burden()",
            "sus_mod_plot_pool()", "sus_mod_plot_sensitivity()", "sus_mod_plot_ml()",
@@ -147,9 +149,9 @@ sus_welcome <- function(
            "sus_mod_plot_spatial_scan()", "sus_mod_plot_swot()", "sus_mod_plot_vulnerability()"
          ),
          desc = c(
-           pt = "Pirâmide etária, série temporal, mapa coroplético; ondas de calor; superfícies DLNM, forest plot, carga, spatial scan, vulnerabilidade",
-           en = "Demographic pyramid, time series, choropleth map; heat waves; DLNM surfaces, forest plot, burden, spatial scan, vulnerability",
-           es = "Pirámide demográfica, serie temporal, mapa coroplético; olas de calor; superficies DLNM, forest plot, carga, spatial scan, vulnerabilidad"
+           pt = "Pirâmide etária, série temporal, mapa coroplético; ondas de calor e frio; superfícies DLNM, forest plot, carga, spatial scan, vulnerabilidade",
+           en = "Demographic pyramid, time series, choropleth map; heat and cold waves; DLNM surfaces, forest plot, burden, spatial scan, vulnerability",
+           es = "Pirámide demográfica, serie temporal, mapa coroplético; olas de calor y frío; superficies DLNM, forest plot, carga, spatial scan, vulnerabilidad"
          )),
     list(num = 10, color = "yellow",
          name = c(pt = "EXPORTAÇÃO",              en = "EXPORT",                  es = "EXPORTACIÓN"),
