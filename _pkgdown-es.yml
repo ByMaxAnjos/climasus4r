@@ -99,6 +99,9 @@ reference:
       - hw_active_days
       - hw_count_by_year
       - hw_get_events
+      - cw_active_days
+      - cw_count_by_year
+      - cw_get_events
       - sus_climate_normals
       - sus_climate_normals_meta
       - sus_climate_anomaly
