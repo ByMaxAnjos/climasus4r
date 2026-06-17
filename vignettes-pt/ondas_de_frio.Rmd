@@ -284,7 +284,7 @@ knitr::opts_chunk$set(
   message   = FALSE,
   comment   = "#>",
   fig.align = "center",
-  out.width = "90%",
+  out.width = "100%",
   fig.retina = 2
 )
 ```
@@ -925,6 +925,10 @@ print(p_timeline)
 
 **Interpretação:** Segmentos mais longos indicam eventos mais duradouros; a espessura reforça visualmente a duração. Observe a concentração de eventos em junho–agosto (inverno austral). O método WMO (duplo limiar: Tmin **e** Tmax < P10) tende a gerar menos eventos e de maior duração que o WHO (apenas Tmin), pois exige que tanto o dia quanto a noite sejam excepcionalmente frios.
 
+```{r fig-timeline, echo=FALSE, out.width="100%", fig.cap="**Figura 1.** Linha do tempo de ondas de frio em Porto Alegre (A801), 2020–2023 — todos os métodos."}
+knitr::include_graphics("figuras/cw_timeline_A801.png")
+```
+
 ## Plot 2: Calendário (calendar)
 
 O calendário exibe cada dia do ano em células coloridas — azul para dias de onda de frio, cinza para dias normais. É o gráfico mais intuitivo para comunicar a sazonalidade dos eventos ao público não técnico.
@@ -954,6 +958,10 @@ sus_climate_plot_coldwaves(
 
 **Interpretação:** Observe a concentração de dias de onda de frio em junho, julho e agosto no Sul do Brasil. Anos com eventos La Niña (que tendem a intensificar frentes frias no RS) apresentam calendários com mais blocos azuis consecutivos. Esses períodos merecem atenção especial na análise de mortalidade respiratória e cardiovascular no SUS.
 
+```{r fig-calendar, echo=FALSE, out.width="100%", fig.cap="**Figura 2.** Calendário de ondas de frio em Porto Alegre (A801), 2020–2023 — `cw_any` (qualquer método)."}
+knitr::include_graphics("figuras/cw_calendar_any_A801.png")
+```
+
 ## Plot 3: Intensidade vs. duração (intensity)
 
 Este gráfico de dispersão posiciona cada evento no plano cartesiano duração × temperatura mínima de pico. O **eixo Y é invertido** (`scale_y_reverse()`), de modo que temperaturas mais baixas (mais frias, mais extremas) aparecem na parte superior do gráfico — convenção que torna intuitiva a interpretação: quanto mais alto e à direita, maior o risco epidemiológico.
@@ -982,6 +990,10 @@ sus_climate_plot_coldwaves(
 
 **Interpretação:** Eventos no quadrante superior direito (longa duração + temperatura muito baixa) são os mais perigosos do ponto de vista de saúde pública. O ECF captura a nuance de aclimatação: um evento com Tmin de 5 °C após um período de inverno consolidado é menos estressante do que a mesma temperatura ocorrendo imediatamente após dias quentes — exatamente o que o componente ECI_acc mede.
 
+```{r fig-intensity, echo=FALSE, out.width="100%", fig.cap="**Figura 3.** Intensidade vs. duração de ondas de frio em Porto Alegre (A801), 2020–2023 — todos os métodos."}
+knitr::include_graphics("figuras/cw_intensity_all_A801.png")
+```
+
 ## Plot 4: Tendência anual (trend)
 
 O gráfico de tendência mostra o número de eventos detectados por ano para cada método, permitindo avaliar a variabilidade interanual e possíveis tendências na frequência de ondas de frio ao longo do período analisado.
@@ -1009,6 +1021,10 @@ sus_climate_plot_coldwaves(
 ```
 
 **Interpretação:** A variabilidade interanual de ondas de frio é grande e fortemente influenciada pelo ENSO (El Niño–Oscilação Sul): La Niña tende a aumentar a frequência e intensidade de frentes frias no Sul do Brasil. Compare os padrões entre métodos: o método INMET tende a ser mais restritivo (exige desvio de −5 °C sobre a Tmin histórica), enquanto os métodos percentílicos capturam a relatividade do evento em relação ao histórico local.
+
+```{r fig-trend, echo=FALSE, out.width="100%", fig.cap="**Figura 4.** Tendência anual de ondas de frio em Porto Alegre (A801), 2020–2023 — todos os métodos."}
+knitr::include_graphics("figuras/cw_trend_A801.png")
+```
 
 ## Salvando gráficos
 

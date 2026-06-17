@@ -79,7 +79,7 @@ p_timeline <- sus_climate_plot_coldwaves(
   interactive = FALSE,
   lang        = "pt"
 )
-save_fig(p_timeline, "vignettes-pt/figuras/cw_timeline_A801.png")
+save_fig(p_timeline, "cw_timeline_A801")
 
 # 6.2 Timeline — INMET only
 p_timeline_inmet <- sus_climate_plot_coldwaves(
@@ -90,7 +90,7 @@ p_timeline_inmet <- sus_climate_plot_coldwaves(
   lang        = "pt"
 )
 
-save_fig(p_timeline_inmet, "vignettes-pt/figuras/cw_timeline_inmet_A801.png")
+save_fig(p_timeline_inmet, "cw_timeline_inmet_A801")
 
 # 6.3 Calendar — WHO method
 p_calendar_who <- sus_climate_plot_coldwaves(
@@ -100,7 +100,7 @@ p_calendar_who <- sus_climate_plot_coldwaves(
   interactive = FALSE,
   lang        = "pt"
 )
-save_fig(p_calendar_who, "vignettes-pt/figuras/cw_calendar_who_A801.png")
+save_fig(p_calendar_who, "cw_calendar_who_A801")
 
 # 6.4 Calendar — cw_any (any method)
 p_calendar_any <- sus_climate_plot_coldwaves(
@@ -110,7 +110,7 @@ p_calendar_any <- sus_climate_plot_coldwaves(
   interactive = FALSE,
   lang        = "pt"
 )
-save_fig(p_calendar_any, "vignettes-pt/figuras/cw_calendar_any_A801.png")
+save_fig(p_calendar_any, "cw_calendar_any_A801")
 
 # 6.5 Intensity — ECF method
 p_intensity <- sus_climate_plot_coldwaves(
@@ -120,7 +120,7 @@ p_intensity <- sus_climate_plot_coldwaves(
   interactive = FALSE,
   lang        = "pt"
 )
-save_fig(p_intensity, "vignettes-pt/figuras/cw_intensity_ecf_A801.png")
+save_fig(p_intensity, "cw_intensity_ecf_A801")
 
 # 6.6 Intensity — all methods
 p_intensity_all <- sus_climate_plot_coldwaves(
@@ -130,7 +130,7 @@ p_intensity_all <- sus_climate_plot_coldwaves(
   interactive = FALSE,
   lang        = "pt"
 )
-save_fig(p_intensity_all, "vignettes-pt/figuras/cw_intensity_all_A801.png")
+save_fig(p_intensity_all, "cw_intensity_all_A801")
 
 # 6.7 Trend — all methods
 p_trend <- sus_climate_plot_coldwaves(
@@ -139,7 +139,7 @@ p_trend <- sus_climate_plot_coldwaves(
   interactive = FALSE,
   lang        = "pt"
 )
-save_fig(p_trend, "vignettes-pt/figuras/cw_trend_A801.png")
+save_fig(p_trend, "cw_trend_A801")
 
 # 6.8 Trend — WHO and INMET comparison
 p_trend_who_inmet <- sus_climate_plot_coldwaves(
@@ -149,7 +149,7 @@ p_trend_who_inmet <- sus_climate_plot_coldwaves(
   interactive = FALSE,
   lang        = "pt"
 )
-save_fig(p_trend_who_inmet, "vignettes-pt/figuras/cw_trend_who_inmet_A801.png")
+save_fig(p_trend_who_inmet, "cw_trend_who_inmet_A801")
 
 message("Pre-renderizacao concluida com sucesso.")
 message("Figuras salvas em: vignettes-pt/figuras/")
