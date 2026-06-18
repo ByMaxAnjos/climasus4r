@@ -391,7 +391,7 @@ sus_climate_inmet <- function(
 
     climate_data <- dplyr::filter(
       climate_data,
-      toupper(.data$station_code) %in% station_code
+      toupper(.data$station_code) %in% .env$station_code
     )
 
     if (nrow(climate_data) == 0) {
