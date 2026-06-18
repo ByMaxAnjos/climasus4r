@@ -277,4 +277,7 @@ articles:
   - title: "Tutoriales"
     contents:
       - tutorials
+      - rap-01-exportar-executar
+      - rap-02-targets
+      - rap-03-compartilhar
 
