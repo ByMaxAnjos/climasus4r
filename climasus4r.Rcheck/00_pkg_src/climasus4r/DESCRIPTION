@@ -1,0 +1,52 @@
+Package: climasus4r
+Title: Integrated Analysis Toolkit for Health, Climate, and
+        Environmental Data in Brazil: Reproducible Workflows for
+        Climate-Health Research
+Version: 1.0.0
+Authors@R: 
+    c(person(given = "Max",
+             family = "Anjos",
+             role = c("aut", "cre", "cph"),
+             email = "max.anjos@ufjf.br",
+             comment = c(ORCID = "0000-0001-6394-1324")),
+       person(given = "Thaua",
+             family = "Menezes",
+             role = c("ctb"),
+             email = "thaua.menezes@unesp.br",
+             comment = c(ORCID = "0000-0002-3015-2270")),
+        person(given = "Marlon",
+             family = "Faria",
+             role = c("ctb"),
+             email = "marlon.faria@usp.br",
+             comment = c(ORCID = "0000-0002-9485-4079"))     
+             )
+Description: climasus4r is a comprehensive R toolkit for integrated analysis of health, climate, and environmental data in Brazil. The package automates the entire data pipeline: (1) importing and cleaning health data from the Brazilian Unified Health System (SUS) across six systems (SIM, SIH, SINAN, SIA, CNES, SINASC); (2) integrating climate data (INMET, ERA5), air quality (AQI), environmental data (MapBiomas), and socioeconomic indicators (IBGE); (3) performing flexible spatiotemporal aggregation at multiple scales; (4) constructing reproducible analytical pipelines (RAPs) that ensure transparency and replicability. Designed for researchers studying climate-health interactions, environmental vulnerability, and adaptation strategies in the Brazilian context. Supports multilingual output (Portuguese, Spanish, English) and parallel processing for large datasets.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Depends: R (>= 4.1.0)
+Imports: dplyr (>= 1.0.0), stringi (>= 1.7.0), cli (>= 3.0.0),
+        lubridate, microdatasus, magrittr, tidyr, fs, digest, stats,
+        rlang, stringr, purrr, data.table, glue, read.dbc, furrr,
+        future, duckdb, tibble, generics, scales
+Remotes: rfsaldanha/microdatasus
+Suggests: arrow, nanoparquet, RColorBrewer, ggrepel, DBI, slider,
+        splines, sf, censobr, geobr, geocodebr, sfarrow, duckspatial,
+        knitr, rmarkdown, ggplot2, future.apply, xgboost, zoo, MASS,
+        dlnm, rstudioapi, DT, ggplot2, ggsci, viridisLite, htmltools,
+        patchwork, plotly, htmlwidgets, httr, httr2, parallelly,
+        jsonlite, gt, leaflet, mvmeta, survival, terra, exactextractr,
+        ncdf4, readxl, spdep (>= 1.3), spatialreg (>= 1.3), CARBayes
+        (>= 6.1), SpatialEpi (>= 1.2), INLA, targets (>= 1.0.0),
+        tarchetypes, shiny (>= 1.7.0), yaml, renv, quarto
+Additional_repositories: https://inla.r-inla-download.org/R/stable
+URL: https://github.com/ByMaxAnjos/climasus4r
+BugReports: https://github.com/ByMaxAnjos/climasus4r/issues
+NeedsCompilation: no
+Packaged: 2026-06-18 17:43:11 UTC; co2map
+Author: Max Anjos [aut, cre, cph] (ORCID:
+    <https://orcid.org/0000-0001-6394-1324>),
+  Thaua Menezes [ctb] (ORCID: <https://orcid.org/0000-0002-3015-2270>),
+  Marlon Faria [ctb] (ORCID: <https://orcid.org/0000-0002-9485-4079>)
+Maintainer: Max Anjos <max.anjos@ufjf.br>
