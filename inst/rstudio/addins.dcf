@@ -7,3 +7,13 @@ Name: INMET Station Select
 Description: Abre o mapa das estacoes meteorologicas do INMET no painel Viewer.
 Binding: sus_climate_inmet_select
 Interactive: true
+
+Name: Exportar Pipeline como RAP
+Description: Exporta o pipeline selecionado no editor como script reprodutivel.
+Binding: sus_rap_addin_export
+Interactive: false
+
+Name: Abrir GUI de RAP
+Description: Abre interface visual para editar e executar Reproducible Analytical Pipelines.
+Binding: sus_rap_gui
+Interactive: true

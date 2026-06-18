@@ -152,6 +152,21 @@ reference:
       - sus_as_arrow
       - sus_as_duckdb
 
+  - title: "Pipelines Reprodutiveis (RAP)"
+    desc: "Exportar, ler, inspecionar, executar e compartilhar pipelines como Reproducible Analytical Pipelines. Integracao com targets, GUI Shiny, receitas YAML e templates de projeto."
+    contents:
+      - sus_rap_export
+      - sus_rap_read
+      - sus_rap_inspect
+      - sus_rap_run
+      - sus_rap_update
+      - sus_rap_targets
+      - sus_rap_make
+      - sus_rap_recipe
+      - sus_rap_from_recipe
+      - sus_rap_template
+      - sus_rap_gui
+
   - title: "AI e Gerenciamento de Cache"
     desc: "Controle do armazenamento local de arquivos baixados"
     contents:
