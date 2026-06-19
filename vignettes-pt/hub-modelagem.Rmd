@@ -1,0 +1,296 @@
+---
+title: "Modelagem Avancada (sus_mod_*)"
+output:
+  html_document:
+    toc: false
+    theme: flatly
+    self_contained: true
+---
+
+```{css, echo=FALSE}
+:root {
+  --cf-bg-page: #F1F8E9;
+  --cf-card-bg: #FFFFFF;
+  --cf-primary: #2E7D32;
+  --cf-secondary: #558B2F;
+  --cf-accent: #EF6C00;
+  --cf-text-main: #1B5E20;
+  --cf-text-light: #52665A;
+  --cf-shadow: 0 10px 30px -10px rgba(46, 125, 50, 0.15);
+}
+.tutorial-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 2rem 0;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+.tutorial-card {
+  background: var(--cf-card-bg);
+  border-radius: 12px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(46, 125, 50, 0.1);
+  border-left: 5px solid var(--cf-primary);
+  box-shadow: var(--cf-shadow);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative;
+  overflow: hidden;
+}
+.tutorial-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 15px 35px -10px rgba(46, 125, 50, 0.25);
+  border-color: var(--cf-secondary);
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.2rem;
+}
+.card-icon {
+  color: var(--cf-secondary);
+  background-color: #E8F5E9;
+  padding: 10px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-badge {
+  background-color: var(--cf-bg-page);
+  color: var(--cf-primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  border: 1px solid rgba(46, 125, 50, 0.2);
+}
+.card-title {
+  color: var(--cf-text-main);
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.2;
+}
+.card-description {
+  color: var(--cf-text-light);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  flex-grow: 1;
+  margin-bottom: 2rem;
+}
+.card-cta-button {
+  background-color: var(--cf-primary);
+  color: white !important;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-cta-button:hover {
+  background-color: var(--cf-secondary);
+  text-decoration: none;
+  transform: translateX(4px);
+}
+.tutorial-card svg { width: 24px; height: 24px; }
+.card-cta-button.is-soon {
+  background-color: #C8D6C0;
+  color: #52665A !important;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.card-cta-button.is-soon:hover { background-color: #C8D6C0; transform: none; }
+.card-badge.is-step { background-color: var(--cf-accent); color: #FFFFFF; border-color: var(--cf-accent); }
+.card-badge.is-model { background-color: #1565C0; color: #FFFFFF; border-color: #1565C0; }
+.card-badge.is-rap { background-color: #6A1B9A; color: #FFFFFF; border-color: #6A1B9A; }
+.section-intro { color: var(--cf-text-light); font-size: 1rem; line-height: 1.6; max-width: 760px; }
+.section-card {
+  background: var(--cf-card-bg);
+  border-radius: 16px;
+  padding: 2rem;
+  border: 1px solid rgba(46, 125, 50, 0.15);
+  border-left: 6px solid var(--cf-primary);
+  box-shadow: var(--cf-shadow);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  cursor: pointer;
+  text-decoration: none;
+  display: block;
+}
+.section-card:hover { transform: translateY(-4px); box-shadow: 0 15px 35px -10px rgba(46, 125, 50, 0.25); text-decoration: none; }
+.section-card h3 { margin-top: 0; color: var(--cf-primary); font-size: 1.4rem; font-weight: 700; }
+.section-card p { color: var(--cf-text-light); font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.5rem; }
+.section-count {
+  display: inline-block;
+  background: var(--cf-primary);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 12px;
+  border-radius: 20px;
+  margin-bottom: 0.75rem;
+  letter-spacing: 0.5px;
+}
+.section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 2rem 0;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+.section-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--cf-primary);
+  color: white !important;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+.section-cta:hover { background-color: var(--cf-secondary); text-decoration: none; }
+```
+
+```{r setup, eval=FALSE}
+```
+
+```{=html}
+<p><a href="https://bymaxanjos.github.io/climasus4r/pt/articles/tutorials.html">← Voltar para Tutoriais</a></p>
+
+<p class="section-intro">Secao dedicada a modelagem epidemiologica aprofundada com o climasus4r. Cada cartao cobre uma familia de modelos — do DLNM bayesiano ao aprendizado de maquina e analise de vulnerabilidade — sempre pareando a funcao de ajuste com sua funcao de visualizacao (sus_mod_plot_*). Pre-requisito recomendado: Etapa 9 da Trilha do Pipeline.</p>
+
+<table>
+<thead><tr><th>Modelo</th><th>Funcoes</th><th>Foco</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>sus_mod_dlnm(), sus_mod_plot_dlnm()</td><td>Relacao exposicao-resposta com defasagem</td></tr>
+<tr><td>2</td><td>sus_mod_attributable(), sus_mod_plot_attributable()</td><td>Carga atribuivel e excesso de mortalidade</td></tr>
+<tr><td>3</td><td>sus_mod_crossover(), sus_mod_its()</td><td>Case-crossover condicional e series interrompidas</td></tr>
+<tr><td>4</td><td>sus_mod_pool(), sus_mod_meta()</td><td>Pooling multivariado e meta-regressao</td></tr>
+<tr><td>5</td><td>sus_mod_ml(), sus_mod_plot_ml()</td><td>Machine learning e predicao</td></tr>
+<tr><td>6</td><td>sus_mod_spatial(), sus_mod_plot_spatial()</td><td>Autocorrelacao e regressao espacial</td></tr>
+<tr><td>7</td><td>sus_mod_bayes(), sus_mod_plot_bayes()</td><td>BYM2/CAR bayesiano e espaco-temporal</td></tr>
+<tr><td>8</td><td>sus_mod_vulnerability(), sus_mod_swot()</td><td>Indices de vulnerabilidade e analise SWOT</td></tr>
+</tbody>
+</table>
+
+<div class="tutorial-grid">
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+      </div>
+      <span class="card-badge is-model">Modelo 1</span>
+    </div>
+    <h3 class="card-title">DLNM</h3>
+    <p class="card-description">Modelos de Defasagem Distribuida Nao-Linear. Estime relacoes exposicao-resposta com estrutura de defasagem entre temperatura e desfechos de saude.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/mod-01-dlnm.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+      </div>
+      <span class="card-badge is-model">Modelo 2</span>
+    </div>
+    <h3 class="card-title">Carga Atribuivel &amp; Excesso</h3>
+    <p class="card-description">Calcule fracoes atribuiveis (AF), numero atribuivel (AN), excesso de mortalidade e carga de doenca imputavel a exposicao climatica.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/mod-02-atribuivel.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+      </div>
+      <span class="card-badge is-model">Modelo 3</span>
+    </div>
+    <h3 class="card-title">Case-Crossover &amp; ITS</h3>
+    <p class="card-description">Controles de confundimento na serie temporal: delineamento case-crossover condicional e analise de series temporais interrompidas (ITS).</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/mod-03-crossover-its.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+      </div>
+      <span class="card-badge is-model">Modelo 4</span>
+    </div>
+    <h3 class="card-title">Pooling &amp; Meta-regressao</h3>
+    <p class="card-description">Combine resultados de multiplas cidades com pooling multivariado, explore heterogeneidade com meta-regressao e avalie robustez com analise de sensibilidade.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/mod-04-multicidade.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+      </div>
+      <span class="card-badge is-model">Modelo 5</span>
+    </div>
+    <h3 class="card-title">Machine Learning</h3>
+    <p class="card-description">Aplique XGBoost e outros algoritmos de ML para previsao de desfechos de saude e identificacao de preditores climaticos e socioeconomicos.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/mod-05-ml.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" /></svg>
+      </div>
+      <span class="card-badge is-model">Modelo 6</span>
+    </div>
+    <h3 class="card-title">Modelagem Espacial</h3>
+    <p class="card-description">Autocorrelacao espacial (Moran), regressao espacial (SAR/CAR frequentista) e varredura espacial para deteccao de clusters de risco.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/mod-06-espacial.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" /></svg>
+      </div>
+      <span class="card-badge is-model">Modelo 7</span>
+    </div>
+    <h3 class="card-title">Bayes Espacial &amp; Espaco-temporal</h3>
+    <p class="card-description">Modelos BYM2/CAR bayesianos para suavizacao espacial de risco, modelos espaco-temporais e probabilidade de excedencia via CARBayes/INLA.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/mod-07-bayes.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>
+      </div>
+      <span class="card-badge is-model">Modelo 8</span>
+    </div>
+    <h3 class="card-title">Vulnerabilidade &amp; SWOT</h3>
+    <p class="card-description">Construa indices de vulnerabilidade climatica (framework IPCC) integrando exposicao, sensibilidade e capacidade adaptativa, e sintetize com analise SWOT.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/mod-08-vulnerabilidade-swot.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+</div>
+
+<p><a href="https://bymaxanjos.github.io/climasus4r/pt/articles/tutorials.html">← Voltar para Tutoriais</a></p>
+
+<a href='https://github.com/ByMaxAnjos/climasus4r/issues/new'>
+  <button type="button" class="btn" style="background-color: #3BB273; color: white; padding: 10px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer;">
+    Abrir uma issue no GitHub
+  </button>
+</a>
+```

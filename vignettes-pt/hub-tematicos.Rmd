@@ -1,0 +1,296 @@
+---
+title: "Tutoriais Tematicos"
+output:
+  html_document:
+    toc: false
+    theme: flatly
+    self_contained: true
+---
+
+```{css, echo=FALSE}
+:root {
+  --cf-bg-page: #F1F8E9;
+  --cf-card-bg: #FFFFFF;
+  --cf-primary: #2E7D32;
+  --cf-secondary: #558B2F;
+  --cf-accent: #EF6C00;
+  --cf-text-main: #1B5E20;
+  --cf-text-light: #52665A;
+  --cf-shadow: 0 10px 30px -10px rgba(46, 125, 50, 0.15);
+}
+.tutorial-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 2rem 0;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+.tutorial-card {
+  background: var(--cf-card-bg);
+  border-radius: 12px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(46, 125, 50, 0.1);
+  border-left: 5px solid var(--cf-primary);
+  box-shadow: var(--cf-shadow);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative;
+  overflow: hidden;
+}
+.tutorial-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 15px 35px -10px rgba(46, 125, 50, 0.25);
+  border-color: var(--cf-secondary);
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.2rem;
+}
+.card-icon {
+  color: var(--cf-secondary);
+  background-color: #E8F5E9;
+  padding: 10px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-badge {
+  background-color: var(--cf-bg-page);
+  color: var(--cf-primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  border: 1px solid rgba(46, 125, 50, 0.2);
+}
+.card-title {
+  color: var(--cf-text-main);
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.2;
+}
+.card-description {
+  color: var(--cf-text-light);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  flex-grow: 1;
+  margin-bottom: 2rem;
+}
+.card-cta-button {
+  background-color: var(--cf-primary);
+  color: white !important;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-cta-button:hover {
+  background-color: var(--cf-secondary);
+  text-decoration: none;
+  transform: translateX(4px);
+}
+.tutorial-card svg { width: 24px; height: 24px; }
+.card-cta-button.is-soon {
+  background-color: #C8D6C0;
+  color: #52665A !important;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.card-cta-button.is-soon:hover { background-color: #C8D6C0; transform: none; }
+.card-badge.is-step { background-color: var(--cf-accent); color: #FFFFFF; border-color: var(--cf-accent); }
+.card-badge.is-model { background-color: #1565C0; color: #FFFFFF; border-color: #1565C0; }
+.card-badge.is-rap { background-color: #6A1B9A; color: #FFFFFF; border-color: #6A1B9A; }
+.section-intro { color: var(--cf-text-light); font-size: 1rem; line-height: 1.6; max-width: 760px; }
+.section-card {
+  background: var(--cf-card-bg);
+  border-radius: 16px;
+  padding: 2rem;
+  border: 1px solid rgba(46, 125, 50, 0.15);
+  border-left: 6px solid var(--cf-primary);
+  box-shadow: var(--cf-shadow);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  cursor: pointer;
+  text-decoration: none;
+  display: block;
+}
+.section-card:hover { transform: translateY(-4px); box-shadow: 0 15px 35px -10px rgba(46, 125, 50, 0.25); text-decoration: none; }
+.section-card h3 { margin-top: 0; color: var(--cf-primary); font-size: 1.4rem; font-weight: 700; }
+.section-card p { color: var(--cf-text-light); font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.5rem; }
+.section-count {
+  display: inline-block;
+  background: var(--cf-primary);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 12px;
+  border-radius: 20px;
+  margin-bottom: 0.75rem;
+  letter-spacing: 0.5px;
+}
+.section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 2rem 0;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+.section-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--cf-primary);
+  color: white !important;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+.section-cta:hover { background-color: var(--cf-secondary); text-decoration: none; }
+```
+
+```{r setup, eval=FALSE}
+```
+
+```{=html}
+<p><a href="https://bymaxanjos.github.io/climasus4r/pt/articles/tutorials.html">← Voltar para Tutoriais</a></p>
+
+<p class="section-intro">Tutoriais focados em competencias especificas do ecossistema climasus4r — desde os primeiros passos ate analises avancadas de ondas de calor e frio, passando por dados climaticos do INMET, indices bioclimaticos e estrategias de integracao clima-saude.</p>
+
+<table>
+<thead><tr><th>Tutorial</th><th>Titulo</th><th>Funcoes Principais</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Tutorial Introdutorio</td><td>sus_data_import(), sus_data_aggregate(), sus_climate_inmet()</td></tr>
+<tr><td>2</td><td>Estudos de Caso</td><td>Pipeline completo SIM, SINAN, SIH</td></tr>
+<tr><td>3</td><td>Download INMET</td><td>sus_climate_inmet(), sus_climate_fill(), sus_climate_plot_fill()</td></tr>
+<tr><td>4</td><td>Indices Bioclimaticos</td><td>sus_climate_compute_indicators()</td></tr>
+<tr><td>5</td><td>Agregacao Parte 1</td><td>sus_climate_aggregate() — 10 estrategias</td></tr>
+<tr><td>6</td><td>Agregacao Parte 2</td><td>sus_climate_aggregate() — guia pratico</td></tr>
+<tr><td>7</td><td>Ondas de Calor</td><td>sus_climate_compute_heatwaves(), sus_climate_plot_heatwaves()</td></tr>
+<tr><td>8</td><td>Ondas de Frio</td><td>sus_climate_compute_coldwaves(), sus_climate_plot_coldwaves()</td></tr>
+</tbody>
+</table>
+
+<div class="tutorial-grid">
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+      </div>
+      <span class="card-badge">Essencial</span>
+    </div>
+    <h3 class="card-title">Tutorial Introdutorio</h3>
+    <p class="card-description">Aprenda o fluxo completo: desde a instalacao do pacote ate a criacao de series temporais. Ideal para iniciantes sem experiencia previa.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/tutorial_introducao.html" class="card-cta-button">Comecar Agora →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+      </div>
+      <span class="card-badge">Casos Reais</span>
+    </div>
+    <h3 class="card-title">Estudos de Caso em Epidemiologia Climatica</h3>
+    <p class="card-description">Quatro pipelines completos com dados reais do DATASUS + INMET: mortalidade respiratoria pediatrica, dengue no Nordeste, cardiovascular em idosos durante ondas de calor, e hospitalizacoes na Regiao Sul.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/tutorial_estudos_casos.html" class="card-cta-button">Ver Estudos →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+      </div>
+      <span class="card-badge">INMET</span>
+    </div>
+    <h3 class="card-title">Download Automatico e Preenchimento de Dados do INMET via Machine Learning</h3>
+    <p class="card-description">Guia pratico com sus_climate_inmet(), sus_climate_fill() e sus_climate_plot_fill().</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/tutorial_clima_inmet.html" class="card-cta-button">Comecar Agora →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.58 4 8 4s8-1.79 8-4M4 7c0-2.21 3.58-4 8-4s8 1.79 8 4m0 5c0 2.21-3.58 4-8 4s-8-1.79-8-4" /></svg>
+      </div>
+      <span class="card-badge">BioIndicadores</span>
+    </div>
+    <h3 class="card-title">Indices Bioclimaticos para Saude Publica</h3>
+    <p class="card-description">Guia Pratico: sus_climate_compute_indicators().</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/climate_indicators.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+      </div>
+      <span class="card-badge">Agregacao</span>
+    </div>
+    <h3 class="card-title">PARTE 1: Integracao de Dados Climaticos e de Saude</h3>
+    <p class="card-description">As 10 Estrategias de Alinhamento Temporal da sus_climate_aggregate().</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/parte1_clima_agg.html" class="card-cta-button">Comecar Agora →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.58 4 8 4s8-1.79 8-4M4 7c0-2.21 3.58-4 8-4s8 1.79 8 4m0 5c0 2.21-3.58 4-8 4s-8-1.79-8-4" /></svg>
+      </div>
+      <span class="card-badge">Agregacao</span>
+    </div>
+    <h3 class="card-title">PARTE 2: Integracao de Dados Climaticos e de Saude</h3>
+    <p class="card-description">Guia Pratico: sus_climate_aggregate().</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/parte2_clima_agg.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.58 4 8 4s8-1.79 8-4M4 7c0-2.21 3.58-4 8-4s8 1.79 8 4m0 5c0 2.21-3.58 4-8 4s-8-1.79-8-4" /></svg>
+      </div>
+      <span class="card-badge">Calor</span>
+    </div>
+    <h3 class="card-title">Deteccao e Visualizacao de Ondas de Calor</h3>
+    <p class="card-description">Pipeline INMET → Preenchimento → Indicadores → Ondas de Calor | sus_climate_compute_heatwaves() e sus_climate_plot_heatwaves().</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/ondas_de_calor.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>
+      </div>
+      <span class="card-badge">Frio</span>
+    </div>
+    <h3 class="card-title">Deteccao e Visualizacao de Ondas de Frio</h3>
+    <p class="card-description">Pipeline INMET → Preenchimento → Indicadores → Ondas de Frio | sus_climate_compute_coldwaves() e sus_climate_plot_coldwaves(). Estacao de Porto Alegre (RS), 2010–2023.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/ondas_de_frio.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+</div>
+
+<p><a href="https://bymaxanjos.github.io/climasus4r/pt/articles/tutorials.html">← Voltar para Tutoriais</a></p>
+
+<a href='https://github.com/ByMaxAnjos/climasus4r/issues/new'>
+  <button type="button" class="btn" style="background-color: #3BB273; color: white; padding: 10px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer;">
+    Abrir uma issue no GitHub
+  </button>
+</a>
+```

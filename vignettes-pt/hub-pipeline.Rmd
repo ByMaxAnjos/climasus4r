@@ -1,0 +1,309 @@
+---
+title: "Trilha do Pipeline em 9 Etapas"
+output:
+  html_document:
+    toc: false
+    theme: flatly
+    self_contained: true
+---
+
+```{css, echo=FALSE}
+:root {
+  --cf-bg-page: #F1F8E9;
+  --cf-card-bg: #FFFFFF;
+  --cf-primary: #2E7D32;
+  --cf-secondary: #558B2F;
+  --cf-accent: #EF6C00;
+  --cf-text-main: #1B5E20;
+  --cf-text-light: #52665A;
+  --cf-shadow: 0 10px 30px -10px rgba(46, 125, 50, 0.15);
+}
+.tutorial-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 2rem 0;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+.tutorial-card {
+  background: var(--cf-card-bg);
+  border-radius: 12px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(46, 125, 50, 0.1);
+  border-left: 5px solid var(--cf-primary);
+  box-shadow: var(--cf-shadow);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative;
+  overflow: hidden;
+}
+.tutorial-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 15px 35px -10px rgba(46, 125, 50, 0.25);
+  border-color: var(--cf-secondary);
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.2rem;
+}
+.card-icon {
+  color: var(--cf-secondary);
+  background-color: #E8F5E9;
+  padding: 10px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-badge {
+  background-color: var(--cf-bg-page);
+  color: var(--cf-primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  border: 1px solid rgba(46, 125, 50, 0.2);
+}
+.card-title {
+  color: var(--cf-text-main);
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.2;
+}
+.card-description {
+  color: var(--cf-text-light);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  flex-grow: 1;
+  margin-bottom: 2rem;
+}
+.card-cta-button {
+  background-color: var(--cf-primary);
+  color: white !important;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-cta-button:hover {
+  background-color: var(--cf-secondary);
+  text-decoration: none;
+  transform: translateX(4px);
+}
+.tutorial-card svg { width: 24px; height: 24px; }
+.card-cta-button.is-soon {
+  background-color: #C8D6C0;
+  color: #52665A !important;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.card-cta-button.is-soon:hover { background-color: #C8D6C0; transform: none; }
+.card-badge.is-step { background-color: var(--cf-accent); color: #FFFFFF; border-color: var(--cf-accent); }
+.card-badge.is-model { background-color: #1565C0; color: #FFFFFF; border-color: #1565C0; }
+.card-badge.is-rap { background-color: #6A1B9A; color: #FFFFFF; border-color: #6A1B9A; }
+.section-intro { color: var(--cf-text-light); font-size: 1rem; line-height: 1.6; max-width: 760px; }
+.section-card {
+  background: var(--cf-card-bg);
+  border-radius: 16px;
+  padding: 2rem;
+  border: 1px solid rgba(46, 125, 50, 0.15);
+  border-left: 6px solid var(--cf-primary);
+  box-shadow: var(--cf-shadow);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  cursor: pointer;
+  text-decoration: none;
+  display: block;
+}
+.section-card:hover { transform: translateY(-4px); box-shadow: 0 15px 35px -10px rgba(46, 125, 50, 0.25); text-decoration: none; }
+.section-card h3 { margin-top: 0; color: var(--cf-primary); font-size: 1.4rem; font-weight: 700; }
+.section-card p { color: var(--cf-text-light); font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.5rem; }
+.section-count {
+  display: inline-block;
+  background: var(--cf-primary);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 12px;
+  border-radius: 20px;
+  margin-bottom: 0.75rem;
+  letter-spacing: 0.5px;
+}
+.section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 2rem 0;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+.section-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--cf-primary);
+  color: white !important;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+.section-cta:hover { background-color: var(--cf-secondary); text-decoration: none; }
+```
+
+```{r setup, eval=FALSE}
+```
+
+```{=html}
+<p><a href="https://bymaxanjos.github.io/climasus4r/pt/articles/tutorials.html">← Voltar para Tutoriais</a></p>
+
+<p class="section-intro">Esta trilha percorre o fluxo completo do <code>climasus4r</code>, etapa a etapa, do inicio ao fim. Cada cartao corresponde a uma fase do pipeline integrado de saude, clima e ambiente — da importacao dos dados do DATASUS ate a modelagem epidemiologica. Comece pela Etapa 1 e avance na ordem.</p>
+
+<table>
+<thead><tr><th>Etapa</th><th>Titulo</th><th>Funcoes Principais</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Importacao</td><td>sus_data_import()</td></tr>
+<tr><td>2</td><td>Encoding &amp; Padronizacao</td><td>sus_data_clean_encoding(), sus_data_standardize()</td></tr>
+<tr><td>3</td><td>Filtragem</td><td>sus_data_filter_cid(), sus_data_filter_demographics()</td></tr>
+<tr><td>4</td><td>Variaveis &amp; Agregacao</td><td>sus_data_create_variables(), sus_data_aggregate()</td></tr>
+<tr><td>5</td><td>Juncao Espacial</td><td>sus_join_spatial()</td></tr>
+<tr><td>6</td><td>Vinculo Socioeconomico</td><td>sus_socio_add_census()</td></tr>
+<tr><td>7</td><td>Clima por Estacoes (INMET)</td><td>sus_climate_inmet(), sus_climate_fill_inmet()</td></tr>
+<tr><td>8</td><td>Clima em Grade &amp; Ambiental</td><td>sus_climate_era5(), sus_climate_aggregate()</td></tr>
+<tr><td>9</td><td>Modelagem Epidemiologica</td><td>sus_mod_dlnm(), sus_mod_plot_*()</td></tr>
+</tbody>
+</table>
+
+<div class="tutorial-grid">
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+      </div>
+      <span class="card-badge is-step">Etapa 1</span>
+    </div>
+    <h3 class="card-title">Importacao</h3>
+    <p class="card-description">Baixe e leia dados de saude do DATASUS (SIM, SIH, SINAN, SINASC) e series climaticas, preparando a base do pipeline.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/01-importacao.html" class="card-cta-button">Comecar Agora →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.58 4 8 4s8-1.79 8-4M4 7c0-2.21 3.58-4 8-4s8 1.79 8 4m0 5c0 2.21-3.58 4-8 4s-8-1.79-8-4" /></svg>
+      </div>
+      <span class="card-badge is-step">Etapa 2</span>
+    </div>
+    <h3 class="card-title">Encoding &amp; Padronizacao</h3>
+    <p class="card-description">Corrija a codificacao de caracteres e padronize nomes e valores das variaveis para um formato consistente.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/02-encoding-padronizacao.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+      </div>
+      <span class="card-badge is-step">Etapa 3</span>
+    </div>
+    <h3 class="card-title">Filtragem</h3>
+    <p class="card-description">Selecione casos por codigo CID-10 e por criterios demograficos (idade, sexo) para definir a populacao de estudo.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/03-filtragem.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.58 4 8 4s8-1.79 8-4M4 7c0-2.21 3.58-4 8-4s8 1.79 8 4m0 5c0 2.21-3.58 4-8 4s-8-1.79-8-4" /></svg>
+      </div>
+      <span class="card-badge is-step">Etapa 4</span>
+    </div>
+    <h3 class="card-title">Variaveis &amp; Agregacao</h3>
+    <p class="card-description">Crie variaveis derivadas e agregue os registros no tempo e no espaco para formar series analiticas.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/04-variaveis-agregacao.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+      </div>
+      <span class="card-badge is-step">Etapa 5</span>
+    </div>
+    <h3 class="card-title">Juncao Espacial</h3>
+    <p class="card-description">Vincule os dados a malhas geograficas (municipios, estados) para analises e mapeamentos espaciais.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/05-juncao-espacial.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.58 4 8 4s8-1.79 8-4M4 7c0-2.21 3.58-4 8-4s8 1.79 8 4m0 5c0 2.21-3.58 4-8 4s-8-1.79-8-4" /></svg>
+      </div>
+      <span class="card-badge is-step">Etapa 6</span>
+    </div>
+    <h3 class="card-title">Vinculo Socioeconomico</h3>
+    <p class="card-description">Integre indicadores do Censo e dados socioeconomicos para contextualizar vulnerabilidades da populacao.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/06-socioeconomico.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+      </div>
+      <span class="card-badge is-step">Etapa 7</span>
+    </div>
+    <h3 class="card-title">Clima por Estacoes (INMET)</h3>
+    <p class="card-description">Obtenha series meteorologicas das estacoes do INMET, com controle de qualidade e preenchimento de falhas.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/07-clima-estacoes.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.58 4 8 4s8-1.79 8-4M4 7c0-2.21 3.58-4 8-4s8 1.79 8 4m0 5c0 2.21-3.58 4-8 4s-8-1.79-8-4" /></svg>
+      </div>
+      <span class="card-badge is-step">Etapa 8</span>
+    </div>
+    <h3 class="card-title">Clima em Grade &amp; Ambiental</h3>
+    <p class="card-description">Use dados climaticos em grade (ERA5-Land) e camadas ambientais como alternativa e complemento as estacoes.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/08-clima-grade.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+      </div>
+      <span class="card-badge is-step">Etapa 9</span>
+    </div>
+    <h3 class="card-title">Modelagem Epidemiologica</h3>
+    <p class="card-description">Relacione exposicao climatica e desfechos de saude com modelos epidemiologicos (ex.: DLNM) e estime efeitos.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/09-modelagem.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
+
+</div>
+
+<p><a href="https://bymaxanjos.github.io/climasus4r/pt/articles/tutorials.html">← Voltar para Tutoriais</a></p>
+
+<a href='https://github.com/ByMaxAnjos/climasus4r/issues/new'>
+  <button type="button" class="btn" style="background-color: #3BB273; color: white; padding: 10px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer;">
+    Abrir uma issue no GitHub
+  </button>
+</a>
+```

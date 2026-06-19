@@ -267,6 +267,7 @@ articles:
   - title: "Tutoriais"
     contents:
       - tutorials
+      - starts_with("hub-")
       - tutorial_introducao
       - tutorial_estudos_casos
       - starts_with("ec-")

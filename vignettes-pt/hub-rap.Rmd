@@ -1,5 +1,10 @@
 ---
-title: "Tutoriais"
+title: "Pipelines Reprodutiveis (sus_rap_*)"
+output:
+  html_document:
+    toc: false
+    theme: flatly
+    self_contained: true
 ---
 
 ```{css, echo=FALSE}
@@ -163,57 +168,63 @@ title: "Tutoriais"
 ```
 
 ```{=html}
-<p class="section-intro">O climasus4r oferece uma ecossistema completo de tutoriais para pesquisadores em epidemiologia ambiental e saude publica. Explore as cinco trilhas abaixo — cada uma leva a um hub dedicado com tutoriais aprofundados.</p>
+<p><a href="https://bymaxanjos.github.io/climasus4r/pt/articles/tutorials.html">← Voltar para Tutoriais</a></p>
 
-<div class="section-grid">
+<p class="section-intro">Crie, compartilhe e reexecute analises de saude-clima como Reproducible Analytical Pipelines (RAPs). Os tutoriais abaixo cobrem exportacao de pipelines, integracao com o targets e ferramentas de compartilhamento — do script reprodutivel ao scaffolding completo de projeto com renv, Quarto e GitHub Actions.</p>
 
-  <a class="section-card" href="https://bymaxanjos.github.io/climasus4r/pt/articles/hub-pipeline.html">
-    <span class="section-count">9 tutoriais</span>
-    <h3>Trilha do Pipeline em 9 Etapas</h3>
-    <p>Da importacao dos dados do DATASUS ate a modelagem epidemiologica. Cada etapa corresponde a uma fase do pipeline integrado de saude, clima e ambiente — siga na ordem para construir seu pipeline completo.</p>
-    <span class="section-cta">Explorar Trilha →</span>
-  </a>
+<table>
+<thead><tr><th>RAP</th><th>Titulo</th><th>Funcoes Principais</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Exportar e Executar RAPs</td><td>sus_rap_export(), sus_rap_read(), sus_rap_run()</td></tr>
+<tr><td>2</td><td>Pipelines com targets</td><td>sus_rap_targets(), sus_rap_make()</td></tr>
+<tr><td>3</td><td>Compartilhar e Scaffolding</td><td>sus_rap_share(), sus_rap_template()</td></tr>
+</tbody>
+</table>
 
-  <a class="section-card" href="https://bymaxanjos.github.io/climasus4r/pt/articles/hub-modelagem.html">
-    <span class="section-count">8 tutoriais</span>
-    <h3>Modelagem Avancada (<code>sus_mod_*</code>)</h3>
-    <p>DLNM, carga atribuivel, case-crossover, pooling multi-cidade, machine learning, modelos espaciais bayesianos e analise de vulnerabilidade SWOT. Pre-requisito recomendado: Etapa 9 da Trilha.</p>
-    <span class="section-cta">Explorar Modelagem →</span>
-  </a>
+<div class="tutorial-grid">
 
-  <a class="section-card" href="https://bymaxanjos.github.io/climasus4r/pt/articles/hub-tematicos.html">
-    <span class="section-count">8 tutoriais</span>
-    <h3>Tutoriais Tematicos</h3>
-    <p>Tutorial introdutorio, dados INMET e preenchimento via ML, indices bioclimaticos, estrategias de agregacao clima-saude, ondas de calor e frio. Perfeito para aprofundar competencias especificas.</p>
-    <span class="section-cta">Explorar Tematicos →</span>
-  </a>
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+      </div>
+      <span class="card-badge is-rap">RAP 1</span>
+    </div>
+    <h3 class="card-title">Exportar e Executar RAPs</h3>
+    <p class="card-description">Converta qualquer pipeline climasus4r em artefato reprodutivel (script, RMarkdown, Quarto ou funcao). Leia de volta, inspecione, reexecute com novos parametros e atualize o arquivo em disco. Cobre sus_rap_export(), sus_rap_read(), sus_rap_run().</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/rap-01-exportar-executar.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
 
-  <a class="section-card" href="https://bymaxanjos.github.io/climasus4r/pt/articles/tutorial_estudos_casos.html">
-    <span class="section-count">4 estudos</span>
-    <h3>Estudos de Caso em Epidemiologia Climatica</h3>
-    <p>Pipelines completos com dados reais do DATASUS + INMET: mortalidade respiratoria pediatrica (SIM-DO), dengue no Nordeste (SINAN), mortalidade cardiovascular em idosos e ondas de calor, hospitalizacoes e ondas de frio no Sul (SIH).</p>
-    <span class="section-cta">Ver Estudos de Caso →</span>
-  </a>
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+      </div>
+      <span class="card-badge is-rap">RAP 2</span>
+    </div>
+    <h3 class="card-title">Pipelines com <code>targets</code></h3>
+    <p class="card-description">Gere um _targets.R com cache inteligente e paralelismo dinamico por UF, ano ou produto cartesiano. Execute e monitore via sus_rap_targets() e sus_rap_make(). Ideal para analises multi-estado.</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/rap-02-targets.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
 
-  <a class="section-card" href="https://bymaxanjos.github.io/climasus4r/pt/articles/hub-rap.html">
-    <span class="section-count">3 tutoriais</span>
-    <h3>Pipelines Reprodutiveis (<code>sus_rap_*</code>)</h3>
-    <p>Exporte, compartilhe e reexecute analises como Reproducible Analytical Pipelines. Cobre exportacao, integracao com <code>targets</code>, receitas YAML, GUI Shiny e scaffolding completo de projetos.</p>
-    <span class="section-cta">Explorar RAPs →</span>
-  </a>
+  <div class="tutorial-card">
+    <div class="card-header">
+      <div class="card-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+      </div>
+      <span class="card-badge is-rap">RAP 3</span>
+    </div>
+    <h3 class="card-title">Compartilhar e Scaffolding</h3>
+    <p class="card-description">Exporte uma receita YAML compacta, importe pipelines de colegas, use a GUI Shiny para editar sem codigo e crie projetos completos com renv + targets + Quarto em uma linha com sus_rap_template().</p>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/rap-03-compartilhar.html" class="card-cta-button">Ver Tutorial →</a>
+  </div>
 
 </div>
-```
 
----
+<p><a href="https://bymaxanjos.github.io/climasus4r/pt/articles/tutorials.html">← Voltar para Tutoriais</a></p>
 
-## 🌲 Tem feedback ou sugestoes?
-
-Voce tem alguma ideia de melhoria ou encontrou algum erro? Adorariamos ouvir voce! Clique no botao abaixo para abrir uma nova *issue* no GitHub.
-
-```{=html}
 <a href='https://github.com/ByMaxAnjos/climasus4r/issues/new'>
-  <button type="button" class="btn" style="background-color: #3BB273; color: white; padding: 10px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s;">
+  <button type="button" class="btn" style="background-color: #3BB273; color: white; padding: 10px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer;">
     Abrir uma issue no GitHub
   </button>
 </a>
