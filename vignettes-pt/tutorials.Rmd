@@ -491,6 +491,7 @@ title: "Tutoriais"
 
 ---
 
+```{=html}
 <h2>Pipelines Reprodutiveis (<code>sus_rap_*</code>)</h2>
 
 <p class="section-intro">Crie, compartilhe e reexecute analises de saude-clima como Reproducible Analytical Pipelines (RAPs). Os tutoriais abaixo cobrem exportacao de pipelines, integracao com o <code>targets</code> e ferramentas de compartilhamento — do script reprodutivel ao scaffolding completo de projeto com <code>renv</code>, Quarto e GitHub Actions.</p>
@@ -534,6 +535,7 @@ title: "Tutoriais"
   </div>
 
 </div>
+```
 
 ---
 

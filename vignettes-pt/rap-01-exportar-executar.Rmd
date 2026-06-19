@@ -156,7 +156,7 @@ retorna a unidade federativa registrada no momento da exportacao.
 ```{r prereqs-install}
 # Instalacao do climasus4r (se ainda nao instalado)
 # install.packages("remotes")
-# remotes::install_github("MaxAnjos/climasus4r")
+# remotes::install_github("ByMaxAnjos/climasus4r")
 
 library(climasus4r)
 library(dplyr)     # para manipulacao de dados
@@ -892,7 +892,7 @@ sus_rap_update(rap2, uf = c("RJ", "MG"), years = 2021:2023)
 
 - Anjos M (2026). *climasus4r: Analise integrada saude-clima-ambiente
   no Brasil*. R package version 0.1.0.
-  <https://github.com/MaxAnjos/climasus4r>
+  <https://github.com/ByMaxAnjos/climasus4r>
 
 ---
 
@@ -905,7 +905,7 @@ sus_rap_update(rap2, uf = c("RJ", "MG"), years = 2021:2023)
 
 Encontrou um problema ou tem sugestoes para este tutorial?
 
-<a href="https://github.com/MaxAnjos/climasus4r/issues" class="github-feedback-btn" target="_blank">
+<a href="https://github.com/ByMaxAnjos/climasus4r/issues" class="github-feedback-btn" target="_blank">
   &#x1F41B; Reportar no GitHub
 </a>
 

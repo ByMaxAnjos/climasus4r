@@ -107,7 +107,7 @@ A tabela a seguir resume quando usar cada abordagem:
 | Projeto completo | Novo projeto de longa duração | Diretório estruturado | Sim |
 
 <div class="callout callout-note">
-**Pré-requisito:** Este tutorial assume familiaridade com os conceitos de RAP introduzidos em [RAP 1 — Exportar e Ler Pipelines](rap-01-exportar.html) e com a estrutura `rap_object` do `climasus4r`. Se você ainda não leu aquele tutorial, recomendamos começar por ele.
+**Pré-requisito:** Este tutorial assume familiaridade com os conceitos de RAP introduzidos em [RAP 1 — Exportar e Executar Pipelines](rap-01-exportar-executar.html) e com a estrutura `rap_object` do `climasus4r`. Se você ainda não leu aquele tutorial, recomendamos começar por ele.
 </div>
 
 ---
@@ -655,7 +655,7 @@ As cinco funções deste tutorial são projetadas para trabalhar em conjunto. O 
 
 Encontrou um problema ou tem sugestões para este tutorial?
 
-<a href="https://github.com/MaxAnjos/climasus4r/issues" class="github-feedback-btn" target="_blank">
+<a href="https://github.com/ByMaxAnjos/climasus4r/issues" class="github-feedback-btn" target="_blank">
   &#x1F41B; Reportar no GitHub
 </a>
 

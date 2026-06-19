@@ -500,7 +500,7 @@ Um projeto `climasus4r` com `targets` e `renv` bem organizado segue esta estrutu
 
 Encontrou um problema ou tem sugestoes para este tutorial?
 
-<a href="https://github.com/MaxAnjos/climasus4r/issues" class="github-feedback-btn" target="_blank">
+<a href="https://github.com/ByMaxAnjos/climasus4r/issues" class="github-feedback-btn" target="_blank">
   &#x1F41B; Reportar no GitHub
 </a>
 
