@@ -78,6 +78,7 @@ O pacote `targets` (Landau, 2021) resolve esse problema com **rastreamento autom
 
 A função `sus_rap_targets()` faz a ponte entre os objetos RAP do `climasus4r` e o ecossistema `targets`, gerando automaticamente o arquivo `_targets.R` com toda a estrutura necessária. A função `sus_rap_make()` então executa esse pipeline de forma reproduzível, com suporte a paralelismo e monitoramento.
 
+```{=html}
 <div class="workflow-container">
   <div class="workflow-steps">
     <span class="workflow-step">rap_object</span>
@@ -91,6 +92,7 @@ A função `sus_rap_targets()` faz a ponte entre os objetos RAP do `climasus4r` 
     <span class="workflow-step">resultados com cache</span>
   </div>
 </div>
+```
 
 ## Funções abordadas neste tutorial
 
@@ -113,9 +115,11 @@ install.packages("targets")
 install.packages("tarchetypes")  # opcional: helpers adicionais
 ```
 
+```{=html}
 <div class="callout callout-warning">
 **Pacote targets necessario:** `targets` esta listado em `Suggests` do climasus4r. Instale antes de usar `sus_rap_targets()` e `sus_rap_make()`. O `climasus4r` verificara automaticamente a disponibilidade do pacote ao chamar essas funcoes.
 </div>
+```
 
 ## Ponto de partida: o objeto RAP
 
@@ -138,9 +142,11 @@ pipeline <- quote(
 )
 ```
 
+```{=html}
 <div class="callout callout-note">
 **Sobre o objeto RAP:** O Tutorial RAP 1 — *Exportar e Executar* — explica em detalhes como criar, exportar e carregar objetos RAP com `sus_rap_export()` e `sus_rap_read()`. Consulte-o se precisar criar o objeto do zero.
 </div>
+```
 
 # `sus_rap_targets()` — Gerar o `_targets.R`
 
@@ -213,9 +219,11 @@ list(
 )
 ```
 
+```{=html}
 <div class="callout callout-tip">
 **include_qc = TRUE:** Quando ativado (padrao), `sus_rap_targets()` adiciona automaticamente um alvo de controle de qualidade (`_qc`) apos cada etapa principal. Isso registra metricas de integridade dos dados no cache sem custo adicional de execucao.
 </div>
+```
 
 ## O parâmetro `overwrite`
 
@@ -236,6 +244,7 @@ sus_rap_targets(
 
 O parâmetro `branching` define como o pipeline é dividido em *branches* paralelos. Cada estratégia tem um caso de uso ideal:
 
+```{=html}
 <div class="feature-grid">
   <div class="feature-card">
     <div class="feature-icon">1️⃣</div>
@@ -258,6 +267,7 @@ O parâmetro `branching` define como o pipeline é dividido em *branches* parale
     <p>Produto cartesiano UF x ano. Maximo paralelismo. Requer mais workers e espaco em disco.</p>
   </div>
 </div>
+```
 
 ## Branching por UF (`"uf"`)
 
@@ -314,9 +324,11 @@ sus_rap_targets(
 #> v Pipeline targets criado: /path/to/_targets_cross.R
 ```
 
+```{=html}
 <div class="callout callout-warning">
 **Uso de recursos com "cross":** O produto cartesiano UF x ano pode gerar muitos branches simultaneamente. Para 10 UFs e 10 anos, sao 100 branches. Monitore o uso de RAM e ajuste `workers` de acordo com os recursos disponíveis na maquina.
 </div>
+```
 
 ## Comparação das estratégias
 
@@ -379,9 +391,11 @@ targets::tar_read("pipeline_sinan_qc")
 targets::tar_visnetwork()  # grafo visual de dependencias
 ```
 
+```{=html}
 <div class="callout callout-tip">
 **Dica:** Para ver o grafo de dependencias do pipeline, use `targets::tar_visnetwork()` apos gerar o `_targets.R`. Isso ajuda a identificar gargalos e otimizar a ordem de execucao dos alvos.
 </div>
+```
 
 ## O poder do cache: segunda execução
 
@@ -424,9 +438,11 @@ resultado_paralelo <- sus_rap_make(
 #> v Execucao targets concluida em 7.2s (vs ~14s sequencial).
 ```
 
+```{=html}
 <div class="callout callout-note">
 **Controle do plano de paralelismo:** O `climasus4r` nunca define o plano `future` globalmente. Se voce ja definiu `future::plan(multisession, workers = 8)` antes de chamar `sus_rap_make()`, esse plano sera respeitado. O parametro `workers` em `sus_rap_make()` e usado apenas quando nenhum plano customizado esta ativo.
 </div>
+```
 
 # Workflow com `targets` + `renv`
 
@@ -454,9 +470,11 @@ targets::tar_outdated()   # alvos desatualizados
 targets::tar_visnetwork() # grafo interativo de dependencias
 ```
 
+```{=html}
 <div class="callout callout-note">
 **Para projetos completos:** Use `sus_rap_template()` (RAP Tutorial 3) que cria automaticamente a estrutura do projeto com `renv`, `_targets.R`, Quarto e GitHub Actions em uma so chamada. Ideal para iniciar um projeto do zero com todas as boas praticas ja configuradas.
 </div>
+```
 
 ## Estrutura recomendada de projeto
 
@@ -479,9 +497,11 @@ Um projeto `climasus4r` com `targets` e `renv` bem organizado segue esta estrutu
 # └── relatorio.Rmd           # relatorio final que carrega do cache
 ```
 
+```{=html}
 <div class="callout callout-tip">
 **Git e cache:** Adicione `_targets/` ao seu `.gitignore`. O cache pode ser gigabytes e nao deve ser versionado. O que deve ir para o git e o `_targets.R` (gerado por `sus_rap_targets()`) e o `renv.lock` — esses dois arquivos permitem que qualquer colaborador reproduza os resultados do zero.
 </div>
+```
 
 # Referências
 
@@ -494,14 +514,16 @@ Um projeto `climasus4r` com `targets` e `renv` bem organizado segue esta estrutu
 **Navegacao:**
 [Anterior: RAP 1 - Exportar e Executar](rap-01-exportar-executar.html) | [Proximo: RAP 3 - Compartilhar e Scaffolding](rap-03-compartilhar.html)
 
+```{=html}
 <div style="text-align: center; margin-top: 3rem; padding-top: 2rem; border-top: 2px solid #e1e1e1;">
 
-**climasus4r** · Analise integrada saude-clima-ambiente no Brasil
+<p><strong>climasus4r</strong> · Analise integrada saude-clima-ambiente no Brasil</p>
 
-Encontrou um problema ou tem sugestoes para este tutorial?
+<p>Encontrou um problema ou tem sugestoes para este tutorial?</p>
 
 <a href="https://github.com/ByMaxAnjos/climasus4r/issues" class="github-feedback-btn" target="_blank">
   &#x1F41B; Reportar no GitHub
 </a>
 
 </div>
+```

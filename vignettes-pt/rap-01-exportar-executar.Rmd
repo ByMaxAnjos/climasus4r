@@ -100,6 +100,7 @@ rastreabilidade embarcados. Isso significa que voce pode:
 - **Comparar** duas versoes do pipeline para identificar divergencias
 - **Atualizar** parametros sem reabrir e editar o arquivo manualmente
 
+```{=html}
 <div class="feature-grid">
 
 <div class="feature-card">
@@ -127,6 +128,7 @@ rastreabilidade embarcados. Isso significa que voce pode:
 </div>
 
 </div>
+```
 
 ## A classe `rap_object`
 
@@ -143,11 +145,13 @@ uma lista nomeada com sete campos:
 | `format` | character | Formato da exportacao (`"script"`, `"rmarkdown"`, etc.) |
 | `raw` | character | Linhas do arquivo exportado (para inspecao direta) |
 
+```{=html}
 <div class="callout callout-note">
 **Nota:** O `rap_object` herda de `list`, o que significa que voce pode
 acessar qualquer campo com `$` ou `[[`. Por exemplo, `rap$params$uf`
 retorna a unidade federativa registrada no momento da exportacao.
 </div>
+```
 
 # Pre-requisitos
 
@@ -180,12 +184,14 @@ pipeline <- quote(
 )
 ```
 
+```{=html}
 <div class="callout callout-tip">
 **Dica:** O uso de `quote()` e essencial. Ele cria um objeto de linguagem
 (`call`) que o `sus_rap_export()` consegue inspecionar, parametrizar e
 serializar. Se voce passar o resultado de um pipeline ja executado,
 o modulo RAP nao conseguira reconstruir os passos de forma auditavel.
 </div>
+```
 
 ## Verificando a estrutura do pipeline
 
@@ -424,12 +430,14 @@ rap_full <- sus_rap_export(
 )
 ```
 
+```{=html}
 <div class="callout callout-warning">
 **Atencao:** O parametro `overwrite = FALSE` e o padrao. Se o arquivo ja
 existir em disco, `sus_rap_export()` aborta com um erro explicativo.
 Use `overwrite = TRUE` para sobrescrever explicitamente, ou especifique
 um novo caminho.
 </div>
+```
 
 # `sus_rap_read()` — Ler de Volta
 
@@ -484,6 +492,7 @@ print(rap2)
 #> ---------------------------------------------------------
 ```
 
+```{=html}
 <div class="callout callout-note">
 **Nota:** O argumento `validate = TRUE` (padrao) verifica se o arquivo
 lido contem os campos obrigatorios de metadados (`timestamp`,
@@ -491,6 +500,7 @@ lido contem os campos obrigatorios de metadados (`timestamp`,
 editado manualmente e esteja com metadados incompletos. Use
 `validate = FALSE` para suprimir essa verificacao.
 </div>
+```
 
 # `sus_rap_inspect()` — Inspecionar e Comparar
 
@@ -596,12 +606,14 @@ sus_rap_inspect(rap2, rap_rj)
 #> =========================================================
 ```
 
+```{=html}
 <div class="callout callout-tip">
 **Dica:** O diff e especialmente util em revisoes de pares. Se um
 colaborador modificar o pipeline e re-exportar, voce pode comparar
 o RAP original com o novo para entender exatamente o que foi alterado,
 sem precisar ler o codigo linha a linha.
 </div>
+```
 
 # `sus_rap_run()` — Reexecutar com Novos Parametros
 
@@ -694,11 +706,13 @@ resultado_iso <- sus_rap_run(
 )
 ```
 
+```{=html}
 <div class="callout callout-warning">
 **Atencao:** `sus_rap_run()` requer conexao com a internet para baixar
 dados do DATASUS via `microdatasus`. Certifique-se de que o ambiente
 de execucao tem acesso ao servidor do Datasus antes de chamar a funcao.
 </div>
+```
 
 # `sus_rap_update()` — Atualizar Parametros no Arquivo
 
@@ -778,12 +792,14 @@ file.copy(
 )
 ```
 
+```{=html}
 <div class="callout callout-tip">
 **Dica de versionamento:** Para projetos em Git, combine
 `sus_rap_update()` com commits regulares. O historico do arquivo
 exportado e o mecanismo de rastreabilidade mais robusto disponivel,
 especialmente para auditorias externas.
 </div>
+```
 
 ## Recarregando o RAP atualizado
 
@@ -806,6 +822,7 @@ rap2_atualizado$params$years
 O ciclo completo de vida de um RAP no `climasus4r` passa por seis etapas.
 O diagrama abaixo ilustra a sequencia tipica de uso:
 
+```{=html}
 <div class="workflow-container">
   <div class="workflow-steps">
     <span class="workflow-step">quote(pipeline)</span>
@@ -821,6 +838,7 @@ O diagrama abaixo ilustra a sequencia tipica de uso:
     <span class="workflow-step">sus_rap_update()</span>
   </div>
 </div>
+```
 
 ## Script completo de referencia
 
@@ -899,14 +917,16 @@ sus_rap_update(rap2, uf = c("RJ", "MG"), years = 2021:2023)
 **Navegacao:**
 [Anterior: Tutoriais Tematicos](tutorials.html) | [Proximo: RAP 2 - Pipelines com targets](rap-02-targets.html)
 
+```{=html}
 <div style="text-align: center; margin-top: 3rem; padding-top: 2rem; border-top: 2px solid #e1e1e1;">
 
-**climasus4r** · Analise integrada saude-clima-ambiente no Brasil
+<p><strong>climasus4r</strong> · Analise integrada saude-clima-ambiente no Brasil</p>
 
-Encontrou um problema ou tem sugestoes para este tutorial?
+<p>Encontrou um problema ou tem sugestoes para este tutorial?</p>
 
 <a href="https://github.com/ByMaxAnjos/climasus4r/issues" class="github-feedback-btn" target="_blank">
   &#x1F41B; Reportar no GitHub
 </a>
 
 </div>
+```

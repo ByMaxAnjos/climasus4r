@@ -74,6 +74,7 @@ knitr::opts_chunk$set(
 
 Um Reproducible Analytical Pipeline (RAP) só cumpre seu propósito quando pode ser **compartilhado e reexecutado** por outras pessoas — em outros contextos, com outros dados, sem perda de rastreabilidade. O `climasus4r` oferece quatro estratégias complementares para isso, cada uma adequada a um perfil de colaborador e de caso de uso.
 
+```{=html}
 <div class="feature-grid">
   <div class="feature-card">
     <div class="feature-icon">📄</div>
@@ -96,6 +97,7 @@ Um Reproducible Analytical Pipeline (RAP) só cumpre seu propósito quando pode 
     <p>Estrutura pronta com renv + targets + Quarto. Para novos projetos de analise reprodutivel de longa duracao.</p>
   </div>
 </div>
+```
 
 A tabela a seguir resume quando usar cada abordagem:
 
@@ -106,9 +108,11 @@ A tabela a seguir resume quando usar cada abordagem:
 | GUI Shiny | Pesquisador sem experiência em R | Interface web | Não (para uso) |
 | Projeto completo | Novo projeto de longa duração | Diretório estruturado | Sim |
 
+```{=html}
 <div class="callout callout-note">
-**Pré-requisito:** Este tutorial assume familiaridade com os conceitos de RAP introduzidos em [RAP 1 — Exportar e Executar Pipelines](rap-01-exportar-executar.html) e com a estrutura `rap_object` do `climasus4r`. Se você ainda não leu aquele tutorial, recomendamos começar por ele.
+**Pré-requisito:** Este tutorial assume familiaridade com os conceitos de RAP introduzidos em <a href="rap-01-exportar-executar.html">RAP 1 — Exportar e Executar Pipelines</a> e com a estrutura <code>rap_object</code> do <code>climasus4r</code>. Se você ainda não leu aquele tutorial, recomendamos começar por ele.
 </div>
+```
 
 ---
 
@@ -185,9 +189,11 @@ data_hash: a3f9c21b
 | `metadata` | Versão do R, plataforma e versão do pacote |
 | `data_hash` | Hash xxhash32 dos parâmetros de entrada — garante rastreabilidade |
 
+```{=html}
 <div class="callout callout-tip">
 **Dica — `data_hash`:** O campo `data_hash` é calculado a partir dos parâmetros de entrada (`uf`, `years`, `system`). Se dois analistas gerarem o mesmo hash a partir de receitas diferentes, isso indica que partiram de exatamente os mesmos dados de entrada — útil para auditorias e reprodução certificada.
 </div>
+```
 
 ## Parâmetros completos
 
@@ -254,6 +260,7 @@ Quando `execute = TRUE`, a função retorna o resultado do pipeline (um `climasu
 
 ## Fluxo colaborativo SP → RJ
 
+```{=html}
 <div class="workflow-container">
   <div class="workflow-steps">
     <span class="workflow-step">rap_object (SP)</span>
@@ -269,6 +276,7 @@ Quando `execute = TRUE`, a função retorna o resultado do pipeline (um `climasu
     <span class="workflow-step">resultado (RJ)</span>
   </div>
 </div>
+```
 
 ## Parâmetros completos
 
@@ -282,9 +290,11 @@ sus_rap_from_recipe(
 )
 ```
 
+```{=html}
 <div class="callout callout-note">
 **Verificação de versão:** Se a receita foi criada com uma versão anterior do `climasus4r`, a função emite um aviso mas prossegue. Para ambientes críticos de produção, verifique o campo `climasus4r_version` na receita antes de executar.
 </div>
+```
 
 ---
 
@@ -307,9 +317,11 @@ sus_rap_gui(rap = rap, launch.browser = TRUE)
 
 A interface abre no navegador padrão do sistema. Se preferir visualizar no Viewer do RStudio, use `launch.browser = FALSE`.
 
+```{=html}
 <div class="callout callout-warning">
 **Pacote shiny necessário:** `sus_rap_gui()` requer o pacote `shiny` (listado em Suggests). Instale com `install.packages("shiny")` antes de usar.
 </div>
+```
 
 ## A interface em três painéis
 
@@ -354,9 +366,11 @@ sus_rap_gui(rap = NULL)
 
 A GUI inicializa com um template padrão (`SIM-DO`, SP, 2019–2022) que pode ser editado livremente.
 
+```{=html}
 <div class="callout callout-tip">
 **Dica de workflow:** Use a GUI para explorar combinações de parâmetros rapidamente, clique em "Prévia do Código" para ver o R gerado, copie-o para o seu script, e então refine com `sus_rap_export()` para o artefato final. Isso combina o melhor dos dois mundos: velocidade da GUI e rastreabilidade do script.
 </div>
+```
 
 ---
 
@@ -408,13 +422,17 @@ sus_data_import(uf = "SP", years = 2020:2022, system = "SIM-DO") |>
 #>   /home/usuario/analises/rap_20260618_103045.R
 ```
 
+```{=html}
 <div class="callout callout-tip">
 **Dica:** O addin funciona apenas dentro do RStudio IDE. Para uso em linha de comando ou VS Code, use `sus_rap_export()` diretamente (ver RAP Tutorial 1).
 </div>
+```
 
+```{=html}
 <div class="callout callout-note">
 **Seleção parcial:** O addin espera que o código selecionado seja uma expressão R válida (com pipe `|>` ou `%>%`). Se a seleção não for parseável, uma caixa de diálogo informará o erro. Selecione apenas as linhas do pipeline, sem comentários no meio.
 </div>
+```
 
 ---
 
@@ -522,9 +540,11 @@ list(
 )
 ```
 
+```{=html}
 <div class="callout callout-tip">
 **Dica:** Após criar o projeto, edite o campo `uf` e o intervalo `years` no bloco `tar_target(params, ...)` no topo do `_targets.R`. Em seguida, execute `targets::tar_make()` a partir do diretório do projeto para rodar o pipeline completo.
 </div>
+```
 
 ## Integração contínua com GitHub Actions
 
@@ -575,9 +595,11 @@ jobs:
 
 O workflow é acionado em cada push para `main` e também pode ser disparado manualmente via `workflow_dispatch`. Os resultados são disponibilizados como artefato de build no GitHub Actions.
 
+```{=html}
 <div class="callout callout-note">
 **Dados sensíveis:** O diretório `data/` está no `.gitignore` gerado automaticamente. Nunca commite dados brutos do DATASUS em repositórios públicos. Para pipelines com CI/CD, considere armazenar os dados em um bucket S3 ou equivalente e recuperá-los na etapa de CI.
 </div>
+```
 
 ## Parâmetros completos
 
@@ -600,6 +622,7 @@ sus_rap_template(
 
 As cinco funções deste tutorial são projetadas para trabalhar em conjunto. O diagrama a seguir ilustra um fluxo completo: da criação do pipeline até a reprodução por outro analista.
 
+```{=html}
 <div class="workflow-container">
   <div class="workflow-steps">
     <span class="workflow-step">Analista A: pipeline</span>
@@ -615,6 +638,7 @@ As cinco funções deste tutorial são projetadas para trabalhar em conjunto. O 
     <span class="workflow-step">resultado adaptado</span>
   </div>
 </div>
+```
 
 ## Tabela resumo das funções
 
@@ -626,13 +650,17 @@ As cinco funções deste tutorial são projetadas para trabalhar em conjunto. O 
 | `sus_rap_addin_export()` | seleção no editor RStudio | arquivo `.R` | Fluxo rápido dentro do IDE |
 | `sus_rap_template()` | parâmetros de configuração | diretório de projeto | Scaffolding de novo projeto reprodutível |
 
+```{=html}
 <div class="callout callout-tip">
-**Escolhendo o formato certo:**
-- **YAML** quando o receptor é analista e precisa adaptar parâmetros
-- **GUI** quando o receptor não programa em R ou para demonstrações ao vivo
-- **Template** quando está começando um projeto novo e quer a estrutura completa desde o início
-- **Script `.R`** (via `sus_rap_export()`) quando o receptor é desenvolvedor e vai modificar o código
+<strong>Escolhendo o formato certo:</strong>
+<ul>
+<li><strong>YAML</strong> quando o receptor é analista e precisa adaptar parâmetros</li>
+<li><strong>GUI</strong> quando o receptor não programa em R ou para demonstrações ao vivo</li>
+<li><strong>Template</strong> quando está começando um projeto novo e quer a estrutura completa desde o início</li>
+<li><strong>Script <code>.R</code></strong> (via <code>sus_rap_export()</code>) quando o receptor é desenvolvedor e vai modificar o código</li>
+</ul>
 </div>
+```
 
 ---
 
@@ -649,14 +677,16 @@ As cinco funções deste tutorial são projetadas para trabalhar em conjunto. O 
 **Navegação:**
 [Anterior: RAP 2 - Pipelines com targets](rap-02-targets.html) | [Todos os tutoriais](tutorials.html)
 
+```{=html}
 <div style="text-align: center; margin-top: 3rem; padding-top: 2rem; border-top: 2px solid #e1e1e1;">
 
-**climasus4r** · Análise integrada saúde-clima-ambiente no Brasil
+<p><strong>climasus4r</strong> · Análise integrada saúde-clima-ambiente no Brasil</p>
 
-Encontrou um problema ou tem sugestões para este tutorial?
+<p>Encontrou um problema ou tem sugestões para este tutorial?</p>
 
 <a href="https://github.com/ByMaxAnjos/climasus4r/issues" class="github-feedback-btn" target="_blank">
   &#x1F41B; Reportar no GitHub
 </a>
 
 </div>
+```
