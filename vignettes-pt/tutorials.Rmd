@@ -411,7 +411,7 @@ title: "Tutoriais"
     </div>
     <h3 class="card-title">Exportar e Executar RAPs</h3>
     <p class="card-description">Converta qualquer pipeline climasus4r em artefato reprodutivel. Leia de volta, inspecione, reexecute com novos parametros e atualize o arquivo em disco.</p>
-    <a href="rap-01-exportar-executar.html" class="card-cta-button">Ver Tutorial →</a>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/rap-01-exportar-executar.html" class="card-cta-button">Ver Tutorial →</a>
   </div>
 
    <div class="tutorial-card">
@@ -506,7 +506,7 @@ title: "Tutoriais"
     </div>
     <h3 class="card-title">Exportar e Executar RAPs</h3>
     <p class="card-description">Converta qualquer pipeline climasus4r em artefato reprodutivel (script, RMarkdown, Quarto ou funcao). Leia de volta, inspecione, reexecute com novos parametros e atualize o arquivo em disco. Cobre <code>sus_rap_export()</code>, <code>sus_rap_read()</code>, <code>sus_rap_run()</code>.</p>
-    <a href="rap-01-exportar-executar.html" class="card-cta-button">Ver Tutorial →</a>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/rap-01-exportar-executar.html" class="card-cta-button">Ver Tutorial →</a>
   </div>
 
   <div class="tutorial-card">
@@ -518,7 +518,7 @@ title: "Tutoriais"
     </div>
     <h3 class="card-title">Pipelines com <code>targets</code></h3>
     <p class="card-description">Gere um <code>_targets.R</code> com cache inteligente e paralelismo dinamico por UF, ano ou produto cartesiano. Execute e monitore via <code>sus_rap_targets()</code> e <code>sus_rap_make()</code>. Ideal para analises multi-estado.</p>
-    <a href="rap-02-targets.html" class="card-cta-button">Ver Tutorial →</a>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/rap-02-targets.html" class="card-cta-button">Ver Tutorial →</a>
   </div>
 
   <div class="tutorial-card">
@@ -530,7 +530,7 @@ title: "Tutoriais"
     </div>
     <h3 class="card-title">Compartilhar e Scaffolding</h3>
     <p class="card-description">Exporte uma receita YAML compacta, importe pipelines de colegas, use a GUI Shiny para editar sem codigo e crie projetos completos com <code>renv</code> + <code>targets</code> + Quarto em uma linha com <code>sus_rap_template()</code>.</p>
-    <a href="rap-03-compartilhar.html" class="card-cta-button">Ver Tutorial →</a>
+    <a href="https://bymaxanjos.github.io/climasus4r/pt/articles/rap-03-compartilhar.html" class="card-cta-button">Ver Tutorial →</a>
   </div>
 
 </div>

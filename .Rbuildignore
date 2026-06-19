@@ -42,3 +42,7 @@
 
 ^climasus4r.Rcheck/.*$
 ^\climasus4r.Rcheck$
+^dados$
+^dados/.*$
+^scripts$
+^scripts/.*$

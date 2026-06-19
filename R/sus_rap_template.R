@@ -72,13 +72,25 @@ sus_rap_template <- function(
   lang <- match.arg(lang, c("pt", "en", "es"))
 
   if (!is.character(path) || length(path) != 1L || nchar(path) == 0L)
-    cli::cli_abort("`path` deve ser uma string nao vazia.")
+    cli::cli_abort(
+      if (lang == "en") "`path` must be a non-empty string." else
+      if (lang == "es") "`path` debe ser una cadena no vacia." else
+                        "`path` deve ser uma string nao vazia."
+    )
   if (!is.character(name) || length(name) != 1L || nchar(name) == 0L)
-    cli::cli_abort("`name` deve ser uma string nao vazia.")
+    cli::cli_abort(
+      if (lang == "en") "`name` must be a non-empty string." else
+      if (lang == "es") "`name` debe ser una cadena no vacia." else
+                        "`name` deve ser uma string nao vazia."
+    )
 
   proj_dir <- file.path(path, name)
   if (dir.exists(proj_dir))
-    cli::cli_abort("Diretorio '{proj_dir}' ja existe.")
+    cli::cli_abort(
+      if (lang == "en") "Directory '{proj_dir}' already exists." else
+      if (lang == "es") "El directorio '{proj_dir}' ya existe." else
+                        "Diretorio '{proj_dir}' ja existe."
+    )
 
   cli::cli_h1(if (lang == "en") "Creating RAP project: {name}" else
               if (lang == "es") "Creando proyecto RAP: {name}" else
@@ -90,7 +102,11 @@ sus_rap_template <- function(
                       file.path(proj_dir, "data"),
                       file.path(proj_dir, "output"))
   for (d in dirs_to_create) dir.create(d, recursive = TRUE)
-  cli::cli_alert_info("Estrutura de diretorios criada.")
+  cli::cli_alert_info(
+    if (lang == "en") "Directory structure created." else
+    if (lang == "es") "Estructura de directorios creada." else
+                      "Estrutura de diretorios criada."
+  )
 
   # -- _targets.R -------------------------------------------------------------
   if (include_targets) {
@@ -98,14 +114,22 @@ sus_rap_template <- function(
                          .rap_tmpl_targets(name, system, lang))
     .write_template_file(proj_dir, "run.R",
                          .rap_tmpl_run(lang))
-    cli::cli_alert_info("_targets.R e run.R criados.")
+    cli::cli_alert_info(
+      if (lang == "en") "_targets.R and run.R created." else
+      if (lang == "es") "_targets.R y run.R creados." else
+                        "_targets.R e run.R criados."
+    )
   }
 
   # -- Quarto report ----------------------------------------------------------
   if (include_quarto) {
     .write_template_file(proj_dir, "analysis.qmd",
                          .rap_tmpl_quarto(name, system, lang))
-    cli::cli_alert_info("analysis.qmd criado.")
+    cli::cli_alert_info(
+      if (lang == "en") "analysis.qmd created." else
+      if (lang == "es") "analysis.qmd creado." else
+                        "analysis.qmd criado."
+    )
   }
 
   # -- R/functions.R ----------------------------------------------------------
@@ -127,7 +151,11 @@ sus_rap_template <- function(
     dir.create(gha_dir, recursive = TRUE)
     .write_template_file(gha_dir, "rap.yml",
                          .rap_tmpl_gha(name, lang))
-    cli::cli_alert_info(".github/workflows/rap.yml criado.")
+    cli::cli_alert_info(
+      if (lang == "en") ".github/workflows/rap.yml created." else
+      if (lang == "es") ".github/workflows/rap.yml creado." else
+                        ".github/workflows/rap.yml criado."
+    )
   }
 
   # -- renv --------------------------------------------------------------------
@@ -135,7 +163,11 @@ sus_rap_template <- function(
     rlang::check_installed("renv", reason = "para inicializar renv",
                            call = NULL)
     renv::init(project = proj_dir, bare = TRUE)
-    cli::cli_alert_info("renv inicializado.")
+    cli::cli_alert_info(
+      if (lang == "en") "renv initialised." else
+      if (lang == "es") "renv inicializado." else
+                        "renv inicializado."
+    )
   }
 
   cli::cli_alert_success(
@@ -230,7 +262,7 @@ sus_rap_template <- function(
                                   sprintf("Analise: %s", name)
   c(
     "---",
-    sprintf("title: \"%s\"", title_str),
+     sprintf("title: \"%s\"", title_str),
     sprintf("author: \"%s\"", Sys.getenv("USER", "Analista")),
     sprintf("date: \"%s\"", format(Sys.Date(), "%Y-%m-%d")),
     "format:",

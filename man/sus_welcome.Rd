@@ -22,7 +22,7 @@ Invisibly returns the path to the HTML file (or \code{NULL} when
 \description{
 Prints a colour-coded pipeline overview to the console and, optionally,
 opens a self-contained HTML page in the browser (or RStudio viewer) showing
-all ten stages of the climasus4r health–climate–environment workflow plus
+all ten stages of the climasus4r health-climate-environment workflow plus
 utility functions.
 }
 \examples{

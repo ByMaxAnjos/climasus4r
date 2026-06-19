@@ -490,7 +490,7 @@ sus_mod_spatial_bayes <- function(
   model_name <- switch(model,
     bym         = "S.CARbym",
     leroux      = "S.CARleroux",
-    independent = "S.CARindependent"
+    independent = "S.glm"
   )
 
   if (verbose) {
@@ -528,16 +528,14 @@ sus_mod_spatial_bayes <- function(
       prior.tau2 = prior_tau2,
       verbose    = FALSE
     ),
-    independent = CARBayes::S.CARindependent(
-      formula    = fml,
-      data       = as.data.frame(df_sorted),
-      family     = family,
-      W          = W_mat,
-      burnin     = as.integer(burnin),
-      n.sample   = as.integer(n_iter),
-      thin       = as.integer(thin),
-      prior.tau2 = prior_tau2,
-      verbose    = FALSE
+    independent = CARBayes::S.glm(
+      formula  = fml,
+      data     = as.data.frame(df_sorted),
+      family   = family,
+      burnin   = as.integer(burnin),
+      n.sample = as.integer(n_iter),
+      thin     = as.integer(thin),
+      verbose  = FALSE
     )
   )
 
