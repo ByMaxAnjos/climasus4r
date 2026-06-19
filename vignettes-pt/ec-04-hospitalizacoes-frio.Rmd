@@ -1,0 +1,500 @@
+---
+title: "Estudo de Caso 4: Hospitalizações Respiratórias e Ondas de Frio na Região Sul"
+subtitle: "Pipeline completo SIH + INMET + ondas de frio | RS, SC, PR | 2014–2022"
+author:
+  - name: "Dr. Max Anjos"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* ── Variáveis de Cores Modernas ────────────────── */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+  --pipeline-purple: #9b59b6;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 18px;
+  color: var(--text-main);
+  background-color: #fff;
+  line-height: 1.6;
+}
+
+/* ── Títulos com Inter-spacing ─────────────────── */
+h1, h2, h3, h4 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  color: var(--dark-green);
+}
+
+h1.title {
+  font-size: 2.8em;
+  border-bottom: 4px solid var(--primary-color);
+  padding-bottom: 10px;
+  margin-bottom: 1.5rem;
+}
+
+h2 {
+  margin-top: 2rem;
+  border-left: 4px solid var(--primary-color);
+  padding-left: 1rem;
+}
+
+/* ── Code Blocks Estilizados ────────────────────── */
+pre.r, pre.sourceCode {
+  background-color: var(--code-bg);
+  border: 1px solid #e1e1e1;
+  border-left: 5px solid var(--primary-color) !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  padding: 1rem;
+}
+
+/* ── Custom Callouts (Estilo Quarto) ────────────── */
+.callout {
+  padding: 1.2em 1.5em;
+  margin: 1.5em 0;
+  border-radius: 8px;
+  border-left: 6px solid;
+  background-color: var(--bg-light);
+}
+
+.callout-note {
+  background-color: #f0f7ff;
+  border-color: #007bff;
+}
+
+.callout-tip {
+  background-color: #e8f5e9;
+  border-color: #1D9E75;
+}
+
+.callout-warning {
+  background-color: #fff3e0;
+  border-color: #ff9800;
+}
+
+.callout-info {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+}
+
+.callout-important {
+  background-color: #fef2e8;
+  border-color: #ff6b6b;
+}
+
+/* ── Pipeline cards ───────────────────────────────── */
+.pipeline-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.pipeline-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e1e1e1;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.pipeline-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.pipeline-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.pipeline-card h3 {
+  margin-top: 0;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
+
+.pipeline-card p {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  margin-bottom: 0;
+}
+
+.pipeline-badge {
+  display: inline-block;
+  background-color: var(--primary-color);
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-top: 0.5rem;
+}
+
+/* ── Table styling ───────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+th {
+  background-color: var(--bg-light);
+  font-weight: 600;
+  color: var(--dark-green);
+}
+
+tr:hover {
+  background-color: var(--bg-light);
+}
+
+/* ── Workflow container ─────────────────────────── */
+.workflow-container {
+  background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  overflow-x: auto;
+}
+
+.workflow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'Inter', monospace;
+  font-size: 0.8rem;
+}
+
+.workflow-step {
+  background: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.workflow-arrow {
+  color: var(--primary-color);
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+/* ── Comparison container ───────────────────────── */
+.comparison-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.comparison-box {
+  background: var(--bg-light);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.comparison-box pre {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+/* ── Botão GitHub aprimorado ───────────────────── */
+.github-feedback-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #24292e;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-family: sans-serif;
+  transition: background-color 0.2s;
+  margin-top: 1rem;
+}
+
+.github-feedback-btn:hover {
+  background-color: #2c3e50;
+  color: white;
+  text-decoration: none;
+}
+
+/* ── Responsive ─────────────────────────────────── */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+
+  h1.title {
+    font-size: 2rem;
+  }
+
+  .workflow-steps {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .workflow-arrow {
+    transform: rotate(90deg);
+  }
+
+  .pipeline-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .comparison-container {
+    grid-template-columns: 1fr;
+  }
+
+  th, td {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pipeline-card,
+  .github-feedback-btn {
+    transition: none;
+  }
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  eval    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  comment = "#>",
+  fig.align = "center",
+  out.width = "80%",
+  fig.retina = 2
+)
+```
+
+# Objetivo
+
+Este estudo de caso estima o excesso de hospitalizacoes por doencas respiratórias (pneumonia, bronquite, DPOC) associado a ondas de frio nos tres estados da Regiao Sul do Brasil — Rio Grande do Sul (RS), Santa Catarina (SC) e Parana (PR) — de 2014 a 2022. O pipeline integra dados semanais do SIH-RD (Sistema de Informacoes Hospitalares) do DATASUS com a deteccao automatica de ondas de frio pelos criterios da OMS (WHO) e do INMET, usando a funcao `sus_climate_compute_coldwaves()`. O produto final e um dataset semanal com bandeiras de onda de frio estratificadas por UF e faixa etaria.
+
+# Contexto Cientifico
+
+A Regiao Sul do Brasil apresenta o regime termico mais rigoroso do pais, com temperaturas minimas abaixo de 0°C frequentes em areas serranas de RS e SC durante os meses de junho, julho e agosto. Episodios de frio intenso sao associados a incursoes de ar polar de origem antartica (friagem), que atingem toda a regiao sul e, em anos de La Nina, penetram ate o Centro-Oeste. Nesses episodios, as taxas de hospitalizacao por pneumonia, bronquite aguda e exacerbacao de DPOC aumentam significativamente, onerando o sistema hospitalar do SUS.
+
+O mecanismo biologico do efeito do frio sobre o trato respiratorio e multiplo: o ar frio inibe o clearance mucociliar, reduz a motilidade dos cílios das vias aereas superiores, aumenta a viscosidade das secrecoes bronquicas e facilita a adesao e replicacao de virus respiratorios — especialmente influenza A/B e VSR — nas celulas epiteliais das vias aereas (Eccles, 2002). A hospitalizacao por pneumonia e o desfecho clinico mais utilizado em estudos epidemiologicos de ondas de frio porque combina gravidade clinica suficiente para gerar internacao com volume de casos compativel com analise estatistica, mesmo em periodos de exposicao curtos (Gasparrini et al., 2015).
+
+O SIH-RD (Relatorio de Data) registra todas as Autorizacoes de Internacao Hospitalar (AIH) do SUS, incluindo diagnostico de internacao (CID-10 principal e secundarios), data de entrada, data de saida (alta ou obito hospitalar), numero de dias de internacao (DIAS_PERM), procedimento realizado, municipio de residencia do paciente e valor da AIH. Para estudos de impacto de eventos climaticos extremos, o SIH e mais sensiivel do que o SIM-DO para desfechos morbidos — captura o espectro clinico mais amplo de agravamento, nao apenas os casos fatais.
+
+Os dois criterios de deteccao de ondas de frio sao complementares: o criterio WHO define onda de frio como temperatura minima abaixo do percentil 10 da serie de referencia (1981–2010) por pelo menos 3 dias consecutivos; o criterio INMET define frio extremo como temperatura minima abaixo da media climatologica do mes menos 5°C por pelo menos 5 dias consecutivos. O criterio WHO e mais sensiivel (detecta mais eventos); o criterio INMET e mais especifico (requer desvio mais severo da normal climatologica).
+
+# Dados Utilizados
+
+| Fonte | Sistema | Variaveis | UFs | Periodo |
+|-------|---------|-----------|-----|---------|
+| DATASUS | SIH-RD | Internacoes por CID-10 J00–J99 (AIH) | RS, SC, PR | 2014–2022 |
+| INMET | Estacoes automaticas | Temperatura minima (tair_min_c), temperatura maxima (tair_max_c), temperatura de bulbo seco (tair_dry_bulb_c) | RS, SC, PR | 2014–2022 |
+
+```{=html}
+<div class="callout callout-note">
+  <strong>SIH vs. SIM-DO:</strong> O SIH registra <em>internacoes hospitalares</em> (morbidade grave), enquanto o SIM registra <em>obitos</em> (mortalidade). Internacoes sao mais frequentes e capturam casos clinicamente relevantes que nao evoluem para o obito. Para eventos de frio, que causam mais internacoes do que obitos diretos, o SIH e o sistema mais adequado.
+</div>
+```
+
+# Pipeline Completo
+
+```{r pipeline-ec04, eval=FALSE}
+library(climasus4r)
+
+# --- 1. Saude — hospitalizacoes SIH por doencas respiratorias ---
+df_saude <- sus_data_import(
+  uf     = c("RS", "SC", "PR"),
+  year   = 2014:2022,
+  system = "SIH",
+  lang   = "pt"
+) |>
+  sus_data_clean_encoding(lang = "pt") |>
+  sus_data_standardize(lang = "pt") |>
+  sus_data_filter_cid(
+    disease_group = "respiratory",
+    lang          = "pt"
+  ) |>
+  sus_data_create_variables(
+    create_age_groups    = TRUE,
+    age_breaks           = c(0, 18, 50, 65, Inf),
+    age_labels           = c("< 18", "18-49", "50-64", "65+"),
+    create_calendar_vars = TRUE,
+    lang                 = "pt"
+  ) |>
+  sus_data_aggregate(
+    time_unit = "week",
+    group_by  = c("uf", "age_group"),
+    lang      = "pt"
+  )
+
+# --- 2. Clima bruto + preenchimento de falhas ---
+df_clima_bruto <- sus_climate_inmet(
+  uf       = c("RS", "SC", "PR"),
+  year     = 2014:2022,
+  variable = c("tair_min_c", "tair_max_c", "tair_dry_bulb_c"),
+  lang     = "pt"
+) |>
+  sus_climate_fill_inmet(method = "random_forest", lang = "pt")
+
+# --- 3. Deteccao de ondas de frio ---
+df_clima_cw <- sus_climate_compute_coldwaves(
+  df             = df_clima_bruto,
+  method         = c("WHO", "INMET"),
+  baseline_start = "1981-01-01",
+  baseline_end   = "2010-12-31",
+  percentile     = 10,
+  min_duration   = 3L,
+  lang           = "pt"
+)
+
+# --- 4. Integracao saude + clima com bandeiras de onda de frio ---
+df_final <- sus_climate_aggregate(
+  df_health  = df_saude,
+  df_climate = df_clima_cw$daily_flag,
+  strategy   = "threshold_exceedance",
+  group_by   = c("uf", "age_group"),
+  lang       = "pt"
+)
+```
+
+# Explicacao Etapa por Etapa
+
+## `sus_data_import()` com `system = "SIH"` — Importacao das AIH
+
+Para `system = "SIH"`, a funcao baixa os arquivos RD (Relatorio de Data) do SIH do FTP do DATASUS. Cada arquivo contem uma AIH por linha, com data de internacao (`DT_INTER`), data de saida (`DT_SAIDA`), diagnostico principal (`DIAG_PRINC`), municipio de residencia (`MUNIC_RES`), idade do paciente (`IDADE`), sexo (`SEXO`) e numero de dias de permanencia (`DIAS_PERM`). O `climasus4r` usa `DT_INTER` (data de entrada) como referencia temporal, pois e o momento de contato inicial com o sistema de saude — mais proximo temporalmente da exposicao climatica.
+
+## `sus_data_filter_cid()` no SIH — Doencas respiratorias em AIH
+
+No contexto do SIH, `disease_group = "respiratory"` seleciona as AIH cujo `DIAG_PRINC` pertence ao Capitulo X da CID-10 (J00–J99). Os diagnosticos mais frequentes para internacoes no inverno sul-brasileiro sao: pneumonia nao especificada (J18.9), bronquite aguda (J20), bronquiolite aguda (J21), doenca pulmonar obstrutiva cronica com exacerbacao aguda (J44.1) e insuficiencia respiratoria aguda (J96). O filtro por `DIAG_PRINC` pode ser combinado com filtros por diagnosticos secundarios (`DIAG_SEC*`) para ampliar a captura de casos.
+
+## `sus_data_create_variables()` — Faixas etarias e variaveis de calendario
+
+As faixas etarias definidas pelos breaks `c(0, 18, 50, 65, Inf)` estratificam o risco por grupos clinicamente relevantes: pediatrico e adolescente (< 18), adulto jovem e de meia-idade (18–49), pre-idoso (50–64) e idoso (65+). Com `create_calendar_vars = TRUE`, e criada a coluna `epiweek` para alinhamento com boletins de vigilancia epidemiologica e a coluna `season` para controle de sazonalidade nos modelos.
+
+## `sus_climate_compute_coldwaves()` — Deteccao automatica de ondas de frio
+
+Esta funcao e o analogo frio do `sus_climate_compute_heatwaves()` (Estudo de Caso 3). O argumento `percentile = 10` define o limiar como o 10o percentil da distribuicao de temperatura minima no periodo de referencia (1981–2010) — o complemento exato do percentil 90 usado para calor. `min_duration = 3L` exige pelo menos 3 dias consecutivos abaixo do limiar para caracterizar uma onda de frio pelo criterio WHO.
+
+O criterio INMET usa uma logica diferente: temperatura minima abaixo de (media climatologica do mes - 5°C) por pelo menos 5 dias consecutivos. Esse criterio e baseado nos alertas operacionais do INMET para ondas de frio e e mais restritivo do que o criterio WHO — detecta apenas episodios de desvio climatico severo.
+
+```{=html}
+<div class="callout callout-tip">
+  <strong>Output de sus_climate_compute_coldwaves():</strong> A lista retornada tem os mesmos tres elementos que <code>sus_climate_compute_heatwaves()</code>: <code>$events</code> (eventos discretos com data de inicio, fim, duracao e intensidade), <code>$daily_flag</code> (dataset diario com <code>cw_who_flag</code> e <code>cw_inmet_flag</code>), e <code>$annual_summary</code> (resumo anual de ondas de frio por UF).
+</div>
+```
+
+## Diferenca WHO vs. INMET para ondas de frio
+
+| Criterio | Variavel de referencia | Limiar | Duracao minima |
+|----------|----------------------|--------|----------------|
+| WHO | Temperatura minima | < P10 (1981–2010) | 3 dias consecutivos |
+| INMET | Temperatura minima | < media mensal - 5°C | 5 dias consecutivos |
+
+O criterio WHO e mais adequado para estudos epidemiologicos de populacao porque captura a variacao relativa em relacao a climatologia local — um dia de 8°C em Porto Alegre tem impacto diferente de um dia de 8°C em Curitiba, e ambos sao avaliados em relacao a sua propria normal climatologica. O criterio INMET e mais adequado para vigilancia operacional e alertas em tempo real.
+
+## `strategy = "threshold_exceedance"` — Integracao com bandeiras de evento
+
+A estrategia `"threshold_exceedance"` realiza um join temporal entre o dataset semanal de hospitalizacoes e o `$daily_flag` de ondas de frio. Como o dataset de saude esta em resolucao semanal e o dataset climatico esta em resolucao diaria, a funcao agrega automaticamente as bandeiras diarias para o nivel semanal: uma semana recebe `cw_who_flag = 1` se pelo menos um dia daquela semana foi classificado como dia de onda de frio pelo criterio WHO.
+
+```{=html}
+<div class="callout callout-warning">
+  <strong>Atencao a resolucao temporal:</strong> A agregacao de bandeiras diarias para nivel semanal implica perda de informacao. Para analises que exigem precisao diaria (ex.: case-crossover com estratificacao por dia da semana), mantenha o dataset de saude em resolucao diaria usando <code>time_unit = "day"</code> na etapa de agregacao.
+</div>
+```
+
+# Output Esperado
+
+Apos a execucao do pipeline, `df_final` e um objeto `climasus_df` com as seguintes colunas principais:
+
+| Coluna | Tipo | Descricao |
+|--------|------|-----------|
+| `date_week` | Date | Primeiro dia da semana epidemiologica |
+| `epiweek` | integer | Numero da semana epidemiologica (1–53) |
+| `uf` | character | Sigla da UF (RS, SC, PR) |
+| `age_group` | factor | Faixa etaria (< 18, 18–49, 50–64, 65+) |
+| `n_hospitalizations` | integer | Contagem semanal de internacoes respiratorias |
+| `cw_who_flag` | integer | Bandeira semanal de onda de frio (criterio WHO) |
+| `cw_inmet_flag` | integer | Bandeira semanal de onda de frio (criterio INMET) |
+| `tair_min_c` | double | Temperatura minima media da semana (°C) |
+
+# Proximos Passos
+
+Com o dataset semanal integrado, as analises estatisticas subsequentes mais indicadas para este tipo de dado sao:
+
+- **Estudo case-crossover estratificado por mes/ano**: design epidemiologico ideal para estimar o efeito agudo de ondas de frio sobre hospitalizacoes, controlando automaticamente por fatores de periodo longo (sazonalidade, tendencia, dia da semana). Consulte o tutorial [Analise Case-Crossover e ITS](mod-03-crossover-its.html).
+- **Analise de mortalidade/morbidade atribuivel**: estimativa do numero de hospitalizacoes em excesso atribuiveis a ondas de frio em cada ano, com intervalos de incerteza por bootstrapping. Consulte o tutorial [Mortalidade Atribuivel](mod-02-atribuivel.html).
+- **Modelagem DLNM**: funcao de resposta-exposicao temperatura-hospitalizacao com distribuicao de lag de 0 a 21 dias, permitindo avaliar o lag entre a exposicao ao frio e o pico de internacoes. Consulte o tutorial [Modelagem DLNM](mod-01-dlnm.html).
+
+# Referencias
+
+Gasparrini, A., Guo, Y., Hashizume, M., et al. (2015). Mortality risk attributable to high and low ambient temperature: a multicountry observational study. *Lancet*, 386(9991), 369–375.
+
+Eccles, R. (2002). An explanation for the seasonality of acute upper respiratory tract viral infections. *Acta Otolaryngologica*, 122(2), 183–191.
+
+Perkins, S. E., & Alexander, L. V. (2013). On the measurement of heat waves. *Journal of Climate*, 26(13), 4500–4517.
+
+WHO & WMO (2015). *Heatwaves and Health: Guidance on Warning-System Development*. Geneva: World Health Organization.
+
+Brasil, Ministerio da Saude (2022). *SIH — Sistema de Informacoes Hospitalares do SUS*. Brasilia: DATASUS. Disponivel em: https://datasus.saude.gov.br/
+
+Saldanha, R. F., Bastos, R. R., & Barcellos, C. (2019). Microdatasus: pacote para download e pre-processamento de microdados do Departamento de Informatica do SUS (DATASUS). *Cadernos de Saude Publica*, 35(3), e00032419.
+
+---
+
+```{=html}
+<p><a href="ec-03-cardio-idosos-calor.html">&larr; Estudo 3</a> &nbsp;|&nbsp; <a href="tutorial_estudos_casos.html">&larr; Hub de Estudos de Caso</a></p>
+```
+
+---
+
+## Tem feedback ou sugestoes?
+
+Voce tem alguma ideia de melhoria ou encontrou algum erro? Clique no botao abaixo para abrir uma nova *issue* no GitHub e compartilhar suas sugestoes diretamente conosco.
+
+```{=html}
+<a href='https://github.com/ByMaxAnjos/climasus4r/issues/new' class="github-feedback-btn">
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+  </svg>
+  Abrir issue no GitHub
+</a>
+```

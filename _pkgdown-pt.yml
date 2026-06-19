@@ -269,6 +269,7 @@ articles:
       - tutorials
       - tutorial_introducao
       - tutorial_estudos_casos
+      - starts_with("ec-")
       - starts_with("rap-")
       - parte1_clima_agg
       - parte2_clima_agg
