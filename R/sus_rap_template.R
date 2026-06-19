@@ -49,7 +49,6 @@ utils::globalVariables(character(0L))
 #'
 #' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_abort
 #' @importFrom rlang %||%
-#' @importFrom glue glue
 #'
 #' @examples
 #' \dontrun{
@@ -104,8 +103,6 @@ sus_rap_template <- function(
 
   # -- Quarto report ----------------------------------------------------------
   if (include_quarto) {
-    rlang::check_installed("quarto", reason = "para criar relatorio Quarto",
-                           call = NULL)
     .write_template_file(proj_dir, "analysis.qmd",
                          .rap_tmpl_quarto(name, system, lang))
     cli::cli_alert_info("analysis.qmd criado.")
@@ -137,8 +134,6 @@ sus_rap_template <- function(
   if (include_renv) {
     rlang::check_installed("renv", reason = "para inicializar renv",
                            call = NULL)
-    old_wd <- setwd(proj_dir)
-    on.exit(setwd(old_wd), add = TRUE)
     renv::init(project = proj_dir, bare = TRUE)
     cli::cli_alert_info("renv inicializado.")
   }
