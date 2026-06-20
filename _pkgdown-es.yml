@@ -114,6 +114,7 @@ reference:
       - sus_grid_pollution_ghap
       - sus_grid_fires
       - sus_grid_chirps
+      - sus_grid_koppen
       - sus_grid_prodes
       - sus_grid_join
       - sus_grid_pollution_merra2
@@ -140,6 +141,9 @@ reference:
     desc: "Informes de calidad de datos y diccionarios de enfermedades"
     contents:
       - sus_data_quality_report
+      - sus_data_ts_quality
+      - print.climasus_ts_quality
+      - summary.climasus_ts_quality
       - sus_census_select
       - sus_data_cid_select
       - sus_meta
