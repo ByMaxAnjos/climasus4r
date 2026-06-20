@@ -16,26 +16,26 @@ sus_rap_template(
 )
 }
 \arguments{
-\item{path}{\code{character(1)} — Parent directory where \verb{<name>/} will be
+\item{path}{\code{character(1)}  - Parent directory where \verb{<name>/} will be
 created (e.g. \code{"~/projetos"}).}
 
-\item{name}{\code{character(1)} — Project name; becomes the directory name.}
+\item{name}{\code{character(1)}  - Project name; becomes the directory name.}
 
-\item{system}{\code{character(1)} — DATASUS system for the template pipeline
+\item{system}{\code{character(1)}  - DATASUS system for the template pipeline
 (e.g. \code{"SIM-DO"}, \code{"SINAN"}, \code{"SIH"}). Default \code{"SIM-DO"}.}
 
-\item{include_renv}{\code{logical(1)} — Initialise \code{renv} for dependency
+\item{include_renv}{\code{logical(1)}  - Initialise \code{renv} for dependency
 management. Requires the \code{renv} package. Default \code{TRUE}.}
 
-\item{include_targets}{\code{logical(1)} — Create \verb{_targets.R} and \code{run.R}.
+\item{include_targets}{\code{logical(1)}  - Create \verb{_targets.R} and \code{run.R}.
 Default \code{TRUE}.}
 
-\item{include_quarto}{\code{logical(1)} — Create \code{analysis.qmd}. Default \code{TRUE}.}
+\item{include_quarto}{\code{logical(1)}  - Create \code{analysis.qmd}. Default \code{TRUE}.}
 
-\item{include_github_actions}{\code{logical(1)} — Create
+\item{include_github_actions}{\code{logical(1)}  - Create
 \code{.github/workflows/rap.yml}. Default \code{FALSE}.}
 
-\item{lang}{\code{character(1)} — Language for generated comments and messages:
+\item{lang}{\code{character(1)}  - Language for generated comments and messages:
 \code{"pt"} (default), \code{"en"}, or \code{"es"}.}
 }
 \value{

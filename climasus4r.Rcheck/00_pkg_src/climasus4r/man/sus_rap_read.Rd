@@ -7,13 +7,13 @@
 sus_rap_read(file_path, lang = "pt", validate = TRUE)
 }
 \arguments{
-\item{file_path}{\code{character(1)} — Path to an \code{.R}, \code{.Rmd}, or \code{.qmd} file
+\item{file_path}{\code{character(1)}  - Path to an \code{.R}, \code{.Rmd}, or \code{.qmd} file
 exported by \code{\link[=sus_rap_export]{sus_rap_export()}}.}
 
-\item{lang}{\code{character(1)} — Language for messages: \code{"pt"} (default),
+\item{lang}{\code{character(1)}  - Language for messages: \code{"pt"} (default),
 \code{"en"}, or \code{"es"}.}
 
-\item{validate}{\code{logical(1)} — Check structural integrity. Default \code{TRUE}.}
+\item{validate}{\code{logical(1)}  - Check structural integrity. Default \code{TRUE}.}
 }
 \value{
 A \code{rap_object} list with fields \verb{$metadata}, \verb{$params}, \verb{$steps},

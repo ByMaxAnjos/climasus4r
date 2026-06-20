@@ -1,5 +1,5 @@
 # =============================================================================
-# sus_rap_gui.R — Shiny GUI for editing and executing RAPs interactively.
+# sus_rap_gui.R  - Shiny GUI for editing and executing RAPs interactively.
 #
 # Exported: sus_rap_gui(), sus_rap_addin_export()
 # =============================================================================
@@ -10,7 +10,7 @@ utils::globalVariables(character(0L))
 #'
 #' Opens a Shiny application that lets users visually configure pipeline
 #' parameters (UF, years, system, aggregation), preview the generated code,
-#' and execute or export the RAP — all without writing R code directly.
+#' and execute or export the RAP  - all without writing R code directly.
 #'
 #' @section Interface panels:
 #' \describe{
@@ -24,7 +24,7 @@ utils::globalVariables(character(0L))
 #'
 #' @param rap A `rap_object` (from [sus_rap_read()]) to pre-populate the
 #'   interface. Pass `NULL` (default) to start from a blank template.
-#' @param launch.browser `logical(1)` — Open in the system browser.
+#' @param launch.browser `logical(1)`  - Open in the system browser.
 #'   Default `TRUE`.
 #' @param ... Additional arguments forwarded to `shiny::runApp()`.
 #'
@@ -47,7 +47,7 @@ sus_rap_gui <- function(rap = NULL, launch.browser = TRUE, ...) {
   if (!is.null(rap) && !inherits(rap, "rap_object"))
     cli::cli_abort("`rap` deve ser um {.cls rap_object} ou NULL.")
 
-  # ── Extract initial values from rap (if provided) ──────────────────────────
+  # -- Extract initial values from rap (if provided) --------------------------
   init_uf        <- paste(rap$params$uf        %||% "SP", collapse = ", ")
   init_years_min <- min(rap$params$years        %||% 2019L)
   init_years_max <- max(rap$params$years        %||% 2022L)
@@ -65,9 +65,9 @@ sus_rap_gui <- function(rap = NULL, launch.browser = TRUE, ...) {
   time_units <- c("day", "week", "month", "quarter", "year")
   langs      <- c("pt", "en", "es")
 
-  # ── UI ────────────────────────────────────────────────────────────────────
+  # -- UI --------------------------------------------------------------------
   ui <- shiny::fluidPage(
-    shiny::titlePanel("climasus4r — RAP Editor"),
+    shiny::titlePanel("climasus4r  - RAP Editor"),
     shiny::fluidRow(
 
       # Left panel: parameters
@@ -118,7 +118,7 @@ sus_rap_gui <- function(rap = NULL, launch.browser = TRUE, ...) {
     )
   )
 
-  # ── Server ─────────────────────────────────────────────────────────────────
+  # -- Server -----------------------------------------------------------------
   server <- function(input, output, session) {
 
     log_msgs <- shiny::reactiveVal(character(0L))
@@ -251,7 +251,7 @@ sus_rap_gui <- function(rap = NULL, launch.browser = TRUE, ...) {
 
 
 # =============================================================================
-# sus_rap_addin_export() — RStudio addin
+# sus_rap_addin_export()  - RStudio addin
 # =============================================================================
 
 #' RStudio Addin: Export Selected Pipeline as RAP

@@ -12,9 +12,9 @@ sus_rap_inspect(rap, rap2 = NULL, verbose = TRUE, lang = "pt")
 \item{rap2}{A second \code{rap_object} for comparison, or \code{NULL} (default) for
 single-object summary only.}
 
-\item{verbose}{\code{logical(1)} — Show detailed step list. Default \code{TRUE}.}
+\item{verbose}{\code{logical(1)}  - Show detailed step list. Default \code{TRUE}.}
 
-\item{lang}{\code{character(1)} — Language for messages.}
+\item{lang}{\code{character(1)}  - Language for messages.}
 }
 \value{
 Invisibly, a list with \verb{$summary} (and \verb{$diff} when \code{rap2} is given).

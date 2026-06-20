@@ -15,22 +15,22 @@ sus_rap_recipe(
 \arguments{
 \item{rap}{A \code{rap_object} returned by \code{\link[=sus_rap_read]{sus_rap_read()}} or \code{\link[=sus_rap_export]{sus_rap_export()}}.}
 
-\item{file_path}{\code{character(1)} — Output path for the \code{.yaml} file. If
+\item{file_path}{\code{character(1)}  - Output path for the \code{.yaml} file. If
 \code{NULL}, a timestamped file is created in the working directory.}
 
-\item{include_data_hash}{\code{logical(1)} — Compute and embed a hash of the
+\item{include_data_hash}{\code{logical(1)}  - Compute and embed a hash of the
 input parameters for traceability. Default \code{TRUE}.}
 
-\item{lang}{\code{character(1)} — Language for messages.}
+\item{lang}{\code{character(1)}  - Language for messages.}
 
-\item{overwrite}{\code{logical(1)} — Overwrite existing file. Default \code{FALSE}.}
+\item{overwrite}{\code{logical(1)}  - Overwrite existing file. Default \code{FALSE}.}
 }
 \value{
 Invisibly, the path of the created \code{.yaml} file.
 }
 \description{
-Serialises the essential information of a \code{rap_object} — parameters,
-pipeline steps, and package versions — into a compact YAML file (typically
+Serialises the essential information of a \code{rap_object}  - parameters,
+pipeline steps, and package versions  - into a compact YAML file (typically
 under 50 lines). The recipe can be shared with colleagues and re-imported
 with \code{\link[=sus_rap_from_recipe]{sus_rap_from_recipe()}}.
 }

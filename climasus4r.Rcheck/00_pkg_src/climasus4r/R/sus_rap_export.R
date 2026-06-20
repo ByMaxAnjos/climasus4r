@@ -1,12 +1,12 @@
 # =============================================================================
-# sus_rap_export.R — Export climasus4r pipelines as Reproducible Analytical
+# sus_rap_export.R  - Export climasus4r pipelines as Reproducible Analytical
 # Pipelines (RAP) in multiple formats: R script, RMarkdown, Quarto, function.
 # =============================================================================
 
-# ── NSE variable declarations ─────────────────────────────────────────────────
+# -- NSE variable declarations -------------------------------------------------
 utils::globalVariables(character(0L))
 
-# ── Local labels ──────────────────────────────────────────────────────────────
+# -- Local labels --------------------------------------------------------------
 .rap_export_labels <- list(
   session_start  = list(pt = "Iniciando exportacao RAP | {r_ver}",
                         en = "Starting RAP export | {r_ver}",
@@ -41,13 +41,13 @@ utils::globalVariables(character(0L))
 }
 
 
-# ── Exported function ─────────────────────────────────────────────────────────
+# -- Exported function ---------------------------------------------------------
 
 #' Export a climasus4r Pipeline as a Reproducible Analytical Pipeline (RAP)
 #'
 #' Converts a `climasus4r` pipeline expression into a portable, self-contained
-#' artefact — an R script (`.R`), RMarkdown document (`.Rmd`), Quarto document
-#' (`.qmd`), or an encapsulated R function — suitable for sharing, archiving,
+#' artefact  - an R script (`.R`), RMarkdown document (`.Rmd`), Quarto document
+#' (`.qmd`), or an encapsulated R function  - suitable for sharing, archiving,
 #' and re-execution. The exported file embeds session metadata (R version,
 #' package versions, timestamp, platform), an editable parameters block, and
 #' optional validation checks, following Reproducible Analytical Pipeline
@@ -66,23 +66,23 @@ utils::globalVariables(character(0L))
 #' @param pipeline A pipeline expression (created with `quote()` or
 #'   `rlang::quo()`) containing `sus_*` function calls connected by `|>` or
 #'   `%>%`. Pass `NULL` to capture from the calling context.
-#' @param file_path `character(1)` — Output file path. Extension informs format
+#' @param file_path `character(1)`  - Output file path. Extension informs format
 #'   detection. Pass `NULL` to return content without writing to disk.
-#' @param format `character(1)` — One of `"script"`, `"rmarkdown"`,
+#' @param format `character(1)`  - One of `"script"`, `"rmarkdown"`,
 #'   `"quarto"`, or `"function"`. Inferred from `file_path` extension when
 #'   possible.
-#' @param include_metadata `logical(1)` — Embed R version, package versions,
+#' @param include_metadata `logical(1)`  - Embed R version, package versions,
 #'   timestamp, and platform. Default `TRUE`.
-#' @param include_validation `logical(1)` — Add a validation block (`stopifnot`
+#' @param include_validation `logical(1)`  - Add a validation block (`stopifnot`
 #'   + NA-rate check). Default `TRUE`.
-#' @param include_documentation `character(1)` — Comment density in the
+#' @param include_documentation `character(1)`  - Comment density in the
 #'   exported code: `"minimal"`, `"standard"` (default), or `"comprehensive"`.
-#' @param output_type `character(1)` — Purpose of the document:
+#' @param output_type `character(1)`  - Purpose of the document:
 #'   `"analysis"`, `"dashboard"`, or `"report"`. Affects visualisation
 #'   sections in Rmd/Quarto outputs.
-#' @param lang `character(1)` — Language for comments and messages: `"pt"`
+#' @param lang `character(1)`  - Language for comments and messages: `"pt"`
 #'   (default), `"en"`, or `"es"`.
-#' @param overwrite `logical(1)` — Overwrite an existing file. Default `FALSE`.
+#' @param overwrite `logical(1)`  - Overwrite an existing file. Default `FALSE`.
 #'
 #' @return Invisibly, a `character` vector with the exported file content.
 #'   Side-effect: writes to `file_path` when provided.
@@ -122,7 +122,7 @@ sus_rap_export <- function(
 ) {
   exec_meta <- .rap_collect_session_meta()
 
-  # ── 1. Validate arguments ───────────────────────────────────────────────────
+  # -- 1. Validate arguments ---------------------------------------------------
   format                <- match.arg(format)
   include_documentation <- match.arg(include_documentation)
   output_type           <- match.arg(output_type)
@@ -139,7 +139,7 @@ sus_rap_export <- function(
   cli::cli_alert_info(.repl("session_start", lang,
                              r_ver = exec_meta$r_version))
 
-  # ── 2. Parse pipeline ───────────────────────────────────────────────────────
+  # -- 2. Parse pipeline -------------------------------------------------------
   if (is.null(pipeline)) {
     cli::cli_alert_warning(.repl("pipeline_null", lang))
     pipeline <- rlang::enquo(pipeline)
@@ -154,7 +154,7 @@ sus_rap_export <- function(
   cli::cli_alert_info(.repl("steps_found", lang,
                              n = pipeline_structure$total_steps))
 
-  # ── 3. Build metadata ───────────────────────────────────────────────────────
+  # -- 3. Build metadata -------------------------------------------------------
   metadata <- if (include_metadata) {
     tryCatch(
       .rap_build_metadata(pipeline_structure, lang, exec_meta),
@@ -162,7 +162,7 @@ sus_rap_export <- function(
     )
   } else NULL
 
-  # ── 4. Generate content ─────────────────────────────────────────────────────
+  # -- 4. Generate content -----------------------------------------------------
   cli::cli_alert_info(.repl("generating", lang, fmt = format))
 
   content <- tryCatch(
@@ -189,7 +189,7 @@ sus_rap_export <- function(
   if (!is.character(content) || length(content) == 0L)
     cli::cli_abort("O conteudo gerado esta vazio.")
 
-  # ── 5. Write file ───────────────────────────────────────────────────────────
+  # -- 5. Write file -----------------------------------------------------------
   if (!is.null(file_path)) {
     dir_path <- dirname(file_path)
     if (!dir.exists(dir_path)) {
@@ -205,7 +205,7 @@ sus_rap_export <- function(
 
 
 # =============================================================================
-# Internal helpers — session & validation
+# Internal helpers  - session & validation
 # =============================================================================
 
 #' @keywords internal
@@ -265,7 +265,7 @@ sus_rap_export <- function(
     cli::cli_abort("Estrutura do pipeline invalida. Campos ausentes: {missing_fields}")
 
   if (!is.list(structure$steps) || length(structure$steps) == 0L)
-    cli::cli_abort("O pipeline nao contém etapas validas.")
+    cli::cli_abort("O pipeline nao contem etapas validas.")
 
   if (is.null(structure$input_params$uf)    ||
       is.null(structure$input_params$years) ||
@@ -275,7 +275,7 @@ sus_rap_export <- function(
 
 
 # =============================================================================
-# Internal helpers — pipeline structure parsing
+# Internal helpers  - pipeline structure parsing
 # =============================================================================
 
 #' @keywords internal
@@ -482,7 +482,7 @@ sus_rap_export <- function(
 
 
 # =============================================================================
-# Content generators — one per format
+# Content generators  - one per format
 # =============================================================================
 
 #' @keywords internal
@@ -817,13 +817,13 @@ sus_rap_export <- function(
     "",
     "#' @title Executar Pipeline Reprodutivel",
     sprintf("#' @description %s", metadata$description %||% "Pipeline gerado por climasus4r."),
-    "#' @param uf `character` — UF(s) para analise.",
-    "#' @param years `integer` — Anos a serem processados.",
-    "#' @param output_dir `character` — Diretorio para salvar resultados.",
-    "#' @param time_unit `character` — Unidade de agregacao temporal.",
-    "#' @param lang `character` — Idioma (`\"pt\"`, `\"en\"`, ou `\"es\"`).",
-    "#' @param seed `integer` — Semente aleatoria (padrao: 42).",
-    "#' @param verbose `logical` — Exibir mensagens de progresso.",
+    "#' @param uf `character`  - UF(s) para analise.",
+    "#' @param years `integer`  - Anos a serem processados.",
+    "#' @param output_dir `character`  - Diretorio para salvar resultados.",
+    "#' @param time_unit `character`  - Unidade de agregacao temporal.",
+    "#' @param lang `character`  - Idioma (`\"pt\"`, `\"en\"`, ou `\"es\"`).",
+    "#' @param seed `integer`  - Semente aleatoria (padrao: 42).",
+    "#' @param verbose `logical`  - Exibir mensagens de progresso.",
     "#' @return `data.frame` com resultados processados (invisivel).",
     "#' @export",
     ""

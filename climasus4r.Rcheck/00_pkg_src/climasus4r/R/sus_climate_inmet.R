@@ -203,7 +203,7 @@
 #' }
 #'
 #' @export
-#' @importFrom rlang .data
+#' @importFrom rlang .data .env
 #' @importFrom data.table :=
 sus_climate_inmet <- function(
     years        = NULL,

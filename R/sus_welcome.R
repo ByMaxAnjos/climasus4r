@@ -90,11 +90,11 @@ sus_welcome <- function(
          )),
     list(num = 4, color = "blue",
          name = c(pt = "AGREGA\u00c7\u00c3O",              en = "AGGREGATION",             es = "AGREGACI\u00d3N"),
-         fns  = c("sus_data_aggregate()", "sus_data_quality_report()"),
+         fns  = c("sus_data_aggregate()", "sus_data_quality_report()", "sus_data_ts_quality()"),
          desc = c(
-           pt = "Agrega registros individuais por munic\u00edpio/data e gera relat\u00f3rio de qualidade dos dados",
-           en = "Aggregates individual records by municipality/date and generates a data quality report",
-           es = "Agrega registros individuales por municipio/fecha y genera reporte de calidad de datos"
+           pt = "Agrega registros individuais por munic\u00edpio/data, gera relat\u00f3rio de qualidade e avalia completude de s\u00e9ries temporais",
+           en = "Aggregates individual records by municipality/date, generates a quality report and evaluates time series completeness",
+           es = "Agrega registros individuales por municipio/fecha, genera reporte de calidad y eval\u00faa completitud de series temporales"
          )),
     list(num = 5, color = "green",
          name = c(pt = "INTEGRA\u00c7\u00c3O ESPACIAL",    en = "SPATIAL JOIN",            es = "INTEGRACI\u00d3N ESPACIAL"),
@@ -108,12 +108,13 @@ sus_welcome <- function(
          name = c(pt = "INTEGRA\u00c7\u00c3O CLIM\u00c1TICA",   en = "CLIMATE DATA",            es = "DATOS CLIM\u00c1TICOS"),
          fns  = c("sus_climate_inmet()", "sus_climate_fill_gap()", "sus_climate_aggregate()",
                   "sus_grid_era5()", "sus_grid_chirps()", "sus_grid_pollution_cams()",
-                  "sus_grid_fires()", "sus_climate_compute_heatwaves()", "sus_climate_compute_coldwaves()",
+                  "sus_grid_fires()", "sus_grid_koppen()",
+                  "sus_climate_compute_heatwaves()", "sus_climate_compute_coldwaves()",
                   "sus_climate_compute_spei()"),
          desc = c(
-           pt = "Esta\u00e7\u00f5es INMET, ERA5, CHIRPS, qualidade do ar (CAMS, MERRA-2), inc\u00eandios, ondas de calor e frio, SPEI/SPI",
-           en = "INMET stations, ERA5, CHIRPS, air quality (CAMS, MERRA-2), fires, heat and cold waves, SPEI/SPI",
-           es = "Estaciones INMET, ERA5, CHIRPS, calidad del aire (CAMS, MERRA-2), incendios, olas de calor y fr\u00edo, SPEI/SPI"
+           pt = "Esta\u00e7\u00f5es INMET, ERA5, CHIRPS, qualidade do ar (CAMS, MERRA-2), inc\u00eandios, K\u00f6ppen, ondas de calor e frio, SPEI/SPI",
+           en = "INMET stations, ERA5, CHIRPS, air quality (CAMS, MERRA-2), fires, K\u00f6ppen classification, heat and cold waves, SPEI/SPI",
+           es = "Estaciones INMET, ERA5, CHIRPS, calidad del aire (CAMS, MERRA-2), incendios, clasificaci\u00f3n K\u00f6ppen, olas de calor y fr\u00edo, SPEI/SPI"
          )),
     list(num = 7, color = "cyan",
          name = c(pt = "SOCIOECON\u00d4MICO",          en = "SOCIOECONOMIC",           es = "SOCIOECON\u00d3MICO"),

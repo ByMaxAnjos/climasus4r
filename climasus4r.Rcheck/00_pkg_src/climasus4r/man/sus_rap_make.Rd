@@ -18,15 +18,15 @@ sus_rap_make(
 a \verb{_targets.R} file. When a \code{rap_object} is passed, a temporary
 \verb{_targets.R} is generated automatically.}
 
-\item{workers}{\code{integer(1)} — Parallel workers. Default \code{1}.}
+\item{workers}{\code{integer(1)}  - Parallel workers. Default \code{1}.}
 
-\item{reporter}{\code{character(1)} — Progress reporter for \code{tar_make()}.
+\item{reporter}{\code{character(1)}  - Progress reporter for \code{tar_make()}.
 Default \code{"verbose"}.}
 
-\item{branching}{\code{character(1)} — Branching strategy when \code{rap} is a
+\item{branching}{\code{character(1)}  - Branching strategy when \code{rap} is a
 \code{rap_object} (ignored when a file path is passed). Default \code{"none"}.}
 
-\item{lang}{\code{character(1)} — Language for messages.}
+\item{lang}{\code{character(1)}  - Language for messages.}
 
 \item{...}{Additional arguments forwarded to \code{targets::tar_make()}.}
 }

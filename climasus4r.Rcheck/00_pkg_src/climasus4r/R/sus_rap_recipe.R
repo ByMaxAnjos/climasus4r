@@ -1,5 +1,5 @@
 # =============================================================================
-# sus_rap_recipe.R — Compact YAML interchange format for RAP sharing.
+# sus_rap_recipe.R  - Compact YAML interchange format for RAP sharing.
 #
 # Exported: sus_rap_recipe(), sus_rap_from_recipe()
 # =============================================================================
@@ -7,23 +7,23 @@
 utils::globalVariables(character(0L))
 
 # =============================================================================
-# sus_rap_recipe() — Export a RAP as a compact YAML recipe
+# sus_rap_recipe()  - Export a RAP as a compact YAML recipe
 # =============================================================================
 
 #' Export a RAP as a Compact YAML Recipe
 #'
-#' Serialises the essential information of a `rap_object` — parameters,
-#' pipeline steps, and package versions — into a compact YAML file (typically
+#' Serialises the essential information of a `rap_object`  - parameters,
+#' pipeline steps, and package versions  - into a compact YAML file (typically
 #' under 50 lines). The recipe can be shared with colleagues and re-imported
 #' with [sus_rap_from_recipe()].
 #'
 #' @param rap A `rap_object` returned by [sus_rap_read()] or [sus_rap_export()].
-#' @param file_path `character(1)` — Output path for the `.yaml` file. If
+#' @param file_path `character(1)`  - Output path for the `.yaml` file. If
 #'   `NULL`, a timestamped file is created in the working directory.
-#' @param include_data_hash `logical(1)` — Compute and embed a hash of the
+#' @param include_data_hash `logical(1)`  - Compute and embed a hash of the
 #'   input parameters for traceability. Default `TRUE`.
-#' @param lang `character(1)` — Language for messages.
-#' @param overwrite `logical(1)` — Overwrite existing file. Default `FALSE`.
+#' @param lang `character(1)`  - Language for messages.
+#' @param overwrite `logical(1)`  - Overwrite existing file. Default `FALSE`.
 #'
 #' @return Invisibly, the path of the created `.yaml` file.
 #' @export
@@ -90,7 +90,7 @@ sus_rap_recipe <- function(
 
 
 # =============================================================================
-# sus_rap_from_recipe() — Import and optionally run a YAML recipe
+# sus_rap_from_recipe()  - Import and optionally run a YAML recipe
 # =============================================================================
 
 #' Import and Optionally Run a RAP Recipe
@@ -99,12 +99,12 @@ sus_rap_recipe <- function(
 #' `rap_object`. Parameter overrides can be supplied at import time. Passing
 #' `execute = TRUE` immediately re-runs the pipeline using [sus_rap_run()].
 #'
-#' @param recipe_path `character(1)` — Path to the `.yaml` recipe file.
+#' @param recipe_path `character(1)`  - Path to the `.yaml` recipe file.
 #' @param override_params Named list of parameters to override from the recipe
 #'   (e.g. `list(uf = "RJ", years = 2022:2024)`).
-#' @param execute `logical(1)` — Run the pipeline immediately after loading.
+#' @param execute `logical(1)`  - Run the pipeline immediately after loading.
 #'   Default `FALSE`.
-#' @param lang `character(1)` — Language for messages.
+#' @param lang `character(1)`  - Language for messages.
 #' @param ... Additional arguments forwarded to [sus_rap_run()] when
 #'   `execute = TRUE`.
 #'
@@ -113,6 +113,7 @@ sus_rap_recipe <- function(
 #'
 #' @importFrom cli cli_alert_success cli_abort cli_alert_info
 #' @importFrom rlang %||%
+#' @importFrom utils modifyList
 #'
 #' @examples
 #' \dontrun{

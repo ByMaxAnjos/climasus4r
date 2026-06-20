@@ -1,5 +1,5 @@
 # =============================================================================
-# sus_rap_read.R — Read, inspect, run and update exported RAP artefacts.
+# sus_rap_read.R  - Read, inspect, run and update exported RAP artefacts.
 # Companion to sus_rap_export(). Defines the rap_object S3 class.
 #
 # Exported: sus_rap_read(), sus_rap_inspect(), sus_rap_run(), sus_rap_update()
@@ -8,7 +8,7 @@
 
 utils::globalVariables(character(0L))
 
-# ── Local labels ──────────────────────────────────────────────────────────────
+# -- Local labels --------------------------------------------------------------
 .rap_read_labels <- list(
   reading          = list(pt = "Lendo RAP: {path}",
                           en = "Reading RAP: {path}",
@@ -53,7 +53,7 @@ utils::globalVariables(character(0L))
 
 
 # =============================================================================
-# sus_rap_read() — Read a RAP file into an R object
+# sus_rap_read()  - Read a RAP file into an R object
 # =============================================================================
 
 #' Read an Exported RAP File
@@ -63,11 +63,11 @@ utils::globalVariables(character(0L))
 #' pipeline step list. The result can be inspected with [sus_rap_inspect()],
 #' re-executed with [sus_rap_run()], or patched with [sus_rap_update()].
 #'
-#' @param file_path `character(1)` — Path to an `.R`, `.Rmd`, or `.qmd` file
+#' @param file_path `character(1)`  - Path to an `.R`, `.Rmd`, or `.qmd` file
 #'   exported by [sus_rap_export()].
-#' @param lang `character(1)` — Language for messages: `"pt"` (default),
+#' @param lang `character(1)`  - Language for messages: `"pt"` (default),
 #'   `"en"`, or `"es"`.
-#' @param validate `logical(1)` — Check structural integrity. Default `TRUE`.
+#' @param validate `logical(1)`  - Check structural integrity. Default `TRUE`.
 #'
 #' @return A `rap_object` list with fields `$metadata`, `$params`, `$steps`,
 #'   `$structure`, `$source`, `$format`, and `$raw`.
@@ -150,7 +150,7 @@ sus_rap_read <- function(file_path, lang = "pt", validate = TRUE) {
 
 
 # =============================================================================
-# sus_rap_inspect() — Summarise or diff two RAPs
+# sus_rap_inspect()  - Summarise or diff two RAPs
 # =============================================================================
 
 #' Inspect or Diff rap_object(s)
@@ -162,8 +162,8 @@ sus_rap_read <- function(file_path, lang = "pt", validate = TRUE) {
 #' @param rap A `rap_object` returned by [sus_rap_read()].
 #' @param rap2 A second `rap_object` for comparison, or `NULL` (default) for
 #'   single-object summary only.
-#' @param verbose `logical(1)` — Show detailed step list. Default `TRUE`.
-#' @param lang `character(1)` — Language for messages.
+#' @param verbose `logical(1)`  - Show detailed step list. Default `TRUE`.
+#' @param lang `character(1)`  - Language for messages.
 #'
 #' @return Invisibly, a list with `$summary` (and `$diff` when `rap2` is given).
 #' @export
@@ -248,7 +248,7 @@ sus_rap_inspect <- function(rap, rap2 = NULL, verbose = TRUE, lang = "pt") {
 
 
 # =============================================================================
-# sus_rap_run() — Re-execute a RAP with optional parameter overrides
+# sus_rap_run()  - Re-execute a RAP with optional parameter overrides
 # =============================================================================
 
 #' Re-execute an Exported RAP
@@ -260,13 +260,18 @@ sus_rap_inspect <- function(rap, rap2 = NULL, verbose = TRUE, lang = "pt") {
 #' @param rap A `rap_object` returned by [sus_rap_read()].
 #' @param ... Name-value pairs overriding fields in `rap$params` (e.g.
 #'   `uf = "RJ"`, `years = 2021:2023`).
-#' @param envir `environment` — Execution environment. Default `parent.frame()`.
-#' @param dry_run `logical(1)` — Print the reconstructed code without executing.
+#' @param envir `environment`  - Execution environment. Default `parent.frame()`.
+#' @param dry_run `logical(1)`  - Print the reconstructed code without executing.
 #'   Default `FALSE`.
-#' @param lang `character(1)` — Language for messages.
+#' @param lang `character(1)`  - Language for messages.
 #'
 #' @return Invisibly, the `data.frame` produced by the pipeline.
 #' @export
+#'
+#' @importFrom utils modifyList
+#' @importFrom cli cli_alert_info cli_alert_success cli_abort
+#' @importFrom rlang %||%
+#' @importFrom glue glue
 #'
 #' @examples
 #' \dontrun{
@@ -331,7 +336,7 @@ sus_rap_run <- function(rap, ..., envir = parent.frame(),
 
 
 # =============================================================================
-# sus_rap_update() — Patch parameters in the exported file on disk
+# sus_rap_update()  - Patch parameters in the exported file on disk
 # =============================================================================
 
 #' Update Parameters in an Exported RAP File
@@ -343,9 +348,9 @@ sus_rap_run <- function(rap, ..., envir = parent.frame(),
 #' @param rap A `rap_object` returned by [sus_rap_read()].
 #' @param ... Named parameters to update (e.g. `uf = "\"RJ\""`,
 #'   `years = "2021:2024"`). Values are treated as raw R code strings.
-#' @param backup `logical(1)` — Create a `.bak` backup before writing.
+#' @param backup `logical(1)`  - Create a `.bak` backup before writing.
 #'   Default `TRUE`.
-#' @param lang `character(1)` — Language for messages.
+#' @param lang `character(1)`  - Language for messages.
 #'
 #' @return Invisibly, the updated `rap_object` (re-read from the patched file).
 #' @export
@@ -649,7 +654,7 @@ summary.rap_object <- function(object, ...) sus_rap_inspect(object, ...)
        params = rap$params, n_steps = length(rap$steps), metadata = rap$metadata)
 }
 
-# ── Print helpers ─────────────────────────────────────────────────────────────
+# -- Print helpers -------------------------------------------------------------
 .rap_print_header <- function(title)
   cat(sprintf("-- %s %s\n", title, paste(rep("-", max(0L, 50L - nchar(title))), collapse = "")))
 .rap_print_sub    <- function(title) cat(sprintf("\n  %s:\n", title))

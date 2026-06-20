@@ -1,5 +1,5 @@
 # =============================================================================
-# sus_rap_template.R — Scaffold a full reproducible analysis project directory.
+# sus_rap_template.R  - Scaffold a full reproducible analysis project directory.
 #
 # Exported: sus_rap_template()
 # =============================================================================
@@ -29,19 +29,19 @@ utils::globalVariables(character(0L))
 #' `-- README.md
 #' ```
 #'
-#' @param path `character(1)` — Parent directory where `<name>/` will be
+#' @param path `character(1)`  - Parent directory where `<name>/` will be
 #'   created (e.g. `"~/projetos"`).
-#' @param name `character(1)` — Project name; becomes the directory name.
-#' @param system `character(1)` — DATASUS system for the template pipeline
+#' @param name `character(1)`  - Project name; becomes the directory name.
+#' @param system `character(1)`  - DATASUS system for the template pipeline
 #'   (e.g. `"SIM-DO"`, `"SINAN"`, `"SIH"`). Default `"SIM-DO"`.
-#' @param include_renv `logical(1)` — Initialise `renv` for dependency
+#' @param include_renv `logical(1)`  - Initialise `renv` for dependency
 #'   management. Requires the `renv` package. Default `TRUE`.
-#' @param include_targets `logical(1)` — Create `_targets.R` and `run.R`.
+#' @param include_targets `logical(1)`  - Create `_targets.R` and `run.R`.
 #'   Default `TRUE`.
-#' @param include_quarto `logical(1)` — Create `analysis.qmd`. Default `TRUE`.
-#' @param include_github_actions `logical(1)` — Create
+#' @param include_quarto `logical(1)`  - Create `analysis.qmd`. Default `TRUE`.
+#' @param include_github_actions `logical(1)`  - Create
 #'   `.github/workflows/rap.yml`. Default `FALSE`.
-#' @param lang `character(1)` — Language for generated comments and messages:
+#' @param lang `character(1)`  - Language for generated comments and messages:
 #'   `"pt"` (default), `"en"`, or `"es"`.
 #'
 #' @return Invisibly, the absolute path of the created project directory.
@@ -49,7 +49,6 @@ utils::globalVariables(character(0L))
 #'
 #' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_abort
 #' @importFrom rlang %||%
-#' @importFrom glue glue
 #'
 #' @examples
 #' \dontrun{
@@ -73,74 +72,102 @@ sus_rap_template <- function(
   lang <- match.arg(lang, c("pt", "en", "es"))
 
   if (!is.character(path) || length(path) != 1L || nchar(path) == 0L)
-    cli::cli_abort("`path` deve ser uma string nao vazia.")
+    cli::cli_abort(
+      if (lang == "en") "`path` must be a non-empty string." else
+      if (lang == "es") "`path` debe ser una cadena no vacia." else
+                        "`path` deve ser uma string nao vazia."
+    )
   if (!is.character(name) || length(name) != 1L || nchar(name) == 0L)
-    cli::cli_abort("`name` deve ser uma string nao vazia.")
+    cli::cli_abort(
+      if (lang == "en") "`name` must be a non-empty string." else
+      if (lang == "es") "`name` debe ser una cadena no vacia." else
+                        "`name` deve ser uma string nao vazia."
+    )
 
   proj_dir <- file.path(path, name)
   if (dir.exists(proj_dir))
-    cli::cli_abort("Diretorio '{proj_dir}' ja existe.")
+    cli::cli_abort(
+      if (lang == "en") "Directory '{proj_dir}' already exists." else
+      if (lang == "es") "El directorio '{proj_dir}' ya existe." else
+                        "Diretorio '{proj_dir}' ja existe."
+    )
 
   cli::cli_h1(if (lang == "en") "Creating RAP project: {name}" else
               if (lang == "es") "Creando proyecto RAP: {name}" else
                                 "Criando projeto RAP: {name}")
 
-  # ── Create directory structure ──────────────────────────────────────────────
+  # -- Create directory structure ----------------------------------------------
   dirs_to_create <- c(proj_dir,
                       file.path(proj_dir, "R"),
                       file.path(proj_dir, "data"),
                       file.path(proj_dir, "output"))
   for (d in dirs_to_create) dir.create(d, recursive = TRUE)
-  cli::cli_alert_info("Estrutura de diretorios criada.")
+  cli::cli_alert_info(
+    if (lang == "en") "Directory structure created." else
+    if (lang == "es") "Estructura de directorios creada." else
+                      "Estrutura de diretorios criada."
+  )
 
-  # ── _targets.R ─────────────────────────────────────────────────────────────
+  # -- _targets.R -------------------------------------------------------------
   if (include_targets) {
     .write_template_file(proj_dir, "_targets.R",
                          .rap_tmpl_targets(name, system, lang))
     .write_template_file(proj_dir, "run.R",
                          .rap_tmpl_run(lang))
-    cli::cli_alert_info("_targets.R e run.R criados.")
+    cli::cli_alert_info(
+      if (lang == "en") "_targets.R and run.R created." else
+      if (lang == "es") "_targets.R y run.R creados." else
+                        "_targets.R e run.R criados."
+    )
   }
 
-  # ── Quarto report ──────────────────────────────────────────────────────────
+  # -- Quarto report ----------------------------------------------------------
   if (include_quarto) {
-    rlang::check_installed("quarto", reason = "para criar relatorio Quarto",
-                           call = NULL)
     .write_template_file(proj_dir, "analysis.qmd",
                          .rap_tmpl_quarto(name, system, lang))
-    cli::cli_alert_info("analysis.qmd criado.")
+    cli::cli_alert_info(
+      if (lang == "en") "analysis.qmd created." else
+      if (lang == "es") "analysis.qmd creado." else
+                        "analysis.qmd criado."
+    )
   }
 
-  # ── R/functions.R ──────────────────────────────────────────────────────────
+  # -- R/functions.R ----------------------------------------------------------
   .write_template_file(proj_dir, file.path("R", "functions.R"),
                        .rap_tmpl_functions(lang))
 
-  # ── .gitignore ─────────────────────────────────────────────────────────────
+  # -- .gitignore -------------------------------------------------------------
   .write_template_file(proj_dir, ".gitignore",
                        c("data/", "output/", "_targets/", ".Rproj.user/",
                          "renv/library/", "*.Rproj", ".Rhistory", ".RData"))
 
-  # ── README.md ──────────────────────────────────────────────────────────────
+  # -- README.md --------------------------------------------------------------
   .write_template_file(proj_dir, "README.md",
                        .rap_tmpl_readme(name, system, lang))
 
-  # ── GitHub Actions ─────────────────────────────────────────────────────────
+  # -- GitHub Actions ---------------------------------------------------------
   if (include_github_actions) {
     gha_dir <- file.path(proj_dir, ".github", "workflows")
     dir.create(gha_dir, recursive = TRUE)
     .write_template_file(gha_dir, "rap.yml",
                          .rap_tmpl_gha(name, lang))
-    cli::cli_alert_info(".github/workflows/rap.yml criado.")
+    cli::cli_alert_info(
+      if (lang == "en") ".github/workflows/rap.yml created." else
+      if (lang == "es") ".github/workflows/rap.yml creado." else
+                        ".github/workflows/rap.yml criado."
+    )
   }
 
-  # ── renv ────────────────────────────────────────────────────────────────────
+  # -- renv --------------------------------------------------------------------
   if (include_renv) {
     rlang::check_installed("renv", reason = "para inicializar renv",
                            call = NULL)
-    old_wd <- setwd(proj_dir)
-    on.exit(setwd(old_wd), add = TRUE)
     renv::init(project = proj_dir, bare = TRUE)
-    cli::cli_alert_info("renv inicializado.")
+    cli::cli_alert_info(
+      if (lang == "en") "renv initialised." else
+      if (lang == "es") "renv inicializado." else
+                        "renv inicializado."
+    )
   }
 
   cli::cli_alert_success(
@@ -153,7 +180,7 @@ sus_rap_template <- function(
 }
 
 
-# ── Internal template content generators ─────────────────────────────────────
+# -- Internal template content generators -------------------------------------
 
 #' @keywords internal
 #' @noRd
@@ -165,7 +192,7 @@ sus_rap_template <- function(
 #' @noRd
 .rap_tmpl_targets <- function(name, system, lang) {
   c(
-    "# _targets.R — Generated by climasus4r::sus_rap_template()",
+    "# _targets.R  - Generated by climasus4r::sus_rap_template()",
     sprintf("# Project: %s", name),
     "",
     "library(targets)",
@@ -221,7 +248,7 @@ sus_rap_template <- function(
 .rap_tmpl_run <- function(lang) {
   c(
     "#!/usr/bin/env Rscript",
-    "# run.R — execute the targets pipeline",
+    "# run.R  - execute the targets pipeline",
     "library(targets)",
     "targets::tar_make()"
   )
@@ -235,7 +262,7 @@ sus_rap_template <- function(
                                   sprintf("Analise: %s", name)
   c(
     "---",
-    sprintf("title: \"%s\"", title_str),
+     sprintf("title: \"%s\"", title_str),
     sprintf("author: \"%s\"", Sys.getenv("USER", "Analista")),
     sprintf("date: \"%s\"", format(Sys.Date(), "%Y-%m-%d")),
     "format:",
@@ -273,7 +300,7 @@ sus_rap_template <- function(
 #' @noRd
 .rap_tmpl_functions <- function(lang) {
   c(
-    "# R/functions.R — Custom analysis functions",
+    "# R/functions.R  - Custom analysis functions",
     "# Add project-specific helper functions here.",
     ""
   )
@@ -286,7 +313,7 @@ sus_rap_template <- function(
     c(
       sprintf("# %s", name),
       "",
-      sprintf("Reproducible analysis pipeline using `climasus4r` — system: %s.", system),
+      sprintf("Reproducible analysis pipeline using `climasus4r`  - system: %s.", system),
       "",
       "## How to reproduce",
       "",
@@ -299,7 +326,7 @@ sus_rap_template <- function(
     c(
       sprintf("# %s", name),
       "",
-      sprintf("Pipeline de analisis reproducible con `climasus4r` — sistema: %s.", system),
+      sprintf("Pipeline de analisis reproducible con `climasus4r`  - sistema: %s.", system),
       "",
       "## Como reproducir",
       "",
@@ -312,7 +339,7 @@ sus_rap_template <- function(
     c(
       sprintf("# %s", name),
       "",
-      sprintf("Pipeline de analise reprodutivel usando `climasus4r` — sistema: %s.", system),
+      sprintf("Pipeline de analise reprodutivel usando `climasus4r`  - sistema: %s.", system),
       "",
       "## Como reproduzir",
       "",

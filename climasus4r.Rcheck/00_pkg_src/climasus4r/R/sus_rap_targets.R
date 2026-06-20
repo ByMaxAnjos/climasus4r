@@ -1,5 +1,5 @@
 # =============================================================================
-# sus_rap_targets.R — Generate targets pipelines and execute RAPs via
+# sus_rap_targets.R  - Generate targets pipelines and execute RAPs via
 # targets::tar_make() with optional dynamic branching.
 #
 # Exported: sus_rap_targets(), sus_rap_make()
@@ -7,7 +7,7 @@
 
 utils::globalVariables(character(0L))
 
-# ── Local labels ──────────────────────────────────────────────────────────────
+# -- Local labels --------------------------------------------------------------
 .rap_tar_labels <- list(
   generating = list(pt = "Gerando _targets.R para '{type}' (branching: {branch})...",
                     en = "Generating _targets.R for '{type}' (branching: {branch})...",
@@ -34,7 +34,7 @@ utils::globalVariables(character(0L))
 
 
 # =============================================================================
-# sus_rap_targets() — generate a _targets.R file
+# sus_rap_targets()  - generate a _targets.R file
 # =============================================================================
 
 #' Generate a targets Pipeline from a climasus4r RAP
@@ -46,20 +46,20 @@ utils::globalVariables(character(0L))
 #' @section Branching strategies:
 #' \describe{
 #'   \item{`"none"`}{Single analysis, no branching.}
-#'   \item{`"uf"`}{One branch per UF — ideal for multi-state comparisons.}
+#'   \item{`"uf"`}{One branch per UF  - ideal for multi-state comparisons.}
 #'   \item{`"year"`}{One branch per year.}
 #'   \item{`"cross"`}{All UF-year combinations via `tidyr::crossing()`.}
 #' }
 #'
 #' @param pipeline A `rap_object` (from [sus_rap_read()]) or a quoted
 #'   pipeline expression (from `quote()`).
-#' @param file_path `character(1)` — Output path. Default `"_targets.R"`.
-#' @param branching `character(1)` — Branching strategy: `"none"` (default),
+#' @param file_path `character(1)`  - Output path. Default `"_targets.R"`.
+#' @param branching `character(1)`  - Branching strategy: `"none"` (default),
 #'   `"uf"`, `"year"`, or `"cross"`.
-#' @param workers `integer(1)` — Number of parallel workers. Default `1`.
-#' @param include_qc `logical(1)` — Add a quality-control target. Default `TRUE`.
-#' @param lang `character(1)` — Language for messages.
-#' @param overwrite `logical(1)` — Overwrite existing file. Default `FALSE`.
+#' @param workers `integer(1)`  - Number of parallel workers. Default `1`.
+#' @param include_qc `logical(1)`  - Add a quality-control target. Default `TRUE`.
+#' @param lang `character(1)`  - Language for messages.
+#' @param overwrite `logical(1)`  - Overwrite existing file. Default `FALSE`.
 #'
 #' @return Invisibly, the path of the generated `_targets.R` file.
 #' @export
@@ -135,7 +135,7 @@ sus_rap_targets <- function(
 
 
 # =============================================================================
-# sus_rap_make() — execute a targets pipeline
+# sus_rap_make()  - execute a targets pipeline
 # =============================================================================
 
 #' Execute a targets Pipeline from a RAP
@@ -146,12 +146,12 @@ sus_rap_targets <- function(
 #' @param rap A `rap_object`, a `tar_rap_object`, or a `character(1)` path to
 #'   a `_targets.R` file. When a `rap_object` is passed, a temporary
 #'   `_targets.R` is generated automatically.
-#' @param workers `integer(1)` — Parallel workers. Default `1`.
-#' @param reporter `character(1)` — Progress reporter for `tar_make()`.
+#' @param workers `integer(1)`  - Parallel workers. Default `1`.
+#' @param reporter `character(1)`  - Progress reporter for `tar_make()`.
 #'   Default `"verbose"`.
-#' @param branching `character(1)` — Branching strategy when `rap` is a
+#' @param branching `character(1)`  - Branching strategy when `rap` is a
 #'   `rap_object` (ignored when a file path is passed). Default `"none"`.
-#' @param lang `character(1)` — Language for messages.
+#' @param lang `character(1)`  - Language for messages.
 #' @param ... Additional arguments forwarded to `targets::tar_make()`.
 #'
 #' @return A list with `$results`, `$rap`, and `$store`.
@@ -232,7 +232,7 @@ print.sus_targets_run <- function(x, ...) {
 
 
 # =============================================================================
-# Internal — generate _targets.R content
+# Internal  - generate _targets.R content
 # =============================================================================
 
 #' @keywords internal

@@ -39,12 +39,13 @@ Suggests: arrow, nanoparquet, RColorBrewer, ggrepel, DBI, slider,
         jsonlite, gt, leaflet, mvmeta, survival, terra, exactextractr,
         ncdf4, readxl, spdep (>= 1.3), spatialreg (>= 1.3), CARBayes
         (>= 6.1), SpatialEpi (>= 1.2), INLA, targets (>= 1.0.0),
-        tarchetypes, shiny (>= 1.7.0), yaml, renv, quarto
+        tarchetypes, shiny (>= 1.7.0), yaml, renv, quarto, strucchange
+VignetteBuilder: knitr
 Additional_repositories: https://inla.r-inla-download.org/R/stable
 URL: https://github.com/ByMaxAnjos/climasus4r
 BugReports: https://github.com/ByMaxAnjos/climasus4r/issues
 NeedsCompilation: no
-Packaged: 2026-06-18 17:43:11 UTC; co2map
+Packaged: 2026-06-20 12:31:46 UTC; co2map
 Author: Max Anjos [aut, cre, cph] (ORCID:
     <https://orcid.org/0000-0001-6394-1324>),
   Thaua Menezes [ctb] (ORCID: <https://orcid.org/0000-0002-3015-2270>),

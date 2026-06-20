@@ -21,32 +21,32 @@ sus_rap_export(
 \code{rlang::quo()}) containing \verb{sus_*} function calls connected by \verb{|>} or
 \verb{\%>\%}. Pass \code{NULL} to capture from the calling context.}
 
-\item{file_path}{\code{character(1)} — Output file path. Extension informs format
+\item{file_path}{\code{character(1)}  - Output file path. Extension informs format
 detection. Pass \code{NULL} to return content without writing to disk.}
 
-\item{format}{\code{character(1)} — One of \code{"script"}, \code{"rmarkdown"},
+\item{format}{\code{character(1)}  - One of \code{"script"}, \code{"rmarkdown"},
 \code{"quarto"}, or \code{"function"}. Inferred from \code{file_path} extension when
 possible.}
 
-\item{include_metadata}{\code{logical(1)} — Embed R version, package versions,
+\item{include_metadata}{\code{logical(1)}  - Embed R version, package versions,
 timestamp, and platform. Default \code{TRUE}.}
 
-\item{include_validation}{\code{logical(1)} — Add a validation block (\code{stopifnot}
+\item{include_validation}{\code{logical(1)}  - Add a validation block (\code{stopifnot}
 \itemize{
 \item NA-rate check). Default \code{TRUE}.
 }}
 
-\item{include_documentation}{\code{character(1)} — Comment density in the
+\item{include_documentation}{\code{character(1)}  - Comment density in the
 exported code: \code{"minimal"}, \code{"standard"} (default), or \code{"comprehensive"}.}
 
-\item{output_type}{\code{character(1)} — Purpose of the document:
+\item{output_type}{\code{character(1)}  - Purpose of the document:
 \code{"analysis"}, \code{"dashboard"}, or \code{"report"}. Affects visualisation
 sections in Rmd/Quarto outputs.}
 
-\item{lang}{\code{character(1)} — Language for comments and messages: \code{"pt"}
+\item{lang}{\code{character(1)}  - Language for comments and messages: \code{"pt"}
 (default), \code{"en"}, or \code{"es"}.}
 
-\item{overwrite}{\code{logical(1)} — Overwrite an existing file. Default \code{FALSE}.}
+\item{overwrite}{\code{logical(1)}  - Overwrite an existing file. Default \code{FALSE}.}
 }
 \value{
 Invisibly, a \code{character} vector with the exported file content.
@@ -54,8 +54,8 @@ Side-effect: writes to \code{file_path} when provided.
 }
 \description{
 Converts a \code{climasus4r} pipeline expression into a portable, self-contained
-artefact — an R script (\code{.R}), RMarkdown document (\code{.Rmd}), Quarto document
-(\code{.qmd}), or an encapsulated R function — suitable for sharing, archiving,
+artefact  - an R script (\code{.R}), RMarkdown document (\code{.Rmd}), Quarto document
+(\code{.qmd}), or an encapsulated R function  - suitable for sharing, archiving,
 and re-execution. The exported file embeds session metadata (R version,
 package versions, timestamp, platform), an editable parameters block, and
 optional validation checks, following Reproducible Analytical Pipeline

@@ -2,7 +2,7 @@
 #'
 #' Prints a colour-coded pipeline overview to the console and, optionally,
 #' opens a self-contained HTML page in the browser (or RStudio viewer) showing
-#' all ten stages of the climasus4r health–climate–environment workflow plus
+#' all ten stages of the climasus4r health-climate-environment workflow plus
 #' utility functions.
 #'
 #' @param lang Character. Language: `"pt"` (default), `"en"`, or `"es"`.
@@ -58,86 +58,87 @@ sus_welcome <- function(
   invisible(html_path)
 }
 
-# ── Stage definitions ─────────────────────────────────────────────────────────
+# -- Stage definitions ---------------------------------------------------------
 # num = 0 marks the utility section (rendered differently: no number badge,
 # no arrow, distinct colour scheme).
 
 .welcome_stages <- function(lang) {
   raw <- list(
     list(num = 1, color = "blue",
-         name = c(pt = "IMPORTAÇÃO",          en = "IMPORT",                    es = "IMPORTACIÓN"),
+         name = c(pt = "IMPORTA\u00c7\u00c3O",          en = "IMPORT",                    es = "IMPORTACI\u00d3N"),
          fns  = c("sus_data_import()", "sus_data_read()"),
          desc = c(
-           pt = "Importa dados do DATASUS (SIM, SIH, SINAN, SIA, CNES, SINASC) com cache automático e processamento paralelo",
+           pt = "Importa dados do DATASUS (SIM, SIH, SINAN, SIA, CNES, SINASC) com cache autom\u00e1tico e processamento paralelo",
            en = "Imports DATASUS data (SIM, SIH, SINAN, SIA, CNES, SINASC) with automatic caching and parallel processing",
-           es = "Importa datos del DATASUS (SIM, SIH, SINAN, SIA, CNES, SINASC) con caché automático y procesamiento paralelo"
+           es = "Importa datos del DATASUS (SIM, SIH, SINAN, SIA, CNES, SINASC) con cach\u00e9 autom\u00e1tico y procesamiento paralelo"
          )),
     list(num = 2, color = "blue",
-         name = c(pt = "PREPARAÇÃO E LIMPEZA", en = "DATA PREPARATION",         es = "PREPARACIÓN"),
+         name = c(pt = "PREPARA\u00c7\u00c3O E LIMPEZA", en = "DATA PREPARATION",         es = "PREPARACI\u00d3N"),
          fns  = c("sus_data_clean_encoding()", "sus_data_standardize()"),
          desc = c(
-           pt = "Corrige encoding Latin1/UTF-8, padroniza 80+ nomes de colunas e valores categóricos",
+           pt = "Corrige encoding Latin1/UTF-8, padroniza 80+ nomes de colunas e valores categ\u00f3ricos",
            en = "Fixes Latin1/UTF-8 encoding, standardises 80+ column names and categorical values",
-           es = "Corrige encoding Latin1/UTF-8, estandariza 80+ nombres de columnas y valores categóricos"
+           es = "Corrige encoding Latin1/UTF-8, estandariza 80+ nombres de columnas y valores categ\u00f3ricos"
          )),
     list(num = 3, color = "blue",
-         name = c(pt = "FILTRAGEM E DERIVAÇÃO",  en = "FILTERING & VARIABLES",  es = "FILTRADO Y DERIVACIÓN"),
+         name = c(pt = "FILTRAGEM E DERIVA\u00c7\u00c3O",  en = "FILTERING & VARIABLES",  es = "FILTRADO Y DERIVACI\u00d3N"),
          fns  = c("sus_data_filter_cid()", "sus_data_filter_demographics()", "sus_create_variables()"),
          desc = c(
-           pt = "Filtra por CID-10, variáveis demográficas e cria variáveis derivadas (idade, sazonalidade, faixas)",
+           pt = "Filtra por CID-10, vari\u00e1veis demogr\u00e1ficas e cria vari\u00e1veis derivadas (idade, sazonalidade, faixas)",
            en = "Filters by ICD-10, demographic variables and creates derived variables (age, seasonality, bands)",
-           es = "Filtra por CIE-10, variables demográficas y crea variables derivadas (edad, estacionalidad, franjas)"
+           es = "Filtra por CIE-10, variables demogr\u00e1ficas y crea variables derivadas (edad, estacionalidad, franjas)"
          )),
     list(num = 4, color = "blue",
-         name = c(pt = "AGREGAÇÃO",              en = "AGGREGATION",             es = "AGREGACIÓN"),
-         fns  = c("sus_data_aggregate()", "sus_data_quality_report()"),
+         name = c(pt = "AGREGA\u00c7\u00c3O",              en = "AGGREGATION",             es = "AGREGACI\u00d3N"),
+         fns  = c("sus_data_aggregate()", "sus_data_quality_report()", "sus_data_ts_quality()"),
          desc = c(
-           pt = "Agrega registros individuais por município/data e gera relatório de qualidade dos dados",
-           en = "Aggregates individual records by municipality/date and generates a data quality report",
-           es = "Agrega registros individuales por municipio/fecha y genera reporte de calidad de datos"
+           pt = "Agrega registros individuais por munic\u00edpio/data, gera relat\u00f3rio de qualidade e avalia completude de s\u00e9ries temporais",
+           en = "Aggregates individual records by municipality/date, generates a quality report and evaluates time series completeness",
+           es = "Agrega registros individuales por municipio/fecha, genera reporte de calidad y eval\u00faa completitud de series temporales"
          )),
     list(num = 5, color = "green",
-         name = c(pt = "INTEGRAÇÃO ESPACIAL",    en = "SPATIAL JOIN",            es = "INTEGRACIÓN ESPACIAL"),
+         name = c(pt = "INTEGRA\u00c7\u00c3O ESPACIAL",    en = "SPATIAL JOIN",            es = "INTEGRACI\u00d3N ESPACIAL"),
          fns  = c("sus_join_spatial()"),
          desc = c(
-           pt = "Vincula dados de saúde a polígonos municipais e estaduais brasileiros via geobr + sf",
+           pt = "Vincula dados de sa\u00fade a pol\u00edgonos municipais e estaduais brasileiros via geobr + sf",
            en = "Links health data to Brazilian municipal and state polygons via geobr + sf",
-           es = "Vincula datos de salud a polígonos municipales y estatales de Brasil via geobr + sf"
+           es = "Vincula datos de salud a pol\u00edgonos municipales y estatales de Brasil via geobr + sf"
          )),
     list(num = 6, color = "cyan",
-         name = c(pt = "INTEGRAÇÃO CLIMÁTICA",   en = "CLIMATE DATA",            es = "DATOS CLIMÁTICOS"),
+         name = c(pt = "INTEGRA\u00c7\u00c3O CLIM\u00c1TICA",   en = "CLIMATE DATA",            es = "DATOS CLIM\u00c1TICOS"),
          fns  = c("sus_climate_inmet()", "sus_climate_fill_gap()", "sus_climate_aggregate()",
                   "sus_grid_era5()", "sus_grid_chirps()", "sus_grid_pollution_cams()",
-                  "sus_grid_fires()", "sus_climate_compute_heatwaves()", "sus_climate_compute_coldwaves()",
+                  "sus_grid_fires()", "sus_grid_koppen()",
+                  "sus_climate_compute_heatwaves()", "sus_climate_compute_coldwaves()",
                   "sus_climate_compute_spei()"),
          desc = c(
-           pt = "Estações INMET, ERA5, CHIRPS, qualidade do ar (CAMS, MERRA-2), incêndios, ondas de calor e frio, SPEI/SPI",
-           en = "INMET stations, ERA5, CHIRPS, air quality (CAMS, MERRA-2), fires, heat and cold waves, SPEI/SPI",
-           es = "Estaciones INMET, ERA5, CHIRPS, calidad del aire (CAMS, MERRA-2), incendios, olas de calor y frío, SPEI/SPI"
+           pt = "Esta\u00e7\u00f5es INMET, ERA5, CHIRPS, qualidade do ar (CAMS, MERRA-2), inc\u00eandios, K\u00f6ppen, ondas de calor e frio, SPEI/SPI",
+           en = "INMET stations, ERA5, CHIRPS, air quality (CAMS, MERRA-2), fires, K\u00f6ppen classification, heat and cold waves, SPEI/SPI",
+           es = "Estaciones INMET, ERA5, CHIRPS, calidad del aire (CAMS, MERRA-2), incendios, clasificaci\u00f3n K\u00f6ppen, olas de calor y fr\u00edo, SPEI/SPI"
          )),
     list(num = 7, color = "cyan",
-         name = c(pt = "SOCIOECONÔMICO",          en = "SOCIOECONOMIC",           es = "SOCIOECONÓMICO"),
+         name = c(pt = "SOCIOECON\u00d4MICO",          en = "SOCIOECONOMIC",           es = "SOCIOECON\u00d3MICO"),
          fns  = c("sus_socio_add_census()", "sus_socio_compute_indicators()"),
          desc = c(
-           pt = "Adiciona indicadores do Censo IBGE e índices compostos de vulnerabilidade socioeconômica",
+           pt = "Adiciona indicadores do Censo IBGE e \u00edndices compostos de vulnerabilidade socioecon\u00f4mica",
            en = "Adds IBGE Census indicators and composite socioeconomic vulnerability indices",
-           es = "Agrega indicadores del Censo IBGE e índices compuestos de vulnerabilidad socioeconómica"
+           es = "Agrega indicadores del Censo IBGE e \u00edndices compuestos de vulnerabilidad socioecon\u00f3mica"
          )),
     list(num = 8, color = "magenta",
-         name = c(pt = "MODELAGEM EPIDEMIOLÓGICA", en = "EPIDEMIOLOGICAL MODELLING", es = "MODELADO EPIDEMIOLÓGICO"),
+         name = c(pt = "MODELAGEM EPIDEMIOL\u00d3GICA", en = "EPIDEMIOLOGICAL MODELLING", es = "MODELADO EPIDEMIOL\u00d3GICO"),
          fns  = c("sus_mod_dlnm()", "sus_mod_af()", "sus_mod_burden()",
                   "sus_mod_casecrossover()", "sus_mod_excess()", "sus_mod_its()",
                   "sus_mod_pool()", "sus_mod_metaregression()", "sus_mod_sensitivity()",
                   "sus_mod_ml()", "sus_mod_spatial_bayes()", "sus_mod_spacetime_bayes()"),
          desc = c(
-           pt = "DLNM, fração atribuível, carga de doença, caso-cruzado, ITS, pooling, meta-regressão, ML e análise espacial Bayesiana",
+           pt = "DLNM, fra\u00e7\u00e3o atribu\u00edvel, carga de doen\u00e7a, caso-cruzado, ITS, pooling, meta-regress\u00e3o, ML e an\u00e1lise espacial Bayesiana",
            en = "DLNM, attributable fraction, disease burden, case-crossover, ITS, pooling, meta-regression, ML and Bayesian spatial analysis",
-           es = "DLNM, fracción atribuible, carga de enfermedad, caso-cruzado, ITS, pooling, meta-regresión, ML y análisis espacial Bayesiano"
+           es = "DLNM, fracci\u00f3n atribuible, carga de enfermedad, caso-cruzado, ITS, pooling, meta-regresi\u00f3n, ML y an\u00e1lisis espacial Bayesiano"
          )),
     list(num = 9, color = "yellow",
-         name = c(pt = "VISUALIZAÇÃO",            en = "VISUALIZATION",           es = "VISUALIZACIÓN"),
+         name = c(pt = "VISUALIZA\u00c7\u00c3O",            en = "VISUALIZATION",           es = "VISUALIZACI\u00d3N"),
          fns  = c(
-           # Dados de saúde
+           # Dados de saude
            "sus_data_plot_demographics()", "sus_data_plot_aggregate_ts()", "sus_data_plot_aggregate_map()",
            # Clima
            "sus_climate_plot_aggregate()", "sus_climate_plot_fill()",
@@ -149,26 +150,36 @@ sus_welcome <- function(
            "sus_mod_plot_spatial_scan()", "sus_mod_plot_swot()", "sus_mod_plot_vulnerability()"
          ),
          desc = c(
-           pt = "Pirâmide etária, série temporal, mapa coroplético; ondas de calor e frio; superfícies DLNM, forest plot, carga, spatial scan, vulnerabilidade",
+           pt = "Pir\u00e2mide et\u00e1ria, s\u00e9rie temporal, mapa coropl\u00e9tico; ondas de calor e frio; superf\u00edcies DLNM, forest plot, carga, spatial scan, vulnerabilidade",
            en = "Demographic pyramid, time series, choropleth map; heat and cold waves; DLNM surfaces, forest plot, burden, spatial scan, vulnerability",
-           es = "Pirámide demográfica, serie temporal, mapa coroplético; olas de calor y frío; superficies DLNM, forest plot, carga, spatial scan, vulnerabilidad"
+           es = "Pir\u00e1mide demogr\u00e1fica, serie temporal, mapa coropl\u00e9tico; olas de calor y fr\u00edo; superficies DLNM, forest plot, carga, spatial scan, vulnerabilidad"
          )),
     list(num = 10, color = "yellow",
-         name = c(pt = "EXPORTAÇÃO",              en = "EXPORT",                  es = "EXPORTACIÓN"),
+         name = c(pt = "EXPORTA\u00c7\u00c3O",              en = "EXPORT",                  es = "EXPORTACI\u00d3N"),
          fns  = c("sus_data_export()", "write_parquet_climasus()", "write_duckdb_climasus()"),
          desc = c(
            pt = "Exporta para CSV, Parquet ou DuckDB preservando todos os metadados do pipeline (sus_meta)",
            en = "Exports to CSV, Parquet or DuckDB preserving all pipeline metadata (sus_meta)",
            es = "Exporta a CSV, Parquet o DuckDB preservando todos los metadatos del pipeline (sus_meta)"
          )),
-    # num = 0 → utility section (no stage number, no connecting arrow)
+    # num = 0 ? utility section (no stage number, no connecting arrow)
     list(num = 0, color = "slate",
-         name = c(pt = "UTILITÁRIOS",             en = "UTILITIES",               es = "UTILIDADES"),
+         name = c(pt = "UTILIT\u00c1RIOS",             en = "UTILITIES",               es = "UTILIDADES"),
          fns  = c("sus_meta()", "sus_chat()"),
          desc = c(
-           pt = "sus_meta() lê e escreve metadados do pipeline em qualquer backend · sus_chat() abre o assistente de IA do climasus4r",
-           en = "sus_meta() reads and writes pipeline metadata across any backend · sus_chat() opens the climasus4r AI assistant",
-           es = "sus_meta() lee y escribe metadatos del pipeline en cualquier backend · sus_chat() abre el asistente de IA de climasus4r"
+           pt = "sus_meta() l\u00ea e escreve metadados do pipeline em qualquer backend \u00b7 sus_chat() abre o assistente de IA do climasus4r",
+           en = "sus_meta() reads and writes pipeline metadata across any backend \u00b7 sus_chat() opens the climasus4r AI assistant",
+           es = "sus_meta() lee y escribe metadatos del pipeline en cualquier backend \u00b7 sus_chat() abre el asistente de IA de climasus4r"
+         )),
+    list(num = 0, color = "slate",
+         name = c(pt = "RAP (Pipelines Reprodut\u00edveis)", en = "RAP (Reproducible Pipelines)", es = "RAP (Pipelines Reproducibles)"),
+         fns  = c("sus_rap_export()", "sus_rap_read()", "sus_rap_inspect()", "sus_rap_run()",
+                  "sus_rap_update()", "sus_rap_targets()", "sus_rap_make()",
+                  "sus_rap_recipe()", "sus_rap_from_recipe()", "sus_rap_gui()", "sus_rap_template()"),
+         desc = c(
+           pt = "Exporte, compartilhe e reexecute pipelines como RAPs. Integra com targets, Shiny GUI, receitas YAML e scaffolding de projetos",
+           en = "Export, share and re-run pipelines as RAPs. Integrates with targets, Shiny GUI, YAML recipes and project scaffolding",
+           es = "Exporte, comparta y reejecutue pipelines como RAPs. Integra con targets, Shiny GUI, recetas YAML y scaffolding de proyectos"
          ))
   )
 
@@ -179,16 +190,16 @@ sus_welcome <- function(
   })
 }
 
-# ── Console output ────────────────────────────────────────────────────────────
+# -- Console output ------------------------------------------------------------
 
 .welcome_console <- function(stages, lang, ver) {
   title <- switch(lang,
-    pt = "Pipeline Integrado de Análise Saúde–Clima–Ambiente no Brasil",
-    en = "Integrated Health–Climate–Environment Analysis Pipeline for Brazil",
-    es = "Pipeline Integrado de Análisis Salud–Clima–Ambiente en Brasil"
+    pt = "Pipeline Integrado de An\u00e1lise Sa\u00fade\u2013Clima\u2013Ambiente no Brasil",
+    en = "Integrated Health\u2013Climate\u2013Environment Analysis Pipeline for Brazil",
+    es = "Pipeline Integrado de An\u00e1lisis Salud\u2013Clima\u2013Ambiente en Brasil"
   )
   lbl <- switch(lang,
-    pt = list(lang = "Idioma",   docs = "Docs", cite = "Citação",  util = "Utilitários"),
+    pt = list(lang = "Idioma",   docs = "Docs", cite = "Cita\u00e7\u00e3o",  util = "Utilit\u00e1rios"),
     en = list(lang = "Language", docs = "Docs", cite = "Citation", util = "Utilities"),
     es = list(lang = "Idioma",   docs = "Docs", cite = "Citar",    util = "Utilidades")
   )
@@ -223,7 +234,7 @@ sus_welcome <- function(
     fns_rows <- split(s$fns, ceiling(seq_along(s$fns) / 3))
     for (row in fns_rows) cat("     ", paste(row, collapse = "  "), "\n")
     cat("\n")
-    if (i < length(pipe_stages)) cat("               ↓\n\n")
+    if (i < length(pipe_stages)) cat("               \u2193\n\n")
   }
 
   # Utility section (num == 0)
@@ -232,13 +243,13 @@ sus_welcome <- function(
     cli::cli_rule()
     for (s in util_stages) {
       fn <- color_fn(s$color)
-      cat(fn(cli::style_bold(paste0("  ◆ ", s$name_l))), "\n")
+      cat(fn(cli::style_bold(paste0("  \u25c6 ", s$name_l))), "\n")
       cat("     ", paste(s$fns, collapse = "  "), "\n\n")
     }
   }
 
   cli::cli_rule()
-  cli::cli_text(paste0(lbl$lang, ": {.val ", lang, "} · Backends: tibble · parquet · duckdb"))
+  cli::cli_text(paste0(lbl$lang, ": {.val ", lang, "} \u00b7 Backends: tibble \u00b7 parquet \u00b7 duckdb"))
   cli::cli_text(paste0(lbl$docs, ": {.url https://byMaxAnjos.github.io/climasus4r}"))
   cli::cli_text(paste0(lbl$cite, ': {.code citation("climasus4r")}'))
   cli::cli_rule()
@@ -246,18 +257,18 @@ sus_welcome <- function(
   invisible(NULL)
 }
 
-# ── HTML output ───────────────────────────────────────────────────────────────
+# -- HTML output ---------------------------------------------------------------
 
 .welcome_html <- function(stages, lang, ver) {
   title <- switch(lang,
-    pt = "Pipeline Integrado de Análise Saúde–Clima–Ambiente",
-    en = "Integrated Health–Climate–Environment Analysis Pipeline",
-    es = "Pipeline Integrado de Análisis Salud–Clima–Ambiente"
+    pt = "Pipeline Integrado de An\u00e1lise Sa\u00fade\u2013Clima\u2013Ambiente",
+    en = "Integrated Health\u2013Climate\u2013Environment Analysis Pipeline",
+    es = "Pipeline Integrado de An\u00e1lisis Salud\u2013Clima\u2013Ambiente"
   )
   subtitle <- switch(lang,
-    pt = paste0("Brasil · climasus4r v", ver),
-    en = paste0("Brazil · climasus4r v", ver),
-    es = paste0("Brasil · climasus4r v", ver)
+    pt = paste0("Brasil \u00b7 climasus4r v", ver),
+    en = paste0("Brazil \u00b7 climasus4r v", ver),
+    es = paste0("Brasil \u00b7 climasus4r v", ver)
   )
   footer_label <- switch(lang,
     pt = paste0("climasus4r v", ver,
@@ -310,7 +321,7 @@ sus_welcome <- function(
   # Build utility cards
   util_cards <- if (length(util_stages) > 0) {
     util_label <- switch(lang,
-      pt = "Utilitários", en = "Utilities", es = "Utilidades"
+      pt = "Utilit\u00e1rios", en = "Utilities", es = "Utilidades"
     )
     inner <- vapply(util_stages, function(s) {
       p <- palette[["slate"]]

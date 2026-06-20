@@ -18,18 +18,18 @@ sus_rap_targets(
 \item{pipeline}{A \code{rap_object} (from \code{\link[=sus_rap_read]{sus_rap_read()}}) or a quoted
 pipeline expression (from \code{quote()}).}
 
-\item{file_path}{\code{character(1)} — Output path. Default \code{"_targets.R"}.}
+\item{file_path}{\code{character(1)}  - Output path. Default \code{"_targets.R"}.}
 
-\item{branching}{\code{character(1)} — Branching strategy: \code{"none"} (default),
+\item{branching}{\code{character(1)}  - Branching strategy: \code{"none"} (default),
 \code{"uf"}, \code{"year"}, or \code{"cross"}.}
 
-\item{workers}{\code{integer(1)} — Number of parallel workers. Default \code{1}.}
+\item{workers}{\code{integer(1)}  - Number of parallel workers. Default \code{1}.}
 
-\item{include_qc}{\code{logical(1)} — Add a quality-control target. Default \code{TRUE}.}
+\item{include_qc}{\code{logical(1)}  - Add a quality-control target. Default \code{TRUE}.}
 
-\item{lang}{\code{character(1)} — Language for messages.}
+\item{lang}{\code{character(1)}  - Language for messages.}
 
-\item{overwrite}{\code{logical(1)} — Overwrite existing file. Default \code{FALSE}.}
+\item{overwrite}{\code{logical(1)}  - Overwrite existing file. Default \code{FALSE}.}
 }
 \value{
 Invisibly, the path of the generated \verb{_targets.R} file.
@@ -43,7 +43,7 @@ optional dynamic branching over UFs, years, or their Cartesian product.
 
 \describe{
 \item{\code{"none"}}{Single analysis, no branching.}
-\item{\code{"uf"}}{One branch per UF — ideal for multi-state comparisons.}
+\item{\code{"uf"}}{One branch per UF  - ideal for multi-state comparisons.}
 \item{\code{"year"}}{One branch per year.}
 \item{\code{"cross"}}{All UF-year combinations via \code{tidyr::crossing()}.}
 }

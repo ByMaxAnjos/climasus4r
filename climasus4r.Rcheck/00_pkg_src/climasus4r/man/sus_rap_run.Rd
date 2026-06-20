@@ -12,12 +12,12 @@ sus_rap_run(rap, ..., envir = parent.frame(), dry_run = FALSE, lang = "pt")
 \item{...}{Name-value pairs overriding fields in \code{rap$params} (e.g.
 \code{uf = "RJ"}, \code{years = 2021:2023}).}
 
-\item{envir}{\code{environment} — Execution environment. Default \code{parent.frame()}.}
+\item{envir}{\code{environment}  - Execution environment. Default \code{parent.frame()}.}
 
-\item{dry_run}{\code{logical(1)} — Print the reconstructed code without executing.
+\item{dry_run}{\code{logical(1)}  - Print the reconstructed code without executing.
 Default \code{FALSE}.}
 
-\item{lang}{\code{character(1)} — Language for messages.}
+\item{lang}{\code{character(1)}  - Language for messages.}
 }
 \value{
 Invisibly, the \code{data.frame} produced by the pipeline.

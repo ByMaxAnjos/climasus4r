@@ -12,10 +12,10 @@ sus_rap_update(rap, ..., backup = TRUE, lang = "pt")
 \item{...}{Named parameters to update (e.g. \verb{uf = "\\"RJ\\""},
 \code{years = "2021:2024"}). Values are treated as raw R code strings.}
 
-\item{backup}{\code{logical(1)} — Create a \code{.bak} backup before writing.
+\item{backup}{\code{logical(1)}  - Create a \code{.bak} backup before writing.
 Default \code{TRUE}.}
 
-\item{lang}{\code{character(1)} — Language for messages.}
+\item{lang}{\code{character(1)}  - Language for messages.}
 }
 \value{
 Invisibly, the updated \code{rap_object} (re-read from the patched file).

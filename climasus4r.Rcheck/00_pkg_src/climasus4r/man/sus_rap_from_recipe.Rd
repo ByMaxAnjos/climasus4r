@@ -13,15 +13,15 @@ sus_rap_from_recipe(
 )
 }
 \arguments{
-\item{recipe_path}{\code{character(1)} — Path to the \code{.yaml} recipe file.}
+\item{recipe_path}{\code{character(1)}  - Path to the \code{.yaml} recipe file.}
 
 \item{override_params}{Named list of parameters to override from the recipe
 (e.g. \code{list(uf = "RJ", years = 2022:2024)}).}
 
-\item{execute}{\code{logical(1)} — Run the pipeline immediately after loading.
+\item{execute}{\code{logical(1)}  - Run the pipeline immediately after loading.
 Default \code{FALSE}.}
 
-\item{lang}{\code{character(1)} — Language for messages.}
+\item{lang}{\code{character(1)}  - Language for messages.}
 
 \item{...}{Additional arguments forwarded to \code{\link[=sus_rap_run]{sus_rap_run()}} when
 \code{execute = TRUE}.}

@@ -10,7 +10,7 @@ sus_rap_gui(rap = NULL, launch.browser = TRUE, ...)
 \item{rap}{A \code{rap_object} (from \code{\link[=sus_rap_read]{sus_rap_read()}}) to pre-populate the
 interface. Pass \code{NULL} (default) to start from a blank template.}
 
-\item{launch.browser}{\code{logical(1)} — Open in the system browser.
+\item{launch.browser}{\code{logical(1)}  - Open in the system browser.
 Default \code{TRUE}.}
 
 \item{...}{Additional arguments forwarded to \code{shiny::runApp()}.}
@@ -21,7 +21,7 @@ Does not return; runs the Shiny application interactively.
 \description{
 Opens a Shiny application that lets users visually configure pipeline
 parameters (UF, years, system, aggregation), preview the generated code,
-and execute or export the RAP — all without writing R code directly.
+and execute or export the RAP  - all without writing R code directly.
 }
 \section{Interface panels}{
 
