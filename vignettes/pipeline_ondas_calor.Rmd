@@ -1,0 +1,423 @@
+---
+title: "Pipeline climasus4r: Ondas de Calor e Saúde no Brasil"
+subtitle: "Reprodução do pipeline do estudo MCTI 2026 e avanços do pacote"
+author: "climasus4r"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+vignette: >
+  %\VignetteIndexEntry{Pipeline climasus4r: Ondas de Calor e Saúde no Brasil}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse  = TRUE,
+  comment   = "#>",
+  eval      = FALSE,
+  fig.width = 7,
+  fig.height = 4.5
+)
+```
+
+# Contexto
+
+Este tutorial mostra como reproduzir o pipeline metodológico de um grande estudo
+governamental brasileiro sobre ondas de calor e saúde (MCTI, 2026). O estudo
+analisou **5.566 municípios**, **19,8 milhões de óbitos** (SIM, 2000--2019) e
+hospitalizações (SIH/SUS, 2010--2019) usando modelos DLNM em design
+*case-crossover* estratificado.
+
+O climasus4r já cobre todos os passos centrais do estudo. Este documento:
+
+1. Apresenta o **pipeline reprodutível** passo a passo com as funções reais do pacote.
+2. Documenta os **avanços** do climasus4r em relação ao estudo.
+3. Identifica as **lacunas** remanescentes.
+
+```{r load}
+library(climasus4r)
+library(dplyr)
+```
+
+---
+
+# Parte 1 — Pipeline reprodutível
+
+## Etapa 1: Importação dos dados de saúde
+
+```{r import}
+# Mortalidade geral (SIM, 2000-2019)
+sim_raw <- sus_data_import(
+  system = "SIM",
+  years  = 2000:2019,
+  states = "all",
+  lang   = "pt"
+)
+
+# Hospitalizações (SIH/SUS, 2010-2019)
+sih_raw <- sus_data_import(
+  system = "SIH",
+  years  = 2010:2019,
+  states = "all",
+  lang   = "pt"
+)
+```
+
+## Etapa 2: Limpeza e padronização
+
+```{r clean}
+sim_clean <- sim_raw |>
+  sus_data_clean_encoding() |>
+  sus_data_standardize()
+
+sih_clean <- sih_raw |>
+  sus_data_clean_encoding() |>
+  sus_data_standardize()
+```
+
+## Etapa 3: Filtro por causa (CID-10)
+
+```{r filter_cid}
+# Mortalidade geral (A00-R99, excluindo causas externas S00-Y99)
+sim_geral <- sus_data_filter_cid(sim_clean,
+  include = "A00-R99",
+  exclude = "S00-Y99"
+)
+
+# Doenças cardiovasculares
+sim_dcv <- sus_data_filter_cid(sim_clean, include = "I00-I99")
+
+# Doenças respiratórias
+sim_dr  <- sus_data_filter_cid(sim_clean, include = "J00-J99")
+
+# Hospitalizações cardiovasculares
+sih_dcv <- sus_data_filter_cid(sih_clean, include = "I00-I99")
+```
+
+## Etapa 4: Filtro demográfico
+
+```{r filter_demo}
+sim_idosos  <- sus_data_filter_demographics(sim_geral, age_min = 65)
+sim_adultos <- sus_data_filter_demographics(sim_geral, age_max = 64)
+```
+
+## Etapa 5: Controle de qualidade das séries temporais
+
+O estudo original excluiu municípios com quebras estruturais (ex.: São Gonçalo
+RJ) ou séries intermitentes (ex.: Manicoré AM). O climasus4r oferece
+`sus_data_ts_quality()` para essa triagem:
+
+```{r ts_quality}
+# Agregação diária por município (necessária antes do QC)
+sim_daily_pre <- sus_data_aggregate(
+  sim_geral,
+  time_unit = "day",
+  fun       = "count",
+  group_by  = "municipio_residencia",
+  lang      = "pt"
+)
+
+# Controle de qualidade: completude, quebras, lacunas
+qc <- sus_data_ts_quality(
+  df               = sim_daily_pre,
+  date_col         = "date",
+  count_col        = "n",
+  group_col        = "municipio_residencia",
+  min_completeness = 0.8,
+  max_gap_days     = 30L,
+  lang             = "pt"
+)
+
+# Manter apenas municípios recomendados para inclusão
+bons_municipios <- qc$group[qc$recommend == "include"]
+sim_filtrado    <- filter(sim_daily_pre,
+                          municipio_residencia %in% bons_municipios)
+```
+
+## Etapa 6: Agregação diária definitiva
+
+```{r aggregate}
+sim_daily <- sus_data_aggregate(
+  sim_geral,
+  time_unit = "day",
+  fun       = "count",
+  group_by  = "municipio_residencia",
+  lang      = "pt"
+)
+
+sih_daily <- sus_data_aggregate(
+  sih_clean,
+  time_unit = "day",
+  fun       = "count",
+  group_by  = "municipio_internacao",
+  lang      = "pt"
+)
+```
+
+## Etapa 7: Dados climáticos ERA5-Land
+
+```{r era5}
+# Temperatura máxima diária a 2m (ERA5-Land, 1981-2019)
+era5_temp <- sus_grid_era5(
+  variable    = "temperature_2m",
+  years       = 1981:2019,
+  aggregation = "daily_max",
+  lang        = "pt"
+)
+```
+
+## Etapa 8: Detecção de ondas de calor
+
+O estudo usa P95 de temperatura máxima por ≥ 2 dias consecutivos — o que
+corresponde ao método `"WHO"` com `percentile = 95` no climasus4r:
+
+```{r heatwaves}
+# Método WHO/WMO (P95 Tmax × 2 dias) — reproduz o estudo
+heatwaves_who <- sus_climate_compute_heatwaves(
+  df             = era5_temp,
+  method         = "WHO",
+  baseline_start = 1981,
+  baseline_end   = 2010,
+  percentile     = 95,
+  min_duration   = 2L,
+  lang           = "pt"
+)
+
+# Análise de sensibilidade: múltiplos métodos (avanço do pacote)
+heatwaves_multi <- sus_climate_compute_heatwaves(
+  df             = era5_temp,
+  method         = c("WHO", "WMO", "INMET", "EHF"),
+  baseline_start = 1981,
+  baseline_end   = 2010,
+  percentile     = 95,
+  lang           = "pt"
+)
+```
+
+## Etapa 9: Classificação climática de Köppen
+
+Para estratificar os resultados por zona climática (como no estudo original),
+use `sus_grid_koppen()`:
+
+```{r koppen}
+koppen_br <- sus_grid_koppen(lang = "pt")
+
+# Juntar zona de Köppen com os dados de saúde
+sim_daily_kp <- left_join(
+  sim_daily,
+  select(koppen_br, municipio_ibge, zona_koppen),
+  by = c("municipio_residencia" = "municipio_ibge")
+)
+```
+
+## Etapa 10: Integração clima-saúde com matriz de lag
+
+```{r climate_agg}
+# Integra temperatura (heatwaves$daily) com dados de saúde diários
+# lag 0-7 para modelo DLNM (reproduz o estudo)
+clima_lags <- sus_climate_aggregate(
+  health_data       = sim_daily,
+  climate_data      = heatwaves_who$daily,
+  climate_var       = "hw_who",       # indicador binário onda de calor
+  temporal_strategy = "distributed_lag",
+  lag_days          = 7L,
+  lang              = "pt"
+)
+```
+
+## Etapa 11: Modelo DLNM (abordagem da curva exposição-resposta)
+
+O DLNM captura a resposta distribuída ao longo dos lags e a forma não-linear
+da relação:
+
+```{r dlnm}
+dlnm_fit <- sus_mod_dlnm(
+  df           = clima_lags,
+  outcome_col  = "n_obitos",
+  climate_col  = "hw_who",
+  lag_max      = 7L,
+  argvar       = list(fun = "lin"),        # exposição binária → linear
+  arglag       = list(fun = "ns", df = 3),
+  family       = "quasipoisson",
+  dof_per_year = 4L,
+  lang         = "pt"
+)
+
+print(dlnm_fit)
+dlnm_fit$exposure_response   # RR cumulativo
+dlnm_fit$lag_response        # RR por lag
+```
+
+## Etapa 12: Case-crossover (design estratificado)
+
+Para reproduzir o design *case-crossover* do estudo com estratificação por
+mês × ano × dia da semana, crie a coluna de estrato combinado antes de passar
+para `sus_mod_casecrossover()`:
+
+```{r casecrossover}
+# Preparar colunas de estratificação composta (ano-mês + dia da semana)
+# A nova versão do sus_mod_casecrossover() aceita vetor de colunas
+sim_cc_data <- clima_lags |>
+  mutate(
+    ano_mes = format(date, "%Y-%m"),
+    dow     = weekdays(date)
+  )
+
+cc_fit <- sus_mod_casecrossover(
+  data         = sim_cc_data,
+  outcome_col  = "n_obitos",
+  exposure_col = "hw_who_lag0",      # exposição no mesmo dia
+  stratum      = c("ano_mes", "dow"), # estrato composto
+  lag          = 0L:6L,              # média dos lags 0-6
+  method       = "conditional_poisson",
+  family       = "quasipoisson",
+  lang         = "pt"
+)
+
+print(cc_fit)
+tidy(cc_fit)
+```
+
+## Etapa 13: Fração Atribuível (Monte Carlo 1.000 iterações)
+
+```{r af}
+af_results <- sus_mod_af(
+  fit     = dlnm_fit,
+  nsim    = 1000L,
+  by      = "year",       # desagregação anual
+  lang    = "pt"
+)
+
+af_results$total      # FA total + IC 95%
+af_results$by_period  # FA por ano
+```
+
+---
+
+# Parte 2 — Avanços do climasus4r além do estudo
+
+| Limitação do estudo | Como o climasus4r avança |
+|---|---|
+| Apenas temperatura (ERA5) como exposição | `sus_climate_compute_indicators()`: HI, WBGT, UTCI, PET — índices que capturam umidade + vento (mais relevantes fisiologicamente) |
+| 1 método de definição de onda de calor | `sus_climate_compute_heatwaves()`: 7 métodos internacionais (WHO, WMO, INMET, EHF, UTCI, WBGT, HI) — análise de sensibilidade definitória |
+| ERA5-Land sem validação por estações | `sus_climate_inmet()` com ~400 estações INMET: validação e fusão espacial, correção de viés possível |
+| Sem poluição do ar | `sus_grid_pollution_cams()`, `sus_grid_pollution_merra2()`, `sus_grid_pollution_ghap()`: PM2.5, O3, NO2 |
+| Sem seca/vegetação | `sus_grid_pdsi()` (PDSI), `sus_grid_smvi()` (NDVI), `sus_grid_fires()` (focos de queimada) |
+| Modelos só por zona climática discreta | `sus_mod_spacetime_bayes()`: BYM2 espácio-temporal Bayesiano, variação espacial suave |
+| Frações atribuíveis básicas | `sus_mod_burden()`: carga de doença integrada; `sus_mod_pool()`: meta-regressão multi-cidade |
+| Sem detecção de hotspots | `sus_mod_spatial_scan()` (SaTScan), `sus_mod_spatial_moran()` (LISA) |
+| Sem integração censitária | `sus_socio_add_census()` via `censobr`: renda, densidade, acesso ao ar-condicionado |
+| Sem pipeline automatizado | `sus_rap_targets()`: pipeline `targets` reprodutível e auditável |
+
+---
+
+# Parte 3 — Lacunas identificadas
+
+## Lacuna 1: Estrato composto multi-coluna (corrigida nesta versão)
+
+O estudo usa estrato ano × mês × dia da semana. A versão anterior de
+`sus_mod_casecrossover()` aceitava apenas um único valor de estrato.
+**Resolvido**: a função agora aceita `stratum = c("col_a", "col_b")` e
+cola as colunas automaticamente (ver Etapa 12 acima).
+
+## Lacuna 2: Dados Köppen de nível municipal completo
+
+`sus_grid_koppen()` retorna atualmente a zona dominante por estado (baseada em
+Alvares et al. 2013). Para análises de alta resolução, substitua pelo
+*join* espacial completo a partir do `geobr`:
+
+```{r koppen_highres, eval=FALSE}
+# Alternativa de alta resolução (requer geobr + sf)
+library(geobr)
+library(sf)
+municipios <- read_municipality(year = 2020)
+# ... intersecção espacial com raster Köppen
+```
+
+## Lacuna 3: QC de séries temporais pré-packaged
+
+`sus_data_ts_quality()` (nova função) cobre os critérios principais.
+A detecção de quebras estruturais requer o pacote `strucchange` (em `Suggests`).
+
+## Lacuna 4: DLNM integrado ao design case-crossover
+
+Para combinar a flexibilidade do crossbasis DLNM com o design case-crossover
+estratificado no mesmo modelo (Armstrong et al. 2014), use `sus_mod_dlnm()`
+com `ns_df = 0` (sem tendência temporal — a estratificação substitui o
+controle de confundimento sazonal) e garanta que os dados já estejam
+estratificados:
+
+```{r dlnm_cc, eval=FALSE}
+# DLNM sem controle temporal (o estrato absorve sazonalidade)
+dlnm_cc <- sus_mod_dlnm(
+  df           = clima_lags,
+  outcome_col  = "n_obitos",
+  ns_df        = 0L,     # suprime spline temporal
+  family       = "quasipoisson",
+  lang         = "pt"
+)
+```
+
+---
+
+# Verificação do pipeline
+
+```{r verify}
+devtools::load_all()
+
+# Funções novas existem
+stopifnot(exists("sus_grid_koppen"))
+stopifnot(exists("sus_data_ts_quality"))
+
+# Köppen retorna tabela válida
+kp <- sus_grid_koppen(lang = "en", verbose = FALSE)
+stopifnot(nrow(kp) > 0)
+stopifnot("zona_koppen" %in% names(kp))
+
+# Estrato composto funciona em sus_mod_casecrossover()
+set.seed(42)
+n <- 365 * 3
+df_test <- data.frame(
+  date    = seq(as.Date("2010-01-01"), by = "day", length.out = n),
+  n       = rpois(n, 5),
+  temp    = rnorm(n, 28, 3),
+  ano_mes = format(seq(as.Date("2010-01-01"), by = "day", length.out = n), "%Y-%m"),
+  dow     = weekdays(seq(as.Date("2010-01-01"), by = "day", length.out = n))
+)
+cc_test <- sus_mod_casecrossover(df_test, outcome_col = "n",
+                                  exposure_col = "temp",
+                                  stratum = c("ano_mes", "dow"),
+                                  verbose = FALSE)
+stopifnot(!is.null(cc_test$or_table))
+message("OK: compound stratum case-crossover")
+
+# QC de série temporal
+qc_test <- sus_data_ts_quality(df_test, date_col = "date",
+                                count_col = "n", verbose = FALSE)
+stopifnot("recommend" %in% names(qc_test))
+message("OK: sus_data_ts_quality")
+```
+
+---
+
+# Referências
+
+Armstrong, B.G., Gasparrini, A., & Tobias, A. (2014). Conditional Poisson
+models: a flexible alternative to conditional logistic case crossover analysis.
+*BMC Medical Research Methodology*, 14, 122.
+
+Alvares, C.A. et al. (2013). Köppen's climate classification map for Brazil.
+*Meteorologische Zeitschrift*, 22(6), 711--728.
+
+Gasparrini, A., Armstrong, B., & Kenward, M.G. (2010). Distributed lag
+non-linear models. *Statistics in Medicine*, 29(21), 2224--2234.
+
+Gasparrini, A., & Armstrong, B. (2013). The impact of heat waves on mortality.
+*Epidemiology*, 24(4), 521--529.
+
+Maclure, M. (1991). The case-crossover design.
+*American Journal of Epidemiology*, 133(2), 144--153.

@@ -61,9 +61,9 @@ utils::globalVariables(c(
     es = "{.arg method} debe ser 'conditional_poisson' o 'clogit'."
   ),
   err_bad_stratum = list(
-    pt = "{.arg stratum} deve ser 'month', 'week', ou o nome de uma coluna existente ({.val {stratum}}).",
-    en = "{.arg stratum} must be 'month', 'week', or an existing column name ({.val {stratum}}).",
-    es = "{.arg stratum} debe ser 'month', 'week', o el nombre de una columna existente ({.val {stratum}})."
+    pt = "{.arg stratum} deve ser 'month', 'week', o nome de uma coluna existente, ou um vetor de nomes de colunas ({.val {stratum}}).",
+    en = "{.arg stratum} must be 'month', 'week', an existing column name, or a vector of column names ({.val {stratum}}).",
+    es = "{.arg stratum} debe ser 'month', 'week', el nombre de una columna existente, o un vector de nombres de columnas ({.val {stratum}})."
   ),
   err_no_cases = list(
     pt = "Nenhum caso encontrado ({outcome_col} > 0) apos remocao de missings.",
@@ -302,8 +302,15 @@ sus_mod_casecrossover <- function(
                          avail = avail))
   }
 
-  if (!stratum %in% c("month", "week") && !stratum %in% names(df))
-    cli::cli_abort(.sccl("err_bad_stratum", lang, stratum = stratum))
+  if (length(stratum) == 1L) {
+    if (!stratum %in% c("month", "week") && !stratum %in% names(df))
+      cli::cli_abort(.sccl("err_bad_stratum", lang, stratum = stratum))
+  } else {
+    bad_strat <- setdiff(stratum, names(df))
+    if (length(bad_strat) > 0L)
+      cli::cli_abort(.sccl("err_bad_stratum", lang,
+                           stratum = paste(bad_strat, collapse = ", ")))
+  }
 
   if (!is.null(covariates)) {
     bad_cov <- setdiff(covariates, names(df))
@@ -411,11 +418,16 @@ sus_mod_casecrossover <- function(
 #' @noRd
 .scc_build_dataset <- function(df, outcome_col, exposure_col, covariates,
                                 stratum, lag) {
-  # Include the custom stratum column when it is not a keyword
-  extra_cols <- c(
-    covariates %||% character(0),
-    if (!stratum %in% c("month", "week")) stratum else character(0)
-  )
+  # Include the custom stratum column(s) when they are not keywords
+  keyword_strata <- c("month", "week")
+  custom_strat_cols <- if (length(stratum) > 1L) {
+    stratum
+  } else if (!stratum %in% keyword_strata) {
+    stratum
+  } else {
+    character(0)
+  }
+  extra_cols <- c(covariates %||% character(0), custom_strat_cols)
 
   df <- df |>
     dplyr::select(
@@ -446,7 +458,9 @@ sus_mod_casecrossover <- function(
 
   # Stratum definition
   d <- as.Date(df$date)
-  df$stratum_id <- if (stratum == "month") {
+  df$stratum_id <- if (length(stratum) > 1L) {
+    do.call(paste, c(lapply(stratum, function(s) as.character(df[[s]])), list(sep = "-")))
+  } else if (stratum == "month") {
     paste(format(d, "%Y"), format(d, "%m"), sep = "-")
   } else if (stratum == "week") {
     paste(format(d, "%G"), sprintf("%02d", as.integer(format(d, "%V"))), sep = "-W")

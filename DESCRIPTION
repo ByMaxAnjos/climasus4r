@@ -89,6 +89,7 @@ Suggests:
     leaflet,
     mvmeta,
     survival,
+    strucchange,
     terra,
     exactextractr,
     ncdf4,
