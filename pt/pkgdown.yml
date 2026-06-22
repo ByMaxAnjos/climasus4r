@@ -1,0 +1,46 @@
+pandoc: 3.8.3
+pkgdown: 2.2.0
+pkgdown_sha: ~
+articles:
+  01-importacao: 01-importacao.html
+  02-encoding-padronizacao: 02-encoding-padronizacao.html
+  03-filtragem: 03-filtragem.html
+  04-variaveis-agregacao: 04-variaveis-agregacao.html
+  05-juncao-espacial: 05-juncao-espacial.html
+  06-socioeconomico: 06-socioeconomico.html
+  07-clima-estacoes: 07-clima-estacoes.html
+  08-clima-grade: 08-clima-grade.html
+  09-modelagem: 09-modelagem.html
+  climate_indicators: climate_indicators.html
+  contributing: contributing.html
+  ec-01-respiratorio-pediatrico: ec-01-respiratorio-pediatrico.html
+  ec-02-dengue-clima: ec-02-dengue-clima.html
+  ec-03-cardio-idosos-calor: ec-03-cardio-idosos-calor.html
+  ec-04-hospitalizacoes-frio: ec-04-hospitalizacoes-frio.html
+  hub-modelagem: hub-modelagem.html
+  hub-pipeline: hub-pipeline.html
+  hub-rap: hub-rap.html
+  hub-tematicos: hub-tematicos.html
+  mod-01-dlnm: mod-01-dlnm.html
+  mod-02-atribuivel: mod-02-atribuivel.html
+  mod-03-crossover-its: mod-03-crossover-its.html
+  mod-04-multicidade: mod-04-multicidade.html
+  mod-05-ml: mod-05-ml.html
+  mod-06-espacial: mod-06-espacial.html
+  mod-07-bayes: mod-07-bayes.html
+  mod-08-vulnerabilidade-swot: mod-08-vulnerabilidade-swot.html
+  ondas_de_calor: ondas_de_calor.html
+  ondas_de_frio: ondas_de_frio.html
+  parte1_clima_agg: parte1_clima_agg.html
+  parte2_clima_agg: parte2_clima_agg.html
+  rap-01-exportar-executar: rap-01-exportar-executar.html
+  rap-02-targets: rap-02-targets.html
+  rap-03-compartilhar: rap-03-compartilhar.html
+  tutorial_clima_inmet: tutorial_clima_inmet.html
+  tutorial_estudos_casos: tutorial_estudos_casos.html
+  tutorial_introducao: tutorial_introducao.html
+  tutorials: tutorials.html
+last_built: 2026-06-22T20:19Z
+urls:
+  reference: https://bymaxanjos.github.io/climasus4r/pt/reference
+  article: https://bymaxanjos.github.io/climasus4r/pt/articles
