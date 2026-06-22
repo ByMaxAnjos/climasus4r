@@ -2,7 +2,8 @@
 title: "Detecção e Visualização de Ondas de Calor"
 subtitle: "Pipeline INMET → Preenchimento → Indicadores → Ondas de Calor | `sus_climate_compute_heatwaves()` e `sus_climate_plot_heatwaves()`"
 author:
-  - name: "Dr. Max Anjos", " Thauã Menezes"
+  - name: "Dr. Max Anjos"
+  - name: "Thauã Menezes"
 date: "`r format(Sys.Date(), '%d %B, %Y')`"
 output:
   html_document:
