@@ -421,7 +421,7 @@ sus_data_import <- function(uf = NULL,
     
     # 3. Aviso se o usuario fornecer mes para sistemas que geralmente sao anuais (SIM, SINASC, SINAN)
     if (!system_prefix_month %in% systems_requiring_month) {
-      cli::cli_alert_warning("Parameter 'month' is provided but typically not used for {system_prefix} systems.")
+      cli::cli_alert_warning("Parameter 'month' is provided but typically not used for {system_prefix_month} systems.")
       cli::cli_alert_info("These systems usually aggregate data by year. The 'month' filter might be ignored by the server.")
     }
   }
@@ -1364,7 +1364,7 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
     
     # 3. Aviso se o usuario fornecer mes para sistemas que geralmente sa anuais (SIM, SINASC, SINAN)
     if (!system_prefix_month %in% systems_requiring_month) {
-      cli::cli_alert_warning("Parameter 'month' is provided but typically not used for {system_prefix} systems.")
+      cli::cli_alert_warning("Parameter 'month' is provided but typically not used for {system_prefix_month} systems.")
       cli::cli_alert_info("These systems usually aggregate data by year. The 'month' filter might be ignored by the server.")
     }
   }

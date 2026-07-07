@@ -1141,7 +1141,7 @@ sus_data_filter_cid <- function(
   # Apply filter based on backend type
   # ============================================================================
 
-  filtered_df <- apply_filter_by_backend(df, filter_expr, backend_type)
+  filtered_df <- apply_cid_filter_by_backend(df, filter_expr, backend_type)
 
   # ============================================================================
   # Report results (only for data frames - for lazy backends, show estimate)
@@ -1559,7 +1559,7 @@ detect_health_system_lazy <- function(df, col_names, backend_type) {
 #' Apply filter based on backend type
 #' @keywords internal
 #' @noRd
-apply_filter_by_backend <- function(df, filter_expr, backend_type) {
+apply_cid_filter_by_backend <- function(df, filter_expr, backend_type) {
   icd_col <- filter_expr$icd_column
 
   if (backend_type == "dataframe") {

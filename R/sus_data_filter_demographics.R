@@ -1095,7 +1095,7 @@ sus_data_filter_demographics <- function(df,
 
   # Unified lazy-compatible filter dispatcher
   apply_filter <- function(data, filter_expr) {
-    apply_filter_by_backend(data, filter_expr, backend_type)
+    apply_demographic_filter_by_backend(data, filter_expr, backend_type)
   }
 
   #  FILTER BY SEX
@@ -1880,7 +1880,7 @@ translate_input <- function(x) {
 #'
 #' Arrow and DuckDB both go through dplyr verbs so the query stays lazy.
 #' @noRd
-apply_filter_by_backend <- function(df, filter_expr, backend_type) {
+apply_demographic_filter_by_backend <- function(df, filter_expr, backend_type) {
   col <- filter_expr$column
 
   if (filter_expr$type == "in") {
