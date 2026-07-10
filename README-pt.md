@@ -27,6 +27,17 @@ Baseado no sólido ecossistema do pacote [`microdatasus`](https://github.com/rfs
 
 O **climasus4r** encontra-se atualmente em desenvolvimento ativo. A versão mais recente pode ser instalada diretamente a partir do GitHub, garantindo acesso às funcionalidades mais atualizadas. Antes da instalação, é necessário ter o pacote remotes, que permite a instalação de pacotes hospedados no GitHub.
 
+
+## Opção 1: Instalação via r-universe (Recomendado)
+
+```r
+install.packages("climasus4r", repos = c(
+  "https://bymaxanjos.r-universe.dev",
+  "https://cloud.r-project.org"
+))
+```
+
+
 ```r
 # Instale o remotes se ainda não o tiver
 if (!require("remotes")) {
