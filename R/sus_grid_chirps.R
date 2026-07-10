@@ -198,6 +198,18 @@ sus_grid_chirps <- function(
   if (!is.character(cache_dir) || nchar(trimws(cache_dir)) == 0) cli::cli_abort(msg$invalid_cache_dir)
   cache_dir <- normalizePath(cache_dir, mustWork = FALSE)
 
+  # Cache Parquet fica no cache_dir/parquet, uma unidade (mês/ano) por
+  # arquivo — precisa de um sufixo por conjunto de municípios, senão a
+  # 1a chamada (ex. município do AC) grava o cache e qualquer chamada
+  # seguinte com OUTRO conjunto de municípios (ex. RO) bate no mesmo
+  # arquivo e devolve os dados do AC de volta, sem erro nenhum.
+  muni_hash <- ""
+  if (!is.null(municipalities)) {
+    muni_col_probe <- .chirps_detect_muni_col(municipalities)
+    muni_hash <- paste0("_", substr(digest::digest(
+      sort(as.character(municipalities[[muni_col_probe]]))), 1, 10))
+  }
+
   # ── 2. Build download manifest ───────────────────────────────────────────────
   manifest_rows <- list()
 
@@ -205,7 +217,7 @@ sus_grid_chirps <- function(
     if (resolution == "annual") {
       info <- .chirps_file_info("annual", yr, NA_integer_, NA_integer_)
       pq_path <- file.path(cache_dir, "parquet",
-                           sprintf("chirps_annual_%04d.parquet", yr))
+                           sprintf("chirps_annual_%04d%s.parquet", yr, muni_hash))
       manifest_rows[[length(manifest_rows) + 1]] <- list(
         resolution = "annual",
         year       = yr,
@@ -221,7 +233,7 @@ sus_grid_chirps <- function(
       for (mo in months) {
         info    <- .chirps_file_info("monthly", yr, mo, NA_integer_)
         pq_path <- file.path(cache_dir, "parquet",
-                             sprintf("chirps_monthly_%04d%02d.parquet", yr, mo))
+                             sprintf("chirps_monthly_%04d%02d%s.parquet", yr, mo, muni_hash))
         manifest_rows[[length(manifest_rows) + 1]] <- list(
           resolution = "monthly",
           year       = yr,
@@ -241,7 +253,7 @@ sus_grid_chirps <- function(
           lubridate::make_date(yr, mo, 1L)))
         # One Parquet per month covers all days
         pq_path <- file.path(cache_dir, "parquet",
-                             sprintf("chirps_daily_%04d%02d.parquet", yr, mo))
+                             sprintf("chirps_daily_%04d%02d%s.parquet", yr, mo, muni_hash))
         for (dy in seq_len(n_days)) {
           info <- .chirps_file_info("daily", yr, mo, dy)
           manifest_rows[[length(manifest_rows) + 1]] <- list(

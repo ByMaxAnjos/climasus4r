@@ -106,5 +106,5 @@ Suggests:
     quarto,
     strucchange
 Additional_repositories: https://inla.r-inla-download.org/R/stable
-URL: https://github.com/ByMaxAnjos/climasus4r
+URL: https://bymaxanjos.r-universe.dev/climasus4r, https://github.com/ByMaxAnjos/climasus4r
 BugReports: https://github.com/ByMaxAnjos/climasus4r/issues

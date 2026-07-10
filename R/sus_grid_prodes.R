@@ -198,9 +198,16 @@ sus_grid_prodes <- function(
     b_min   <- .prodes_wfs_config[[b]]$min_year
     b_years <- years[years >= b_min]
     for (yr in b_years) {
+      # cache_json NÃO é filtrado por UF (ver .prodes_fetch_wfs — o campo
+      # "state" do WFS do PRODES é inconsistente entre biomas e até dentro
+      # do mesmo bioma, ora sigla ("AC"), ora nome completo ("GOIÁS"), então
+      # um filtro CQL por estado silenciosamente não bate para metade dos
+      # estados; a interseção espacial com `municipalities`, abaixo, já faz
+      # o recorte por UF corretamente). Nacional, compartilhado entre
+      # chamadas de UFs diferentes — só cache_pq (resultado agregado) é
+      # por UF, para não repetir o bug de cache cruzado corrigido no CHIRPS.
       uf_tag    <- if (!is.null(uf)) paste(sort(uf), collapse = "-") else "all"
-      gjson_fn  <- sprintf("prodes_%s_%04d_%s.geojson",
-                           tolower(b), yr, uf_tag)
+      gjson_fn  <- sprintf("prodes_%s_%04d.geojson", tolower(b), yr)
       pq_fn     <- sprintf("prodes_%s_%04d_%s.parquet",
                            tolower(b), yr, uf_tag)
       manifest_rows[[length(manifest_rows) + 1]] <- list(
@@ -269,7 +276,7 @@ sus_grid_prodes <- function(
 
     # Download WFS GeoJSON
     defor_sf <- tryCatch(
-      .prodes_fetch_wfs(b, yr, uf, gjson, use_cache, verbose, msg),
+      .prodes_fetch_wfs(b, yr, gjson, use_cache, verbose, msg),
       error = function(e) {
         cli::cli_warn(c(
           glue::glue(msg$download_error,
@@ -307,27 +314,35 @@ sus_grid_prodes <- function(
       # Intersect deforestation with municipalities
       intersection <- sf::st_intersection(defor_clean, municipalities_slim)
 
-      if (nrow(intersection) == 0) return(NULL)
+      if (nrow(intersection) == 0) {
+        # NULL como valor do bloco, não return(NULL) — um return() aqui
+        # sairia de sus_grid_prodes() inteira (o tryCatch({...}) avalia
+        # a expressão no ambiente da função, não cria seu próprio escopo),
+        # abortando o loop de manifest inteiro no primeiro bioma sem
+        # dado para a UF (ex.: Amazônia para DF), em vez de só pular
+        # este item e seguir para o próximo bioma/ano.
+        NULL
+      } else {
+        # Compute intersected area in km²
+        intersection$area_km2_intersected <- as.numeric(
+          sf::st_area(intersection)) / 1e6
 
-      # Compute intersected area in km²
-      intersection$area_km2_intersected <- as.numeric(
-        sf::st_area(intersection)) / 1e6
+        # Count distinct patches via uid if available
+        has_uid <- "uid" %in% names(intersection)
 
-      # Count distinct patches via uid if available
-      has_uid <- "uid" %in% names(intersection)
-
-      plain <- sf::st_drop_geometry(intersection)
-      agg   <- plain |>
-        dplyr::summarise(
-          deforested_area_km2 = sum(.data$area_km2_intersected, na.rm = TRUE),
-          n_patches = if (has_uid) dplyr::n_distinct(.data$uid)
-                      else dplyr::n(),
-          .by = c(code_muni, year)
-        )
-      agg$biome <- b
-      agg$date  <- as.Date(sprintf("%04d-01-01", yr))
-      agg$n_patches <- as.integer(agg$n_patches)
-      agg
+        plain <- sf::st_drop_geometry(intersection)
+        agg   <- plain |>
+          dplyr::summarise(
+            deforested_area_km2 = sum(.data$area_km2_intersected, na.rm = TRUE),
+            n_patches = if (has_uid) dplyr::n_distinct(.data$uid)
+                        else dplyr::n(),
+            .by = c(code_muni, year)
+          )
+        agg$biome <- b
+        agg$date  <- as.Date(sprintf("%04d-01-01", yr))
+        agg$n_patches <- as.integer(agg$n_patches)
+        agg
+      }
     }, error = function(e) {
       cli::cli_warn(c(
         glue::glue(msg$intersect_warn, biome = b, year = yr),
@@ -455,7 +470,7 @@ sus_grid_prodes <- function(
 #' Download PRODES deforestation polygons via TerraBrasilis WFS
 #' @keywords internal
 #' @noRd
-.prodes_fetch_wfs <- function(biome, year, uf, cache_path,
+.prodes_fetch_wfs <- function(biome, year, cache_path,
                                use_cache, verbose, msg) {
   filename <- basename(cache_path)
 
@@ -472,13 +487,10 @@ sus_grid_prodes <- function(
 
   cfg <- .prodes_wfs_config[[biome]]
 
-  # Build CQL filter
+  # Sem filtro CQL por estado (o campo "state" do WFS não é confiável entre
+  # biomas — ver comentário no manifesto acima); baixa o bioma/ano inteiro,
+  # a interseção espacial com `municipalities` restringe corretamente por UF.
   cql_parts <- sprintf("year=%d", as.integer(year))
-  if (!is.null(uf) && length(uf) > 0) {
-    uf_filter <- paste(sprintf("'%s'", uf), collapse = ",")
-    cql_parts <- paste0(cql_parts, sprintf(" AND %s IN (%s)",
-                                            cfg$state_field, uf_filter))
-  }
 
   if (verbose) cli::cli_alert_info(
     glue::glue(msg$download_file,
