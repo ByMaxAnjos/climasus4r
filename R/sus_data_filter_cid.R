@@ -1463,17 +1463,16 @@ process_icd_codes <- function(codes) {
       end_num_str <- substr(end_code, 2, nchar(end_code))
       end_num <- if (nchar(end_num_str) > 0) as.numeric(end_num_str) else 99
 
-      if (start_letter != end_letter) {
-        warning(paste0(
-          "ICD range '",
-          code,
-          "' spans different chapters. Using start chapter only."
-        ))
-        end_letter <- start_letter
-      }
+      # Ranges may span multiple ICD-10 chapter letters (e.g. "A00-R99", "V01-X59")
+      letters_seq <- LETTERS[seq(which(LETTERS == start_letter), which(LETTERS == end_letter))]
 
-      for (num in start_num:end_num) {
-        expanded <- c(expanded, paste0(start_letter, sprintf("%02d", num)))
+      for (i in seq_along(letters_seq)) {
+        lo <- if (i == 1) start_num else 0
+        hi <- if (i == length(letters_seq)) end_num else 99
+        expanded <- c(
+          expanded,
+          paste0(letters_seq[i], sprintf("%02d", lo:hi))
+        )
       }
     } else {
       expanded <- c(expanded, code)
