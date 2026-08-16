@@ -33,14 +33,14 @@ for the \code{"lag"} plot. \code{NULL} (default) uses the 75th percentile of lag
 exposure.}
 
 \item{lags_at}{Integer vector. Lag times shown in the \code{"slice"} plot.
-Default \code{c(0L, 3L, 7L, 14L, 21L)} — automatically clipped to \code{lag_max}.}
+Default \code{c(0L, 3L, 7L, 14L, 21L)} -- automatically clipped to \code{lag_max}.}
 
-\item{pred_at}{Numeric vector (0–1). Quantile probabilities at which to
+\item{pred_at}{Numeric vector (0-1). Quantile probabilities at which to
 report cumulative RR in the statistical table. Default:
 \code{c(0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.99)}.}
 
-\item{interactive}{Logical. \code{TRUE} → \code{\link[plotly:ggplotly]{plotly::ggplotly()}} / plotly 3-D for
-\code{"surface"}; \code{FALSE} (default) → static ggplot2.}
+\item{interactive}{Logical. \code{TRUE} -> \code{\link[plotly:ggplotly]{plotly::ggplotly()}} / plotly 3-D for
+\code{"surface"}; \code{FALSE} (default) -> static ggplot2.}
 
 \item{color_palette}{Character. Name of a \pkg{ggsci} palette. Default
 \code{"npg"}. Other useful options: \code{"lancet"}, \code{"jama"}, \code{"nejm"}, \code{"aaas"}.}
@@ -57,9 +57,9 @@ for static; HTML for interactive.}
 \value{
 Depending on \code{output_type}:
 \itemize{
-\item \code{"plot"} → a \code{ggplot} or \code{plotly} object.
-\item \code{"table"} → a \code{gt_tbl} (or \code{tibble} when \pkg{gt} is unavailable).
-\item \code{"all"} → a named list: \verb{$plot}, \verb{$table}, \verb{$data}.
+\item \code{"plot"} -> a \code{ggplot} or \code{plotly} object.
+\item \code{"table"} -> a \code{gt_tbl} (or \code{tibble} when \pkg{gt} is unavailable).
+\item \code{"all"} -> a named list: \verb{$plot}, \verb{$table}, \verb{$data}.
 }
 }
 \description{
@@ -74,8 +74,8 @@ contour map, lag-stratified slices, exposure distribution, and time series.
    \code{type} \tab Description \tab Key reference \cr
    \code{"overall"} \tab Cumulative exposure-response curve with CI + exposure histogram \tab Gasparrini et al. (2010) \cr
    \code{"lag"} \tab Lag-specific and cumulative lag-response at a given exposure \tab Gasparrini et al. (2010) \cr
-   \code{"surface"} \tab 3-D bidimensional exposure × lag response surface \tab Gasparrini (2011) \cr
-   \code{"contour"} \tab 2-D contour heat map of exposure × lag (publication-friendly) \tab Gasparrini et al. (2014) \cr
+   \code{"surface"} \tab 3-D bidimensional exposure x lag response surface \tab Gasparrini (2011) \cr
+   \code{"contour"} \tab 2-D contour heat map of exposure x lag (publication-friendly) \tab Gasparrini et al. (2014) \cr
    \code{"slice"} \tab Exposure-response curves at specific lag times (multilag) \tab Armstrong (2006) \cr
    \code{"distribution"} \tab Exposure variable histogram/density with quartile markers \tab Bhaskaran et al. (2013) \cr
    \code{"series"} \tab Daily outcome count + exposure time series \tab Bhaskaran et al. (2013) \cr
@@ -112,11 +112,11 @@ out$table
 }
 \references{
 Gasparrini, A., Armstrong, B., & Kenward, M.G. (2010). Distributed lag
-non-linear models. \emph{Statistics in Medicine}, 29(21), 2224–2234.
+non-linear models. \emph{Statistics in Medicine}, 29(21), 2224-2234.
 \doi{10.1002/sim.3940}
 
 Gasparrini, A. (2011). Distributed lag linear and non-linear models in R:
-the package dlnm. \emph{Journal of Statistical Software}, 43(8), 1–20.
+the package dlnm. \emph{Journal of Statistical Software}, 43(8), 1-20.
 \doi{10.18637/jss.v043.i08}
 
 Gasparrini, A., Armstrong, B., & Kenward, M.G. (2014). Reducing and
@@ -124,11 +124,11 @@ meta-analysing estimates from distributed lag non-linear models.
 \emph{BMC Medical Research Methodology}, 14, 70. \doi{10.1186/1471-2288-14-70}
 
 Armstrong, B. (2006). Models for the relationship between ambient
-temperature and daily mortality. \emph{Epidemiology}, 17(6), 624–631.
+temperature and daily mortality. \emph{Epidemiology}, 17(6), 624-631.
 
 Bhaskaran, K., Gasparrini, A., Hajat, S., Smeeth, L., & Armstrong, B.
 (2013). Time series regression studies in environmental epidemiology.
-\emph{International Journal of Epidemiology}, 42(4), 1187–1195.
+\emph{International Journal of Epidemiology}, 42(4), 1187-1195.
 \doi{10.1093/ije/dyt092}
 }
 \seealso{

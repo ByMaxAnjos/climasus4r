@@ -7,39 +7,53 @@
 #'
 #' The data source is the **ERA5-Land Daily Aggregates for Latin America** project
 #' (Saldanha, rfsaldanha.github.io), which provides NetCDF files (one per
-#' variable × month × year) at ~10 km spatial resolution for 1950–2025.
+#' variable x month x year) at ~10 km spatial resolution for 1950-2025.
 #' Files are hosted on Zenodo under CC-BY 4.0.
 #'
 #' When `municipalities` is provided, the function returns a `climasus_df` at
-#' `stage = "climate"`, `type = "era5_land"` — directly compatible with
+#' `stage = "climate"`, `type = "era5_land"` -- directly compatible with
 #' [sus_climate_anomaly()], [sus_climate_aggregate()], and [sus_mod_dlnm()].
 #'
 #' @param years Numeric vector of years to import. Must be between 1950 and 2025.
 #'   Example: `2010:2023`, `c(2019, 2021)`.
 #'
-#' @param months Integer vector of months to import (1–12). Default: `1:12`
+#' @param months Integer vector of months to import (1-12). Default: `1:12`
 #'   (all months).
 #'
 #' @param vars Character vector of variable aliases to download. Allowed values:
 #'   \itemize{
-#'     \item `"t2m"` — 2 m temperature mean (→ `tair_dry_bulb_c`, °C)
-#'     \item `"t2m_max"` — 2 m temperature maximum (→ `tair_max_c`, °C)
-#'     \item `"t2m_min"` — 2 m temperature minimum (→ `tair_min_c`, °C)
-#'     \item `"td2m"` — 2 m dewpoint temperature mean (→ `dew_point_c`, °C)
-#'     \item `"u10"` — 10 m u-component of wind mean (→ `ws_10m_u_m_s`, m/s)
-#'     \item `"v10"` — 10 m v-component of wind mean (→ `ws_10m_v_m_s`, m/s)
-#'     \item `"sp"` — surface pressure mean (→ `patm_hpa`, hPa)
-#'     \item `"tp"` — total precipitation daily sum (→ `rainfall_mm`, mm)
-#'     \item `"all"` — all variables above
+#'     \item `"t2m"` -- 2 m temperature mean (-> `tair_dry_bulb_c`, degC)
+#'     \item `"t2m_max"` -- 2 m temperature maximum (-> `tair_max_c`, degC)
+#'     \item `"t2m_min"` -- 2 m temperature minimum (-> `tair_min_c`, degC)
+#'     \item `"td2m"` -- 2 m dewpoint temperature mean (-> `dew_point_c`, degC)
+#'     \item `"u10"` -- 10 m u-component of wind mean (-> `ws_10m_u_m_s`, m/s)
+#'     \item `"v10"` -- 10 m v-component of wind mean (-> `ws_10m_v_m_s`, m/s)
+#'     \item `"sp"` -- surface pressure mean (-> `patm_hpa`, hPa)
+#'     \item `"tp"` -- total precipitation daily sum (-> `rainfall_mm`, mm)
+#'     \item `"all"` -- all variables above
 #'   }
 #'   Default: `c("t2m", "tp")`.
 #'
 #' @param municipalities An `sf` object with polygon geometries representing the
 #'   areas to which raster data will be aggregated (typically Brazilian
 #'   municipalities from [geobr::read_municipality()]). Must contain a column
-#'   identifying each polygon — the function auto-detects `code_muni`, `CD_MUN`,
+#'   identifying each polygon -- the function auto-detects `code_muni`, `CD_MUN`,
 #'   or `CD_GEOCMU`. If `NULL`, returns a named list of downloaded NetCDF file
 #'   paths instead of a `climasus_df`.
+#'
+#' @param raster_area Only used when `municipalities = NULL`. One of:
+#'   \itemize{
+#'     \item `FALSE` (default) -- return the character vector of cached
+#'       file paths.
+#'     \item `TRUE` -- return an in-memory multi-layer `terra::SpatRaster`
+#'       (layers named by date and variable), full extent -- useful for
+#'       plotting with `sus_grid_plot()`.
+#'     \item an `sf` POLYGON object -- return the `SpatRaster` cropped and
+#'       masked to that area.
+#'     \item a 2-letter Brazilian state code (e.g. `"MT"`) -- auto-download
+#'       the state boundary via `geobr` (cached) and crop/mask to it.
+#'   }
+#'   Ignored (silently) when `municipalities` is provided.
 #'
 #' @param agg_fun Character. Spatial aggregation function applied over raster
 #'   pixels within each polygon. Any function supported by
@@ -72,18 +86,21 @@
 #'     variable (e.g., `tair_dry_bulb_c`, `rainfall_mm`). Metadata:
 #'     `stage = "climate"`, `type = "era5_land"`.
 #'   \item If `municipalities = NULL`: a named character vector of paths to
-#'     the downloaded NetCDF files (named by `"{year}_{month}_{var}"`).
+#'     the downloaded NetCDF files (named by `"{year}_{month}_{var}"`), or,
+#'     per `raster_area`, an in-memory multi-layer `terra::SpatRaster` with
+#'     layers named `"{indicator}_{date}"`, optionally cropped and masked
+#'     to an area of interest.
 #' }
 #'
 #' @section Data Source:
-#' Saldanha, R. ERA5-Land Daily Aggregates for Latin America (1950–2025).
+#' Saldanha, R. ERA5-Land Daily Aggregates for Latin America (1950-2025).
 #' Zenodo. <https://zenodo.org/doi/10.5281/zenodo.10013254>. CC-BY 4.0.
 #'
 #' @section Unit Conversions Applied:
 #' \itemize{
-#'   \item Temperature (K → °C): subtract 273.15
-#'   \item Precipitation (m → mm): multiply by 1000
-#'   \item Pressure (Pa → hPa): divide by 100
+#'   \item Temperature (K -> degC): subtract 273.15
+#'   \item Precipitation (m -> mm): multiply by 1000
+#'   \item Pressure (Pa -> hPa): divide by 100
 #'   \item Wind components (m/s): no conversion needed
 #' }
 #'
@@ -117,6 +134,7 @@ sus_grid_era5 <- function(
     months         = 1:12,
     vars           = c("t2m", "tp"),
     municipalities = NULL,
+    raster_area    = FALSE,
     agg_fun        = "mean",
     use_cache      = TRUE,
     cache_dir      = "~/.climasus4r_cache/era5",
@@ -184,6 +202,13 @@ sus_grid_era5 <- function(
     }
     rlang::check_installed("exactextractr",
       reason = "to aggregate ERA5-Land rasters to municipality polygons")
+  }
+
+  # --- raster_area ------------------------------------------------------------
+  if (!(isTRUE(raster_area) || isFALSE(raster_area) ||
+        inherits(raster_area, "sf") ||
+        (is.character(raster_area) && length(raster_area) == 1L))) {
+    cli::cli_abort(msg$invalid_return_raster)
   }
 
   # --- agg_fun ----------------------------------------------------------------
@@ -309,8 +334,47 @@ sus_grid_era5 <- function(
   # Attach actual paths back to file_manifest
   file_manifest$actual_path <- unlist(dl_results)
 
-  # If no spatial aggregation requested: return file paths
+  # If no spatial aggregation requested: return file paths (or an in-memory raster)
   if (is.null(municipalities)) {
+    if (!isFALSE(raster_area)) {
+      unique_files <- unique(file_manifest[, c("actual_path", "year", "month", "indicator")])
+      layer_rasters <- lapply(seq_len(nrow(unique_files)), function(i) {
+        nc_path    <- unique_files$actual_path[i]
+        file_year  <- unique_files$year[i]
+        file_month <- unique_files$month[i]
+        indicator  <- unique_files$indicator[i]
+        start_date <- as.Date(sprintf("%04d-%02d-01", file_year, file_month))
+
+        r <- terra::rast(nc_path)
+
+        dates <- tryCatch({
+          t <- terra::time(r)
+          if (length(t) == terra::nlyr(r) && !all(is.na(t))) {
+            as.Date(t)
+          } else {
+            NULL
+          }
+        }, error = function(e) NULL)
+
+        if (is.null(dates)) {
+          dates <- seq(start_date, by = "day", length.out = terra::nlyr(r))
+        }
+
+        names(r) <- paste0(indicator, "_", format(dates, "%Y%m%d"))
+        r
+      })
+
+      result_raster <- terra::rast(layer_rasters)
+      area_vect <- .sus_grid_resolve_area(
+        raster_area, terra::crs(result_raster), cache_dir, use_cache, lang, verbose
+      )
+      result_raster <- .sus_grid_crop_mask(result_raster, area_vect)
+      if (verbose) {
+        cli::cli_alert_success(glue::glue(msg$done_raster, n = terra::nlyr(result_raster)))
+      }
+      return(result_raster)
+    }
+
     result_paths <- stats::setNames(
       file_manifest$actual_path,
       paste(file_manifest$year, sprintf("%02d", file_manifest$month),
@@ -349,7 +413,7 @@ sus_grid_era5 <- function(
   }
 
   # ============================================================================
-  # EXTRACT RASTER → POLYGONS, PER VAR ALIAS
+  # EXTRACT RASTER -> POLYGONS, PER VAR ALIAS
   # ============================================================================
   # Process var by var. Each alias may map to a different file.
   # We collect a data.frame per alias: (code_muni, date, {out_col})
@@ -360,7 +424,7 @@ sus_grid_era5 <- function(
     out_col   <- vmap$col
     conv_fn   <- vmap$conv
 
-    # Files for this alias (all year × month combinations)
+    # Files for this alias (all year x month combinations)
     alias_files <- file_manifest[
       file_manifest$indicator == indicator &
         file_manifest$agg_label == agg_label, ]
@@ -470,7 +534,7 @@ sus_grid_era5 <- function(
 # INTERNAL CONSTANTS
 # ==============================================================================
 
-#' Zenodo Record IDs for ERA5-Land Latin America, by year (1950–2025)
+#' Zenodo Record IDs for ERA5-Land Latin America, by year (1950-2025)
 #' @keywords internal
 #' @noRd
 .era5_zenodo_ids <- c(
@@ -502,7 +566,7 @@ sus_grid_era5 <- function(
   "2025" = 18256859L
 )
 
-#' Variable mapping: alias → (Zenodo indicator, aggregation label, output column, unit conv)
+#' Variable mapping: alias -> (Zenodo indicator, aggregation label, output column, unit conv)
 #' @keywords internal
 #' @noRd
 .era5_var_map <- list(
@@ -554,7 +618,9 @@ sus_grid_era5 <- function(
     agg_done            = "Agrega\u00e7\u00e3o conclu\u00edda: {n_rows} observa\u00e7\u00f5es ({n_mun} munic\u00edpios).",
     extract_warn        = "N\u00e3o foi poss\u00edvel processar {file}.",
     no_data             = "Nenhum dado foi extra\u00eddo com sucesso.",
-    done_paths          = "{n} arquivo(s) dispon\u00edvel(is) no cache."
+    done_paths          = "{n} arquivo(s) dispon\u00edvel(is) no cache.",
+    invalid_return_raster = "{.arg raster_area} deve ser TRUE, FALSE, um objeto sf, ou uma UF (ex. \"MT\").",
+    done_raster         = "{n} camada(s) de raster carregada(s) em mem\u00f3ria."
   ),
   en = list(
     missing_years       = "{.arg years} is required.",
@@ -582,7 +648,9 @@ sus_grid_era5 <- function(
     agg_done            = "Aggregation complete: {n_rows} observations ({n_mun} municipalities).",
     extract_warn        = "Could not process {file}.",
     no_data             = "No data was successfully extracted.",
-    done_paths          = "{n} file(s) available in cache."
+    done_paths          = "{n} file(s) available in cache.",
+    invalid_return_raster = "{.arg raster_area} must be TRUE, FALSE, an sf object, or a UF code (e.g. \"MT\").",
+    done_raster         = "{n} raster layer(s) loaded into memory."
   ),
   es = list(
     missing_years       = "{.arg years} es obligatorio.",
@@ -610,7 +678,9 @@ sus_grid_era5 <- function(
     agg_done            = "Agregaci\u00f3n completa: {n_rows} observaciones ({n_mun} municipios).",
     extract_warn        = "No se pudo procesar {file}.",
     no_data             = "No se extrajo ning\u00fan dato correctamente.",
-    done_paths          = "{n} archivo(s) disponible(s) en cach\u00e9."
+    done_paths          = "{n} archivo(s) disponible(s) en cach\u00e9.",
+    invalid_return_raster = "{.arg raster_area} debe ser TRUE, FALSE, un objeto sf, o un codigo UF (ej. \"MT\").",
+    done_raster         = "{n} capa(s) de raster cargada(s) en memoria."
   )
 )
 
@@ -619,7 +689,7 @@ sus_grid_era5 <- function(
 # INTERNAL HELPERS
 # ==============================================================================
 
-#' Build Zenodo filename for one indicator × year × month × aggregation
+#' Build Zenodo filename for one indicator x year x month x aggregation
 #' @keywords internal
 #' @noRd
 .era5_nc_filename <- function(indicator, year, month, agg) {

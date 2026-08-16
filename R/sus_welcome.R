@@ -98,7 +98,7 @@ sus_welcome <- function(
          )),
     list(num = 5, color = "green",
          name = c(pt = "INTEGRA\u00c7\u00c3O ESPACIAL",    en = "SPATIAL JOIN",            es = "INTEGRACI\u00d3N ESPACIAL"),
-         fns  = c("sus_join_spatial()"),
+         fns  = c("sus_spatial_join()"),
          desc = c(
            pt = "Vincula dados de sa\u00fade a pol\u00edgonos municipais e estaduais brasileiros via geobr + sf",
            en = "Links health data to Brazilian municipal and state polygons via geobr + sf",

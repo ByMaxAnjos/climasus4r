@@ -1,10 +1,10 @@
-# ── NSE variable declarations ─────────────────────────────────────────────────
+# \u2500\u2500 NSE variable declarations \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 utils::globalVariables(c(
   "code_muni", "date", "pdsi",
   "bad", "valid", "err", "n_rows", "n_mun", "n_files", "filename"
 ))
 
-# ── Exported function ─────────────────────────────────────────────────────────
+# \u2500\u2500 Exported function \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 #' Import Palmer Drought Severity Index (PDSI) for Brazilian Municipalities
 #'
@@ -20,25 +20,25 @@ utils::globalVariables(c(
 #' Health applications in Brazil:
 #' \itemize{
 #'   \item Drought (PDSI < -2): malnutrition, diarrheal disease, mental health
-#'     stress, vector-borne disease in semi-arid Northeast and Amazônia
+#'     stress, vector-borne disease in semi-arid Northeast and Amazonia
 #'   \item Wet periods (PDSI > 2): leptospirosis, hepatitis A, flooding
 #' }
 #'
 #' **Available sources:**
 #' \itemize{
 #'   \item `"terraclimate"` (default): TerraClimate monthly PDSI (Abatzoglou
-#'     et al., 2018; University of Idaho). Resolution 1/24° (~4 km), 1950–2025,
+#'     et al., 2018; University of Idaho). Resolution 1/24deg (~4 km), 1950-2025,
 #'     WGS84, no authentication. One NetCDF file (~165 MB) per year.
 #'   \item `"noaa_psl"`: Dai (2011) self-calibrated PDSI from NOAA Physical
-#'     Sciences Laboratory. Resolution 2.5°, 1850–2018, single global file
+#'     Sciences Laboratory. Resolution 2.5deg, 1850-2018, single global file
 #'     (~40 MB). Coarser but longer record.
 #' }
 #'
 #' @param years Integer vector. Years to download.
-#'   TerraClimate: 1950–2025. NOAA PSL: 1850–2018.
+#'   TerraClimate: 1950-2025. NOAA PSL: 1850-2018.
 #'   `NULL` (default) = last two complete years.
 #'
-#' @param months Integer vector (1–12). Months to include. Default `1:12`.
+#' @param months Integer vector (1-12). Months to include. Default `1:12`.
 #'
 #' @param source Character. Data source: `"terraclimate"` (default) or
 #'   `"noaa_psl"`.
@@ -46,6 +46,19 @@ utils::globalVariables(c(
 #' @param municipalities An `sf` POLYGON object (e.g., from
 #'   [geobr::read_municipality()]). When provided, rasters are aggregated and a
 #'   `climasus_df` is returned. If `NULL`, returns cached NetCDF file paths.
+#'
+#' @param raster_area Only used when `municipalities = NULL`. One of:
+#'   \itemize{
+#'     \item `FALSE` (default) -- return the character vector of cached
+#'       file paths.
+#'     \item `TRUE` -- return an in-memory `terra::SpatRaster` (one layer
+#'       per date), cropped to the same bounding box used elsewhere.
+#'     \item an `sf` POLYGON object -- return the `SpatRaster` further
+#'       cropped and masked to that area.
+#'     \item a 2-letter Brazilian state code (e.g. `"MT"`) -- auto-download
+#'       the state boundary via `geobr` (cached) and crop/mask to it.
+#'   }
+#'   Ignored (silently) if `municipalities` is provided.
 #'
 #' @param agg_fun Character. Spatial aggregation for
 #'   `exactextractr::exact_extract()`. Default `"mean"` (area-weighted).
@@ -69,7 +82,9 @@ utils::globalVariables(c(
 #'     `code_muni`, `date` (Date, first day of month), and `pdsi` (numeric,
 #'     unitless). Metadata: `stage = "climate"`, `type = "pdsi"`.
 #'   \item If `municipalities = NULL`: a named character vector of cached
-#'     NetCDF file paths.
+#'     NetCDF file paths, or, per `raster_area`, an in-memory
+#'     `terra::SpatRaster` with one layer per date, optionally cropped and
+#'     masked to an area of interest.
 #' }
 #'
 #' @section PDSI classification:
@@ -87,11 +102,11 @@ utils::globalVariables(c(
 #' \itemize{
 #'   \item TerraClimate: Abatzoglou, J.T. et al. (2018). TerraClimate, a high-
 #'     resolution global dataset of monthly climate and climatic water balance
-#'     from 1958–2015. *Scientific Data*, 5, 170191.
+#'     from 1958-2015. *Scientific Data*, 5, 170191.
 #'     \doi{10.1038/sdata.2017.191}.
 #'     URL: \url{https://climate.northwestknowledge.net/TERRACLIMATE-DATA/}
 #'   \item NOAA PSL: Dai, A. (2011). Characteristics and trends in various
-#'     forms of the PDSI during 1900–2008. *J. Geophys. Res.*, 116, D12115.
+#'     forms of the PDSI during 1900-2008. *J. Geophys. Res.*, 116, D12115.
 #'     \doi{10.1029/2010JD015541}.
 #'     URL: \url{https://downloads.psl.noaa.gov/Datasets/dai_pdsi/}
 #' }
@@ -141,6 +156,7 @@ sus_grid_pdsi <- function(
     months        = 1:12,
     source        = c("terraclimate", "noaa_psl"),
     municipalities = NULL,
+    raster_area   = FALSE,
     agg_fun       = "mean",
     crop_brazil   = TRUE,
     use_cache     = TRUE,
@@ -148,7 +164,7 @@ sus_grid_pdsi <- function(
     lang          = "pt",
     verbose       = TRUE) {
 
-  # ── 1. Validation ───────────────────────────────────────────────────────────
+  # \u2500\u2500 1. Validation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
   if (!is.character(lang) || length(lang) != 1 || !lang %in% c("pt", "en", "es")) {
     cli::cli_abort("{.arg lang} must be 'pt', 'en', or 'es'.")
@@ -181,11 +197,19 @@ sus_grid_pdsi <- function(
   }
   months <- sort(as.integer(unique(months)))
 
+  if (!(isTRUE(raster_area) || isFALSE(raster_area) ||
+        inherits(raster_area, "sf") ||
+        (is.character(raster_area) && length(raster_area) == 1L))) {
+    cli::cli_abort("{.arg raster_area} must be TRUE, FALSE, an sf object, or a UF code.")
+  }
+
   if (!is.null(municipalities)) {
     if (!requireNamespace("sf", quietly = TRUE)) cli::cli_abort(msg$need_sf)
     if (!inherits(municipalities, "sf")) cli::cli_abort(msg$muni_not_sf)
     rlang::check_installed("terra",         reason = "to read PDSI NetCDF rasters")
     rlang::check_installed("exactextractr", reason = "to aggregate rasters to municipality polygons")
+  } else if (!isFALSE(raster_area)) {
+    rlang::check_installed("terra", reason = "to build an in-memory PDSI raster")
   }
 
   valid_agg <- c("mean", "sum", "median", "min", "max")
@@ -198,7 +222,7 @@ sus_grid_pdsi <- function(
   if (!is.character(cache_dir) || nchar(trimws(cache_dir)) == 0) cli::cli_abort(msg$invalid_cache_dir)
   cache_dir <- normalizePath(cache_dir, mustWork = FALSE)
 
-  # ── 2. Build manifest (one entry per year for TerraClimate; single file for NOAA PSL) ──
+  # \u2500\u2500 2. Build manifest (one entry per year for TerraClimate; single file for NOAA PSL) \u2500\u2500
 
   if (source == "terraclimate") {
     manifest <- data.frame(
@@ -233,14 +257,14 @@ sus_grid_pdsi <- function(
                                     source = source, n_files = n_files))
   }
 
-  # ── 3. Parquet early-return ──────────────────────────────────────────────────
+  # \u2500\u2500 3. Parquet early-return \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   pq_paths <- unique(manifest$cache_pq)
   if (!is.null(municipalities) && use_cache && all(file.exists(pq_paths))) {
     if (verbose) cli::cli_alert_success(msg$parquet_cache_hit)
     return(.pdsi_build_from_parquet(pq_paths, verbose, msg))
   }
 
-  # ── 4. Download rasters ───────────────────────────────────────────────────────
+  # \u2500\u2500 4. Download rasters \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   unique_nc <- unique(manifest[, c("filename", "url", "cache_path")])
   for (i in seq_len(nrow(unique_nc))) {
     .pdsi_download_file(
@@ -252,15 +276,45 @@ sus_grid_pdsi <- function(
     )
   }
 
-  # ── 5. Return file paths if no municipalities ────────────────────────────────
+  # \u2500\u2500 5. Return file paths (or in-memory raster) if no municipalities \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   if (is.null(municipalities)) {
+    if (!isFALSE(raster_area)) {
+      brazil_bbox <- if (crop_brazil) terra::ext(-75, -28, -35, 6) else NULL
+      file_years  <- unique(manifest[, c("cache_path", "year")])
+      rasters <- lapply(seq_len(nrow(file_years)), function(i) {
+        if (!file.exists(file_years$cache_path[i]) ||
+            file.size(file_years$cache_path[i]) == 0) return(NULL)
+        tryCatch(
+          .pdsi_read_raster_year(
+            nc_path = file_years$cache_path[i],
+            source  = source,
+            year    = file_years$year[i],
+            months  = months,
+            bbox    = brazil_bbox
+          ),
+          error = function(e) NULL
+        )
+      })
+      rasters <- rasters[!vapply(rasters, is.null, logical(1))]
+      if (length(rasters) == 0) cli::cli_abort(msg$no_data)
+
+      r_out <- terra::rast(rasters)
+      area_vect <- .sus_grid_resolve_area(
+        raster_area, terra::crs(r_out), cache_dir, use_cache, lang, verbose
+      )
+      r_out <- .sus_grid_crop_mask(r_out, area_vect)
+      if (verbose) cli::cli_alert_success(
+        glue::glue(msg$done_raster, n = terra::nlyr(r_out)))
+      return(r_out)
+    }
+
     paths <- stats::setNames(unique_nc$cache_path, unique_nc$filename)
     if (verbose) cli::cli_alert_success(
       glue::glue(msg$done_paths, n = length(paths)))
     return(paths)
   }
 
-  # ── 6. Prepare municipalities ────────────────────────────────────────────────
+  # \u2500\u2500 6. Prepare municipalities \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   muni_id_col <- .pdsi_detect_muni_col(municipalities)
   if (muni_id_col != "code_muni") {
     municipalities$code_muni <- as.character(municipalities[[muni_id_col]])
@@ -276,7 +330,7 @@ sus_grid_pdsi <- function(
   if (verbose) cli::cli_alert_info(
     glue::glue(msg$agg_start, n_mun = n_mun))
 
-  # ── 7. Extract by year ────────────────────────────────────────────────────────
+  # \u2500\u2500 7. Extract by year \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   result_list <- lapply(seq_len(nrow(manifest)), function(i) {
     yr       <- manifest$year[i]
     nc_path  <- manifest$cache_path[i]
@@ -334,7 +388,7 @@ sus_grid_pdsi <- function(
   if (verbose) cli::cli_alert_success(
     glue::glue(msg$agg_done, n_rows = n_rows, n_mun = n_mun))
 
-  # ── 8. Build climasus_df ──────────────────────────────────────────────────────
+  # \u2500\u2500 8. Build climasus_df \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   meta <- list(
     system   = NULL,
     stage    = "climate",
@@ -365,7 +419,7 @@ sus_grid_pdsi <- function(
 }
 
 
-# ── Internal helpers ──────────────────────────────────────────────────────────
+# \u2500\u2500 Internal helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 #' Extract PDSI from one annual NetCDF and aggregate to municipalities
 #' @keywords internal
@@ -428,6 +482,46 @@ sus_grid_pdsi <- function(
   out_long$date_str <- NULL
 
   as.data.frame(out_long[, c("code_muni", "date", "pdsi")])
+}
+
+#' Read one PDSI NetCDF into an in-memory SpatRaster, no polygon aggregation
+#' @keywords internal
+#' @noRd
+.pdsi_read_raster_year <- function(nc_path, source, year, months, bbox) {
+  var_name <- if (source == "terraclimate") "PDSI" else "pdsi"
+  r <- terra::rast(nc_path, subds = var_name)
+
+  # Extract dates from raster time metadata
+  dates <- tryCatch(as.Date(terra::time(r)), error = function(e) NULL)
+  if (is.null(dates) || length(dates) != terra::nlyr(r)) {
+    # Fallback: assign months 1-12 for the given year
+    n_layers <- terra::nlyr(r)
+    dates    <- seq(lubridate::make_date(year, 1, 1),
+                    by = "month", length.out = n_layers)
+  }
+
+  # Filter to requested months
+  keep <- lubridate::month(dates) %in% months
+  if (source == "noaa_psl") {
+    # Also filter to requested years
+    keep <- keep & lubridate::year(dates) %in% year
+  }
+  if (!any(keep)) return(NULL)
+
+  r     <- r[[which(keep)]]
+  dates <- dates[keep]
+
+  # Crop to Brazil bbox
+  if (!is.null(bbox)) r <- terra::crop(r, bbox)
+
+  # Ensure standard CRS (TerraClimate and Dai PDSI are both WGS84)
+  if (is.na(terra::crs(r)) || nchar(terra::crs(r)) == 0) {
+    terra::crs(r) <- "EPSG:4326"
+  }
+
+  # Name layers by date
+  names(r) <- format(dates, "%Y-%m")
+  r
 }
 
 #' Download one PDSI NetCDF file with cache
@@ -546,7 +640,8 @@ sus_grid_pdsi <- function(
     no_data             = "Nenhum dado foi extra\u00eddo com sucesso.",
     agg_start           = "Agregando para {n_mun} munic\u00edpio(s)...",
     agg_done            = "Conclu\u00eddo: {n_rows} observa\u00e7\u00f5es ({n_mun} munic\u00edpios).",
-    done_paths          = "{n} arquivo(s) NetCDF dispon\u00edvel(is) no cache."
+    done_paths          = "{n} arquivo(s) NetCDF dispon\u00edvel(is) no cache.",
+    done_raster         = "{n} camada(s) de raster carregada(s) em mem\u00f3ria."
   ),
   en = list(
     title               = "PDSI (Palmer Drought Severity Index) Data",
@@ -573,7 +668,8 @@ sus_grid_pdsi <- function(
     no_data             = "No data was successfully extracted.",
     agg_start           = "Aggregating to {n_mun} municipality/ies...",
     agg_done            = "Complete: {n_rows} observations ({n_mun} municipalities).",
-    done_paths          = "{n} NetCDF file(s) available in cache."
+    done_paths          = "{n} NetCDF file(s) available in cache.",
+    done_raster         = "{n} raster layer(s) loaded into memory."
   ),
   es = list(
     title               = "Datos PDSI (\u00cdndice de Severidad de Sequ\u00eda de Palmer)",
@@ -600,6 +696,7 @@ sus_grid_pdsi <- function(
     no_data             = "No se extrajo ning\u00fan dato correctamente.",
     agg_start           = "Agregando a {n_mun} municipio(s)...",
     agg_done            = "Completo: {n_rows} observaciones ({n_mun} municipios).",
-    done_paths          = "{n} archivo(s) NetCDF disponible(s) en cach\u00e9."
+    done_paths          = "{n} archivo(s) NetCDF disponible(s) en cach\u00e9.",
+    done_raster         = "{n} capa(s) de raster cargada(s) en memoria."
   )
 )

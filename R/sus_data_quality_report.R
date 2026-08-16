@@ -205,7 +205,7 @@ sus_data_quality_report <- function(
   filter_demo = "sus_data_filter_demographics()",
   derive     = "sus_data_create_variables()",
   aggregate  = "sus_data_aggregate()",
-  spatial    = "sus_join_spatial()",
+  spatial    = "sus_spatial_join()",
   census     = "sus_socio_add_census()",
   climate    = "sus_climate_*()"
 )
@@ -257,7 +257,7 @@ sus_data_quality_report <- function(
     "sus_data_filter_demographics()" = "Demographic filters|Filtered demographics|City:",
     "sus_data_create_variables()" = "Derived variables created|Create variables",
     "sus_data_aggregate()" = "Temporal Data aggregated|Data aggregated",
-    "sus_join_spatial()" = "Spatial Data aggregated|Spatial join",
+    "sus_spatial_join()" = "Spatial Data aggregated|Spatial join",
     "sus_socio_add_census()" = "Added census data",
     "sus_climate_aggregate()" = "Climate aggregation",
     "sus_climate_inmet()" = "INMET data imported"

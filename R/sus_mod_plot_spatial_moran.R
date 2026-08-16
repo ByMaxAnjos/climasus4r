@@ -81,6 +81,18 @@ utils::globalVariables(c(
     es = "No significativo"
   ),
 
+  caption_map = list(
+    pt = "Vari\u00e1vel: {outcome} | n = {n} munic\u00edpios",
+    en = "Variable: {outcome} | n = {n} municipalities",
+    es = "Variable: {outcome} | n = {n} municipios"
+  ),
+
+  caption_scatter = list(
+    pt = "Vari\u00e1vel: {outcome} | n = {n} unidades",
+    en = "Variable: {outcome} | n = {n} units",
+    es = "Variable: {outcome} | n = {n} unidades"
+  ),
+
   err_not_moran = list(
     pt = "{.arg x} deve ser um {.cls climasus_spatial_moran} de {.fn sus_mod_spatial_moran}.",
     en = "{.arg x} must be a {.cls climasus_spatial_moran} from {.fn sus_mod_spatial_moran}.",
@@ -309,15 +321,24 @@ sus_mod_plot_spatial_moran <- function(
       na.value = "grey90",
       drop     = FALSE
     ) +
-    ggplot2::theme_void() +
+    ggplot2::theme_void(base_size = 12) +
     ggplot2::labs(
       title    = title %||% .pml("title_map", lang),
-      subtitle = .pml("subtitle_map", lang)
+      subtitle = .pml("subtitle_map", lang),
+      caption  = glue::glue(
+        .pml("caption_map", lang),
+        outcome = x$outcome_name,
+        n       = nrow(local_df)
+      )
     ) +
     ggplot2::theme(
-      plot.title    = ggplot2::element_text(face = "bold"),
-      plot.subtitle = ggplot2::element_text(color = "gray40"),
-      legend.position = "bottom"
+      legend.position  = "bottom",
+      legend.key.size  = ggplot2::unit(0.4, "cm"),
+      legend.title     = ggplot2::element_text(size = 10, face = "bold"),
+      legend.text      = ggplot2::element_text(size = 9),
+      plot.title       = ggplot2::element_text(face = "bold", size = 13, hjust = 0),
+      plot.subtitle    = ggplot2::element_text(color = "#4A4A4A", size = 10, hjust = 0),
+      plot.caption     = ggplot2::element_text(color = "#777777", size = 8, hjust = 1)
     )
 
   p_map
@@ -398,13 +419,26 @@ sus_mod_plot_spatial_moran <- function(
       title    = title %||% .pml("title_scatter", lang),
       subtitle = subtitle_txt,
       x        = .pml("x_scatter", lang),
-      y        = .pml("y_scatter", lang)
+      y        = .pml("y_scatter", lang),
+      caption  = glue::glue(
+        .pml("caption_scatter", lang),
+        outcome = x$outcome_name,
+        n       = nrow(local_df)
+      )
     ) +
-    ggplot2::theme_bw() +
+    ggplot2::theme_bw(base_size = 12) +
     ggplot2::theme(
-      plot.title      = ggplot2::element_text(face = "bold"),
-      plot.subtitle   = ggplot2::element_text(color = "gray40"),
-      legend.position = "bottom"
+      panel.grid.minor = ggplot2::element_blank(),
+      panel.grid.major = ggplot2::element_line(color = "#EBEBEB", linewidth = 0.3),
+      legend.position   = "bottom",
+      legend.key.size   = ggplot2::unit(0.4, "cm"),
+      legend.title      = ggplot2::element_text(size = 10, face = "bold"),
+      legend.text       = ggplot2::element_text(size = 9),
+      axis.title        = ggplot2::element_text(size = 10, color = "#444441"),
+      axis.text         = ggplot2::element_text(size = 9,  color = "#5F5E5A"),
+      plot.title        = ggplot2::element_text(face = "bold", size = 13, hjust = 0),
+      plot.subtitle     = ggplot2::element_text(color = "#4A4A4A", size = 10, hjust = 0),
+      plot.caption      = ggplot2::element_text(color = "#777777", size = 8, hjust = 1)
     )
 
   p_scatter

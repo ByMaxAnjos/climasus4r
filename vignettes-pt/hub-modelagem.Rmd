@@ -170,19 +170,19 @@ output:
 ```{=html}
 <p><a href="https://bymaxanjos.github.io/climasus4r/pt/articles/tutorials.html">← Voltar para Tutoriais</a></p>
 
-<p class="section-intro">Secao dedicada a modelagem epidemiologica aprofundada com o climasus4r. Cada cartao cobre uma familia de modelos — do DLNM bayesiano ao aprendizado de maquina e analise de vulnerabilidade — sempre pareando a funcao de ajuste com sua funcao de visualizacao (sus_mod_plot_*). Pre-requisito recomendado: Etapa 9 da Trilha do Pipeline.</p>
+<p class="section-intro">Secao dedicada a modelagem epidemiologica com o climasus4r. Cada cartao cobre uma familia de desenhos analiticos — DLNM, carga atribuivel, case-crossover, series interrompidas, pooling multicidade, modelos espaciais, aprendizado de maquina e vulnerabilidade — sempre conectando a funcao de ajuste aos diagnosticos e visualizacoes correspondentes.</p>
 
 <table>
 <thead><tr><th>Modelo</th><th>Funcoes</th><th>Foco</th></tr></thead>
 <tbody>
 <tr><td>1</td><td>sus_mod_dlnm(), sus_mod_plot_dlnm()</td><td>Relacao exposicao-resposta com defasagem</td></tr>
-<tr><td>2</td><td>sus_mod_attributable(), sus_mod_plot_attributable()</td><td>Carga atribuivel e excesso de mortalidade</td></tr>
-<tr><td>3</td><td>sus_mod_crossover(), sus_mod_its()</td><td>Case-crossover condicional e series interrompidas</td></tr>
-<tr><td>4</td><td>sus_mod_pool(), sus_mod_meta()</td><td>Pooling multivariado e meta-regressao</td></tr>
+<tr><td>2</td><td>sus_mod_af(), sus_mod_burden(), sus_mod_excess()</td><td>Fracao atribuivel, carga atribuivel e excesso de eventos</td></tr>
+<tr><td>3</td><td>sus_mod_casecrossover(), sus_mod_its()</td><td>Case-crossover condicional e series interrompidas</td></tr>
+<tr><td>4</td><td>sus_mod_pool(), sus_mod_metaregression()</td><td>Pooling multivariado e meta-regressao</td></tr>
 <tr><td>5</td><td>sus_mod_ml(), sus_mod_plot_ml()</td><td>Machine learning e predicao</td></tr>
-<tr><td>6</td><td>sus_mod_spatial(), sus_mod_plot_spatial()</td><td>Autocorrelacao e regressao espacial</td></tr>
-<tr><td>7</td><td>sus_mod_bayes(), sus_mod_plot_bayes()</td><td>BYM2/CAR bayesiano e espaco-temporal</td></tr>
-<tr><td>8</td><td>sus_mod_vulnerability(), sus_mod_swot()</td><td>Indices de vulnerabilidade e analise SWOT</td></tr>
+<tr><td>6</td><td>sus_mod_spatial_moran(), sus_mod_spatial_reg(), sus_mod_spatial_scan()</td><td>Autocorrelacao, regressao espacial e deteccao de clusters</td></tr>
+<tr><td>7</td><td>sus_mod_spatial_bayes(), sus_mod_spacetime_bayes()</td><td>Modelos CAR/BYM e espaco-temporais bayesianos</td></tr>
+<tr><td>8</td><td>sus_mod_vulnerability_index(), sus_mod_swot()</td><td>Indices de vulnerabilidade e analise SWOT</td></tr>
 </tbody>
 </table>
 

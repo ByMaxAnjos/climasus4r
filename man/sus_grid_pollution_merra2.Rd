@@ -10,6 +10,7 @@ sus_grid_pollution_merra2(
   years = NULL,
   months = 1:12,
   municipalities = NULL,
+  raster_area = FALSE,
   agg_fun = "mean",
   earthdata_user = Sys.getenv("EARTHDATA_USER"),
   earthdata_pass = Sys.getenv("EARTHDATA_PASSWORD"),
@@ -28,9 +29,9 @@ Allowed: \code{"pm25"}, \code{"aod"}, \code{"so2"}. Default: \code{c("pm25", "ao
 \item{resolution}{Character. Temporal resolution of source files.
 One of:
 \itemize{
-\item \code{"monthly"} (default) — uses \code{M2TMNXAER}, one file per month,
+\item \code{"monthly"} (default) -- uses \code{M2TMNXAER}, one file per month,
 already monthly-averaged. Recommended for most analyses.
-\item \code{"daily"} — uses \code{M2T1NXAER} (hourly), one file per day; 24
+\item \code{"daily"} -- uses \code{M2T1NXAER} (hourly), one file per day; 24
 hourly layers are aggregated to a single daily value using \code{agg_fun}.
 Note: \code{so2} only available in monthly resolution.
 }}
@@ -38,11 +39,35 @@ Note: \code{so2} only available in monthly resolution.
 \item{years}{Integer vector. Years to download (1980 to current year).
 \code{NULL} defaults to the last two complete years.}
 
-\item{months}{Integer vector (1–12). Months to include. Default \code{1:12}.}
+\item{months}{Integer vector (1-12). Months to include. Default \code{1:12}.}
 
 \item{municipalities}{An \code{sf} POLYGON object (e.g., from
 \code{\link[geobr:read_municipality]{geobr::read_municipality()}}). If provided, raster data are aggregated
-and a \code{climasus_df} is returned. If \code{NULL}, returns cached NetCDF paths.}
+and a \code{climasus_df} is returned. If \code{NULL}, returns cached NetCDF paths
+(or a \code{SpatRaster} per \code{raster_area}).}
+
+\item{raster_area}{Only used when \code{municipalities = NULL}. One of:
+\itemize{
+\item \code{FALSE} (default) -- return the character vector of cached
+file paths.
+\item \code{TRUE} -- return an in-memory \code{terra::SpatRaster}, full extent.
+\item an \code{sf} POLYGON object -- return the \code{SpatRaster} cropped and
+masked to that area.
+\item a 2-letter Brazilian state code (e.g. \code{"MT"}) -- auto-download
+the state boundary via \code{geobr} (cached) and crop/mask to it.
+}
+
+Important: composite pollutants (currently only \code{"pm25"}) are computed
+from several raw NetCDF component variables (e.g. dust, sea salt,
+black carbon, organic carbon, sulfate) via a derivation formula that is
+applied AFTER spatial extraction, not at the raster-cell level. To avoid
+silently producing an incorrect composite raster, \code{raster_area != FALSE}
+returns the RAW component layers as-is (one layer per NetCDF variable
+per file, e.g. \code{"DUSMASS25_2020_01"}, \code{"BCSMASS_2020_01"}, ...), NOT the
+final derived pollutant value. A user who needs the derived value
+(e.g. actual PM2.5) should either apply the same formula to the raw
+layers themselves, or use the normal \code{municipalities}-based tabular
+workflow, which already computes the derived value correctly.}
 
 \item{agg_fun}{Character. Spatial aggregation function for
 \code{exactextractr::exact_extract()}. Default \code{"mean"} (area-weighted).}
@@ -76,8 +101,12 @@ Default \code{"~/.climasus4r_cache/merra2"}.}
 \code{code_muni}, \code{date}, and one column per pollutant (e.g.,
 \code{pm25_merra2}, \code{aod_merra2}). Metadata: \code{stage = "climate"},
 \code{type = "pollution_merra2"}.
-\item If \code{municipalities = NULL}: a named character vector of paths to
-cached NetCDF files.
+\item If \code{municipalities = NULL} and \code{raster_area = FALSE} (default):
+a named character vector of paths to cached NetCDF files.
+\item If \code{municipalities = NULL} and \code{raster_area != FALSE}: a
+multi-layer \code{terra::SpatRaster} with the raw NetCDF component
+variables as layers (see \code{raster_area} for the composite-pollutant
+caveat), optionally cropped and masked to an area of interest.
 }
 }
 \description{
@@ -93,12 +122,12 @@ resolution products such as CAMS or GHAP.
 
 Supported variables:
 \itemize{
-\item \strong{PM2.5} (\code{"pm25"}) — derived from aerosol mass components
+\item \strong{PM2.5} (\code{"pm25"}) -- derived from aerosol mass components
 (\eqn{\mu g/m^3}): \code{DUSMASS25 + SSSMASS25 + BCSMASS + 1.4*OCSMASS + SO4SMASS}, each multiplied by 1\eqn{\times}10^9 to convert kg/m\eqn{^3}
 to \eqn{\mu g/m^3}.
-\item \strong{AOD} (\code{"aod"}) — Total aerosol optical depth at 550 nm
+\item \strong{AOD} (\code{"aod"}) -- Total aerosol optical depth at 550 nm
 (\code{TOTEXTTAU}), dimensionless, proxy for total aerosol column.
-\item \strong{SO2} (\code{"so2"}, experimental) — sulfate surface mass concentration
+\item \strong{SO2} (\code{"so2"}, experimental) -- sulfate surface mass concentration
 from M2I3NVAER (\eqn{\mu g/m^3}).
 }
 }
@@ -122,7 +151,7 @@ After registering, activate GES DISC access at
 
 Gelaro, R. et al. (2017). The Modern-Era Retrospective Analysis for
 Research and Applications, Version 2 (MERRA-2).
-\emph{Journal of Climate}, 30(14), 5419–5454.
+\emph{Journal of Climate}, 30(14), 5419-5454.
 \doi{10.1175/JCLI-D-16-0758.1}\cr
 NASA/GSFC/EPS GMAO. MERRA-2 tavg1_2d_aer_Nx (M2T1NXAER v5.12.4).
 NASA Goddard Earth Sciences DISC.

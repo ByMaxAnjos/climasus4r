@@ -531,7 +531,7 @@ sus_data_plot_demographics <- function(
       labels = \(x) scales::comma(abs(x)),
       expand = ggplot2::expansion(mult = 0.04)
     ) +
-    ggplot2::scale_fill_manual(values = col_map, name = NULL) +
+    ggplot2::scale_fill_manual(values = col_map, name = .vl("sex", lang)) +
     ggplot2::labs(
       title    = .vl("pyramid_title", lang),
       subtitle = sub_txt,
@@ -814,8 +814,14 @@ sus_data_plot_demographics <- function(
       ggplot2::scale_fill_manual(values = fill_vals)
   }
 
+  legend_title <- if (!is.null(fill_col)) {
+    tools::toTitleCase(gsub("_", " ", fill_var))
+  } else {
+    .vl("count", lang)
+  }
+
   p <- p +
-    ggplot2::scale_colour_manual(values = fill_vals, name = NULL) +
+    ggplot2::scale_colour_manual(values = fill_vals, name = legend_title) +
     ggplot2::scale_y_continuous(
       labels = scales::label_comma(),
       expand = ggplot2::expansion(mult = c(0, 0.08))
@@ -1006,7 +1012,7 @@ sus_data_plot_demographics <- function(
         stats::setNames(col_over,  .vl("overrep",  lang)),
         stats::setNames(col_under, .vl("underrep", lang))
       ),
-      name = NULL
+      name = .vl("equity_legend", lang)
     ) +
     ggplot2::scale_y_continuous(
       labels = \(x) paste0(ifelse(x > 0, "+", ""), x, " pp"),
@@ -1093,7 +1099,7 @@ sus_data_plot_demographics <- function(
           margin = ggplot2::margin(b = 8)
         ),
         plot.caption  = ggplot2::element_text(
-          colour = "grey50", size = base_size - 2, hjust = 0
+          colour = "grey50", size = base_size - 2, hjust = 1
         ),
         plot.background = ggplot2::element_rect(fill = "white", colour = NA)
       )
@@ -1147,7 +1153,7 @@ sus_data_plot_demographics <- function(
       plot.subtitle      = ggplot2::element_text(colour = "grey40", size = base_size - 1,
                                                  hjust = 0, margin = ggplot2::margin(b = 6)),
       plot.caption       = ggplot2::element_text(colour = "grey50", size = base_size - 2,
-                                                 hjust = 0, margin = ggplot2::margin(t = 6)),
+                                                 hjust = 1, margin = ggplot2::margin(t = 6)),
       axis.title         = ggplot2::element_text(size = base_size - 0.5, colour = "grey20"),
       axis.text          = ggplot2::element_text(size = base_size - 1,   colour = "grey20"),
       axis.line          = ggplot2::element_line(colour = "grey30", linewidth = 0.4),
@@ -1156,8 +1162,10 @@ sus_data_plot_demographics <- function(
       panel.grid.major.y = ggplot2::element_line(colour = "grey90", linewidth = 0.30),
       panel.grid.minor   = ggplot2::element_blank(),
       panel.background   = ggplot2::element_rect(fill = "white", colour = NA),
+      legend.position    = "bottom",
       legend.background  = ggplot2::element_blank(),
       legend.key         = ggplot2::element_blank(),
+      legend.title       = ggplot2::element_text(size = base_size - 1, face = "bold"),
       legend.text        = ggplot2::element_text(size = base_size - 1),
       legend.key.size    = ggplot2::unit(0.75, "lines"),
       strip.background   = ggplot2::element_rect(fill = "grey95", colour = NA),
@@ -1342,6 +1350,7 @@ sus_data_plot_demographics <- function(
                          es = "Diferencia de la proporci\u00F3n nacional (pp)"),
   overrep  = list(en = "Over-represented",  pt = "Sobre-representado",  es = "Sobrerrepresentado"),
   underrep = list(en = "Under-represented", pt = "Sub-representado",    es = "Subrepresentado"),
+  equity_legend = list(en = "Representation", pt = "Representa\u00e7\u00e3o", es = "Representaci\u00f3n"),
   dashboard_title = list(en = "Demographic Profile",
                          pt = "Perfil Demogr\u00E1fico",
                          es = "Perfil Demogr\u00E1fico"),

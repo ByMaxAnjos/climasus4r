@@ -1,10 +1,10 @@
-# ── NSE variable declarations ─────────────────────────────────────────────────
+# \u2500\u2500 NSE variable declarations \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 utils::globalVariables(c(
   "code_muni", "date", "value", "n_files", "n_rows",
   "filename", "bad", "valid", "err", "year_val", "layer_name"
 ))
 
-# ── Exported function ─────────────────────────────────────────────────────────
+# \u2500\u2500 Exported function \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 #' Import MERRA-2 Pollution Data for Brazilian Municipalities
 #'
@@ -21,13 +21,13 @@ utils::globalVariables(c(
 #'
 #' Supported variables:
 #' \itemize{
-#'   \item **PM2.5** (`"pm25"`) — derived from aerosol mass components
+#'   \item **PM2.5** (`"pm25"`) -- derived from aerosol mass components
 #'     (\eqn{\mu g/m^3}): `DUSMASS25 + SSSMASS25 + BCSMASS + 1.4*OCSMASS +
 #'     SO4SMASS`, each multiplied by 1\eqn{\times}10^9 to convert kg/m\eqn{^3}
 #'     to \eqn{\mu g/m^3}.
-#'   \item **AOD** (`"aod"`) — Total aerosol optical depth at 550 nm
+#'   \item **AOD** (`"aod"`) -- Total aerosol optical depth at 550 nm
 #'     (`TOTEXTTAU`), dimensionless, proxy for total aerosol column.
-#'   \item **SO2** (`"so2"`, experimental) — sulfate surface mass concentration
+#'   \item **SO2** (`"so2"`, experimental) -- sulfate surface mass concentration
 #'     from M2I3NVAER (\eqn{\mu g/m^3}).
 #' }
 #'
@@ -51,9 +51,9 @@ utils::globalVariables(c(
 #' @param resolution Character. Temporal resolution of source files.
 #'   One of:
 #'   \itemize{
-#'     \item `"monthly"` (default) — uses `M2TMNXAER`, one file per month,
+#'     \item `"monthly"` (default) -- uses `M2TMNXAER`, one file per month,
 #'       already monthly-averaged. Recommended for most analyses.
-#'     \item `"daily"` — uses `M2T1NXAER` (hourly), one file per day; 24
+#'     \item `"daily"` -- uses `M2T1NXAER` (hourly), one file per day; 24
 #'       hourly layers are aggregated to a single daily value using `agg_fun`.
 #'       Note: `so2` only available in monthly resolution.
 #'   }
@@ -61,11 +61,35 @@ utils::globalVariables(c(
 #' @param years Integer vector. Years to download (1980 to current year).
 #'   `NULL` defaults to the last two complete years.
 #'
-#' @param months Integer vector (1–12). Months to include. Default `1:12`.
+#' @param months Integer vector (1-12). Months to include. Default `1:12`.
 #'
 #' @param municipalities An `sf` POLYGON object (e.g., from
 #'   [geobr::read_municipality()]). If provided, raster data are aggregated
-#'   and a `climasus_df` is returned. If `NULL`, returns cached NetCDF paths.
+#'   and a `climasus_df` is returned. If `NULL`, returns cached NetCDF paths
+#'   (or a `SpatRaster` per `raster_area`).
+#'
+#' @param raster_area Only used when `municipalities = NULL`. One of:
+#'   \itemize{
+#'     \item `FALSE` (default) -- return the character vector of cached
+#'       file paths.
+#'     \item `TRUE` -- return an in-memory `terra::SpatRaster`, full extent.
+#'     \item an `sf` POLYGON object -- return the `SpatRaster` cropped and
+#'       masked to that area.
+#'     \item a 2-letter Brazilian state code (e.g. `"MT"`) -- auto-download
+#'       the state boundary via `geobr` (cached) and crop/mask to it.
+#'   }
+#'
+#'   Important: composite pollutants (currently only `"pm25"`) are computed
+#'   from several raw NetCDF component variables (e.g. dust, sea salt,
+#'   black carbon, organic carbon, sulfate) via a derivation formula that is
+#'   applied AFTER spatial extraction, not at the raster-cell level. To avoid
+#'   silently producing an incorrect composite raster, `raster_area != FALSE`
+#'   returns the RAW component layers as-is (one layer per NetCDF variable
+#'   per file, e.g. `"DUSMASS25_2020_01"`, `"BCSMASS_2020_01"`, ...), NOT the
+#'   final derived pollutant value. A user who needs the derived value
+#'   (e.g. actual PM2.5) should either apply the same formula to the raw
+#'   layers themselves, or use the normal `municipalities`-based tabular
+#'   workflow, which already computes the derived value correctly.
 #'
 #' @param agg_fun Character. Spatial aggregation function for
 #'   `exactextractr::exact_extract()`. Default `"mean"` (area-weighted).
@@ -99,14 +123,18 @@ utils::globalVariables(c(
 #'     `code_muni`, `date`, and one column per pollutant (e.g.,
 #'     `pm25_merra2`, `aod_merra2`). Metadata: `stage = "climate"`,
 #'     `type = "pollution_merra2"`.
-#'   \item If `municipalities = NULL`: a named character vector of paths to
-#'     cached NetCDF files.
+#'   \item If `municipalities = NULL` and `raster_area = FALSE` (default):
+#'     a named character vector of paths to cached NetCDF files.
+#'   \item If `municipalities = NULL` and `raster_area != FALSE`: a
+#'     multi-layer `terra::SpatRaster` with the raw NetCDF component
+#'     variables as layers (see `raster_area` for the composite-pollutant
+#'     caveat), optionally cropped and masked to an area of interest.
 #' }
 #'
 #' @section Data source:
 #' Gelaro, R. et al. (2017). The Modern-Era Retrospective Analysis for
 #' Research and Applications, Version 2 (MERRA-2).
-#' *Journal of Climate*, 30(14), 5419–5454.
+#' *Journal of Climate*, 30(14), 5419-5454.
 #' \doi{10.1175/JCLI-D-16-0758.1}\cr
 #' NASA/GSFC/EPS GMAO. MERRA-2 tavg1_2d_aer_Nx (M2T1NXAER v5.12.4).
 #' NASA Goddard Earth Sciences DISC.
@@ -155,6 +183,7 @@ sus_grid_pollution_merra2 <- function(
     years           = NULL,
     months          = 1:12,
     municipalities  = NULL,
+    raster_area     = FALSE,
     agg_fun         = "mean",
     earthdata_user  = Sys.getenv("EARTHDATA_USER"),
     earthdata_pass  = Sys.getenv("EARTHDATA_PASSWORD"),
@@ -165,7 +194,7 @@ sus_grid_pollution_merra2 <- function(
     lang            = "pt",
     verbose         = TRUE) {
 
-  # ── 1. Validation ───────────────────────────────────────────────────────────
+  # \u2500\u2500 1. Validation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
   if (!is.character(lang) || length(lang) != 1 || !lang %in% c("pt", "en", "es")) {
     cli::cli_abort("{.arg lang} must be 'pt', 'en', or 'es'.")
@@ -231,6 +260,15 @@ sus_grid_pollution_merra2 <- function(
     rlang::check_installed("exactextractr", reason = "to aggregate rasters to polygons")
   }
 
+  if (!(isTRUE(raster_area) || isFALSE(raster_area) ||
+        inherits(raster_area, "sf") ||
+        (is.character(raster_area) && length(raster_area) == 1L))) {
+    cli::cli_abort("{.arg raster_area} must be TRUE, FALSE, an sf object, or a UF code.")
+  }
+  if (!isFALSE(raster_area) && is.null(municipalities)) {
+    rlang::check_installed("terra", reason = "to read MERRA-2 NetCDF files")
+  }
+
   valid_agg <- c("mean", "sum", "median", "min", "max")
   if (!is.character(agg_fun) || length(agg_fun) != 1 || !agg_fun %in% valid_agg) {
     valid <- paste(valid_agg, collapse = ", ")
@@ -241,10 +279,10 @@ sus_grid_pollution_merra2 <- function(
   if (!is.character(cache_dir) || nchar(trimws(cache_dir)) == 0) cli::cli_abort(msg$invalid_cache_dir)
   cache_dir <- normalizePath(cache_dir, mustWork = FALSE)
 
-  # ── 2. Authentication check ─────────────────────────────────────────────────
+  # \u2500\u2500 2. Authentication check \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   .merra2_check_auth(earthdata_user, earthdata_pass, netrc_path, msg)
 
-  # ── 3. Build download manifest ───────────────────────────────────────────────
+  # \u2500\u2500 3. Build download manifest \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   manifest_rows <- list()
 
   for (p in pollutants) {
@@ -286,14 +324,14 @@ sus_grid_pollution_merra2 <- function(
     cli::cli_alert_info(glue::glue(msg$download_start, n_files = n_files))
   }
 
-  # ── 4. Parquet early-return (all caches hit) ────────────────────────────────
+  # \u2500\u2500 4. Parquet early-return (all caches hit) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   if (!is.null(municipalities) && use_cache &&
       all(file.exists(manifest$cache_pq))) {
     if (verbose) cli::cli_alert_success(msg$parquet_cache_hit)
     return(.merra2_build_from_parquet(manifest, verbose, msg))
   }
 
-  # ── 5. Download with auth ────────────────────────────────────────────────────
+  # \u2500\u2500 5. Download with auth \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   for (i in seq_len(nrow(unique_nc))) {
     .merra2_download_file(
       url            = unique_nc$url[i],
@@ -307,15 +345,58 @@ sus_grid_pollution_merra2 <- function(
     )
   }
 
-  # ── 6. Return file paths if no municipalities ────────────────────────────────
+  # \u2500\u2500 6. Return file paths (or raster) if no municipalities \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   if (is.null(municipalities)) {
+    if (!isFALSE(raster_area)) {
+      brazil_bbox_r <- if (crop_brazil) terra::ext(-75, -28, -35, 6) else NULL
+      raster_layers <- list()
+
+      for (i in seq_len(nrow(manifest))) {
+        nc_path <- manifest$cache_nc[i]
+        if (!file.exists(nc_path) || file.size(nc_path) == 0) {
+          cli::cli_alert_warning(
+            glue::glue(msg$skip_missing, filename = manifest$filename[i]))
+          next
+        }
+        pollutant <- manifest$pollutant[i]
+        p_res     <- manifest$resolution[i]
+        yr_i      <- manifest$year[i]
+        mo_str_i  <- manifest$month[i]
+        vmap      <- .merra2_var_map[[pollutant]]
+        nc_vars   <- vmap$nc_vars
+
+        for (v in nc_vars) {
+          layer_key <- paste0(v, "_", yr_i, "_", mo_str_i)
+          if (!is.null(raster_layers[[layer_key]])) next   # avoid duplicate work
+
+          r_v <- terra::rast(nc_path, subds = v)
+          if (!is.null(brazil_bbox_r)) r_v <- terra::crop(r_v, brazil_bbox_r)
+          if (p_res == "daily") {
+            r_v <- terra::app(r_v, fun = if (agg_fun == "sum") "sum" else "mean")
+          }
+          names(r_v) <- layer_key
+          raster_layers[[layer_key]] <- r_v
+        }
+      }
+
+      if (length(raster_layers) == 0) cli::cli_abort(msg$no_data)
+      out_raster <- terra::rast(raster_layers)
+      area_vect <- .sus_grid_resolve_area(
+        raster_area, terra::crs(out_raster), cache_dir, use_cache, lang, verbose
+      )
+      out_raster <- .sus_grid_crop_mask(out_raster, area_vect)
+      if (verbose) cli::cli_alert_success(
+        glue::glue(msg$done_raster, n = terra::nlyr(out_raster)))
+      return(out_raster)
+    }
+
     paths <- stats::setNames(unique_nc$cache_nc, unique_nc$filename)
     if (verbose) cli::cli_alert_success(
       glue::glue(msg$done_paths, n = length(paths)))
     return(paths)
   }
 
-  # ── 7. Prepare municipalities ────────────────────────────────────────────────
+  # \u2500\u2500 7. Prepare municipalities \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   muni_id_col <- .merra2_detect_muni_col(municipalities)
   if (muni_id_col != "code_muni") {
     municipalities$code_muni <- as.character(municipalities[[muni_id_col]])
@@ -331,7 +412,7 @@ sus_grid_pollution_merra2 <- function(
   if (verbose) cli::cli_alert_info(
     glue::glue(msg$agg_start, n_mun = n_mun))
 
-  # ── 8. Extract and aggregate per manifest row ────────────────────────────────
+  # \u2500\u2500 8. Extract and aggregate per manifest row \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   result_list <- vector("list", nrow(manifest))
 
   for (i in seq_len(nrow(manifest))) {
@@ -362,12 +443,12 @@ sus_grid_pollution_merra2 <- function(
       nc_vars  <- vmap$nc_vars
       derive_fn <- vmap$derive
 
-      # Aggregate hourly → daily for daily resolution (24 layers per file)
+      # Aggregate hourly -> daily for daily resolution (24 layers per file)
       if (p_res == "daily") {
         layers <- lapply(nc_vars, function(v) {
           r_h <- terra::rast(nc_path, subds = v)   # 24 hourly layers
           if (!is.null(brazil_bbox)) r_h <- terra::crop(r_h, brazil_bbox)
-          # Aggregate 24 hours → 1 daily value
+          # Aggregate 24 hours -> 1 daily value
           terra::app(r_h, fun = if (agg_fun == "sum") "sum" else "mean")
         })
         names(layers) <- nc_vars
@@ -423,7 +504,7 @@ sus_grid_pollution_merra2 <- function(
     }
   }
 
-  # ── 9. Merge pollutants ───────────────────────────────────────────────────────
+  # \u2500\u2500 9. Merge pollutants \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   result_list <- result_list[!vapply(result_list, is.null, logical(1))]
   if (length(result_list) == 0) cli::cli_abort(msg$no_data)
 
@@ -443,7 +524,7 @@ sus_grid_pollution_merra2 <- function(
   if (verbose) cli::cli_alert_success(
     glue::glue(msg$agg_done, n_rows = n_rows, n_mun = n_mun))
 
-  # ── 10. Build climasus_df ─────────────────────────────────────────────────────
+  # \u2500\u2500 10. Build climasus_df \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   meta <- list(
     system   = NULL,
     stage    = "climate",
@@ -476,9 +557,9 @@ sus_grid_pollution_merra2 <- function(
 }
 
 
-# ── Internal constants ────────────────────────────────────────────────────────
+# \u2500\u2500 Internal constants \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-#' Variable definitions: pollutant alias → MERRA-2 collection, NC variables,
+#' Variable definitions: pollutant alias -> MERRA-2 collection, NC variables,
 #' output column name, and derivation function
 #' @keywords internal
 #' @noRd
@@ -545,7 +626,8 @@ sus_grid_pollution_merra2 <- function(
     no_data                = "Nenhum dado foi extra\u00eddo com sucesso.",
     agg_start              = "Agregando para {n_mun} munic\u00edpio(s)...",
     agg_done               = "Conclu\u00eddo: {n_rows} observa\u00e7\u00f5es ({n_mun} munic\u00edpios).",
-    done_paths             = "{n} arquivo(s) NetCDF dispon\u00edvel(is) no cache."
+    done_paths             = "{n} arquivo(s) NetCDF dispon\u00edvel(is) no cache.",
+    done_raster            = "SpatRaster com {n} camada(s) de componente(s) bruto(s) (poluentes compostos como pm25 n\u00e3o s\u00e3o derivados aqui)."
   ),
   en = list(
     title                  = "MERRA-2 Atmospheric Pollution Data (NASA GMAO)",
@@ -579,7 +661,8 @@ sus_grid_pollution_merra2 <- function(
     no_data                = "No data was successfully extracted.",
     agg_start              = "Aggregating to {n_mun} municipality/ies...",
     agg_done               = "Complete: {n_rows} observations ({n_mun} municipalities).",
-    done_paths             = "{n} NetCDF file(s) available in cache."
+    done_paths             = "{n} NetCDF file(s) available in cache.",
+    done_raster            = "SpatRaster with {n} raw component layer(s) (composite pollutants like pm25 are not derived here)."
   ),
   es = list(
     title                  = "Datos MERRA-2 de Contaminaci\u00f3n Atmosf\u00e9rica (NASA GMAO)",
@@ -613,12 +696,13 @@ sus_grid_pollution_merra2 <- function(
     no_data                = "No se extrajo ning\u00fan dato correctamente.",
     agg_start              = "Agregando a {n_mun} municipio(s)...",
     agg_done               = "Completo: {n_rows} observaciones ({n_mun} municipios).",
-    done_paths             = "{n} archivo(s) NetCDF disponible(s) en cach\u00e9."
+    done_paths             = "{n} archivo(s) NetCDF disponible(s) en cach\u00e9.",
+    done_raster            = "SpatRaster con {n} capa(s) de componente(s) bruto(s) (los contaminantes compuestos como pm25 no se derivan aqu\u00ed)."
   )
 )
 
 
-# ── Internal helpers ──────────────────────────────────────────────────────────
+# \u2500\u2500 Internal helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 #' Return MERRA-2 version code based on year
 #' @keywords internal
@@ -649,7 +733,7 @@ sus_grid_pollution_merra2 <- function(
       yr)
   } else if (resolution == "daily") {
     # M2T1NXAER: hourly (24 layers per day); we download one file per DAY
-    # For monthly manifest each row = one month → we use a monthly summary file
+    # For monthly manifest each row = one month -> we use a monthly summary file
     fname <- sprintf("MERRA2_%s.tavgM_2d_aer_Nx.%04d%02d01.nc4", ver, yr, mo)
     base  <- sprintf(
       "https://data.gesdisc.earthdata.nasa.gov/data/MERRA2/M2TMNXAER.5.12.4/%04d/",

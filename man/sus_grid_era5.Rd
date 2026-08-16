@@ -9,6 +9,7 @@ sus_grid_era5(
   months = 1:12,
   vars = c("t2m", "tp"),
   municipalities = NULL,
+  raster_area = FALSE,
   agg_fun = "mean",
   use_cache = TRUE,
   cache_dir = "~/.climasus4r_cache/era5",
@@ -22,29 +23,43 @@ sus_grid_era5(
 \item{years}{Numeric vector of years to import. Must be between 1950 and 2025.
 Example: \code{2010:2023}, \code{c(2019, 2021)}.}
 
-\item{months}{Integer vector of months to import (1–12). Default: \code{1:12}
+\item{months}{Integer vector of months to import (1-12). Default: \code{1:12}
 (all months).}
 
 \item{vars}{Character vector of variable aliases to download. Allowed values:
 \itemize{
-\item \code{"t2m"} — 2 m temperature mean (→ \code{tair_dry_bulb_c}, °C)
-\item \code{"t2m_max"} — 2 m temperature maximum (→ \code{tair_max_c}, °C)
-\item \code{"t2m_min"} — 2 m temperature minimum (→ \code{tair_min_c}, °C)
-\item \code{"td2m"} — 2 m dewpoint temperature mean (→ \code{dew_point_c}, °C)
-\item \code{"u10"} — 10 m u-component of wind mean (→ \code{ws_10m_u_m_s}, m/s)
-\item \code{"v10"} — 10 m v-component of wind mean (→ \code{ws_10m_v_m_s}, m/s)
-\item \code{"sp"} — surface pressure mean (→ \code{patm_hpa}, hPa)
-\item \code{"tp"} — total precipitation daily sum (→ \code{rainfall_mm}, mm)
-\item \code{"all"} — all variables above
+\item \code{"t2m"} -- 2 m temperature mean (-> \code{tair_dry_bulb_c}, degC)
+\item \code{"t2m_max"} -- 2 m temperature maximum (-> \code{tair_max_c}, degC)
+\item \code{"t2m_min"} -- 2 m temperature minimum (-> \code{tair_min_c}, degC)
+\item \code{"td2m"} -- 2 m dewpoint temperature mean (-> \code{dew_point_c}, degC)
+\item \code{"u10"} -- 10 m u-component of wind mean (-> \code{ws_10m_u_m_s}, m/s)
+\item \code{"v10"} -- 10 m v-component of wind mean (-> \code{ws_10m_v_m_s}, m/s)
+\item \code{"sp"} -- surface pressure mean (-> \code{patm_hpa}, hPa)
+\item \code{"tp"} -- total precipitation daily sum (-> \code{rainfall_mm}, mm)
+\item \code{"all"} -- all variables above
 }
 Default: \code{c("t2m", "tp")}.}
 
 \item{municipalities}{An \code{sf} object with polygon geometries representing the
 areas to which raster data will be aggregated (typically Brazilian
 municipalities from \code{\link[geobr:read_municipality]{geobr::read_municipality()}}). Must contain a column
-identifying each polygon — the function auto-detects \code{code_muni}, \code{CD_MUN},
+identifying each polygon -- the function auto-detects \code{code_muni}, \code{CD_MUN},
 or \code{CD_GEOCMU}. If \code{NULL}, returns a named list of downloaded NetCDF file
 paths instead of a \code{climasus_df}.}
+
+\item{raster_area}{Only used when \code{municipalities = NULL}. One of:
+\itemize{
+\item \code{FALSE} (default) -- return the character vector of cached
+file paths.
+\item \code{TRUE} -- return an in-memory multi-layer \code{terra::SpatRaster}
+(layers named by date and variable), full extent -- useful for
+plotting with \code{sus_grid_plot()}.
+\item an \code{sf} POLYGON object -- return the \code{SpatRaster} cropped and
+masked to that area.
+\item a 2-letter Brazilian state code (e.g. \code{"MT"}) -- auto-download
+the state boundary via \code{geobr} (cached) and crop/mask to it.
+}
+Ignored (silently) when \code{municipalities} is provided.}
 
 \item{agg_fun}{Character. Spatial aggregation function applied over raster
 pixels within each polygon. Any function supported by
@@ -77,7 +92,10 @@ or \code{"es"}.}
 variable (e.g., \code{tair_dry_bulb_c}, \code{rainfall_mm}). Metadata:
 \code{stage = "climate"}, \code{type = "era5_land"}.
 \item If \code{municipalities = NULL}: a named character vector of paths to
-the downloaded NetCDF files (named by \code{"{year}_{month}_{var}"}).
+the downloaded NetCDF files (named by \code{"{year}_{month}_{var}"}), or,
+per \code{raster_area}, an in-memory multi-layer \code{terra::SpatRaster} with
+layers named \code{"{indicator}_{date}"}, optionally cropped and masked
+to an area of interest.
 }
 }
 \description{
@@ -87,25 +105,25 @@ Brazilian municipalities. No API key is required.
 
 The data source is the \strong{ERA5-Land Daily Aggregates for Latin America} project
 (Saldanha, rfsaldanha.github.io), which provides NetCDF files (one per
-variable × month × year) at ~10 km spatial resolution for 1950–2025.
+variable x month x year) at ~10 km spatial resolution for 1950-2025.
 Files are hosted on Zenodo under CC-BY 4.0.
 
 When \code{municipalities} is provided, the function returns a \code{climasus_df} at
-\code{stage = "climate"}, \code{type = "era5_land"} — directly compatible with
+\code{stage = "climate"}, \code{type = "era5_land"} -- directly compatible with
 \code{\link[=sus_climate_anomaly]{sus_climate_anomaly()}}, \code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}}, and \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}.
 }
 \section{Data Source}{
 
-Saldanha, R. ERA5-Land Daily Aggregates for Latin America (1950–2025).
+Saldanha, R. ERA5-Land Daily Aggregates for Latin America (1950-2025).
 Zenodo. \url{https://zenodo.org/doi/10.5281/zenodo.10013254}. CC-BY 4.0.
 }
 
 \section{Unit Conversions Applied}{
 
 \itemize{
-\item Temperature (K → °C): subtract 273.15
-\item Precipitation (m → mm): multiply by 1000
-\item Pressure (Pa → hPa): divide by 100
+\item Temperature (K -> degC): subtract 273.15
+\item Precipitation (m -> mm): multiply by 1000
+\item Pressure (Pa -> hPa): divide by 100
 \item Wind components (m/s): no conversion needed
 }
 }

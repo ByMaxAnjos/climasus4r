@@ -3,9 +3,9 @@
 # Plots for climasus_swot objects
 #
 # Types:
-#   "radar"  — Spider/radar chart of S/W/O/T scores per entity
-#   "matrix" — Classic 2×2 SWOT board with top indicators per quadrant
-#   "bar"    — Grouped horizontal bars of quadrant scores per entity
+#   "radar"  \u2014 Spider/radar chart of S/W/O/T scores per entity
+#   "matrix" \u2014 Classic 2x2 SWOT board with top indicators per quadrant
+#   "bar"    \u2014 Grouped horizontal bars of quadrant scores per entity
 # =============================================================================
 
 utils::globalVariables(c(
@@ -13,7 +13,7 @@ utils::globalVariables(c(
   "x", "y", "r", "group", "xmin", "xmax", "ymin", "ymax"
 ))
 
-# ── Local i18n ────────────────────────────────────────────────────────────────
+# \u2500\u2500 Local i18n \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 .swot_plot_labels <- list(
 
   radar_title = list(
@@ -36,8 +36,9 @@ utils::globalVariables(c(
   quadrant_O = list(pt = "Oportunidades",en = "Opportunities", es = "Oportunidades"),
   quadrant_T = list(pt = "Amea\u00e7as",      en = "Threats",       es = "Amenazas"),
 
-  x_score   = list(pt = "Pontua\u00e7\u00e3o (0\u2013100)", en = "Score (0\u2013100)", es = "Puntuaci\u00f3n (0\u2013100)"),
+  x_score   = list(pt = "Pontua\u00e7\u00e3o (0-100)", en = "Score (0-100)", es = "Puntuaci\u00f3n (0-100)"),
   y_entity  = list(pt = "Entidade",          en = "Entity",        es = "Entidad"),
+  legend_quadrant = list(pt = "Quadrante", en = "Quadrant", es = "Cuadrante"),
 
   top_inds = list(
     pt = "Principais indicadores:",
@@ -89,14 +90,14 @@ utils::globalVariables(c(
 
 #' Plots and Tables from a Climate-Health SWOT Analysis
 #'
-#' Produces radar (spider), matrix (2×2 SWOT board), and bar charts from a
+#' Produces radar (spider), matrix (2x2 SWOT board), and bar charts from a
 #' `climasus_swot` object returned by [sus_mod_swot()].
 #'
 #' @section Plot types (`type`):
 #' | `type` | Description |
 #' |--------|-------------|
-#' | `"radar"` | Spider/radar chart of the four quadrant scores (0–100) per entity |
-#' | `"matrix"` | Classic 2×2 SWOT board: score, category label, and top indicators for each quadrant. Best for a single entity. |
+#' | `"radar"` | Spider/radar chart of the four quadrant scores (0-100) per entity |
+#' | `"matrix"` | Classic 2x2 SWOT board: score, category label, and top indicators for each quadrant. Best for a single entity. |
 #' | `"bar"` | Grouped horizontal bars comparing all four quadrant scores per entity |
 #'
 #' @param x A `climasus_swot` object from [sus_mod_swot()].
@@ -117,9 +118,9 @@ utils::globalVariables(c(
 #' @param verbose Logical. Print progress messages. Default `FALSE`.
 #'
 #' @return Depending on `output_type`:
-#'   - `"plot"` → a `ggplot` or `plotly` object.
-#'   - `"table"` → a `tibble` of the plotted data.
-#'   - `"all"` → a named list `$plot`, `$table`.
+#'   - `"plot"` -> a `ggplot` or `plotly` object.
+#'   - `"table"` -> a `tibble` of the plotted data.
+#'   - `"all"` -> a named list `$plot`, `$table`.
 #'
 #' @examples
 #' \dontrun{
@@ -236,7 +237,7 @@ sus_mod_plot_swot <- function(
 }
 
 
-# ── Radar chart ───────────────────────────────────────────────────────────────
+# \u2500\u2500 Radar chart \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 #' @keywords internal
 #' @noRd
@@ -244,7 +245,7 @@ sus_mod_plot_swot <- function(
   long <- .swot_long_scores(x, lang, entities_sel)
   long$score[is.na(long$score)] <- 0
 
-  # Four axes at 90°, 0°, 270°, 180° (S top, O right, T bottom, W left)
+  # Four axes at 90\u00b0, 0\u00b0, 270\u00b0, 180\u00b0 (S top, O right, T bottom, W left)
   quad_order  <- c("S", "O", "T", "W")
   quad_angles <- c(S = 90, O = 0, T = 270, W = 180) * pi / 180
 
@@ -257,7 +258,7 @@ sus_mod_plot_swot <- function(
 
   all_entities <- unique(long$entity)
 
-  # Build polygon data (score polygon per entity — closed)
+  # Build polygon data (score polygon per entity \u2014 closed)
   poly_rows <- lapply(all_entities, function(ent) {
     ent_data <- long[long$entity == ent, ]
     pts <- lapply(quad_order, function(q) {
@@ -342,19 +343,24 @@ sus_mod_plot_swot <- function(
                       y = c(0.33, 0.66, 1.0) * sin(0),
                       label = c("33", "66", "100"),
                       size = base_size * 0.22, color = "gray50", hjust = 0) +
-    ggplot2::scale_fill_manual(values = fill_colors, name = NULL) +
-    ggplot2::scale_color_manual(values = fill_colors, name = NULL) +
+    ggplot2::scale_fill_manual(values = fill_colors, name = .swpl("y_entity", lang)) +
+    ggplot2::scale_color_manual(values = fill_colors, name = .swpl("y_entity", lang)) +
     ggplot2::coord_fixed(xlim = c(-1.35, 1.35), ylim = c(-1.35, 1.35)) +
     ggplot2::theme_void(base_size = base_size) +
     ggplot2::theme(
-      plot.title      = ggplot2::element_text(face = "bold", hjust = 0.5),
-      legend.position = if (n_ents > 1L) "bottom" else "none"
+      plot.title      = ggplot2::element_text(face = "bold", size = base_size * 1.1, hjust = 0),
+      plot.caption    = ggplot2::element_text(color = "#777777", size = base_size * 0.65, hjust = 1),
+      legend.position = if (n_ents > 1L) "bottom" else "none",
+      legend.key.size = ggplot2::unit(0.4, "cm")
     ) +
-    ggplot2::labs(title = .swpl("radar_title", lang))
+    ggplot2::labs(
+      title   = .swpl("radar_title", lang),
+      caption = "climasus4r \u2022 sus_mod_swot()"
+    )
 }
 
 
-# ── 2×2 Matrix board ─────────────────────────────────────────────────────────
+# \u2500\u2500 2x2 Matrix board \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 #' @keywords internal
 #' @noRd
@@ -386,12 +392,16 @@ sus_mod_plot_swot <- function(
     ggplot2::theme_void(base_size = base_size) +
     ggplot2::labs(
       title    = .swpl("matrix_title", lang),
-      subtitle = ent
+      subtitle = ent,
+      caption  = "climasus4r \u2022 sus_mod_swot()"
     ) +
     ggplot2::theme(
-      plot.title    = ggplot2::element_text(face = "bold", hjust = 0.5,
+      plot.title    = ggplot2::element_text(face = "bold", hjust = 0,
                                              size = base_size * 1.1),
-      plot.subtitle = ggplot2::element_text(color = "gray40", hjust = 0.5)
+      plot.subtitle = ggplot2::element_text(color = "#4A4A4A", hjust = 0,
+                                             size = base_size * 0.85),
+      plot.caption  = ggplot2::element_text(color = "#777777", hjust = 1,
+                                             size = base_size * 0.65)
     )
 
   # Cross lines
@@ -478,7 +488,7 @@ sus_mod_plot_swot <- function(
 }
 
 
-# ── Bar chart ─────────────────────────────────────────────────────────────────
+# \u2500\u2500 Bar chart \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 #' @keywords internal
 #' @noRd
@@ -502,18 +512,26 @@ sus_mod_plot_swot <- function(
                   ggplot2::aes(x = score, y = entity, fill = quadrant_label)) +
     ggplot2::geom_col(position = ggplot2::position_dodge(width = 0.75),
                       width = 0.65, alpha = 0.88, na.rm = TRUE) +
-    ggplot2::scale_fill_manual(values = fill_vec, name = NULL) +
+    ggplot2::scale_fill_manual(values = fill_vec, name = .swpl("legend_quadrant", lang)) +
     ggplot2::scale_x_continuous(limits = c(0, 100),
                                  expand = ggplot2::expansion(mult = c(0, 0.04))) +
     ggplot2::labs(
-      title = .swpl("bar_title", lang),
-      x     = .swpl("x_score",  lang),
-      y     = .swpl("y_entity", lang)
+      title   = .swpl("bar_title", lang),
+      x       = .swpl("x_score",  lang),
+      y       = .swpl("y_entity", lang),
+      caption = "climasus4r \u2022 sus_mod_swot()"
     ) +
-    ggplot2::theme_bw(base_size = base_size) +
+    ggplot2::theme_classic(base_size = base_size) +
     ggplot2::theme(
-      plot.title         = ggplot2::element_text(face = "bold"),
-      panel.grid.major.y = ggplot2::element_blank(),
-      legend.position    = "top"
+      plot.title         = ggplot2::element_text(face = "bold", hjust = 0,
+                                                   size = base_size * 1.1),
+      plot.caption        = ggplot2::element_text(color = "#777777", hjust = 1,
+                                                    size = base_size * 0.65),
+      axis.line           = ggplot2::element_line(color = "#333333", linewidth = 0.5),
+      panel.grid.minor    = ggplot2::element_blank(),
+      panel.grid.major.y  = ggplot2::element_blank(),
+      panel.grid.major.x  = ggplot2::element_line(color = "#EBEBEB", linewidth = 0.3),
+      legend.position     = "bottom",
+      legend.key.size     = ggplot2::unit(0.4, "cm")
     )
 }

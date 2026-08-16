@@ -170,7 +170,7 @@ output:
 ```{=html}
 <p><a href="https://bymaxanjos.github.io/climasus4r/pt/articles/tutorials.html">← Voltar para Tutoriais</a></p>
 
-<p class="section-intro">Esta trilha percorre o fluxo completo do <code>climasus4r</code>, etapa a etapa, do inicio ao fim. Cada cartao corresponde a uma fase do pipeline integrado de saude, clima e ambiente — da importacao dos dados do DATASUS ate a modelagem epidemiologica. Comece pela Etapa 1 e avance na ordem.</p>
+<p class="section-intro">Esta trilha percorre o fluxo analitico do <code>climasus4r</code>, da preparacao dos dados do DATASUS ate a integracao ambiental e a modelagem epidemiologica. Cada etapa corresponde a uma decisao metodologica auditavel: origem dos dados, padronizacao, filtros, unidade espacial, exposicao climatica, janela temporal e modelo estatistico.</p>
 
 <table>
 <thead><tr><th>Etapa</th><th>Titulo</th><th>Funcoes Principais</th></tr></thead>
@@ -179,10 +179,10 @@ output:
 <tr><td>2</td><td>Encoding &amp; Padronizacao</td><td>sus_data_clean_encoding(), sus_data_standardize()</td></tr>
 <tr><td>3</td><td>Filtragem</td><td>sus_data_filter_cid(), sus_data_filter_demographics()</td></tr>
 <tr><td>4</td><td>Variaveis &amp; Agregacao</td><td>sus_data_create_variables(), sus_data_aggregate()</td></tr>
-<tr><td>5</td><td>Juncao Espacial</td><td>sus_join_spatial()</td></tr>
+<tr><td>5</td><td>Juncao Espacial</td><td>sus_spatial_join()</td></tr>
 <tr><td>6</td><td>Vinculo Socioeconomico</td><td>sus_socio_add_census()</td></tr>
 <tr><td>7</td><td>Clima por Estacoes (INMET)</td><td>sus_climate_inmet(), sus_climate_fill_inmet()</td></tr>
-<tr><td>8</td><td>Clima em Grade &amp; Ambiental</td><td>sus_climate_era5(), sus_climate_aggregate()</td></tr>
+<tr><td>8</td><td>Clima em Grade &amp; Ambiental</td><td>sus_grid_era5(), sus_grid_chirps(), sus_grid_join()</td></tr>
 <tr><td>9</td><td>Modelagem Epidemiologica</td><td>sus_mod_dlnm(), sus_mod_plot_*()</td></tr>
 </tbody>
 </table>

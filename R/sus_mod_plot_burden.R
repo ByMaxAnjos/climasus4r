@@ -33,6 +33,21 @@ utils::globalVariables(c(
     en = "Perfect equality",
     es = "Igualdad perfecta"
   ),
+  lorenz_observed = list(
+    pt = "Curva observada",
+    en = "Observed curve",
+    es = "Curva observada"
+  ),
+  lorenz_legend_title = list(
+    pt = "Curva",
+    en = "Curve",
+    es = "Curva"
+  ),
+  legend_component = list(
+    pt = "Componente",
+    en = "Component",
+    es = "Componente"
+  ),
   stacked_title = list(
     pt = "Decomposi\u00E7\u00E3o Calor/Frio por Cidade",
     en = "Heat/Cold Decomposition by City",
@@ -77,6 +92,36 @@ utils::globalVariables(c(
   entry <- .burd_plot_labels[[key]]
   if (is.null(entry)) return(key)
   entry[[lang]] %||% entry[["pt"]]
+}
+
+# -- Shared publication theme (mirrors .cpa_theme() in sus_climate_plot_aggregate.R) --
+.burd_caption <- "DATASUS \u2022 climasus4r \u2022 sus_mod_plot_burden()"
+
+#' @keywords internal
+#' @noRd
+.burd_theme <- function(base_size = 12) {
+  ggplot2::theme_classic(base_size = base_size) +
+    ggplot2::theme(
+      panel.grid.minor   = ggplot2::element_blank(),
+      panel.grid.major.x = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_line(
+        color = "#EBEBEB", linewidth = 0.3),
+      axis.line          = ggplot2::element_line(
+        color = "#333333", linewidth = 0.5),
+      plot.title         = ggplot2::element_text(
+        face = "bold", size = base_size * 1.08, hjust = 0),
+      plot.subtitle      = ggplot2::element_text(
+        color = "#4A4A4A", size = base_size * 0.83, hjust = 0),
+      plot.caption       = ggplot2::element_text(
+        color = "#777777", size = base_size * 0.67, hjust = 1),
+      axis.title         = ggplot2::element_text(size = base_size * 0.83, color = "#444441"),
+      axis.text          = ggplot2::element_text(size = base_size * 0.75, color = "#5F5E5A"),
+      legend.position    = "bottom",
+      legend.title       = ggplot2::element_text(size = base_size * 0.83),
+      legend.text        = ggplot2::element_text(size = base_size * 0.75),
+      legend.key.size    = ggplot2::unit(0.4, "cm"),
+      strip.text         = ggplot2::element_text(face = "bold", size = base_size * 0.83)
+    )
 }
 
 
@@ -257,14 +302,15 @@ sus_mod_plot_burden <- function(
     ggplot2::labs(
       title    = .bpl("lollipop_title", lang),
       subtitle = glue::glue("Top {nrow(bt)} \u2014 {meta$rank_by}"),
+      caption  = .burd_caption,
       x        = y_label,
       y        = .bpl("x_city", lang)
     ) +
-    ggplot2::theme_bw(base_size = base_size) +
+    .burd_theme(base_size) +
     ggplot2::theme(
-      plot.title         = ggplot2::element_text(face = "bold"),
-      plot.subtitle      = ggplot2::element_text(color = "gray40"),
-      panel.grid.major.y = ggplot2::element_blank()
+      # Horizontal lollipop: gridlines belong on x (the value axis), not y (categorical)
+      panel.grid.major.y = ggplot2::element_blank(),
+      panel.grid.major.x = ggplot2::element_line(color = "#EBEBEB", linewidth = 0.3)
     )
 }
 
@@ -291,34 +337,41 @@ sus_mod_plot_burden <- function(
   }
   gini_txt <- if (!is.na(gini)) glue::glue("Gini = {gini}") else ""
 
+  lbl_obs <- .bpl("lorenz_observed", lang)
+  lbl_eq  <- .bpl("lorenz_equality", lang)
+
   ggplot2::ggplot(conc, ggplot2::aes(x = rank_pct, y = cumulative_pct)) +
     ggplot2::geom_line(
       data = eq_df,
-      ggplot2::aes(x = rank_pct, y = cumulative_pct),
-      linetype = "dashed", color = "gray50", linewidth = 0.8
+      ggplot2::aes(x = rank_pct, y = cumulative_pct, linetype = lbl_eq, color = lbl_eq),
+      linewidth = 0.8
     ) +
     ggplot2::geom_area(fill = "#4472C4", alpha = 0.12) +
-    ggplot2::geom_line(color = "#4472C4", linewidth = 1.1) +
+    ggplot2::geom_line(ggplot2::aes(linetype = lbl_obs, color = lbl_obs), linewidth = 1.1) +
     ggplot2::geom_point(color = "#4472C4", size = 2.5) +
     ggplot2::annotate(
       "text", x = 65, y = 12,
       label = gini_txt,
       color = "#4472C4", size = base_size * 0.3, hjust = 0
     ) +
+    ggplot2::scale_linetype_manual(
+      name   = .bpl("lorenz_legend_title", lang),
+      values = stats::setNames(c("solid", "dashed"), c(lbl_obs, lbl_eq))
+    ) +
+    ggplot2::scale_color_manual(
+      name   = .bpl("lorenz_legend_title", lang),
+      values = stats::setNames(c("#4472C4", "gray50"), c(lbl_obs, lbl_eq))
+    ) +
     ggplot2::labs(
       title    = .bpl("lorenz_title", lang),
       subtitle = glue::glue(
         "{meta$n_cities} {.bpl('x_city', lang)} \u2014 {meta$rank_by}"
       ),
-      caption  = glue::glue("-- {.bpl('lorenz_equality', lang)}"),
+      caption  = .burd_caption,
       x        = .bpl("x_cities_pct", lang),
       y        = .bpl("y_burden_pct", lang)
     ) +
-    ggplot2::theme_bw(base_size = base_size) +
-    ggplot2::theme(
-      plot.title    = ggplot2::element_text(face = "bold"),
-      plot.subtitle = ggplot2::element_text(color = "gray40")
-    )
+    .burd_theme(base_size)
 }
 
 #' @keywords internal
@@ -346,19 +399,16 @@ sus_mod_plot_burden <- function(
 
   ggplot2::ggplot(dat, ggplot2::aes(x = city, y = an, fill = component_label)) +
     ggplot2::geom_col(alpha = 0.85) +
-    ggplot2::scale_fill_manual(values = fill_vals, name = NULL) +
+    ggplot2::scale_fill_manual(values = fill_vals, name = .bpl("legend_component", lang)) +
     ggplot2::labs(
       title    = .bpl("stacked_title", lang),
       subtitle = glue::glue("{meta$n_cities} {.bpl('x_city', lang)}"),
+      caption  = .burd_caption,
       x        = .bpl("x_city", lang),
       y        = .bpl("y_an", lang)
     ) +
-    ggplot2::theme_bw(base_size = base_size) +
+    .burd_theme(base_size) +
     ggplot2::theme(
-      plot.title         = ggplot2::element_text(face = "bold"),
-      plot.subtitle      = ggplot2::element_text(color = "gray40"),
-      axis.text.x        = ggplot2::element_text(angle = 30, hjust = 1),
-      panel.grid.major.x = ggplot2::element_blank(),
-      legend.position    = "top"
+      axis.text.x = ggplot2::element_text(angle = 30, hjust = 1)
     )
 }

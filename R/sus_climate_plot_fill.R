@@ -746,7 +746,7 @@ sus_climate_plot_fill <- function(
         font      = list(size = 11, color = "#333333")
       )),
       xaxis     = xaxis_cfg,
-      yaxis     = list(title = target_var, tickformat = ".2f", zeroline = FALSE),
+      yaxis     = list(title = paste0(target_var, .cpa_unit_label(target_var)), tickformat = ".2f", zeroline = FALSE),
       hovermode = "x unified",
       template  = "plotly_white"
     )
@@ -842,7 +842,7 @@ sus_climate_plot_fill <- function(
           )
         )
       ),
-      yaxis     = list(title = target_var, tickformat = ".2f", zeroline = FALSE),
+      yaxis     = list(title = paste0(target_var, .cpa_unit_label(target_var)), tickformat = ".2f", zeroline = FALSE),
       legend    = list(orientation = "h", x = 0, y = -0.22,
                        bgcolor = "rgba(255,255,255,0.8)",
                        bordercolor = "#DDDDDD", borderwidth = 1),
@@ -989,15 +989,17 @@ sus_climate_plot_fill <- function(
   base_theme <- ggplot2::theme_bw(base_size = 11) +
     ggplot2::theme(
       legend.position      = "bottom",
+      legend.title         = ggplot2::element_text(size = 9, face = "bold"),
       legend.key.width     = ggplot2::unit(1.8, "cm"),
       legend.text          = ggplot2::element_text(size = 9),
       plot.title           = ggplot2::element_text(size = 11, face = "bold",
+                                                    hjust = 0,
                                                     margin = ggplot2::margin(b = 6)),
       plot.title.position  = "plot",
+      axis.title           = ggplot2::element_text(size = 10),
       axis.text.x          = ggplot2::element_text(angle = 30, hjust = 1, size = 8),
       panel.grid.minor     = ggplot2::element_blank(),
-      panel.grid.major.x   = ggplot2::element_line(colour = pal$grid_line,
-                                                     linewidth = 0.3),
+      panel.grid.major.x   = ggplot2::element_blank(),
       panel.grid.major.y   = ggplot2::element_line(colour = pal$grid_line,
                                                      linewidth = 0.3),
       panel.border         = ggplot2::element_rect(colour = "#CCCCCC"),
@@ -1036,8 +1038,8 @@ sus_climate_plot_fill <- function(
     ggplot2::labs(
       title  = title_str,
       x      = .i18n("date_time", lang),
-      y      = target_var,
-      colour = NULL
+      y      = paste0(target_var, .cpa_unit_label(target_var)),
+      colour = .i18n("legend_series", lang)
     ) +
     base_theme
 
@@ -1743,6 +1745,7 @@ sus_climate_plot_fill <- function(
     original        = "Observed (with gaps)",
     filled_series   = "Imputed series",
     imputed_pts     = "Imputed values",
+    legend_series   = "Data series",
     date_time       = "Date / Time",
 
     # Evaluation
@@ -1799,6 +1802,7 @@ sus_climate_plot_fill <- function(
     original        = "Observado (com falhas)",
     filled_series   = "Serie imputada",
     imputed_pts     = "Valores imputados",
+    legend_series   = "Serie de dados",
     date_time       = "Data / Hora",
 
     # Evaluation
@@ -1855,6 +1859,7 @@ sus_climate_plot_fill <- function(
     original        = "Observado (con brechas)",
     filled_series   = "Serie imputada",
     imputed_pts     = "Valores imputados",
+    legend_series   = "Serie de datos",
     date_time       = "Fecha / Hora",
 
     # Evaluation

@@ -81,6 +81,11 @@ utils::globalVariables(c(
 #' @param base_size Numeric.  Base font size for `theme_void()`.  Default `11`.
 #' @param interactive Logical.  If `TRUE`, wraps the ggplot2 object with
 #'   `plotly::ggplotly()`.  Requires `plotly`.  Default `FALSE`.
+#' @param return_sf Logical.  If `TRUE`, return the underlying `sf` object
+#'   used to build the map (municipality points for `map_type = "bubble"`,
+#'   polygons for `"choropleth"` / `"quantile_choropleth"`) instead of the
+#'   `ggplot2` object. Pipe the result into [sus_data_export()] to write it
+#'   as a shapefile, GeoPackage, GeoJSON or GeoParquet file. Default `FALSE`.
 #' @param use_cache Logical.  Cache municipality metadata to disk.
 #'   Default `TRUE`.
 #' @param cache_dir Character.  Directory for the disk cache.
@@ -89,9 +94,10 @@ utils::globalVariables(c(
 #'   `"pt"` (default), `"en"`, `"es"`.
 #' @param verbose Logical.  Print progress messages.  Default `TRUE`.
 #'
-#' @return A `ggplot2` object (class `"gg"` / `"ggplot"`), or a `plotly`
-#'   object when `interactive = TRUE`.  The function does **not** modify `df`
-#'   or advance the pipeline `stage`.
+#' @return A `ggplot2` object (class `"gg"` / `"ggplot"`), a `plotly`
+#'   object when `interactive = TRUE`, or an `sf` object when
+#'   `return_sf = TRUE`.  The function does **not** modify `df` or advance
+#'   the pipeline `stage`.
 #'
 #' @seealso [sus_data_aggregate()], [sus_climate_plot_aggregate()]
 #'
@@ -119,6 +125,11 @@ utils::globalVariables(c(
 #'
 #' # Interactive plotly bubble map
 #' sus_data_plot_aggregate_map(df_agg, interactive = TRUE, lang = "pt")
+#'
+#' # Get the map data as sf and export it as GeoPackage
+#' sus_data_plot_aggregate_map(df_agg, map_type = "choropleth",
+#'                              return_sf = TRUE) |>
+#'   sus_data_export(file_path = "map_data.gpkg", format = "gpkg")
 #' }
 #'
 #' @importFrom dplyr summarise left_join n_distinct group_by across all_of
@@ -143,6 +154,7 @@ sus_data_plot_aggregate_map <- function(
     theme_style    = "publication",
     base_size      = 11,
     interactive    = FALSE,
+    return_sf      = FALSE,
     use_cache      = TRUE,
     cache_dir      = "~/.climasus4r_cache/spatial",
     lang           = "pt",
@@ -589,6 +601,12 @@ sus_data_plot_aggregate_map <- function(
     # Arrange by descending total_cases so large bubbles are drawn first (back)
     muni_plot <- muni_plot[order(muni_plot$total_cases, decreasing = TRUE), ]
 
+    if (return_sf) {
+      rlang::check_installed("sf", reason = "required when return_sf = TRUE.")
+      return(sf::st_as_sf(muni_plot, coords = c("lon", "lat"), crs = 4326,
+                           remove = FALSE))
+    }
+
     p <- ggplot2::ggplot()
 
     # State outlines
@@ -746,6 +764,7 @@ sus_data_plot_aggregate_map <- function(
           title         = title,
           base_size     = base_size,
           interactive   = interactive,
+          return_sf     = return_sf,
           use_cache     = FALSE,
           cache_dir     = cache_dir,
           lang          = lang,
@@ -769,6 +788,10 @@ sus_data_plot_aggregate_map <- function(
       muni_data[, c("._muni6", "total_cases", "fill_var"), drop = FALSE],
       by = c("._code6_poly" = "._muni6")
     )
+
+    if (return_sf) {
+      return(poly_joined)
+    }
 
     # Dynamic zoom to data extent (where fill_var is not NA)
     .data_poly <- poly_joined[!is.na(poly_joined$fill_var), ]

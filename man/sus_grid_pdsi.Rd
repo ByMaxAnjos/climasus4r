@@ -9,6 +9,7 @@ sus_grid_pdsi(
   months = 1:12,
   source = c("terraclimate", "noaa_psl"),
   municipalities = NULL,
+  raster_area = FALSE,
   agg_fun = "mean",
   crop_brazil = TRUE,
   use_cache = TRUE,
@@ -19,10 +20,10 @@ sus_grid_pdsi(
 }
 \arguments{
 \item{years}{Integer vector. Years to download.
-TerraClimate: 1950–2025. NOAA PSL: 1850–2018.
+TerraClimate: 1950-2025. NOAA PSL: 1850-2018.
 \code{NULL} (default) = last two complete years.}
 
-\item{months}{Integer vector (1–12). Months to include. Default \code{1:12}.}
+\item{months}{Integer vector (1-12). Months to include. Default \code{1:12}.}
 
 \item{source}{Character. Data source: \code{"terraclimate"} (default) or
 \code{"noaa_psl"}.}
@@ -30,6 +31,19 @@ TerraClimate: 1950–2025. NOAA PSL: 1850–2018.
 \item{municipalities}{An \code{sf} POLYGON object (e.g., from
 \code{\link[geobr:read_municipality]{geobr::read_municipality()}}). When provided, rasters are aggregated and a
 \code{climasus_df} is returned. If \code{NULL}, returns cached NetCDF file paths.}
+
+\item{raster_area}{Only used when \code{municipalities = NULL}. One of:
+\itemize{
+\item \code{FALSE} (default) -- return the character vector of cached
+file paths.
+\item \code{TRUE} -- return an in-memory \code{terra::SpatRaster} (one layer
+per date), cropped to the same bounding box used elsewhere.
+\item an \code{sf} POLYGON object -- return the \code{SpatRaster} further
+cropped and masked to that area.
+\item a 2-letter Brazilian state code (e.g. \code{"MT"}) -- auto-download
+the state boundary via \code{geobr} (cached) and crop/mask to it.
+}
+Ignored (silently) if \code{municipalities} is provided.}
 
 \item{agg_fun}{Character. Spatial aggregation for
 \code{exactextractr::exact_extract()}. Default \code{"mean"} (area-weighted).}
@@ -53,7 +67,9 @@ Default \code{"~/.climasus4r_cache/pdsi"}.}
 \code{code_muni}, \code{date} (Date, first day of month), and \code{pdsi} (numeric,
 unitless). Metadata: \code{stage = "climate"}, \code{type = "pdsi"}.
 \item If \code{municipalities = NULL}: a named character vector of cached
-NetCDF file paths.
+NetCDF file paths, or, per \code{raster_area}, an in-memory
+\code{terra::SpatRaster} with one layer per date, optionally cropped and
+masked to an area of interest.
 }
 }
 \description{
@@ -68,17 +84,17 @@ operational categories at -2 (moderate drought) to -4 (extreme drought).
 Health applications in Brazil:
 \itemize{
 \item Drought (PDSI < -2): malnutrition, diarrheal disease, mental health
-stress, vector-borne disease in semi-arid Northeast and Amazônia
+stress, vector-borne disease in semi-arid Northeast and Amazonia
 \item Wet periods (PDSI > 2): leptospirosis, hepatitis A, flooding
 }
 
 \strong{Available sources:}
 \itemize{
 \item \code{"terraclimate"} (default): TerraClimate monthly PDSI (Abatzoglou
-et al., 2018; University of Idaho). Resolution 1/24° (~4 km), 1950–2025,
+et al., 2018; University of Idaho). Resolution 1/24deg (~4 km), 1950-2025,
 WGS84, no authentication. One NetCDF file (~165 MB) per year.
 \item \code{"noaa_psl"}: Dai (2011) self-calibrated PDSI from NOAA Physical
-Sciences Laboratory. Resolution 2.5°, 1850–2018, single global file
+Sciences Laboratory. Resolution 2.5deg, 1850-2018, single global file
 (~40 MB). Coarser but longer record.
 }
 }
@@ -100,11 +116,11 @@ Sciences Laboratory. Resolution 2.5°, 1850–2018, single global file
 \itemize{
 \item TerraClimate: Abatzoglou, J.T. et al. (2018). TerraClimate, a high-
 resolution global dataset of monthly climate and climatic water balance
-from 1958–2015. \emph{Scientific Data}, 5, 170191.
+from 1958-2015. \emph{Scientific Data}, 5, 170191.
 \doi{10.1038/sdata.2017.191}.
 URL: \url{https://climate.northwestknowledge.net/TERRACLIMATE-DATA/}
 \item NOAA PSL: Dai, A. (2011). Characteristics and trends in various
-forms of the PDSI during 1900–2008. \emph{J. Geophys. Res.}, 116, D12115.
+forms of the PDSI during 1900-2008. \emph{J. Geophys. Res.}, 116, D12115.
 \doi{10.1029/2010JD015541}.
 URL: \url{https://downloads.psl.noaa.gov/Datasets/dai_pdsi/}
 }

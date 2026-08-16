@@ -51,6 +51,9 @@ utils::globalVariables(c(
     en = "Sensitivity Index",
     es = "\u00cdndice de Sensibilidad"
   ),
+  legend_component = list(
+    pt = "Componente", en = "Component", es = "Componente"
+  ),
 
   err_not_sens = list(
     pt = "{.arg x} deve ser um {.cls climasus_sensitivity} de {.fn sus_mod_sensitivity}.",
@@ -68,6 +71,33 @@ utils::globalVariables(c(
   entry <- .sns_plot_labels[[key]]
   if (is.null(entry)) return(key)
   entry[[lang]] %||% entry[["pt"]]
+}
+
+#' @keywords internal
+#' @noRd
+.sns_caption <- "climasus4r \u2022 sus_mod_plot_sensitivity()"
+
+# Shared publication-style theme, aligned with .cpa_theme() in
+# R/sus_climate_plot_aggregate.R: white background, only major y gridlines,
+# bold left-aligned title, grey left-aligned subtitle, small grey
+# right-aligned caption, legend at bottom with a modest key size.
+#' @keywords internal
+#' @noRd
+.sns_theme <- function(base_size = 12, legend_position = "bottom") {
+  ggplot2::theme_classic(base_size = base_size) +
+    ggplot2::theme(
+      panel.grid.minor   = ggplot2::element_blank(),
+      panel.grid.major.x = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_line(
+        color = "#EBEBEB", linewidth = 0.3),
+      axis.line       = ggplot2::element_line(color = "#333333", linewidth = 0.5),
+      plot.title      = ggplot2::element_text(face = "bold", hjust = 0),
+      plot.subtitle   = ggplot2::element_text(color = "#4A4A4A", hjust = 0),
+      plot.caption    = ggplot2::element_text(
+        color = "#777777", hjust = 1, size = base_size * 0.67),
+      legend.position = legend_position,
+      legend.key.size = ggplot2::unit(0.4, "cm")
+    )
 }
 
 
@@ -221,17 +251,13 @@ sus_mod_plot_sensitivity <- function(
       subtitle = glue::glue(
         "{meta$climate_col} | {meta$n_strata} {.snpl('strata', lang)}"
       ),
-      x     = .snpl("x_exposure", lang),
-      y     = .snpl("y_rr",       lang),
-      color = NULL,
-      fill  = NULL
+      x       = .snpl("x_exposure", lang),
+      y       = .snpl("y_rr",       lang),
+      color   = .snpl("y_stratum",  lang),
+      fill    = .snpl("y_stratum",  lang),
+      caption = .sns_caption
     ) +
-    ggplot2::theme_bw(base_size = base_size) +
-    ggplot2::theme(
-      plot.title      = ggplot2::element_text(face = "bold"),
-      plot.subtitle   = ggplot2::element_text(color = "gray40"),
-      legend.position = "bottom"
-    )
+    .sns_theme(base_size)
 }
 
 #' @keywords internal
@@ -265,14 +291,11 @@ sus_mod_plot_sensitivity <- function(
       subtitle = glue::glue(
         "{meta$climate_col} | {meta$n_strata} {.snpl('strata', lang)}"
       ),
-      x = .snpl("x_cold_rr", lang),
-      y = .snpl("y_hot_rr",  lang)
+      x       = .snpl("x_cold_rr", lang),
+      y       = .snpl("y_hot_rr",  lang),
+      caption = .sns_caption
     ) +
-    ggplot2::theme_bw(base_size = base_size) +
-    ggplot2::theme(
-      plot.title    = ggplot2::element_text(face = "bold"),
-      plot.subtitle = ggplot2::element_text(color = "gray40")
-    )
+    .sns_theme(base_size)
 }
 
 #' @keywords internal
@@ -310,20 +333,24 @@ sus_mod_plot_sensitivity <- function(
       size     = 3.5,
       position = ggplot2::position_dodge(width = 0.6)
     ) +
-    ggplot2::scale_color_manual(values = fill_vals, name = NULL) +
+    ggplot2::scale_color_manual(
+      values = fill_vals,
+      name   = .snpl("legend_component", lang)
+    ) +
     ggplot2::labs(
       title    = .snpl("bar_title",  lang),
       subtitle = glue::glue(
         "{meta$climate_col} | {meta$n_strata} {.snpl('strata', lang)}"
       ),
-      x = .snpl("x_rr",      lang),
-      y = .snpl("y_stratum",  lang)
+      x       = .snpl("x_rr",      lang),
+      y       = .snpl("y_stratum",  lang),
+      caption = .sns_caption
     ) +
-    ggplot2::theme_bw(base_size = base_size) +
+    .sns_theme(base_size) +
     ggplot2::theme(
-      plot.title         = ggplot2::element_text(face = "bold"),
-      plot.subtitle      = ggplot2::element_text(color = "gray40"),
+      # Horizontal forest plot: gridlines belong on the numeric (x) axis,
+      # not the categorical stratum (y) axis.
       panel.grid.major.y = ggplot2::element_blank(),
-      legend.position    = "top"
+      panel.grid.major.x = ggplot2::element_line(color = "#EBEBEB", linewidth = 0.3)
     )
 }

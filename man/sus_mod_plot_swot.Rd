@@ -47,20 +47,20 @@ bullets to display per quadrant. Default \code{3L}.}
 \value{
 Depending on \code{output_type}:
 \itemize{
-\item \code{"plot"} → a \code{ggplot} or \code{plotly} object.
-\item \code{"table"} → a \code{tibble} of the plotted data.
-\item \code{"all"} → a named list \verb{$plot}, \verb{$table}.
+\item \code{"plot"} -> a \code{ggplot} or \code{plotly} object.
+\item \code{"table"} -> a \code{tibble} of the plotted data.
+\item \code{"all"} -> a named list \verb{$plot}, \verb{$table}.
 }
 }
 \description{
-Produces radar (spider), matrix (2×2 SWOT board), and bar charts from a
+Produces radar (spider), matrix (2x2 SWOT board), and bar charts from a
 \code{climasus_swot} object returned by \code{\link[=sus_mod_swot]{sus_mod_swot()}}.
 }
 \section{Plot types (\code{type})}{
 \tabular{ll}{
    \code{type} \tab Description \cr
-   \code{"radar"} \tab Spider/radar chart of the four quadrant scores (0–100) per entity \cr
-   \code{"matrix"} \tab Classic 2×2 SWOT board: score, category label, and top indicators for each quadrant. Best for a single entity. \cr
+   \code{"radar"} \tab Spider/radar chart of the four quadrant scores (0-100) per entity \cr
+   \code{"matrix"} \tab Classic 2x2 SWOT board: score, category label, and top indicators for each quadrant. Best for a single entity. \cr
    \code{"bar"} \tab Grouped horizontal bars comparing all four quadrant scores per entity \cr
 }
 }

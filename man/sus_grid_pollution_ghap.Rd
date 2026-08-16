@@ -10,6 +10,7 @@ sus_grid_pollution_ghap(
   years = NULL,
   months = 1:12,
   municipalities = NULL,
+  raster_area = FALSE,
   agg_fun = "mean",
   crop_brazil = TRUE,
   use_cache = TRUE,
@@ -26,12 +27,12 @@ Note: \code{"no2"} is not yet publicly available.}
 \item{resolution}{Character. Temporal aggregation of source files.
 One of \code{"daily"}, \code{"monthly"}, or \code{"annual"}. Default: \code{"monthly"}.
 \itemize{
-\item \code{"daily"} — available for PM2.5 only (2017–2022). Each monthly
+\item \code{"daily"} -- available for PM2.5 only (2017-2022). Each monthly
 ZIP (~3 GB) is downloaded, extracted to a temp directory, each daily
 NetCDF is aggregated, and the result is cached as Parquet. Subsequent
 calls read from Parquet without re-extracting.
-\item \code{"monthly"} — PM2.5 only (2017–2022).
-\item \code{"annual"} — PM2.5 (2017–2022), O3 (2000–2020), CO (2019–2022).
+\item \code{"monthly"} -- PM2.5 only (2017-2022).
+\item \code{"annual"} -- PM2.5 (2017-2022), O3 (2000-2020), CO (2019-2022).
 }
 O3 and CO automatically fall back to \code{"annual"} regardless of this
 parameter.}
@@ -39,20 +40,49 @@ parameter.}
 \item{years}{Integer vector. Years to download. Availability depends on
 pollutant and resolution:
 \itemize{
-\item PM2.5 daily, monthly & annual: 2017–2022
-\item O3 annual: 2000–2020
-\item CO annual: 2019–2022
+\item PM2.5 daily, monthly & annual: 2017-2022
+\item O3 annual: 2000-2020
+\item CO annual: 2019-2022
 }
 \code{NULL} (default) returns all available years for the selected pollutant.}
 
-\item{months}{Integer vector (1–12). Months to include when
+\item{months}{Integer vector (1-12). Months to include when
 \code{resolution = "monthly"}. Ignored for annual data. Default: \code{1:12}.}
 
 \item{municipalities}{An \code{sf} object with polygon geometries
 (e.g., from \code{\link[geobr:read_municipality]{geobr::read_municipality()}}). If provided, raster data are
 aggregated to these polygons and a \code{climasus_df} is returned.
 If \code{NULL}, a named character vector of cached NetCDF file paths is
-returned instead.}
+returned instead (see \code{raster_area}).}
+
+\item{raster_area}{Only used when \code{municipalities = NULL}. One of:
+\itemize{
+\item \code{FALSE} (default) -- return the character vector of cached
+file paths.
+\item \code{TRUE} -- return an in-memory \code{terra::SpatRaster}, full extent.
+\item an \code{sf} POLYGON object -- return the \code{SpatRaster} cropped and
+masked to that area.
+\item a 2-letter Brazilian state code (e.g. \code{"MT"}) -- auto-download
+the state boundary via \code{geobr} (cached) and crop/mask to it.
+}
+Ignored (file-path behavior takes precedence) if \code{municipalities} is
+provided.
+
+IMPORTANT limitation: for \code{resolution = "daily"} requests, each monthly
+ZIP contains one NetCDF file per day. Extracting and stacking every
+daily file into the returned raster would require decompressing
+multi-gigabyte archives on every call, so this option instead extracts
+and returns only the FIRST available day of each requested
+pollutant/month as a representative sample -- the returned raster is
+NOT the full daily time series. Users who need the complete daily
+series should extract the cached ZIP themselves (see the file paths
+returned when \code{raster_area = FALSE}), or request narrower month
+ranges and read the daily NetCDF files directly. For \code{"monthly"} and
+\code{"annual"} resolutions the underlying NetCDF file is read directly
+(no ZIP involved), but only its first layer is used per requested
+pollutant/month/year for the same reason: to keep this option
+lightweight and predictable rather than silently building a large
+multi-day stack.}
 
 \item{agg_fun}{Character. Spatial aggregation function applied by
 \code{exactextractr::exact_extract()}. Default: \code{"mean"} (area-weighted).
@@ -79,7 +109,11 @@ columns \code{code_muni}, \code{date}, and one column per pollutant (e.g.,
 \code{pm25_mean}, \code{o3_mean}). Metadata: \code{stage = "climate"},
 \code{type = "pollution_ghap"}.
 \item If \code{municipalities = NULL}: a named character vector of paths to
-the cached NetCDF files.
+the cached NetCDF files, or, per \code{raster_area}, an in-memory
+\code{terra::SpatRaster} with one layer per requested pollutant/month,
+each layer being a single representative day (see \code{raster_area}
+for details and limitations), optionally cropped and masked to an
+area of interest.
 }
 }
 \description{
@@ -94,10 +128,10 @@ and the result is stored as a Parquet cache for fast subsequent access.
 
 Available pollutants and temporal coverage:
 \itemize{
-\item \strong{PM2.5} (\code{"pm25"}) — daily, monthly & annual, 2017–2022, 1 km, \eqn{\mu g/m^3}
-\item \strong{O3} (\code{"o3"}) — annual only, 2000–2020, 10 km, ppb
-\item \strong{CO} (\code{"co"}) — annual only, 2019–2022, 1 km, mg/m\eqn{^3}
-\item \strong{NO2} (\code{"no2"}) — data not yet publicly released
+\item \strong{PM2.5} (\code{"pm25"}) -- daily, monthly & annual, 2017-2022, 1 km, \eqn{\mu g/m^3}
+\item \strong{O3} (\code{"o3"}) -- annual only, 2000-2020, 10 km, ppb
+\item \strong{CO} (\code{"co"}) -- annual only, 2019-2022, 1 km, mg/m\eqn{^3}
+\item \strong{NO2} (\code{"no2"}) -- data not yet publicly released
 }
 
 When \code{municipalities} is provided the function returns a \code{climasus_df} at

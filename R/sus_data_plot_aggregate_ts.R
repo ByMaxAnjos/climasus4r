@@ -193,27 +193,40 @@ utils::globalVariables(c(
 #' @keywords internal
 #' @noRd
 .ts_theme <- function(base_size = 11) {
-  ggplot2::theme_minimal(base_size = base_size, base_family = "sans") +
+  ggplot2::theme_classic(base_size = base_size) +
     ggplot2::theme(
-      panel.grid.minor       = ggplot2::element_blank(),
-      panel.grid.major.x     = ggplot2::element_line(colour = "grey92", linewidth = 0.25),
-      panel.grid.major.y     = ggplot2::element_line(colour = "grey88", linewidth = 0.30),
-      panel.border           = ggplot2::element_rect(colour = "grey85", fill = NA,
-                                                     linewidth = 0.3),
-      strip.background       = ggplot2::element_rect(fill = "grey95", colour = NA),
-      strip.text             = ggplot2::element_text(colour = "grey20", face = "bold",
-                                                     size = base_size * 0.85),
-      axis.text.x            = ggplot2::element_text(angle = 45, hjust = 1),
-      legend.position        = "bottom",
-      plot.title             = ggplot2::element_text(face = "bold",
-                                                     size = base_size * 1.1),
-      plot.subtitle          = ggplot2::element_text(colour = "grey35",
-                                                     size = base_size * 0.90),
-      plot.caption           = ggplot2::element_text(colour = "grey50",
-                                                     size = base_size * 0.72,
-                                                     hjust = 0),
-      plot.margin            = ggplot2::margin(12, 14, 10, 12)
+      panel.background   = ggplot2::element_rect(fill = "white", colour = NA),
+      plot.background    = ggplot2::element_rect(fill = "white", colour = NA),
+      panel.grid.minor   = ggplot2::element_blank(),
+      panel.grid.major.x = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_line(colour = "#EBEBEB", linewidth = 0.3),
+      axis.line          = ggplot2::element_line(colour = "#333333", linewidth = 0.5),
+      strip.background   = ggplot2::element_rect(fill = "grey95", colour = NA),
+      strip.text         = ggplot2::element_text(colour = "grey20", face = "bold",
+                                                  size = base_size * 0.85),
+      axis.text.x        = ggplot2::element_text(angle = 45, hjust = 1),
+      axis.title         = ggplot2::element_text(size = base_size * 0.9, colour = "#444441"),
+      legend.position    = "bottom",
+      legend.key.size    = ggplot2::unit(0.4, "cm"),
+      legend.title       = ggplot2::element_text(face = "bold", size = base_size * 0.85),
+      plot.title         = ggplot2::element_text(face = "bold",
+                                                  size = base_size * 1.1, hjust = 0),
+      plot.subtitle      = ggplot2::element_text(colour = "grey35",
+                                                  size = base_size * 0.90, hjust = 0),
+      plot.caption       = ggplot2::element_text(colour = "grey50",
+                                                  size = base_size * 0.72, hjust = 1),
+      plot.margin        = ggplot2::margin(12, 14, 10, 12),
+      panel.spacing      = ggplot2::unit(0.8, "lines")
     )
+}
+
+# Prettify a raw column name into a legend title (e.g. "faixa_etaria" -> "Faixa Etaria")
+#' @keywords internal
+#' @noRd
+.ts_legend_title <- function(col) {
+  if (is.null(col) || !nzchar(col)) return(ggplot2::waiver())
+  txt <- gsub("[._]+", " ", col)
+  tools::toTitleCase(txt)
 }
 
 # =============================================================================
@@ -419,8 +432,8 @@ utils::globalVariables(c(
       subtitle = subtitle,
       caption  = caption,
       x        = NULL,
-      color    = group_col,
-      fill     = group_col
+      color    = .ts_legend_title(group_col),
+      fill     = .ts_legend_title(group_col)
     ) +
     .ts_theme(base_size)
 
@@ -522,7 +535,7 @@ utils::globalVariables(c(
       subtitle = subtitle,
       caption  = caption,
       x        = .tsm("x_month", lang),
-      fill     = group_col %||% NULL
+      fill     = .ts_legend_title(group_col)
     ) +
     .ts_theme(base_size) +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 0, hjust = 0.5))

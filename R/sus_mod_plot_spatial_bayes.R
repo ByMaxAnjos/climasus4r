@@ -3,10 +3,10 @@
 # Visualizations for climasus_spatial_bayes objects
 #
 # Types:
-#   "rr"          — Relative Risk choropleth map
-#   "uncertainty" — CI width choropleth map
-#   "coef"        — Forest plot of fixed-effect coefficients
-#   "both"        — RR + uncertainty side-by-side (patchwork or list)
+#   "rr"          \u2014 Relative Risk choropleth map
+#   "uncertainty" \u2014 CI width choropleth map
+#   "coef"        \u2014 Forest plot of fixed-effect coefficients
+#   "both"        \u2014 RR + uncertainty side-by-side (patchwork or list)
 # =============================================================================
 
 # -- NSE variable declarations -------------------------------------------------
@@ -25,9 +25,9 @@ utils::globalVariables(c(
     es = "Riesgo Relativo Suavizado (BYM/CAR)"
   ),
   rr_fill = list(
-    pt = "RR",
-    en = "RR",
-    es = "RR"
+    pt = "RR Suavizado (M\u00e9dia Posterior)",
+    en = "Smoothed Relative Risk",
+    es = "RR Suavizado (Media Posterior)"
   ),
   rr_sig_label = list(
     pt = "RR > 1 (IC95% elevado)",
@@ -41,9 +41,9 @@ utils::globalVariables(c(
     es = "Incertidumbre: Amplitud del Intervalo de Credibilidad (95%)"
   ),
   unc_fill = list(
-    pt = "Largura IC",
-    en = "CI Width",
-    es = "Amplitud IC"
+    pt = "Largura do IC 95%",
+    en = "95% CI Width",
+    es = "Amplitud del IC 95%"
   ),
 
   coef_title = list(
@@ -127,14 +127,25 @@ utils::globalVariables(c(
 .bayes_map_theme <- function(base_size = 12) {
   ggplot2::theme_void(base_size = base_size) +
     ggplot2::theme(
-      legend.position   = "right",
-      legend.key.height = ggplot2::unit(1.2, "cm"),
-      plot.title        = ggplot2::element_text(
-        hjust = 0.5, face = "bold", size = base_size + 1
+      legend.position    = "bottom",
+      legend.direction   = "horizontal",
+      legend.key.height  = ggplot2::unit(0.35, "cm"),
+      legend.key.width   = ggplot2::unit(1.0, "cm"),
+      legend.title       = ggplot2::element_text(
+        size = base_size - 1, face = "bold"
       ),
-      plot.caption = ggplot2::element_text(
-        hjust = 0, size = base_size - 2, color = "grey50"
-      )
+      legend.text        = ggplot2::element_text(size = base_size - 2),
+      plot.title         = ggplot2::element_text(
+        hjust = 0, face = "bold", size = base_size + 1
+      ),
+      plot.subtitle      = ggplot2::element_text(
+        hjust = 0, color = "grey45", size = base_size * 0.88,
+        margin = ggplot2::margin(b = 4)
+      ),
+      plot.caption       = ggplot2::element_text(
+        hjust = 1, size = base_size - 2, color = "grey50"
+      ),
+      plot.margin        = ggplot2::margin(4, 4, 4, 4)
     )
 }
 
@@ -243,8 +254,12 @@ utils::globalVariables(c(
     ) +
     ggplot2::theme_bw(base_size = base_size) +
     ggplot2::theme(
-      plot.title = ggplot2::element_text(hjust = 0.5, face = "bold"),
-      panel.grid.major.y = ggplot2::element_blank()
+      plot.title          = ggplot2::element_text(
+        hjust = 0, face = "bold", size = base_size + 1
+      ),
+      axis.title          = ggplot2::element_text(size = base_size - 2),
+      panel.grid.minor    = ggplot2::element_blank(),
+      panel.grid.major.y  = ggplot2::element_blank()
     )
 
   p
@@ -405,7 +420,9 @@ sus_mod_plot_spatial_bayes <- function(
       patchwork::plot_annotation(
         title = title %||% .pbl("both_title", lang),
         theme = ggplot2::theme(
-          plot.title = ggplot2::element_text(hjust = 0.5, face = "bold")
+          plot.title = ggplot2::element_text(
+            hjust = 0, face = "bold", size = base_size + 1
+          )
         )
       )
     return(combined)

@@ -130,6 +130,11 @@ utils::globalVariables(c(
     en = "P(RR > {thr})",
     es = "P(RR > {thr})"
   ),
+  exc_sub = list(
+    pt = "Probabilidade posterior de risco relativo acima do limiar",
+    en = "Posterior probability of relative risk exceeding the threshold",
+    es = "Probabilidad posterior de riesgo relativo superior al umbral"
+  ),
 
   # coef -------------------------------------------------------------------------
   coef_title = list(
@@ -146,6 +151,11 @@ utils::globalVariables(c(
     pt = "Covari\u00e1vel",
     en = "Covariate",
     es = "Covariable"
+  ),
+  model_caption = list(
+    pt = "Fonte: modelo bayesiano espa\u00e7o-tempo (INLA)",
+    en = "Source: Bayesian space-time model (INLA)",
+    es = "Fuente: modelo bayesiano espacio-tiempo (INLA)"
   ),
 
   # errors / warnings -----------------------------------------------------------
@@ -276,18 +286,50 @@ utils::globalVariables(c(
 .st_map_theme <- function(base_size = 11) {
   ggplot2::theme_void(base_size = base_size) +
     ggplot2::theme(
-      legend.position   = "right",
-      legend.key.height = ggplot2::unit(1.2, "cm"),
+      legend.position   = "bottom",
+      legend.key.width  = ggplot2::unit(1.2, "cm"),
+      legend.key.height = ggplot2::unit(0.35, "cm"),
+      legend.title      = ggplot2::element_text(size = base_size - 1),
+      legend.text       = ggplot2::element_text(size = base_size - 2),
       plot.title        = ggplot2::element_text(
-        hjust = 0.5, face = "bold", size = base_size + 1
+        hjust = 0, face = "bold", size = base_size + 1
       ),
       plot.subtitle = ggplot2::element_text(
-        hjust = 0.5, size = base_size - 1, color = "grey40"
+        hjust = 0, size = base_size - 1, color = "#4A4A4A"
       ),
       plot.caption = ggplot2::element_text(
-        hjust = 0, size = base_size - 2, color = "grey50"
+        hjust = 1, size = base_size - 2, color = "#777777"
       ),
       strip.text = ggplot2::element_text(size = base_size - 1, face = "bold")
+    )
+}
+
+# -- Shared non-map theme (line/heatmap/forest plots) --------------------------
+#' @keywords internal
+#' @noRd
+.st_base_theme <- function(base_size = 11) {
+  ggplot2::theme_classic(base_size = base_size) +
+    ggplot2::theme(
+      panel.grid.minor   = ggplot2::element_blank(),
+      panel.grid.major.x = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_line(
+        color = "#EBEBEB", linewidth = 0.3
+      ),
+      axis.line     = ggplot2::element_line(color = "#333333", linewidth = 0.5),
+      plot.title    = ggplot2::element_text(
+        face = "bold", size = base_size + 2, hjust = 0
+      ),
+      plot.subtitle = ggplot2::element_text(
+        color = "#4A4A4A", size = base_size - 1, hjust = 0
+      ),
+      plot.caption  = ggplot2::element_text(
+        color = "#777777", size = base_size - 3, hjust = 1
+      ),
+      axis.title    = ggplot2::element_text(size = base_size - 1, color = "#444441"),
+      axis.text     = ggplot2::element_text(size = base_size - 2, color = "#5F5E5A"),
+      legend.position = "bottom",
+      legend.key.size = ggplot2::unit(0.4, "cm"),
+      strip.text      = ggplot2::element_text(face = "bold", size = base_size - 1)
     )
 }
 
@@ -422,13 +464,10 @@ utils::globalVariables(c(
       title    = title %||% .stl("temporal_title", lang),
       subtitle = .stl("temporal_sub", lang),
       x        = .stl("x_time", lang),
-      y        = .stl("y_rr", lang)
+      y        = .stl("y_rr", lang),
+      caption  = .stl("model_caption", lang)
     ) +
-    ggplot2::theme_bw(base_size = base_size) +
-    ggplot2::theme(
-      plot.title    = ggplot2::element_text(hjust = 0.5, face = "bold"),
-      plot.subtitle = ggplot2::element_text(hjust = 0.5, color = "grey40")
-    )
+    .st_base_theme(base_size)
 
   p
 }
@@ -475,15 +514,16 @@ utils::globalVariables(c(
       title    = title %||% .stl("interaction_title", lang),
       subtitle = .stl("interaction_sub", lang),
       x        = .stl("x_time_idx", lang),
-      y        = .stl("y_muni", lang)
+      y        = .stl("y_muni", lang),
+      caption  = .stl("model_caption", lang)
     ) +
-    ggplot2::theme_bw(base_size = base_size) +
+    .st_base_theme(base_size) +
     ggplot2::theme(
-      axis.text.y   = ggplot2::element_text(size = max(base_size - 4, 5)),
-      axis.ticks.y  = ggplot2::element_blank(),
-      plot.title    = ggplot2::element_text(hjust = 0.5, face = "bold"),
-      plot.subtitle = ggplot2::element_text(hjust = 0.5, color = "grey40"),
-      panel.grid    = ggplot2::element_blank()
+      axis.text.y      = ggplot2::element_text(size = max(base_size - 4, 5)),
+      axis.ticks.y     = ggplot2::element_blank(),
+      axis.line        = ggplot2::element_blank(),
+      panel.grid       = ggplot2::element_blank(),
+      legend.key.width = ggplot2::unit(1.2, "cm")
     )
 
   p
@@ -540,7 +580,9 @@ utils::globalVariables(c(
       name     = .stl("exc_fill", lang, thr = threshold)
     ) +
     ggplot2::labs(
-      title = title %||% .stl("exc_title", lang, thr = threshold)
+      title    = title %||% .stl("exc_title", lang, thr = threshold),
+      subtitle = .stl("exc_sub", lang),
+      caption  = .stl("model_caption", lang)
     ) +
     .st_map_theme(base_size)
 
@@ -575,13 +617,13 @@ utils::globalVariables(c(
       size      = 0.55
     ) +
     ggplot2::labs(
-      title = title %||% .stl("coef_title", lang),
-      x     = .stl("coef_x", lang),
-      y     = .stl("coef_y", lang)
+      title   = title %||% .stl("coef_title", lang),
+      x       = .stl("coef_x", lang),
+      y       = .stl("coef_y", lang),
+      caption = .stl("model_caption", lang)
     ) +
-    ggplot2::theme_bw(base_size = base_size) +
+    .st_base_theme(base_size) +
     ggplot2::theme(
-      plot.title         = ggplot2::element_text(hjust = 0.5, face = "bold"),
       panel.grid.major.y = ggplot2::element_blank()
     )
 

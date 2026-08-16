@@ -146,22 +146,25 @@ sus_climate_plot_heatwaves <- function(
 }
 
 .hw_theme <- function() {
-  ggplot2::theme_minimal(base_family = "sans") +
+  ggplot2::theme_classic(base_size = 12) +
     ggplot2::theme(
-      plot.title = ggplot2::element_text(face = "bold", size = 16, color = "#2C3E50", margin = ggplot2::margin(b = 10)),
-      plot.subtitle = ggplot2::element_text(size = 12, color = "#7F8C8D", margin = ggplot2::margin(b = 15)),
-      axis.title = ggplot2::element_text(face = "bold", size = 12, color = "#34495E"),
-      axis.text = ggplot2::element_text(size = 10, color = "#7F8C8D"),
-      legend.title = ggplot2::element_text(face = "bold", size = 11, color = "#2C3E50"),
-      legend.text = ggplot2::element_text(size = 10, color = "#34495E"),
+      plot.title = ggplot2::element_text(face = "bold", size = 13, hjust = 0, margin = ggplot2::margin(b = 6)),
+      plot.subtitle = ggplot2::element_text(size = 10, color = "#4A4A4A", hjust = 0, margin = ggplot2::margin(b = 10)),
+      plot.caption = ggplot2::element_text(size = 8, color = "#777777", hjust = 1),
+      axis.title = ggplot2::element_text(size = 10, color = "#444441"),
+      axis.text = ggplot2::element_text(size = 9, color = "#5F5E5A"),
+      axis.line = ggplot2::element_line(color = "#333333", linewidth = 0.5),
+      legend.title = ggplot2::element_text(face = "bold", size = 10, color = "#2C3E50"),
+      legend.text = ggplot2::element_text(size = 9, color = "#34495E"),
       legend.position = "bottom",
-      legend.box.background = ggplot2::element_rect(color = "#BDC3C7", linewidth = 0.5, fill = "white"),
+      legend.key.size = ggplot2::unit(0.4, "cm"),
       legend.margin = ggplot2::margin(t = 5, r = 10, b = 5, l = 10),
       panel.grid.minor = ggplot2::element_blank(),
-      panel.grid.major = ggplot2::element_line(color = "#ECF0F1", linewidth = 0.5),
+      panel.grid.major.x = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_line(color = "#EBEBEB", linewidth = 0.3),
       plot.background = ggplot2::element_rect(fill = "white", color = NA),
       panel.background = ggplot2::element_rect(fill = "white", color = NA),
-      strip.text = ggplot2::element_text(face = "bold", size = 11, color = "#2C3E50"),
+      strip.text = ggplot2::element_text(face = "bold", size = 10, color = "#2C3E50"),
       strip.background = ggplot2::element_rect(fill = "#ECF0F1", color = NA)
     )
 }
@@ -170,9 +173,9 @@ sus_climate_plot_heatwaves <- function(
 
   # Prepare labels
   labels <- switch(lang,
-    en = list(title = "Heatwave Events Timeline", subtitle = "Duration and intensity of events across stations", x = "Date", y = "Station", dur = "Duration (days)", int = "Intensity", unknown = "Unknown", low = "Low Intensity (LIHW)", severe = "Severe (SHW)", extreme = "Extreme (EHW)"),
-    pt = list(title = "Linha do Tempo de Ondas de Calor", subtitle = "Duracao e intensidade dos eventos por estacao", x = "Data", y = "Estacao", dur = "Duracao (dias)", int = "Intensidade", unknown = "Desconhecida", low = "Baixa Intensidade (LIHW)", severe = "Severa (SHW)", extreme = "Extrema (EHW)"),
-    es = list(title = "Linea de Tiempo de Olas de Calor", subtitle = "Duracion e intensidad de los eventos por estacion", x = "Fecha", y = "Estacion", dur = "Duracion (dias)", int = "Intensidad", unknown = "Desconocida", low = "Baja Intensidad (LIHW)", severe = "Severa (SHW)", extreme = "Extrema (EHW)")
+    en = list(title = "Heatwave Events Timeline", subtitle = "Duration and intensity of events across stations", x = "Date", y = "Station", dur = "Duration (days)", int = "Intensity", unknown = "Unknown", low = "Low Intensity (LIHW)", severe = "Severe (SHW)", extreme = "Extreme (EHW)", caption = "climasus4r \u2022 sus_climate_plot_heatwaves()"),
+    pt = list(title = "Linha do Tempo de Ondas de Calor", subtitle = "Duracao e intensidade dos eventos por estacao", x = "Data", y = "Estacao", dur = "Duracao (dias)", int = "Intensidade", unknown = "Desconhecida", low = "Baixa Intensidade (LIHW)", severe = "Severa (SHW)", extreme = "Extrema (EHW)", caption = "climasus4r \u2022 sus_climate_plot_heatwaves()"),
+    es = list(title = "Linea de Tiempo de Olas de Calor", subtitle = "Duracion e intensidad de los eventos por estacion", x = "Fecha", y = "Estacion", dur = "Duracion (dias)", int = "Intensidad", unknown = "Desconocida", low = "Baja Intensidad (LIHW)", severe = "Severa (SHW)", extreme = "Extrema (EHW)", caption = "climasus4r \u2022 sus_climate_plot_heatwaves()")
   )
 
   # Ensure intensity_class exists
@@ -218,7 +221,7 @@ sus_climate_plot_heatwaves <- function(
     ) +
     ggplot2::scale_linewidth_continuous(range = c(2, 8), name = labels$dur) +
     ggplot2::scale_x_date(date_labels = "%b %Y", date_breaks = "3 months") +
-    ggplot2::labs(title = labels$title, subtitle = labels$subtitle, x = labels$x, y = labels$y) +
+    ggplot2::labs(title = labels$title, subtitle = labels$subtitle, x = labels$x, y = labels$y, caption = labels$caption) +
     .hw_theme()
 
   return(p)
@@ -228,9 +231,9 @@ sus_climate_plot_heatwaves <- function(
   
   # Prepare labels
   labels <- switch(lang,
-    en = list(title = "Heatwave Calendar", subtitle = "Daily occurrence of heatwaves", x = "Month", y = "Day", fill = "Heatwave", yes = "Yes", no = "No", date = "Date", tmax = "Tmax"),
-    pt = list(title = "Calendario de Ondas de Calor", subtitle = "Ocorrencia diaria de ondas de calor", x = "Mes", y = "Dia", fill = "Onda de Calor", yes = "Sim", no = "Nao", date = "Data", tmax = "Tmax"),
-    es = list(title = "Calendario de Olas de Calor", subtitle = "Ocurrencia diaria de olas de calor", x = "Mes", y = "Dia", fill = "Ola de Calor", yes = "Si", no = "No", date = "Fecha", tmax = "Tmax")
+    en = list(title = "Heatwave Calendar", subtitle = "Daily occurrence of heatwaves", x = "Month", y = "Day", fill = "Heatwave Occurrence", yes = "Yes", no = "No", date = "Date", tmax = "Tmax", caption = "climasus4r \u2022 sus_climate_plot_heatwaves()"),
+    pt = list(title = "Calendario de Ondas de Calor", subtitle = "Ocorrencia diaria de ondas de calor", x = "Mes", y = "Dia", fill = "Ocorrencia de Onda de Calor", yes = "Sim", no = "Nao", date = "Data", tmax = "Tmax", caption = "climasus4r \u2022 sus_climate_plot_heatwaves()"),
+    es = list(title = "Calendario de Olas de Calor", subtitle = "Ocurrencia diaria de olas de calor", x = "Mes", y = "Dia", fill = "Ocurrencia de Ola de Calor", yes = "Si", no = "No", date = "Fecha", tmax = "Tmax", caption = "climasus4r \u2022 sus_climate_plot_heatwaves()")
   )
   
   # If method is NULL, use hw_any, otherwise use specific method
@@ -266,7 +269,7 @@ sus_climate_plot_heatwaves <- function(
       name = labels$fill
     ) +
     ggplot2::scale_y_reverse(breaks = 1:31) +
-    ggplot2::labs(title = labels$title, subtitle = labels$subtitle, x = labels$x, y = labels$y) +
+    ggplot2::labs(title = labels$title, subtitle = labels$subtitle, x = labels$x, y = labels$y, caption = labels$caption) +
     .hw_theme() +
     ggplot2::theme(
       panel.grid.major = ggplot2::element_blank(),
@@ -284,9 +287,9 @@ sus_climate_plot_heatwaves <- function(
   
   # Prepare labels
   labels <- switch(lang,
-    en = list(title = "Heatwave Intensity vs Duration", subtitle = "Relationship between event length and peak temperature", x = "Duration (days)", y = "Peak Temperature (degC)", color = "Intensity", unknown = "Unknown", low = "Low Intensity (LIHW)", severe = "Severe (SHW)", extreme = "Extreme (EHW)"),
-    pt = list(title = "Intensidade vs Duracao da Onda de Calor", subtitle = "Relacao entre a duracao do evento e a temperatura maxima", x = "Duracao (dias)", y = "Temperatura Maxima (degC)", color = "Intensidade", unknown = "Desconhecida", low = "Baixa Intensidade (LIHW)", severe = "Severa (SHW)", extreme = "Extrema (EHW)"),
-    es = list(title = "Intensidad vs Duracion de la Ola de Calor", subtitle = "Relacion entre la duracion del evento y la temperatura maxima", x = "Duracion (dias)", y = "Temperatura Maxima (degC)", color = "Intensidad", unknown = "Desconocida", low = "Baja Intensidad (LIHW)", severe = "Severa (SHW)", extreme = "Extrema (EHW)")
+    en = list(title = "Heatwave Intensity vs Duration", subtitle = "Relationship between event length and peak temperature", x = "Duration (days)", y = "Peak Temperature (\u00b0C)", color = "Intensity", unknown = "Unknown", low = "Low Intensity (LIHW)", severe = "Severe (SHW)", extreme = "Extreme (EHW)", caption = "climasus4r \u2022 sus_climate_plot_heatwaves()"),
+    pt = list(title = "Intensidade vs Duracao da Onda de Calor", subtitle = "Relacao entre a duracao do evento e a temperatura maxima", x = "Duracao (dias)", y = "Temperatura Maxima (\u00b0C)", color = "Intensidade", unknown = "Desconhecida", low = "Baixa Intensidade (LIHW)", severe = "Severa (SHW)", extreme = "Extrema (EHW)", caption = "climasus4r \u2022 sus_climate_plot_heatwaves()"),
+    es = list(title = "Intensidad vs Duracion de la Ola de Calor", subtitle = "Relacion entre la duracion del evento y la temperatura maxima", x = "Duracion (dias)", y = "Temperatura Maxima (\u00b0C)", color = "Intensidad", unknown = "Desconocida", low = "Baja Intensidad (LIHW)", severe = "Severa (SHW)", extreme = "Extrema (EHW)", caption = "climasus4r \u2022 sus_climate_plot_heatwaves()")
   )
   
   if (!"intensity_class" %in% names(events)) {
@@ -318,7 +321,7 @@ sus_climate_plot_heatwaves <- function(
       ),
       name = labels$color
     ) +
-    ggplot2::labs(title = labels$title, subtitle = labels$subtitle, x = labels$x, y = labels$y) +
+    ggplot2::labs(title = labels$title, subtitle = labels$subtitle, x = labels$x, y = labels$y, caption = labels$caption) +
     .hw_theme() +
     ggplot2::guides(size = "none")
     
@@ -329,9 +332,9 @@ sus_climate_plot_heatwaves <- function(
   
   # Prepare labels
   labels <- switch(lang,
-    en = list(title = "Annual Heatwave Trend", subtitle = "Number of heatwave events per year by method", x = "Year", y = "Number of Events", fill = "Method", year = "Year", events = "Events"),
-    pt = list(title = "Tendencia Anual de Ondas de Calor", subtitle = "Numero de eventos de onda de calor por ano e metodo", x = "Ano", y = "Numero de Eventos", fill = "Metodo", year = "Ano", events = "Eventos"),
-    es = list(title = "Tendencia Anual de Olas de Calor", subtitle = "Numero de eventos de ola de calor por ano y metodo", x = "Ano", y = "Numero de Eventos", fill = "Metodo", year = "Ano", events = "Eventos")
+    en = list(title = "Annual Heatwave Trend", subtitle = "Number of heatwave events per year by method", x = "Year", y = "Number of Events", fill = "Detection Method", year = "Year", events = "Events", caption = "climasus4r \u2022 sus_climate_plot_heatwaves()"),
+    pt = list(title = "Tendencia Anual de Ondas de Calor", subtitle = "Numero de eventos de onda de calor por ano e metodo", x = "Ano", y = "Numero de Eventos", fill = "Metodo de Deteccao", year = "Ano", events = "Eventos", caption = "climasus4r \u2022 sus_climate_plot_heatwaves()"),
+    es = list(title = "Tendencia Anual de Olas de Calor", subtitle = "Numero de eventos de ola de calor por ano y metodo", x = "Ano", y = "Numero de Eventos", fill = "Metodo de Deteccion", year = "Ano", events = "Eventos", caption = "climasus4r \u2022 sus_climate_plot_heatwaves()")
   )
   
   # Aggregate by year and method
@@ -360,7 +363,7 @@ sus_climate_plot_heatwaves <- function(
       ),
       name = labels$fill
     ) +
-    ggplot2::labs(title = labels$title, subtitle = labels$subtitle, x = labels$x, y = labels$y) +
+    ggplot2::labs(title = labels$title, subtitle = labels$subtitle, x = labels$x, y = labels$y, caption = labels$caption) +
     .hw_theme()
 
   return(p)

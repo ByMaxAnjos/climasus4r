@@ -1,10 +1,10 @@
-# ── NSE variable declarations ─────────────────────────────────────────────────
+# \u2500\u2500 NSE variable declarations \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 utils::globalVariables(c(
   "code_muni", "date", "rainfall_chirps_mm", "layer_name",
   "bad", "valid", "err", "n_rows", "n_mun", "n_files", "filename"
 ))
 
-# ── Exported function ─────────────────────────────────────────────────────────
+# \u2500\u2500 Exported function \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 #' Import CHIRPS Rainfall Data for Brazilian Municipalities
 #'
@@ -17,31 +17,48 @@ utils::globalVariables(c(
 #' quasi-global, 0.05\eqn{^\circ} (~5 km) daily rainfall dataset from UCSB CHC
 #' covering 1981 to present. It combines satellite imagery with station data and
 #' is considered the best freely available high-resolution rainfall product for
-#' Brazil — particularly for leptospirosis, diarrheal disease, and dengue
+#' Brazil -- particularly for leptospirosis, diarrheal disease, and dengue
 #' analyses where precipitation is the key exposure.
 #'
 #' No authentication is required.
 #'
 #' @param resolution Character. Temporal resolution of source files:
 #'   \itemize{
-#'     \item `"monthly"` (default) — one file per month (~5–20 MB each);
+#'     \item `"monthly"` (default) -- one file per month (~5-20 MB each);
 #'       returns mm/month.
-#'     \item `"daily"` — one file per day (~3 MB each); returns mm/day.
+#'     \item `"daily"` -- one file per day (~3 MB each); returns mm/day.
 #'       Recommended only for short periods; a full year = 365 downloads.
-#'     \item `"annual"` — one file per year; returns mm/year.
+#'     \item `"annual"` -- one file per year; returns mm/year.
 #'   }
 #'
 #' @param years Integer vector. Years to download. Coverage: 1981 to present
-#'   for daily/monthly; 1981–2024 for annual. `NULL` defaults to the last
+#'   for daily/monthly; 1981-2024 for annual. `NULL` defaults to the last
 #'   two complete years.
 #'
-#' @param months Integer vector (1–12). Months to include for daily and monthly
+#' @param months Integer vector (1-12). Months to include for daily and monthly
 #'   resolutions. Ignored for annual. Default `1:12`.
 #'
 #' @param municipalities An `sf` POLYGON object (e.g., from
 #'   [geobr::read_municipality()]). When provided, rasters are aggregated and a
 #'   `climasus_df` is returned. If `NULL`, a named character vector of cached
-#'   file paths is returned instead.
+#'   file paths is returned instead (see `raster_area`).
+#'
+#' @param raster_area Controls what is returned when `municipalities = NULL`.
+#'   One of:
+#'   \itemize{
+#'     \item `FALSE` (default) -- return the character vector of cached
+#'       file paths (legacy behavior).
+#'     \item `TRUE` -- return an in-memory `terra::SpatRaster` (one layer
+#'       per date, named by date), full extent.
+#'     \item an `sf` POLYGON object -- return the `SpatRaster` cropped and
+#'       masked to that area (e.g. a municipality or state from
+#'       [geobr::read_municipality()]/[geobr::read_state()]).
+#'     \item a 2-letter Brazilian state code (e.g. `"MT"`) -- the state
+#'       boundary is auto-downloaded via `geobr` (cached) and used to crop
+#'       and mask the `SpatRaster`.
+#'   }
+#'   Ignored (with the file-path/tibble behavior taking precedence) if
+#'   `municipalities` is provided.
 #'
 #' @param agg_fun Character. Spatial aggregation function for
 #'   `exactextractr::exact_extract()`. Default `"mean"` (area-weighted mean).
@@ -66,7 +83,9 @@ utils::globalVariables(c(
 #'     `code_muni` (character), `date` (Date), and `rainfall_chirps_mm`
 #'     (numeric). Metadata: `stage = "climate"`, `type = "chirps"`.
 #'   \item If `municipalities = NULL`: a named character vector of paths to
-#'     the cached GeoTIFF/gz files.
+#'     the cached GeoTIFF/gz files, or (per `raster_area`) an in-memory
+#'     `terra::SpatRaster` with one layer per date, optionally cropped and
+#'     masked to an area of interest.
 #' }
 #'
 #' @section Units:
@@ -79,7 +98,7 @@ utils::globalVariables(c(
 #'
 #' @section Data source:
 #' Funk, C. et al. (2015). The climate hazards infrared precipitation with
-#' stations — a new environmental record for monitoring extremes.
+#' stations -- a new environmental record for monitoring extremes.
 #' *Scientific Data*, 2, 150066. \doi{10.1038/sdata.2015.66}\cr
 #' Data: \url{https://data.chc.ucsb.edu/products/CHIRPS-2.0/}
 #'
@@ -132,6 +151,7 @@ sus_grid_chirps <- function(
     years         = NULL,
     months        = 1:12,
     municipalities = NULL,
+    raster_area   = FALSE,
     agg_fun       = "mean",
     crop_brazil   = TRUE,
     use_cache     = TRUE,
@@ -139,7 +159,7 @@ sus_grid_chirps <- function(
     lang          = "pt",
     verbose       = TRUE) {
 
-  # ── 1. Validation ───────────────────────────────────────────────────────────
+  # \u2500\u2500 1. Validation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
   if (!is.character(lang) || length(lang) != 1 || !lang %in% c("pt", "en", "es")) {
     cli::cli_abort("{.arg lang} must be 'pt', 'en', or 'es'.")
@@ -186,6 +206,9 @@ sus_grid_chirps <- function(
       reason = "to read CHIRPS GeoTIFF rasters")
     rlang::check_installed("exactextractr",
       reason = "to aggregate rasters to municipality polygons")
+  } else if (!isFALSE(raster_area)) {
+    rlang::check_installed("terra",
+      reason = "to build the in-memory SpatRaster")
   }
 
   valid_agg <- c("mean", "sum", "median", "min", "max")
@@ -198,10 +221,10 @@ sus_grid_chirps <- function(
   if (!is.character(cache_dir) || nchar(trimws(cache_dir)) == 0) cli::cli_abort(msg$invalid_cache_dir)
   cache_dir <- normalizePath(cache_dir, mustWork = FALSE)
 
-  # Cache Parquet fica no cache_dir/parquet, uma unidade (mês/ano) por
-  # arquivo — precisa de um sufixo por conjunto de municípios, senão a
-  # 1a chamada (ex. município do AC) grava o cache e qualquer chamada
-  # seguinte com OUTRO conjunto de municípios (ex. RO) bate no mesmo
+  # Cache Parquet fica no cache_dir/parquet, uma unidade (mes/ano) por
+  # arquivo -- precisa de um sufixo por conjunto de municipios, senao a
+  # 1a chamada (ex. municipio do AC) grava o cache e qualquer chamada
+  # seguinte com OUTRO conjunto de municipios (ex. RO) bate no mesmo
   # arquivo e devolve os dados do AC de volta, sem erro nenhum.
   muni_hash <- ""
   if (!is.null(municipalities)) {
@@ -210,7 +233,7 @@ sus_grid_chirps <- function(
       sort(as.character(municipalities[[muni_col_probe]]))), 1, 10))
   }
 
-  # ── 2. Build download manifest ───────────────────────────────────────────────
+  # \u2500\u2500 2. Build download manifest \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   manifest_rows <- list()
 
   for (yr in years) {
@@ -286,14 +309,14 @@ sus_grid_chirps <- function(
     cli::cli_alert_info(glue::glue(msg$download_start, n_files = n_files))
   }
 
-  # ── 3. Parquet early-return ──────────────────────────────────────────────────
+  # \u2500\u2500 3. Parquet early-return \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   unique_pq <- unique(manifest$cache_pq)
   if (!is.null(municipalities) && use_cache && all(file.exists(unique_pq))) {
     if (verbose) cli::cli_alert_success(msg$parquet_cache_hit)
     return(.chirps_build_from_parquet(unique_pq, verbose, msg))
   }
 
-  # ── 4. Download rasters ───────────────────────────────────────────────────────
+  # \u2500\u2500 4. Download rasters \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   unique_files <- unique(manifest[, c("filename", "url", "cache_tif")])
   for (i in seq_len(nrow(unique_files))) {
     .chirps_download_file(
@@ -305,15 +328,29 @@ sus_grid_chirps <- function(
     )
   }
 
-  # ── 5. Return file paths if no municipalities ────────────────────────────────
+  # \u2500\u2500 5. Return file paths (or raster) if no municipalities \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   if (is.null(municipalities)) {
+    if (!isFALSE(raster_area)) {
+      r_stack <- .chirps_paths_to_raster(
+        cache_tif   = unique_files$cache_tif,
+        manifest    = manifest,
+        crop_brazil = crop_brazil
+      )
+      area_vect <- .sus_grid_resolve_area(
+        raster_area, terra::crs(r_stack), cache_dir, use_cache, lang, verbose
+      )
+      r_stack <- .sus_grid_crop_mask(r_stack, area_vect)
+      if (verbose) cli::cli_alert_success(
+        glue::glue(msg$done_raster, n = terra::nlyr(r_stack)))
+      return(r_stack)
+    }
     paths <- stats::setNames(unique_files$cache_tif, unique_files$filename)
     if (verbose) cli::cli_alert_success(
       glue::glue(msg$done_paths, n = length(paths)))
     return(paths)
   }
 
-  # ── 6. Prepare municipalities ────────────────────────────────────────────────
+  # \u2500\u2500 6. Prepare municipalities \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   muni_id_col <- .chirps_detect_muni_col(municipalities)
   if (muni_id_col != "code_muni") {
     municipalities$code_muni <- as.character(municipalities[[muni_id_col]])
@@ -329,7 +366,7 @@ sus_grid_chirps <- function(
   if (verbose) cli::cli_alert_info(
     glue::glue(msg$agg_start, n_mun = n_mun))
 
-  # ── 7. Aggregate: group by Parquet unit (month for daily, 1 file per month/annual) ──
+  # \u2500\u2500 7. Aggregate: group by Parquet unit (month for daily, 1 file per month/annual) \u2500\u2500
 
   # For daily: process all days in a month together to avoid repeated muni-join overhead
   pq_groups <- split(seq_len(nrow(manifest)), manifest$cache_pq)
@@ -431,7 +468,7 @@ sus_grid_chirps <- function(
   if (verbose) cli::cli_alert_success(
     glue::glue(msg$agg_done, n_rows = n_rows, n_mun = n_mun))
 
-  # ── 8. Build climasus_df ──────────────────────────────────────────────────────
+  # \u2500\u2500 8. Build climasus_df \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   meta <- list(
     system   = NULL,
     stage    = "climate",
@@ -463,7 +500,7 @@ sus_grid_chirps <- function(
 }
 
 
-# ── Internal constants and helpers ────────────────────────────────────────────
+# \u2500\u2500 Internal constants and helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 #' Build CHIRPS filename and CHC URL
 #' @keywords internal
@@ -554,6 +591,43 @@ sus_grid_chirps <- function(
   })
 }
 
+#' Read a set of CHIRPS GeoTIFF/gz paths into one named multi-layer SpatRaster
+#' @keywords internal
+#' @noRd
+.chirps_paths_to_raster <- function(cache_tif, manifest, crop_brazil) {
+  brazil_bbox <- if (isTRUE(crop_brazil)) terra::ext(-75, -28, -35, 6) else NULL
+
+  layers <- lapply(cache_tif, function(tif_path) {
+    raster_path <- if (endsWith(tif_path, ".gz")) {
+      paste0("/vsigzip/", tif_path)
+    } else {
+      tif_path
+    }
+    r <- terra::rast(raster_path)
+
+    # Replace CHIRPS no-data (-9999) with NA
+    r[r < -999] <- NA
+
+    if (!is.null(brazil_bbox)) {
+      r <- terra::crop(r, brazil_bbox)
+    }
+
+    if (is.na(terra::crs(r, describe = TRUE)$authority)) {
+      terra::crs(r) <- "EPSG:4326"
+    }
+    r
+  })
+
+  r_stack <- terra::rast(layers)
+
+  date_lookup <- stats::setNames(
+    as.character(manifest$date_val), manifest$cache_tif)
+  layer_dates <- as.Date(date_lookup[cache_tif])
+  names(r_stack) <- format(layer_dates, "%Y-%m-%d")
+
+  r_stack
+}
+
 #' Auto-detect municipality identifier column in sf object
 #' @keywords internal
 #' @noRd
@@ -604,7 +678,8 @@ sus_grid_chirps <- function(
     no_data             = "Nenhum dado foi extra\u00eddo com sucesso.",
     agg_start           = "Agregando para {n_mun} munic\u00edpio(s)...",
     agg_done            = "Conclu\u00eddo: {n_rows} observa\u00e7\u00f5es ({n_mun} munic\u00edpios).",
-    done_paths          = "{n} arquivo(s) GeoTIFF dispon\u00edvel(is) no cache."
+    done_paths          = "{n} arquivo(s) GeoTIFF dispon\u00edvel(is) no cache.",
+    done_raster         = "{n} camada(s) de raster carregada(s) na mem\u00f3ria."
   ),
   en = list(
     title               = "CHIRPS Precipitation Data",

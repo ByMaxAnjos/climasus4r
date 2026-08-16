@@ -22,6 +22,7 @@ sus_data_plot_aggregate_map(
   theme_style = "publication",
   base_size = 11,
   interactive = FALSE,
+  return_sf = FALSE,
   use_cache = TRUE,
   cache_dir = "~/.climasus4r_cache/spatial",
   lang = "pt",
@@ -87,6 +88,12 @@ Currently only \code{"publication"} (default) is implemented.}
 \item{interactive}{Logical.  If \code{TRUE}, wraps the ggplot2 object with
 \code{plotly::ggplotly()}.  Requires \code{plotly}.  Default \code{FALSE}.}
 
+\item{return_sf}{Logical.  If \code{TRUE}, return the underlying \code{sf} object
+used to build the map (municipality points for \code{map_type = "bubble"},
+polygons for \code{"choropleth"} / \code{"quantile_choropleth"}) instead of the
+\code{ggplot2} object. Pipe the result into \code{\link[=sus_data_export]{sus_data_export()}} to write it
+as a shapefile, GeoPackage, GeoJSON or GeoParquet file. Default \code{FALSE}.}
+
 \item{use_cache}{Logical.  Cache municipality metadata to disk.
 Default \code{TRUE}.}
 
@@ -99,9 +106,10 @@ Default \code{"~/.climasus4r_cache/spatial"}.}
 \item{verbose}{Logical.  Print progress messages.  Default \code{TRUE}.}
 }
 \value{
-A \code{ggplot2} object (class \code{"gg"} / \code{"ggplot"}), or a \code{plotly}
-object when \code{interactive = TRUE}.  The function does \strong{not} modify \code{df}
-or advance the pipeline \code{stage}.
+A \code{ggplot2} object (class \code{"gg"} / \code{"ggplot"}), a \code{plotly}
+object when \code{interactive = TRUE}, or an \code{sf} object when
+\code{return_sf = TRUE}.  The function does \strong{not} modify \code{df} or advance
+the pipeline \code{stage}.
 }
 \description{
 Renders a bubble or choropleth map showing the spatial distribution of
@@ -141,6 +149,11 @@ sus_data_plot_aggregate_map(
 
 # Interactive plotly bubble map
 sus_data_plot_aggregate_map(df_agg, interactive = TRUE, lang = "pt")
+
+# Get the map data as sf and export it as GeoPackage
+sus_data_plot_aggregate_map(df_agg, map_type = "choropleth",
+                             return_sf = TRUE) |>
+  sus_data_export(file_path = "map_data.gpkg", format = "gpkg")
 }
 
 }

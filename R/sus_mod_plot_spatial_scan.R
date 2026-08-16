@@ -339,17 +339,26 @@ sus_mod_plot_spatial_scan <- function(
         high     = "red",
         midpoint = 1,
         na.value = "grey80",
-        name     = .pscan_lbl("legend_rr", lang)
+        name     = .pscan_lbl("legend_rr", lang),
+        guide    = ggplot2::guide_colorbar(
+          title.position = "top",
+          title.hjust    = 0.5,
+          barwidth       = ggplot2::unit(9, "lines"),
+          barheight      = ggplot2::unit(0.45, "lines"),
+          ticks          = FALSE
+        )
       ) +
-      ggplot2::theme_void() +
+      ggplot2::theme_void(base_size = 11) +
       ggplot2::labs(
         title   = plot_title,
         caption = plot_caption
       ) +
       ggplot2::theme(
-        plot.title   = ggplot2::element_text(face = "bold", hjust = 0.5),
-        plot.caption = ggplot2::element_text(color = "gray40", hjust = 0.5,
-                                             size = 8)
+        plot.title      = ggplot2::element_text(face = "bold", hjust = 0),
+        plot.caption    = ggplot2::element_text(color = "grey40", hjust = 1,
+                                                size = 8),
+        legend.position = "bottom",
+        legend.title    = ggplot2::element_text(face = "bold", size = 10)
       )
 
   } else {
@@ -381,18 +390,24 @@ sus_mod_plot_spatial_scan <- function(
         values   = fill_values,
         na.value = "grey80",
         name     = .pscan_lbl("legend_cluster", lang),
-        drop     = FALSE
+        drop     = FALSE,
+        guide    = ggplot2::guide_legend(
+          title.position = "top",
+          title.hjust    = 0.5
+        )
       ) +
-      ggplot2::theme_void() +
+      ggplot2::theme_void(base_size = 11) +
       ggplot2::labs(
         title   = plot_title,
         caption = plot_caption
       ) +
       ggplot2::theme(
-        plot.title      = ggplot2::element_text(face = "bold", hjust = 0.5),
-        plot.caption    = ggplot2::element_text(color = "gray40", hjust = 0.5,
+        plot.title      = ggplot2::element_text(face = "bold", hjust = 0),
+        plot.caption    = ggplot2::element_text(color = "grey40", hjust = 1,
                                                 size = 8),
-        legend.position = "bottom"
+        legend.position = "bottom",
+        legend.title    = ggplot2::element_text(face = "bold", size = 10),
+        legend.key.size = ggplot2::unit(0.4, "cm")
       )
   }
 

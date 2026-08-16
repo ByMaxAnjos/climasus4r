@@ -48,6 +48,27 @@ utils::globalVariables(c(
   ),
   cities = list(pt = "cidades", en = "cities", es = "ciudades"),
 
+  ref_line_note = list(
+    pt = "Linha tracejada: RR = 1 (sem efeito)",
+    en = "Dashed line: RR = 1 (no effect)",
+    es = "L\u00EDnea discontinua: RR = 1 (sin efecto)"
+  ),
+  ref_value_note = list(
+    pt = "Linha pontilhada: exposi\u00E7\u00E3o de refer\u00EAncia",
+    en = "Dotted line: reference exposure",
+    es = "L\u00EDnea punteada: exposici\u00F3n de referencia"
+  ),
+  spaghetti_legend_note = list(
+    pt = "Cinza: curvas BLUP por cidade  \u2022  Azul: estimativa agrupada",
+    en = "Gray: per-city BLUP curves  \u2022  Blue: pooled estimate",
+    es = "Gris: curvas BLUP por ciudad  \u2022  Azul: estimativa agrupada"
+  ),
+  source_cap = list(
+    pt = "climasus4r \u2022 sus_mod_pool()",
+    en = "climasus4r \u2022 sus_mod_pool()",
+    es = "climasus4r \u2022 sus_mod_pool()"
+  ),
+
   err_not_pool = list(
     pt = "{.arg x} deve ser um {.cls climasus_pool} de {.fn sus_mod_pool}.",
     en = "{.arg x} must be a {.cls climasus_pool} from {.fn sus_mod_pool}.",
@@ -209,11 +230,57 @@ sus_mod_plot_pool <- function(
 # INTERNAL BUILDERS
 # =============================================================================
 
+# Shared theme, aligned to the .cpa_theme() publication style used across the
+# package's other plotting families (white panel, thin dark axis lines, only
+# light major-y gridlines, bold left-aligned title, grey subtitle/caption).
+#' @keywords internal
+#' @noRd
+.poolplot_theme <- function(base_size = 12) {
+  ggplot2::theme_classic(base_size = base_size) +
+    ggplot2::theme(
+      panel.grid.minor   = ggplot2::element_blank(),
+      panel.grid.major.x = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_line(
+        color = "#EBEBEB", linewidth = 0.3),
+      axis.line          = ggplot2::element_line(
+        color = "#333333", linewidth = 0.5),
+      plot.title         = ggplot2::element_text(
+        face = "bold", size = base_size + 1, hjust = 0),
+      plot.subtitle      = ggplot2::element_text(
+        color = "#4A4A4A", size = base_size - 2, hjust = 0),
+      plot.caption       = ggplot2::element_text(
+        color = "#777777", size = base_size - 4, hjust = 1),
+      axis.title         = ggplot2::element_text(size = base_size - 2, color = "#444441"),
+      axis.text          = ggplot2::element_text(size = base_size - 3, color = "#5F5E5A"),
+      legend.position    = "bottom",
+      legend.key.size    = ggplot2::unit(0.4, "cm"),
+      strip.text         = ggplot2::element_text(face = "bold", size = base_size - 2),
+      plot.margin        = ggplot2::margin(12, 14, 10, 10)
+    )
+}
+
+# Builds the shared "reference lines + data source" caption used by all
+# three pool plot types, so the null-effect (RR = 1) and reference-exposure
+# lines are always explicitly labelled instead of left for the reader to
+# infer.
+#' @keywords internal
+#' @noRd
+.poolplot_caption <- function(lang, extra = NULL, ref_value_line = TRUE) {
+  parts <- c(
+    .poolpl("ref_line_note", lang),
+    if (ref_value_line) .poolpl("ref_value_note", lang),
+    extra,
+    .poolpl("source_cap", lang)
+  )
+  paste(parts, collapse = "\n")
+}
+
 #' @keywords internal
 #' @noRd
 .poolplot_overall <- function(x, lang, base_size) {
   ec   <- x$exposure_curve
   meta <- x$meta
+  unit <- .cpa_unit_label(meta$climate_col)
 
   ggplot2::ggplot(ec, ggplot2::aes(x = exposure, y = rr)) +
     ggplot2::geom_ribbon(ggplot2::aes(ymin = lo, ymax = hi),
@@ -227,14 +294,11 @@ sus_mod_plot_pool <- function(
       subtitle = glue::glue(
         "{meta$outcome_col} \u2014 {meta$climate_col} | {meta$n_cities} {.poolpl('cities', lang)}"
       ),
-      x = .poolpl("x_exposure", lang),
-      y = .poolpl("y_rr", lang)
+      x       = paste0(.poolpl("x_exposure", lang), unit),
+      y       = .poolpl("y_rr", lang),
+      caption = .poolplot_caption(lang)
     ) +
-    ggplot2::theme_bw(base_size = base_size) +
-    ggplot2::theme(
-      plot.title    = ggplot2::element_text(face = "bold"),
-      plot.subtitle = ggplot2::element_text(color = "gray40")
-    )
+    .poolplot_theme(base_size)
 }
 
 #' @keywords internal
@@ -248,7 +312,11 @@ sus_mod_plot_pool <- function(
   ct$city <- factor(ct$city, levels = ct$city)
 
   has_blup    <- !all(is.na(ct$blup_rr))
-  caption_txt <- if (has_blup) .poolpl("forest_cap_blup", lang) else NULL
+  caption_txt <- .poolplot_caption(
+    lang,
+    extra          = if (has_blup) .poolpl("forest_cap_blup", lang) else NULL,
+    ref_value_line = FALSE
+  )
 
   p <- ggplot2::ggplot(ct, ggplot2::aes(y = city)) +
     ggplot2::geom_vline(xintercept = 1, linetype = "dashed", color = "gray40") +
@@ -284,12 +352,8 @@ sus_mod_plot_pool <- function(
       x        = .poolpl("y_rr", lang),
       y        = .poolpl("y_city", lang)
     ) +
-    ggplot2::theme_bw(base_size = base_size) +
-    ggplot2::theme(
-      plot.title         = ggplot2::element_text(face = "bold"),
-      plot.subtitle      = ggplot2::element_text(color = "gray40"),
-      panel.grid.major.y = ggplot2::element_blank()
-    )
+    .poolplot_theme(base_size) +
+    ggplot2::theme(panel.grid.major.y = ggplot2::element_blank())
 }
 
 #' @keywords internal
@@ -297,6 +361,7 @@ sus_mod_plot_pool <- function(
 .poolplot_spaghetti <- function(x, lang, base_size) {
   meta   <- x$meta
   pooled <- x$exposure_curve
+  unit   <- .cpa_unit_label(meta$climate_col)
 
   city_curves <- purrr::imap(x$blup_preds, function(pred, nm) {
     if (is.null(pred)) return(NULL)
@@ -331,12 +396,9 @@ sus_mod_plot_pool <- function(
       subtitle = glue::glue(
         "{meta$outcome_col} \u2014 {meta$climate_col} | {meta$n_cities} {.poolpl('cities', lang)}"
       ),
-      x = .poolpl("x_exposure", lang),
-      y = .poolpl("y_rr", lang)
+      x       = paste0(.poolpl("x_exposure", lang), unit),
+      y       = .poolpl("y_rr", lang),
+      caption = .poolplot_caption(lang, extra = .poolpl("spaghetti_legend_note", lang))
     ) +
-    ggplot2::theme_bw(base_size = base_size) +
-    ggplot2::theme(
-      plot.title    = ggplot2::element_text(face = "bold"),
-      plot.subtitle = ggplot2::element_text(color = "gray40")
-    )
+    .poolplot_theme(base_size)
 }

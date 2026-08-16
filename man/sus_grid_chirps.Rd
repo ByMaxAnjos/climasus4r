@@ -9,6 +9,7 @@ sus_grid_chirps(
   years = NULL,
   months = 1:12,
   municipalities = NULL,
+  raster_area = FALSE,
   agg_fun = "mean",
   crop_brazil = TRUE,
   use_cache = TRUE,
@@ -20,24 +21,41 @@ sus_grid_chirps(
 \arguments{
 \item{resolution}{Character. Temporal resolution of source files:
 \itemize{
-\item \code{"monthly"} (default) — one file per month (~5–20 MB each);
+\item \code{"monthly"} (default) -- one file per month (~5-20 MB each);
 returns mm/month.
-\item \code{"daily"} — one file per day (~3 MB each); returns mm/day.
+\item \code{"daily"} -- one file per day (~3 MB each); returns mm/day.
 Recommended only for short periods; a full year = 365 downloads.
-\item \code{"annual"} — one file per year; returns mm/year.
+\item \code{"annual"} -- one file per year; returns mm/year.
 }}
 
 \item{years}{Integer vector. Years to download. Coverage: 1981 to present
-for daily/monthly; 1981–2024 for annual. \code{NULL} defaults to the last
+for daily/monthly; 1981-2024 for annual. \code{NULL} defaults to the last
 two complete years.}
 
-\item{months}{Integer vector (1–12). Months to include for daily and monthly
+\item{months}{Integer vector (1-12). Months to include for daily and monthly
 resolutions. Ignored for annual. Default \code{1:12}.}
 
 \item{municipalities}{An \code{sf} POLYGON object (e.g., from
 \code{\link[geobr:read_municipality]{geobr::read_municipality()}}). When provided, rasters are aggregated and a
 \code{climasus_df} is returned. If \code{NULL}, a named character vector of cached
-file paths is returned instead.}
+file paths is returned instead (see \code{raster_area}).}
+
+\item{raster_area}{Controls what is returned when \code{municipalities = NULL}.
+One of:
+\itemize{
+\item \code{FALSE} (default) -- return the character vector of cached
+file paths (legacy behavior).
+\item \code{TRUE} -- return an in-memory \code{terra::SpatRaster} (one layer
+per date, named by date), full extent.
+\item an \code{sf} POLYGON object -- return the \code{SpatRaster} cropped and
+masked to that area (e.g. a municipality or state from
+\code{\link[geobr:read_municipality]{geobr::read_municipality()}}/\code{\link[geobr:read_state]{geobr::read_state()}}).
+\item a 2-letter Brazilian state code (e.g. \code{"MT"}) -- the state
+boundary is auto-downloaded via \code{geobr} (cached) and used to crop
+and mask the \code{SpatRaster}.
+}
+Ignored (with the file-path/tibble behavior taking precedence) if
+\code{municipalities} is provided.}
 
 \item{agg_fun}{Character. Spatial aggregation function for
 \code{exactextractr::exact_extract()}. Default \code{"mean"} (area-weighted mean).
@@ -62,7 +80,9 @@ Default \code{"~/.climasus4r_cache/chirps"}.}
 \code{code_muni} (character), \code{date} (Date), and \code{rainfall_chirps_mm}
 (numeric). Metadata: \code{stage = "climate"}, \code{type = "chirps"}.
 \item If \code{municipalities = NULL}: a named character vector of paths to
-the cached GeoTIFF/gz files.
+the cached GeoTIFF/gz files, or (per \code{raster_area}) an in-memory
+\code{terra::SpatRaster} with one layer per date, optionally cropped and
+masked to an area of interest.
 }
 }
 \description{
@@ -74,7 +94,7 @@ CHIRPS (Climate Hazards Group InfraRed Precipitation with Station data) is a
 quasi-global, 0.05\eqn{^\circ} (~5 km) daily rainfall dataset from UCSB CHC
 covering 1981 to present. It combines satellite imagery with station data and
 is considered the best freely available high-resolution rainfall product for
-Brazil — particularly for leptospirosis, diarrheal disease, and dengue
+Brazil -- particularly for leptospirosis, diarrheal disease, and dengue
 analyses where precipitation is the key exposure.
 
 No authentication is required.
@@ -92,7 +112,7 @@ CHIRPS missing/no-data value (-9999) is automatically converted to \code{NA}.
 \section{Data source}{
 
 Funk, C. et al. (2015). The climate hazards infrared precipitation with
-stations — a new environmental record for monitoring extremes.
+stations -- a new environmental record for monitoring extremes.
 \emph{Scientific Data}, 2, 150066. \doi{10.1038/sdata.2015.66}\cr
 Data: \url{https://data.chc.ucsb.edu/products/CHIRPS-2.0/}
 }

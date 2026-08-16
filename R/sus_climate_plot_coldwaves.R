@@ -156,28 +156,31 @@ sus_climate_plot_coldwaves <- function(
 }
 
 .cw_theme <- function() {
-  ggplot2::theme_minimal(base_family = "sans") +
+  ggplot2::theme_classic(base_size = 12) +
     ggplot2::theme(
-      plot.title    = ggplot2::element_text(face = "bold", size = 16, color = "#2C3E50",
-                                            margin = ggplot2::margin(b = 10)),
-      plot.subtitle = ggplot2::element_text(size = 12, color = "#7F8C8D",
-                                            margin = ggplot2::margin(b = 15)),
-      axis.title    = ggplot2::element_text(face = "bold", size = 12, color = "#34495E"),
-      axis.text     = ggplot2::element_text(size = 10, color = "#7F8C8D"),
-      legend.title  = ggplot2::element_text(face = "bold", size = 11, color = "#2C3E50"),
-      legend.text   = ggplot2::element_text(size = 10, color = "#34495E"),
-      legend.position      = "bottom",
-      legend.box.background = ggplot2::element_rect(color = "#BDC3C7", linewidth = 0.5,
-                                                     fill = "white"),
-      legend.margin        = ggplot2::margin(t = 5, r = 10, b = 5, l = 10),
-      panel.grid.minor     = ggplot2::element_blank(),
-      panel.grid.major     = ggplot2::element_line(color = "#ECF0F1", linewidth = 0.5),
-      plot.background      = ggplot2::element_rect(fill = "white", color = NA),
-      panel.background     = ggplot2::element_rect(fill = "white", color = NA),
-      strip.text           = ggplot2::element_text(face = "bold", size = 11, color = "#2C3E50"),
-      strip.background     = ggplot2::element_rect(fill = "#ECF0F1", color = NA)
+      panel.grid.minor   = ggplot2::element_blank(),
+      panel.grid.major.x = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_line(color = "#EBEBEB", linewidth = 0.3),
+      axis.line          = ggplot2::element_line(color = "#333333", linewidth = 0.5),
+      plot.title         = ggplot2::element_text(face = "bold", size = 13, hjust = 0,
+                                                  color = "#2C3E50"),
+      plot.subtitle      = ggplot2::element_text(size = 10, color = "#4A4A4A", hjust = 0),
+      plot.caption       = ggplot2::element_text(size = 8, color = "#777777", hjust = 1),
+      axis.title         = ggplot2::element_text(size = 10, color = "#34495E"),
+      axis.text          = ggplot2::element_text(size = 9, color = "#5F5E5A"),
+      legend.title       = ggplot2::element_text(face = "bold", size = 10, color = "#2C3E50"),
+      legend.text        = ggplot2::element_text(size = 9, color = "#34495E"),
+      legend.position    = "bottom",
+      legend.key.size    = ggplot2::unit(0.4, "cm"),
+      strip.text         = ggplot2::element_text(face = "bold", size = 10, color = "#2C3E50"),
+      strip.background   = ggplot2::element_rect(fill = "#ECF0F1", color = NA),
+      plot.background    = ggplot2::element_rect(fill = "white", color = NA),
+      panel.background   = ggplot2::element_rect(fill = "white", color = NA),
+      plot.margin        = ggplot2::margin(12, 14, 10, 10)
     )
 }
+
+.CW_CAPTION <- "climasus4r \u2022 sus_climate_compute_coldwaves()"
 
 .plot_cw_timeline <- function(events, colors, lang) {
   labels <- switch(lang,
@@ -247,7 +250,7 @@ sus_climate_plot_coldwaves <- function(
     ggplot2::scale_linewidth_continuous(range = c(2, 8), name = labels$dur) +
     ggplot2::scale_x_date(date_labels = "%b %Y", date_breaks = "3 months") +
     ggplot2::labs(title = labels$title, subtitle = labels$subtitle,
-                  x = labels$x, y = labels$y) +
+                  x = labels$x, y = labels$y, caption = .CW_CAPTION) +
     .cw_theme()
 
   p
@@ -311,7 +314,7 @@ sus_climate_plot_coldwaves <- function(
     ) +
     ggplot2::scale_y_reverse(breaks = 1:31) +
     ggplot2::labs(title = labels$title, subtitle = labels$subtitle,
-                  x = labels$x, y = labels$y) +
+                  x = labels$x, y = labels$y, caption = .CW_CAPTION) +
     .cw_theme() +
     ggplot2::theme(
       panel.grid.major = ggplot2::element_blank(),
@@ -393,7 +396,7 @@ sus_climate_plot_coldwaves <- function(
     # Lower temp_peak = more extreme cold; reverse so visually higher = colder
     ggplot2::scale_y_reverse() +
     ggplot2::labs(title = labels$title, subtitle = labels$subtitle,
-                  x = labels$x, y = labels$y) +
+                  x = labels$x, y = labels$y, caption = .CW_CAPTION) +
     .cw_theme() +
     ggplot2::guides(size = "none")
 
@@ -453,7 +456,7 @@ sus_climate_plot_coldwaves <- function(
       name = labels$fill
     ) +
     ggplot2::labs(title = labels$title, subtitle = labels$subtitle,
-                  x = labels$x, y = labels$y) +
+                  x = labels$x, y = labels$y, caption = .CW_CAPTION) +
     .cw_theme()
 
   p

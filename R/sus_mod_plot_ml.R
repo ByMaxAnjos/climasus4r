@@ -41,6 +41,12 @@ utils::globalVariables(c(
   lbl_train  = list(pt = "treino",          en = "train",      es = "entrenamiento"),
   lbl_test   = list(pt = "valida\u00e7\u00e3o (CV)",  en = "CV test",    es = "validaci\u00f3n (CV)"),
   lbl_best   = list(pt = "melhor rodada",   en = "best round", es = "mejor ronda"),
+  legend_split   = list(pt = "Conjunto",    en = "Split",      es = "Conjunto"),
+  caption_source = list(
+    pt = "Fonte: modelo XGBoost (sus_mod_ml)",
+    en = "Source: XGBoost model (sus_mod_ml)",
+    es = "Fuente: modelo XGBoost (sus_mod_ml)"
+  ),
 
   err_not_ml = list(
     pt = "{.arg x} deve ser um {.cls climasus_ml} de {.fn sus_mod_ml}.",
@@ -68,6 +74,30 @@ utils::globalVariables(c(
   entry <- .ml_plot_labels[[key]]
   if (is.null(entry)) return(key)
   entry[[lang]] %||% entry[["pt"]]
+}
+
+# -- Shared publication-style theme (aligned with .cpa_theme()) -------------
+#' @keywords internal
+#' @noRd
+.ml_theme <- function(base_size = 12, legend_position = "bottom") {
+  ggplot2::theme_classic(base_size = base_size) +
+    ggplot2::theme(
+      panel.grid.minor   = ggplot2::element_blank(),
+      panel.grid.major.x = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_line(color = "#EBEBEB", linewidth = 0.3),
+      axis.line          = ggplot2::element_line(color = "#333333", linewidth = 0.5),
+      plot.title         = ggplot2::element_text(face = "bold", size = base_size * 1.05, hjust = 0),
+      plot.subtitle      = ggplot2::element_text(color = "#4A4A4A", size = base_size * 0.8, hjust = 0),
+      plot.caption       = ggplot2::element_text(color = "#777777", size = base_size * 0.65, hjust = 1),
+      axis.title         = ggplot2::element_text(size = base_size * 0.85, color = "#444441"),
+      axis.text          = ggplot2::element_text(size = base_size * 0.75, color = "#5F5E5A"),
+      legend.position    = legend_position,
+      legend.title       = ggplot2::element_text(size = base_size * 0.85, face = "bold"),
+      legend.text        = ggplot2::element_text(size = base_size * 0.8),
+      legend.key.size    = ggplot2::unit(0.4, "cm"),
+      strip.text         = ggplot2::element_text(face = "bold", size = base_size * 0.85),
+      plot.margin        = ggplot2::margin(12, 14, 10, 10)
+    )
 }
 
 
@@ -228,13 +258,14 @@ sus_mod_plot_ml <- function(
         "{meta$outcome_col} | top {nrow(imp_top)} / {nrow(imp)} {.mlpl('y_feature', lang)}"
       ),
       x = .mlpl("x_gain",    lang),
-      y = .mlpl("y_feature", lang)
+      y = .mlpl("y_feature", lang),
+      caption = .mlpl("caption_source", lang)
     ) +
-    ggplot2::theme_bw(base_size = base_size) +
+    .ml_theme(base_size) +
     ggplot2::theme(
-      plot.title         = ggplot2::element_text(face = "bold"),
-      plot.subtitle      = ggplot2::element_text(color = "gray40"),
-      panel.grid.major.y = ggplot2::element_blank()
+      # Horizontal bars: vertical gridlines (along Gain) read better than horizontal ones
+      panel.grid.major.y = ggplot2::element_blank(),
+      panel.grid.major.x = ggplot2::element_line(color = "#EBEBEB", linewidth = 0.3)
     )
 }
 
@@ -273,13 +304,10 @@ sus_mod_plot_ml <- function(
         "{meta$outcome_col} | {nrow(pred)} obs | nrounds = {perf$best_nrounds}"
       ),
       x = .mlpl("x_observed", lang),
-      y = .mlpl("y_cv_pred",  lang)
+      y = .mlpl("y_cv_pred",  lang),
+      caption = .mlpl("caption_source", lang)
     ) +
-    ggplot2::theme_bw(base_size = base_size) +
-    ggplot2::theme(
-      plot.title    = ggplot2::element_text(face = "bold"),
-      plot.subtitle = ggplot2::element_text(color = "gray40")
-    )
+    .ml_theme(base_size)
 }
 
 #' @keywords internal
@@ -337,19 +365,15 @@ sus_mod_plot_ml <- function(
       size   = base_size * 0.26,
       color  = "gray35"
     ) +
-    ggplot2::scale_color_manual(values = fill_vals, name = NULL) +
+    ggplot2::scale_color_manual(values = fill_vals, name = .mlpl("legend_split", lang)) +
     ggplot2::labs(
       title    = .mlpl("cv_log_title", lang),
       subtitle = glue::glue(
         "{meta$outcome_col} | {meta$objective} | eta = {meta$eta}"
       ),
       x = .mlpl("x_round", lang),
-      y = toupper(metric_nm)
+      y = toupper(metric_nm),
+      caption = .mlpl("caption_source", lang)
     ) +
-    ggplot2::theme_bw(base_size = base_size) +
-    ggplot2::theme(
-      plot.title      = ggplot2::element_text(face = "bold"),
-      plot.subtitle   = ggplot2::element_text(color = "gray40"),
-      legend.position = "top"
-    )
+    .ml_theme(base_size, legend_position = "bottom")
 }

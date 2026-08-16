@@ -8,7 +8,7 @@
 # Output: ggplot2 / plotly charts + gt statistical tables
 # =============================================================================
 
-# ── NSE variable declarations ─────────────────────────────────────────────────
+# \u2500\u2500 NSE variable declarations \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 utils::globalVariables(c(
   # from fit$exposure_response
   "exposure", "rr", "lo", "hi", "pct",
@@ -24,7 +24,7 @@ utils::globalVariables(c(
   "percentile", "rr_95ci"
 ))
 
-# ── Local i18n ────────────────────────────────────────────────────────────────
+# \u2500\u2500 Local i18n \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 .dlnm_labels <- list(
 
   # plot: overall ---------------------------------------------------------------
@@ -99,6 +99,11 @@ utils::globalVariables(c(
     pt = "RR Cumulativo",
     en = "Cumulative RR",
     es = "RR Acumulado"
+  ),
+  rr_type_legend = list(
+    pt = "Tipo de Risco Relativo",
+    en = "Relative Risk (RR) Type",
+    es = "Tipo de Riesgo Relativo"
   ),
 
   # plot: surface / contour -----------------------------------------------------
@@ -198,6 +203,37 @@ utils::globalVariables(c(
   entry[[lang]] %||% entry[["pt"]]
 }
 
+#' Human-readable axis label for a climate exposure column
+#'
+#' Turns a raw column name (e.g. `"tair_dry_bulb_c"`, `"rainfall_mm"`,
+#' `"rh_mean_porc"`) into a readable label with a unit suffix, so plot axes
+#' never show a bare snake_case variable name.
+#' @keywords internal
+#' @noRd
+.dlnm_var_label <- function(climate_col) {
+  unit_map <- list(
+    "_porc"  = "%",
+    "_mm"    = "mm",
+    "_m_s"   = "m/s",
+    "_kj_m2" = "kJ/m\u00b2",
+    "_mb"    = "mb",
+    "_degrees" = "\u00b0",
+    "_c"     = "\u00b0C"
+  )
+  unit  <- NULL
+  base  <- climate_col
+  for (suf in names(unit_map)) {
+    if (grepl(paste0(suf, "$"), climate_col)) {
+      unit <- unit_map[[suf]]
+      base <- sub(paste0(suf, "$"), "", climate_col)
+      break
+    }
+  }
+  words  <- strsplit(gsub("_", " ", base), " ")[[1]]
+  pretty <- paste(toupper(substring(words, 1, 1)), substring(words, 2), sep = "", collapse = " ")
+  if (is.null(unit)) pretty else paste0(pretty, " (", unit, ")")
+}
+
 
 # =============================================================================
 # EXPORTED FUNCTION
@@ -216,8 +252,8 @@ utils::globalVariables(c(
 #' |--------|-------------|---------------|
 #' | `"overall"` | Cumulative exposure-response curve with CI + exposure histogram | Gasparrini et al. (2010) |
 #' | `"lag"` | Lag-specific and cumulative lag-response at a given exposure | Gasparrini et al. (2010) |
-#' | `"surface"` | 3-D bidimensional exposure × lag response surface | Gasparrini (2011) |
-#' | `"contour"` | 2-D contour heat map of exposure × lag (publication-friendly) | Gasparrini et al. (2014) |
+#' | `"surface"` | 3-D bidimensional exposure x lag response surface | Gasparrini (2011) |
+#' | `"contour"` | 2-D contour heat map of exposure x lag (publication-friendly) | Gasparrini et al. (2014) |
 #' | `"slice"` | Exposure-response curves at specific lag times (multilag) | Armstrong (2006) |
 #' | `"distribution"` | Exposure variable histogram/density with quartile markers | Bhaskaran et al. (2013) |
 #' | `"series"` | Daily outcome count + exposure time series | Bhaskaran et al. (2013) |
@@ -237,12 +273,12 @@ utils::globalVariables(c(
 #'   for the `"lag"` plot. `NULL` (default) uses the 75th percentile of lag-0
 #'   exposure.
 #' @param lags_at Integer vector. Lag times shown in the `"slice"` plot.
-#'   Default `c(0L, 3L, 7L, 14L, 21L)` — automatically clipped to `lag_max`.
-#' @param pred_at Numeric vector (0–1). Quantile probabilities at which to
+#'   Default `c(0L, 3L, 7L, 14L, 21L)` -- automatically clipped to `lag_max`.
+#' @param pred_at Numeric vector (0-1). Quantile probabilities at which to
 #'   report cumulative RR in the statistical table. Default:
 #'   `c(0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.99)`.
-#' @param interactive Logical. `TRUE` → [plotly::ggplotly()] / plotly 3-D for
-#'   `"surface"`; `FALSE` (default) → static ggplot2.
+#' @param interactive Logical. `TRUE` -> [plotly::ggplotly()] / plotly 3-D for
+#'   `"surface"`; `FALSE` (default) -> static ggplot2.
 #' @param color_palette Character. Name of a \pkg{ggsci} palette. Default
 #'   `"npg"`. Other useful options: `"lancet"`, `"jama"`, `"nejm"`, `"aaas"`.
 #' @param base_size Numeric. ggplot2 base font size. Default `12`.
@@ -252,17 +288,17 @@ utils::globalVariables(c(
 #' @param verbose Logical. Print progress messages. Default `FALSE`.
 #'
 #' @return Depending on `output_type`:
-#'   - `"plot"` → a `ggplot` or `plotly` object.
-#'   - `"table"` → a `gt_tbl` (or `tibble` when \pkg{gt} is unavailable).
-#'   - `"all"` → a named list: `$plot`, `$table`, `$data`.
+#'   - `"plot"` -> a `ggplot` or `plotly` object.
+#'   - `"table"` -> a `gt_tbl` (or `tibble` when \pkg{gt} is unavailable).
+#'   - `"all"` -> a named list: `$plot`, `$table`, `$data`.
 #'
 #' @references
 #' Gasparrini, A., Armstrong, B., & Kenward, M.G. (2010). Distributed lag
-#' non-linear models. *Statistics in Medicine*, 29(21), 2224–2234.
+#' non-linear models. *Statistics in Medicine*, 29(21), 2224-2234.
 #' \doi{10.1002/sim.3940}
 #'
 #' Gasparrini, A. (2011). Distributed lag linear and non-linear models in R:
-#' the package dlnm. *Journal of Statistical Software*, 43(8), 1–20.
+#' the package dlnm. *Journal of Statistical Software*, 43(8), 1-20.
 #' \doi{10.18637/jss.v043.i08}
 #'
 #' Gasparrini, A., Armstrong, B., & Kenward, M.G. (2014). Reducing and
@@ -270,11 +306,11 @@ utils::globalVariables(c(
 #' *BMC Medical Research Methodology*, 14, 70. \doi{10.1186/1471-2288-14-70}
 #'
 #' Armstrong, B. (2006). Models for the relationship between ambient
-#' temperature and daily mortality. *Epidemiology*, 17(6), 624–631.
+#' temperature and daily mortality. *Epidemiology*, 17(6), 624-631.
 #'
 #' Bhaskaran, K., Gasparrini, A., Hajat, S., Smeeth, L., & Armstrong, B.
 #' (2013). Time series regression studies in environmental epidemiology.
-#' *International Journal of Epidemiology*, 42(4), 1187–1195.
+#' *International Journal of Epidemiology*, 42(4), 1187-1195.
 #' \doi{10.1093/ije/dyt092}
 #'
 #' @examples
@@ -320,7 +356,7 @@ sus_mod_plot_dlnm <- function(
     verbose       = FALSE
 ) {
 
-  # ── Package checks ──────────────────────────────────────────────────────────
+  # \u2500\u2500 Package checks \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   rlang::check_installed(
     c("ggplot2", "ggsci", "patchwork"),
     reason = "to run sus_mod_plot_dlnm()"
@@ -329,12 +365,12 @@ sus_mod_plot_dlnm <- function(
     rlang::check_installed("plotly", reason = "for interactive plots")
   }
 
-  # ── Argument matching ───────────────────────────────────────────────────────
+  # \u2500\u2500 Argument matching \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   type        <- match.arg(type)
   output_type <- match.arg(output_type)
   lang        <- match.arg(lang)
 
-  # ── Input validation ────────────────────────────────────────────────────────
+  # \u2500\u2500 Input validation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   if (!inherits(fit, "climasus_dlnm")) {
     cli::cli_abort(.dlnml("err_not_dlnm", lang))
   }
@@ -355,10 +391,10 @@ sus_mod_plot_dlnm <- function(
     )
   }
 
-  # ── Build palette ────────────────────────────────────────────────────────────
+  # \u2500\u2500 Build palette \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   pal <- .dlnm_palette(color_palette)
 
-  # ── Generate plot ────────────────────────────────────────────────────────────
+  # \u2500\u2500 Generate plot \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   p <- NULL
   if (output_type %in% c("plot", "all")) {
     p <- switch(
@@ -373,13 +409,13 @@ sus_mod_plot_dlnm <- function(
     )
   }
 
-  # ── Generate table ───────────────────────────────────────────────────────────
+  # \u2500\u2500 Generate table \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   tbl <- NULL
   if (output_type %in% c("table", "all")) {
     tbl <- .table_dlnm_summary(fit, pred_at, lang)
   }
 
-  # ── Save ─────────────────────────────────────────────────────────────────────
+  # \u2500\u2500 Save \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   if (!is.null(save_plot) && !is.null(p)) {
     ext <- tolower(tools::file_ext(save_plot))
     if (interactive && ext == "html") {
@@ -392,7 +428,7 @@ sus_mod_plot_dlnm <- function(
     if (verbose) cli::cli_alert_success("Plot saved to {.path {save_plot}}")
   }
 
-  # ── Return ────────────────────────────────────────────────────────────────────
+  # \u2500\u2500 Return \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   if (output_type == "plot")  return(p)
   if (output_type == "table") return(tbl)
 
@@ -416,29 +452,32 @@ sus_mod_plot_dlnm <- function(
 #' @keywords internal
 #' @noRd
 .dlnm_theme <- function(base_size = 12) {
-  ggplot2::theme_minimal(base_family = "sans", base_size = base_size) +
+  ggplot2::theme_classic(base_family = "sans", base_size = base_size) +
     ggplot2::theme(
       plot.title    = ggplot2::element_text(
-        face = "bold", size = base_size + 3, color = "#2C3E50",
+        face = "bold", size = base_size + 3, color = "#2C3E50", hjust = 0,
         margin = ggplot2::margin(b = 6)
       ),
       plot.subtitle = ggplot2::element_text(
-        size = base_size, color = "#555555",
+        size = base_size, color = "#555555", hjust = 0,
         margin = ggplot2::margin(b = 12)
       ),
       plot.caption  = ggplot2::element_text(
-        size = base_size - 2, color = "#888888", hjust = 0,
+        size = base_size - 2, color = "#888888", hjust = 1,
         margin = ggplot2::margin(t = 8)
       ),
       axis.title    = ggplot2::element_text(
         face = "bold", size = base_size, color = "#34495E"
       ),
       axis.text     = ggplot2::element_text(size = base_size - 1, color = "#666666"),
-      legend.title  = ggplot2::element_text(face = "bold", size = base_size - 1),
-      legend.text   = ggplot2::element_text(size = base_size - 2),
+      axis.line     = ggplot2::element_line(color = "#333333", linewidth = 0.4),
+      legend.title  = ggplot2::element_text(face = "bold", size = base_size),
+      legend.text   = ggplot2::element_text(size = base_size - 1),
       legend.position = "bottom",
-      panel.grid.minor  = ggplot2::element_blank(),
-      panel.grid.major  = ggplot2::element_line(color = "#ECEFF1", linewidth = 0.4),
+      legend.key.size  = ggplot2::unit(0.4, "cm"),
+      panel.grid.minor   = ggplot2::element_blank(),
+      panel.grid.major.x = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_line(color = "#EBEBEB", linewidth = 0.3),
       panel.border      = ggplot2::element_blank(),
       plot.background   = ggplot2::element_rect(fill = "white", color = NA),
       panel.background  = ggplot2::element_rect(fill = "white", color = NA),
@@ -495,7 +534,7 @@ sus_mod_plot_dlnm <- function(
   )
 
   ref_val <- fit$meta$ref_value
-  var_lbl <- fit$meta$climate_col
+  var_lbl <- .dlnm_var_label(fit$meta$climate_col)
 
   # Caption with references
   caption_txt <- switch(lang,
@@ -630,7 +669,7 @@ sus_mod_plot_dlnm <- function(
     ggplot2::scale_color_manual(
       values = stats::setNames(c(pal$main, pal$second),
                                c(.dlnml("rr_specific", lang), .dlnml("rr_cumulative", lang))),
-      name = NULL
+      name = .dlnml("rr_type_legend", lang)
     ) +
     ggplot2::scale_x_continuous(
       breaks = lag_seq[seq(1L, length(lag_seq), by = max(1L, length(lag_seq) %/% 8L))]
@@ -689,7 +728,7 @@ sus_mod_plot_dlnm <- function(
         plotly::layout(
           title  = list(text = title_txt, font = list(size = 16)),
           scene  = list(
-            xaxis = list(title = fit$meta$climate_col),
+            xaxis = list(title = .dlnm_var_label(fit$meta$climate_col)),
             yaxis = list(title = if (lang == "pt") "Lag (dias)" else "Lag (days)"),
             zaxis = list(title = "RR")
           ),
@@ -736,7 +775,14 @@ sus_mod_plot_dlnm <- function(
       mid      = pal$mid,
       high     = pal$hot,
       midpoint = 0,
-      name     = .dlnml("z_rr_log", lang)
+      name     = .dlnml("z_rr_log", lang),
+      guide    = ggplot2::guide_colorbar(
+        barwidth       = ggplot2::unit(9, "lines"),
+        barheight      = ggplot2::unit(0.6, "lines"),
+        title.position = "top",
+        title.hjust    = 0.5,
+        ticks          = FALSE
+      )
     ) +
     ggplot2::geom_contour(
       ggplot2::aes(z = rr_mat),
@@ -754,7 +800,7 @@ sus_mod_plot_dlnm <- function(
       title    = .dlnml("contour_title", lang),
       subtitle = .dlnml("surface_sub", lang),
       x        = .dlnml("x_lag", lang),
-      y        = fit$meta$climate_col,
+      y        = .dlnm_var_label(fit$meta$climate_col),
       caption  = "Gasparrini (2011); Gasparrini et al. (2014)"
     ) +
     .dlnm_theme(base_size)
@@ -826,7 +872,7 @@ sus_mod_plot_dlnm <- function(
     ggplot2::labs(
       title    = .dlnml("slice_title", lang),
       subtitle = .dlnml("slice_sub", lang),
-      x        = fit$meta$climate_col,
+      x        = .dlnm_var_label(fit$meta$climate_col),
       y        = .dlnml("y_rr", lang),
       caption  = "Armstrong (2006); Gasparrini et al. (2014)"
     ) +
@@ -898,7 +944,7 @@ sus_mod_plot_dlnm <- function(
     ggplot2::labs(
       title    = .dlnml("dist_title", lang),
       subtitle = .dlnml("dist_sub", lang),
-      x        = fit$meta$climate_col,
+      x        = .dlnm_var_label(fit$meta$climate_col),
       y        = .dlnml("y_count", lang),
       caption  = "Bhaskaran et al. (2013)"
     ) +
@@ -1046,7 +1092,7 @@ sus_mod_plot_dlnm <- function(
   date_range <- range(fit$data_daily$date, na.rm = TRUE)
   n_years    <- round(as.numeric(diff(date_range)) / 365.25, 1L)
 
-  # ── Build gt table if available ──────────────────────────────────────────────
+  # \u2500\u2500 Build gt table if available \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   if (requireNamespace("gt", quietly = TRUE)) {
 
     # Section 1 labels
@@ -1210,7 +1256,7 @@ sus_mod_plot_dlnm <- function(
     ))
   }
 
-  # ── Fallback: plain tibble list (no gt) ──────────────────────────────────────
+  # \u2500\u2500 Fallback: plain tibble list (no gt) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   list(
     exposure_response = er_tbl,
     diagnostics = tibble::tibble(

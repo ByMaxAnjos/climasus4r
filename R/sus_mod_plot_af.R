@@ -209,6 +209,38 @@ sus_mod_plot_af <- function(
 # INTERNAL BUILDERS
 # =============================================================================
 
+# -- Shared theme (mirrors .cpa_theme() in sus_climate_plot_aggregate.R) -----
+#' @keywords internal
+#' @noRd
+.afplot_theme <- function(base_size, flip_grid = FALSE) {
+  ggplot2::theme_classic(base_size = base_size) +
+    ggplot2::theme(
+      panel.grid.minor   = ggplot2::element_blank(),
+      panel.grid.major.x = if (flip_grid) {
+        ggplot2::element_line(color = "#EBEBEB", linewidth = 0.3)
+      } else {
+        ggplot2::element_blank()
+      },
+      panel.grid.major.y = if (flip_grid) {
+        ggplot2::element_blank()
+      } else {
+        ggplot2::element_line(color = "#EBEBEB", linewidth = 0.3)
+      },
+      axis.line       = ggplot2::element_line(color = "#333333", linewidth = 0.5),
+      plot.title      = ggplot2::element_text(face = "bold", hjust = 0),
+      plot.subtitle   = ggplot2::element_text(color = "#4A4A4A", hjust = 0),
+      plot.caption    = ggplot2::element_text(
+        color = "#777777", size = ggplot2::rel(0.75), hjust = 1),
+      legend.position = "bottom",
+      legend.key.size = ggplot2::unit(0.4, "cm"),
+      strip.text      = ggplot2::element_text(face = "bold")
+    )
+}
+
+.afplot_caption <- function(fn_name) {
+  glue::glue("climasus4r \u2022 sus_mod_af() \u2022 {fn_name}()")
+}
+
 #' @keywords internal
 #' @noRd
 .afplot_bar <- function(dat, fill_cols, meta, lang, base_size) {
@@ -222,19 +254,19 @@ sus_mod_plot_af <- function(
       width = 0.2, linewidth = 0.8, na.rm = TRUE
     ) +
     ggplot2::geom_hline(yintercept = 0, linetype = "dashed", color = "gray40") +
-    ggplot2::scale_fill_manual(values = fill_cols, guide = "none") +
+    ggplot2::scale_fill_manual(
+      values = fill_cols,
+      name   = .afpl("x_component", lang)
+    ) +
+    ggplot2::guides(fill = "none") +
     ggplot2::labs(
       title    = .afpl("bar_title", lang),
       subtitle = glue::glue("{meta$outcome_col} \u2014 {meta$climate_col}"),
       x        = .afpl("x_component", lang),
-      y        = .afpl("y_af_pct", lang)
+      y        = .afpl("y_af_pct", lang),
+      caption  = .afplot_caption("sus_mod_plot_af")
     ) +
-    ggplot2::theme_bw(base_size = base_size) +
-    ggplot2::theme(
-      plot.title         = ggplot2::element_text(face = "bold"),
-      plot.subtitle      = ggplot2::element_text(color = "gray40"),
-      panel.grid.major.x = ggplot2::element_blank()
-    )
+    .afplot_theme(base_size)
 }
 
 #' @keywords internal
@@ -248,19 +280,19 @@ sus_mod_plot_af <- function(
       orientation = "y"
     ) +
     ggplot2::geom_point(ggplot2::aes(x = an), size = 3.5) +
-    ggplot2::scale_color_manual(values = fill_cols, guide = "none") +
+    ggplot2::scale_color_manual(
+      values = fill_cols,
+      name   = .afpl("x_component", lang)
+    ) +
+    ggplot2::guides(color = "none") +
     ggplot2::labs(
       title    = .afpl("forest_title", lang),
       subtitle = glue::glue("{meta$outcome_col} \u2014 {meta$climate_col}"),
       x        = .afpl("y_an", lang),
-      y        = .afpl("x_component", lang)
+      y        = .afpl("x_component", lang),
+      caption  = .afplot_caption("sus_mod_plot_af")
     ) +
-    ggplot2::theme_bw(base_size = base_size) +
-    ggplot2::theme(
-      plot.title         = ggplot2::element_text(face = "bold"),
-      plot.subtitle      = ggplot2::element_text(color = "gray40"),
-      panel.grid.major.y = ggplot2::element_blank()
-    )
+    .afplot_theme(base_size, flip_grid = TRUE)
 }
 
 #' @keywords internal
@@ -294,13 +326,11 @@ sus_mod_plot_af <- function(
       title    = .afpl("quantile_title", lang),
       subtitle = glue::glue("{meta$outcome_col} \u2014 {meta$climate_col}"),
       x        = .afpl("x_quantile", lang),
-      y        = .afpl("y_af_pct", lang)
+      y        = .afpl("y_af_pct", lang),
+      caption  = .afplot_caption("sus_mod_plot_af")
     ) +
-    ggplot2::theme_bw(base_size = base_size) +
+    .afplot_theme(base_size) +
     ggplot2::theme(
-      plot.title         = ggplot2::element_text(face = "bold"),
-      plot.subtitle      = ggplot2::element_text(color = "gray40"),
-      axis.text.x        = ggplot2::element_text(angle = 30, hjust = 1),
-      panel.grid.major.x = ggplot2::element_blank()
+      axis.text.x = ggplot2::element_text(angle = 30, hjust = 1)
     )
 }

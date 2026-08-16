@@ -1,10 +1,10 @@
-# ── NSE variable declarations ─────────────────────────────────────────────────
+# \u2500\u2500 NSE variable declarations \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 utils::globalVariables(c(
   "code_muni", "date", "value", "n_files", "n_rows",
   "filename", "bad", "valid", "err", "year_val"
 ))
 
-# ── Exported function ─────────────────────────────────────────────────────────
+# \u2500\u2500 Exported function \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 #' Import GHAP High-Resolution Pollution Data for Brazilian Municipalities
 #'
@@ -20,10 +20,10 @@ utils::globalVariables(c(
 #'
 #' Available pollutants and temporal coverage:
 #' \itemize{
-#'   \item **PM2.5** (`"pm25"`) — daily, monthly & annual, 2017–2022, 1 km, \eqn{\mu g/m^3}
-#'   \item **O3** (`"o3"`) — annual only, 2000–2020, 10 km, ppb
-#'   \item **CO** (`"co"`) — annual only, 2019–2022, 1 km, mg/m\eqn{^3}
-#'   \item **NO2** (`"no2"`) — data not yet publicly released
+#'   \item **PM2.5** (`"pm25"`) -- daily, monthly & annual, 2017-2022, 1 km, \eqn{\mu g/m^3}
+#'   \item **O3** (`"o3"`) -- annual only, 2000-2020, 10 km, ppb
+#'   \item **CO** (`"co"`) -- annual only, 2019-2022, 1 km, mg/m\eqn{^3}
+#'   \item **NO2** (`"no2"`) -- data not yet publicly released
 #' }
 #'
 #' When `municipalities` is provided the function returns a `climasus_df` at
@@ -37,12 +37,12 @@ utils::globalVariables(c(
 #' @param resolution Character. Temporal aggregation of source files.
 #'   One of `"daily"`, `"monthly"`, or `"annual"`. Default: `"monthly"`.
 #'   \itemize{
-#'     \item `"daily"` — available for PM2.5 only (2017–2022). Each monthly
+#'     \item `"daily"` -- available for PM2.5 only (2017-2022). Each monthly
 #'       ZIP (~3 GB) is downloaded, extracted to a temp directory, each daily
 #'       NetCDF is aggregated, and the result is cached as Parquet. Subsequent
 #'       calls read from Parquet without re-extracting.
-#'     \item `"monthly"` — PM2.5 only (2017–2022).
-#'     \item `"annual"` — PM2.5 (2017–2022), O3 (2000–2020), CO (2019–2022).
+#'     \item `"monthly"` -- PM2.5 only (2017-2022).
+#'     \item `"annual"` -- PM2.5 (2017-2022), O3 (2000-2020), CO (2019-2022).
 #'   }
 #'   O3 and CO automatically fall back to `"annual"` regardless of this
 #'   parameter.
@@ -50,20 +50,49 @@ utils::globalVariables(c(
 #' @param years Integer vector. Years to download. Availability depends on
 #'   pollutant and resolution:
 #'   \itemize{
-#'     \item PM2.5 daily, monthly & annual: 2017–2022
-#'     \item O3 annual: 2000–2020
-#'     \item CO annual: 2019–2022
+#'     \item PM2.5 daily, monthly & annual: 2017-2022
+#'     \item O3 annual: 2000-2020
+#'     \item CO annual: 2019-2022
 #'   }
 #'   `NULL` (default) returns all available years for the selected pollutant.
 #'
-#' @param months Integer vector (1–12). Months to include when
+#' @param months Integer vector (1-12). Months to include when
 #'   `resolution = "monthly"`. Ignored for annual data. Default: `1:12`.
 #'
 #' @param municipalities An `sf` object with polygon geometries
 #'   (e.g., from [geobr::read_municipality()]). If provided, raster data are
 #'   aggregated to these polygons and a `climasus_df` is returned.
 #'   If `NULL`, a named character vector of cached NetCDF file paths is
-#'   returned instead.
+#'   returned instead (see `raster_area`).
+#'
+#' @param raster_area Only used when `municipalities = NULL`. One of:
+#'   \itemize{
+#'     \item `FALSE` (default) -- return the character vector of cached
+#'       file paths.
+#'     \item `TRUE` -- return an in-memory `terra::SpatRaster`, full extent.
+#'     \item an `sf` POLYGON object -- return the `SpatRaster` cropped and
+#'       masked to that area.
+#'     \item a 2-letter Brazilian state code (e.g. `"MT"`) -- auto-download
+#'       the state boundary via `geobr` (cached) and crop/mask to it.
+#'   }
+#'   Ignored (file-path behavior takes precedence) if `municipalities` is
+#'   provided.
+#'
+#'   IMPORTANT limitation: for `resolution = "daily"` requests, each monthly
+#'   ZIP contains one NetCDF file per day. Extracting and stacking every
+#'   daily file into the returned raster would require decompressing
+#'   multi-gigabyte archives on every call, so this option instead extracts
+#'   and returns only the FIRST available day of each requested
+#'   pollutant/month as a representative sample -- the returned raster is
+#'   NOT the full daily time series. Users who need the complete daily
+#'   series should extract the cached ZIP themselves (see the file paths
+#'   returned when `raster_area = FALSE`), or request narrower month
+#'   ranges and read the daily NetCDF files directly. For `"monthly"` and
+#'   `"annual"` resolutions the underlying NetCDF file is read directly
+#'   (no ZIP involved), but only its first layer is used per requested
+#'   pollutant/month/year for the same reason: to keep this option
+#'   lightweight and predictable rather than silently building a large
+#'   multi-day stack.
 #'
 #' @param agg_fun Character. Spatial aggregation function applied by
 #'   `exactextractr::exact_extract()`. Default: `"mean"` (area-weighted).
@@ -90,7 +119,11 @@ utils::globalVariables(c(
 #'     `pm25_mean`, `o3_mean`). Metadata: `stage = "climate"`,
 #'     `type = "pollution_ghap"`.
 #'   \item If `municipalities = NULL`: a named character vector of paths to
-#'     the cached NetCDF files.
+#'     the cached NetCDF files, or, per `raster_area`, an in-memory
+#'     `terra::SpatRaster` with one layer per requested pollutant/month,
+#'     each layer being a single representative day (see `raster_area`
+#'     for details and limitations), optionally cropped and masked to an
+#'     area of interest.
 #' }
 #'
 #' @section Data source:
@@ -150,6 +183,7 @@ sus_grid_pollution_ghap <- function(
     years         = NULL,
     months        = 1:12,
     municipalities = NULL,
+    raster_area   = FALSE,
     agg_fun       = "mean",
     crop_brazil   = TRUE,
     use_cache     = TRUE,
@@ -157,7 +191,7 @@ sus_grid_pollution_ghap <- function(
     lang          = "pt",
     verbose       = TRUE) {
 
-  # ── 1. Validation ───────────────────────────────────────────────────────────
+  # \u2500\u2500 1. Validation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
   if (!is.character(lang) || length(lang) != 1 || !lang %in% c("pt", "en", "es")) {
     cli::cli_abort("{.arg lang} must be 'pt', 'en', or 'es'.")
@@ -210,6 +244,9 @@ sus_grid_pollution_ghap <- function(
       reason = "to read GHAP NetCDF raster files")
     rlang::check_installed("exactextractr",
       reason = "to aggregate rasters to municipality polygons")
+  } else if (!isFALSE(raster_area)) {
+    rlang::check_installed("terra",
+      reason = "to build the in-memory SpatRaster")
   }
 
   valid_agg <- c("mean", "sum", "median", "min", "max")
@@ -227,7 +264,7 @@ sus_grid_pollution_ghap <- function(
   }
   cache_dir <- normalizePath(cache_dir, mustWork = FALSE)
 
-  # ── 2. Build download manifest ───────────────────────────────────────────────
+  # \u2500\u2500 2. Build download manifest \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   # Auto-adjust resolution for pollutants that only have annual data
   annual_only <- c("o3", "co")
   manifest_rows <- list()
@@ -246,7 +283,7 @@ sus_grid_pollution_ghap <- function(
       p_res <- "annual"
     }
 
-    # Determine available years for this pollutant × resolution
+    # Determine available years for this pollutant x resolution
     avail_years <- .ghap_avail_years[[p]][[p_res]]
     if (is.null(years)) {
       req_years <- avail_years
@@ -336,7 +373,7 @@ sus_grid_pollution_ghap <- function(
     cli::cli_alert_info(glue::glue(msg$download_start, n_files = n_files))
   }
 
-  # ── 3. If municipalities provided: check Parquet cache first ─────────────────
+  # \u2500\u2500 3. If municipalities provided: check Parquet cache first \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   # Returns early from Parquet if all requested files are already cached
   if (!is.null(municipalities) && use_cache) {
     all_cached <- all(file.exists(manifest$cache_pq))
@@ -348,7 +385,7 @@ sus_grid_pollution_ghap <- function(
     }
   }
 
-  # ── 4. Download NetCDF files (with cache) ─────────────────────────────────
+  # \u2500\u2500 4. Download NetCDF files (with cache) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   for (i in seq_len(n_files)) {
     .ghap_download_file(
       url        = manifest$url[i],
@@ -359,8 +396,20 @@ sus_grid_pollution_ghap <- function(
     )
   }
 
-  # ── 5. If no municipalities: return file paths ────────────────────────────
+  # \u2500\u2500 5. If no municipalities: return file paths (or raster) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   if (is.null(municipalities)) {
+    if (!isFALSE(raster_area)) {
+      if (verbose) cli::cli_alert_info(msg$raster_repr_note)
+      r_stack <- .ghap_paths_to_raster(manifest, crop_brazil, verbose, msg)
+      area_vect <- .sus_grid_resolve_area(
+        raster_area, terra::crs(r_stack), cache_dir, use_cache, lang, verbose
+      )
+      r_stack <- .sus_grid_crop_mask(r_stack, area_vect)
+      if (verbose) {
+        cli::cli_alert_success(glue::glue(msg$done_raster, n = terra::nlyr(r_stack)))
+      }
+      return(r_stack)
+    }
     paths <- stats::setNames(
       manifest$cache_nc,
       paste(manifest$pollutant, manifest$year,
@@ -372,7 +421,7 @@ sus_grid_pollution_ghap <- function(
     return(paths)
   }
 
-  # ── 6. Prepare municipalities ─────────────────────────────────────────────
+  # \u2500\u2500 6. Prepare municipalities \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   muni_id_col <- .ghap_detect_muni_col(municipalities)
   if (muni_id_col != "code_muni") {
     municipalities$code_muni <- as.character(municipalities[[muni_id_col]])
@@ -382,7 +431,7 @@ sus_grid_pollution_ghap <- function(
   municipalities$code_muni <- substr(municipalities$code_muni, 1L, 7L)
   municipalities <- sf::st_transform(municipalities, crs = 4326)
 
-  # Brazil bounding box used to crop before aggregation (pixel → WGS84 via .ghap_read_and_fix)
+  # Brazil bounding box used to crop before aggregation (pixel -> WGS84 via .ghap_read_and_fix)
   brazil_bbox <- if (crop_brazil) terra::ext(-75, -28, -35, 6) else NULL
 
   n_mun <- nrow(municipalities)
@@ -390,7 +439,7 @@ sus_grid_pollution_ghap <- function(
     cli::cli_alert_info(glue::glue(msg$agg_start, n_mun = n_mun))
   }
 
-  # ── 7. Extract raster → polygons for each file ───────────────────────────
+  # \u2500\u2500 7. Extract raster -> polygons for each file \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   result_list <- vector("list", n_files)
 
   for (i in seq_len(n_files)) {
@@ -421,7 +470,7 @@ sus_grid_pollution_ghap <- function(
       bb <- if (!is.null(brazil_bbox)) as.vector(brazil_bbox) else
               c(-180, 180, -90, 90)
 
-      # ── Daily ZIP branch ──────────────────────────────────────────────────
+      # \u2500\u2500 Daily ZIP branch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       if (endsWith(nc_path, ".zip")) {
         df_i <- .ghap_extract_daily_zip(
           zip_path   = nc_path,
@@ -436,7 +485,7 @@ sus_grid_pollution_ghap <- function(
         )
         df_i
       } else {
-      # ── Monthly / annual NetCDF branch ───────────────────────────────────
+      # \u2500\u2500 Monthly / annual NetCDF branch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
       r  <- .ghap_read_and_fix(nc_path,
                                 xmin = bb[1], xmax = bb[2],
                                 ymin = bb[3], ymax = bb[4])
@@ -458,12 +507,12 @@ sus_grid_pollution_ghap <- function(
         progress = FALSE
       )
 
-      # agg_result: nrow(municipalities) rows × nlyr(r) columns
+      # agg_result: nrow(municipalities) rows x nlyr(r) columns
       # named "{agg_fun}" (single layer) or "{agg_fun}.{layer_name}" (multi)
       agg_df <- as.data.frame(agg_result)
       agg_df$code_muni <- municipalities$code_muni
 
-      # Build output — handle single vs multi-layer
+      # Build output -- handle single vs multi-layer
       if (nlyr_r == 1) {
         val_col <- names(agg_df)[1]
         out_df  <- data.frame(
@@ -525,7 +574,7 @@ sus_grid_pollution_ghap <- function(
     }
   }
 
-  # ── 8. Merge all results ──────────────────────────────────────────────────
+  # \u2500\u2500 8. Merge all results \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   result_list <- result_list[!vapply(result_list, is.null, logical(1))]
   if (length(result_list) == 0) {
     cli::cli_abort(msg$no_data)
@@ -542,7 +591,7 @@ sus_grid_pollution_ghap <- function(
       glue::glue(msg$agg_done, n_rows = n_rows, n_mun = n_mun))
   }
 
-  # ── 9. Build climasus_df ──────────────────────────────────────────────────
+  # \u2500\u2500 9. Build climasus_df \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   meta <- list(
     system  = NULL,
     stage   = "climate",
@@ -574,13 +623,13 @@ sus_grid_pollution_ghap <- function(
 }
 
 
-# ── Internal constants ────────────────────────────────────────────────────────
+# \u2500\u2500 Internal constants \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 #' Convert WGS84 bounding box to GHAP pixel coordinate space
 #'
 #' GHAP NetCDF files store data in a custom pixel grid:
-#'   x (longitude): 0–36000 (mapping -180 to +180 deg, 100 pixels/deg)
-#'   y (latitude):  0–18000 (mapping +90 to -90 deg, INVERTED, 100 pixels/deg)
+#'   x (longitude): 0-36000 (mapping -180 to +180 deg, 100 pixels/deg)
+#'   y (latitude):  0-18000 (mapping +90 to -90 deg, INVERTED, 100 pixels/deg)
 #' After cropping, the raster must be flipped vertically and re-assigned
 #' EPSG:4326 to be usable with sf/exactextractr.
 #' @keywords internal
@@ -590,7 +639,7 @@ sus_grid_pollution_ghap <- function(
   px_xmin <- round((xmin + 180) * 100)
   px_xmax <- round((xmax + 180) * 100)
   # Pixel y is INVERTED: y_pixel = (90 - lat) * 100
-  # so geographic ymax (north) → smallest pixel y value
+  # so geographic ymax (north) -> smallest pixel y value
   px_ymin <- round((90 - ymax) * 100)
   px_ymax <- round((90 - ymin) * 100)
   list(xmin = px_xmin, xmax = px_xmax, ymin = px_ymin, ymax = px_ymax)
@@ -607,7 +656,7 @@ sus_grid_pollution_ghap <- function(
   px <- .ghap_to_pixel_bbox(xmin, xmax, ymin, ymax)
   r  <- terra::crop(r, terra::ext(px$xmin, px$xmax, px$ymin, px$ymax))
 
-  # Flip vertically (latitude is stored north→south, pixel index 0=north)
+  # Flip vertically (latitude is stored north->south, pixel index 0=north)
   r <- terra::flip(r, direction = "vertical")
 
   # Re-assign geographic extent and CRS
@@ -704,6 +753,85 @@ sus_grid_pollution_ghap <- function(
   day_dfs <- day_dfs[!vapply(day_dfs, is.null, logical(1))]
   if (length(day_dfs) == 0) return(NULL)
   do.call(rbind, day_dfs)
+}
+
+#' Extract only the first daily NC file from a monthly GHAP ZIP
+#'
+#' Used by `raster_area != FALSE`: unzipping ~3 GB archives fully is too
+#' expensive to do by default, so only the first (alphabetically, i.e.
+#' earliest date) daily NetCDF entry is pulled out and read, as a
+#' representative sample of that month -- NOT the full daily series.
+#' @keywords internal
+#' @noRd
+.ghap_extract_representative_day <- function(zip_path, bb) {
+  tmp_dir <- file.path(tempdir(), paste0("ghap_repr_", basename(zip_path)))
+  dir.create(tmp_dir, showWarnings = FALSE, recursive = TRUE)
+  on.exit(unlink(tmp_dir, recursive = TRUE), add = TRUE)
+
+  entries    <- utils::unzip(zip_path, list = TRUE)$Name
+  nc_entries <- sort(entries[grepl("\\.nc$", entries)])
+  if (length(nc_entries) == 0) return(NULL)
+
+  first_nc <- nc_entries[1]
+  utils::unzip(zip_path, files = first_nc, exdir = tmp_dir, overwrite = TRUE)
+  nc_path <- file.path(tmp_dir, first_nc)
+
+  r <- .ghap_read_and_fix(nc_path, xmin = bb[1], xmax = bb[2],
+                           ymin = bb[3], ymax = bb[4])
+  r[[1]]
+}
+
+#' Build an in-memory SpatRaster from cached GHAP files for `raster_area != FALSE`
+#'
+#' One layer per requested pollutant/year/month, each layer being a single
+#' representative day (see `.ghap_extract_representative_day()` and the
+#' `raster_area` roxygen docs on `sus_grid_pollution_ghap()` for the
+#' rationale and limitation).
+#' @keywords internal
+#' @noRd
+.ghap_paths_to_raster <- function(manifest, crop_brazil, verbose, msg) {
+  brazil_bbox <- if (isTRUE(crop_brazil)) terra::ext(-75, -28, -35, 6) else NULL
+  bb <- if (!is.null(brazil_bbox)) as.vector(brazil_bbox) else c(-180, 180, -90, 90)
+
+  n <- nrow(manifest)
+  layers      <- vector("list", n)
+  layer_names <- character(n)
+
+  for (i in seq_len(n)) {
+    nc_path   <- manifest$cache_nc[i]
+    mo_str    <- manifest$month[i]
+    layer_names[i] <- paste(manifest$pollutant[i], manifest$year[i],
+                             ifelse(is.na(mo_str), "annual", mo_str), sep = "_")
+
+    if (is.na(nc_path) || !file.exists(nc_path)) {
+      layers[[i]] <- NULL
+      next
+    }
+
+    layers[[i]] <- tryCatch({
+      if (endsWith(nc_path, ".zip")) {
+        .ghap_extract_representative_day(nc_path, bb)
+      } else {
+        r <- .ghap_read_and_fix(nc_path, xmin = bb[1], xmax = bb[2],
+                                  ymin = bb[3], ymax = bb[4])
+        r[[1]]
+      }
+    }, error = function(e) {
+      cli::cli_warn(c(
+        glue::glue(msg$extract_warn, filename = basename(nc_path)),
+        "i" = conditionMessage(e)))
+      NULL
+    })
+  }
+
+  ok          <- !vapply(layers, is.null, logical(1))
+  layers      <- layers[ok]
+  layer_names <- layer_names[ok]
+  if (length(layers) == 0) cli::cli_abort(msg$no_data)
+
+  r_stack <- terra::rast(layers)
+  names(r_stack) <- layer_names
+  r_stack
 }
 
 #' Zenodo record IDs for GHAP, by pollutant and resolution
@@ -908,7 +1036,9 @@ sus_grid_pollution_ghap <- function(
     zip_error              = "Falha ao extrair ZIP: {filename}.",
     zip_no_nc              = "Nenhum arquivo .nc encontrado dentro de {filename}.",
     daily_processing       = "Processando {n_days} dia(s) de {month}...",
-    done_paths             = "{n} arquivo(s) dispon\u00edvel(is) no cache."
+    done_paths             = "{n} arquivo(s) dispon\u00edvel(is) no cache.",
+    raster_repr_note       = "Nota: apenas um dia representativo por poluente/m\u00eas ser\u00e1 extra\u00eddo (n\u00e3o a s\u00e9rie di\u00e1ria completa).",
+    done_raster            = "{n} camada(s) de raster constru\u00edda(s) (um dia representativo por poluente/m\u00eas)."
   ),
   en = list(
     title                  = "GHAP Atmospheric Pollution Data",
@@ -943,7 +1073,9 @@ sus_grid_pollution_ghap <- function(
     zip_error              = "Failed to extract ZIP: {filename}.",
     zip_no_nc              = "No .nc files found inside {filename}.",
     daily_processing       = "Processing {n_days} day(s) for {month}...",
-    done_paths             = "{n} file(s) available in cache."
+    done_paths             = "{n} file(s) available in cache.",
+    raster_repr_note       = "Note: only one representative day per pollutant/month will be extracted (not the full daily series).",
+    done_raster            = "{n} raster layer(s) built (one representative day per pollutant/month)."
   ),
   es = list(
     title                  = "Datos GHAP de Contaminaci\u00f3n Atmosf\u00e9rica",
@@ -978,6 +1110,8 @@ sus_grid_pollution_ghap <- function(
     zip_error              = "Error al extraer ZIP: {filename}.",
     zip_no_nc              = "No se encontraron archivos .nc en {filename}.",
     daily_processing       = "Procesando {n_days} d\u00eda(s) de {month}...",
-    done_paths             = "{n} archivo(s) disponible(s) en cach\u00e9."
+    done_paths             = "{n} archivo(s) disponible(s) en cach\u00e9.",
+    raster_repr_note       = "Nota: solo se extraer\u00e1 un d\u00eda representativo por contaminante/mes (no la serie diaria completa).",
+    done_raster            = "{n} capa(s) de raster construida(s) (un d\u00eda representativo por contaminante/mes)."
   )
 )

@@ -1,0 +1,55 @@
+%%{init: {'theme':'base', 'themeVariables': {'fontFamily':'Inter, Arial, sans-serif','fontSize':'14px','primaryTextColor':'#102018','lineColor':'#2F7D4B'}}}%%
+flowchart LR
+    subgraph PREP["1. Preparation"]
+        direction TB
+        A1["Import DATASUS<br/>SIM · SIH · SIA · SINAN · CNES · SINASC"]
+        A2["Clean encoding<br/>standardize names and codes"]
+        A3["Filter ICD-10 and<br/>demographic strata"]
+        A4["Create variables<br/>aggregate health series"]
+        A1 --> A2 --> A3 --> A4
+    end
+
+    subgraph INT["2. Integration"]
+        direction TB
+        B1["Spatial linkage<br/>municipalities and stations"]
+        B2["Socioeconomic context<br/>IBGE census indicators"]
+        B3["Station climate<br/>INMET observations and gap filling"]
+        B4["Gridded exposures<br/>ERA5 · CHIRPS · pollution · land cover"]
+        B5["Temporal alignment<br/>10 exposure-lag strategies"]
+        B1 --> B2 --> B3 --> B5
+        B4 --> B5
+    end
+
+    subgraph ANA["3. Analysis"]
+        direction TB
+        C1["DLNM models<br/>sus_mod_dlnm()"]
+        C2["Case-crossover and ITS<br/>sus_mod_casecrossover() · sus_mod_its()"]
+        C3["Attributable fraction<br/>burden and excess events"]
+        C4["Multi-city pooling<br/>mvmeta meta-analysis"]
+        C5["Spatial risk<br/>Moran · scan · CAR · vulnerability"]
+        C1 --> C3
+        C1 --> C4
+        C2 --> C3
+    end
+
+    subgraph RAP["Reproducible Analytical Pipeline"]
+        direction TB
+        D1["targets recipe<br/>sus_rap_recipe() · sus_rap_targets()"]
+        D2["Versioned export<br/>sus_rap_export()"]
+        D1 --> D2
+    end
+
+    META["climasus_df metadata<br/>source · stage · history"]:::meta
+
+    A4 --> B1
+    B5 --> C1
+    B5 --> C2
+    B5 --> C5
+    PREP -.-> META
+    INT -.-> META
+    ANA -.-> META
+    META -.-> RAP
+
+    classDef stage fill:#F4FAF1,stroke:#2F7D4B,stroke-width:1.4px,color:#102018;
+    classDef meta fill:#EAF3FF,stroke:#3167A8,stroke-width:1.4px,color:#102018;
+    class PREP,INT,ANA,RAP stage;

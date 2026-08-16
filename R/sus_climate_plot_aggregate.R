@@ -847,7 +847,14 @@ sus_climate_plot_aggregate <- function(
       high     = .CPA_PAL["primary"],
       midpoint = 0,
       limits   = c(-1, 1),
-      name     = lbl$spearman_lbl) +
+      name     = lbl$spearman_lbl,
+      guide    = ggplot2::guide_colorbar(
+        barwidth       = ggplot2::unit(9, "lines"),
+        barheight      = ggplot2::unit(0.6, "lines"),
+        title.position = "top",
+        title.hjust    = 0.5,
+        ticks          = FALSE
+      )) +
     ggplot2::labs(
       title    = title_str,
       subtitle = lbl$corr_subtitle,
