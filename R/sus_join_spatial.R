@@ -999,8 +999,10 @@ get_spatial_munic_cache <- function(
   verbose
 ) {
   msg <- get_spatial_messages(lang)
+  cache_dir <- path.expand(cache_dir)
+  fs::dir_create(cache_dir, recurse = TRUE)
 
-  if ((requireNamespace("sfarrow", quietly = TRUE))) { 
+  if ((requireNamespace("sfarrow", quietly = TRUE))) {
   # Define cache file name
   cache_file <- file.path(
     cache_dir,
@@ -1105,8 +1107,10 @@ get_spatial_data_with_cache <- function(
   verbose
 ) {
   msg <- get_spatial_messages(lang)
+  cache_dir <- path.expand(cache_dir)
+  fs::dir_create(cache_dir, recurse = TRUE)
 
-  if ((requireNamespace("sfarrow", quietly = TRUE))) { 
+  if ((requireNamespace("sfarrow", quietly = TRUE))) {
   # Define cache file name
   cache_file <- file.path(
     cache_dir,

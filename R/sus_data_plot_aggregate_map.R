@@ -97,7 +97,10 @@ utils::globalVariables(c(
 #' @return A `ggplot2` object (class `"gg"` / `"ggplot"`), a `plotly`
 #'   object when `interactive = TRUE`, or an `sf` object when
 #'   `return_sf = TRUE`.  The function does **not** modify `df` or advance
-#'   the pipeline `stage`.
+#'   the pipeline `stage`.  When a plain `ggplot2` object is returned, it
+#'   also carries the underlying `sf` data as a `"climasus_sf"` attribute
+#'   (`attr(p, "climasus_sf")`) for callers that want to export it without
+#'   a second `return_sf = TRUE` call.
 #'
 #' @seealso [sus_data_aggregate()], [sus_climate_plot_aggregate()]
 #'
@@ -568,6 +571,10 @@ sus_data_plot_aggregate_map <- function(
   # 16.  Map-type branch
   # ---------------------------------------------------------------------------
 
+  # best-effort sf snapshot of the plotted data, attached to the returned ggplot (attribute
+  # "climasus_sf") so a caller can export it as a shapefile/GeoPackage without return_sf = TRUE
+  .spatial_out <- NULL
+
   if (map_type == "bubble") {
     # \u2500\u2500 16a. Bubble map \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
@@ -601,9 +608,14 @@ sus_data_plot_aggregate_map <- function(
     # Arrange by descending total_cases so large bubbles are drawn first (back)
     muni_plot <- muni_plot[order(muni_plot$total_cases, decreasing = TRUE), ]
 
+    .spatial_out <- tryCatch(
+      sf::st_as_sf(muni_plot, coords = c("lon", "lat"), crs = 4326, remove = FALSE),
+      error = function(e) NULL
+    )
+
     if (return_sf) {
       rlang::check_installed("sf", reason = "required when return_sf = TRUE.")
-      return(sf::st_as_sf(muni_plot, coords = c("lon", "lat"), crs = 4326,
+      return(.spatial_out %||% sf::st_as_sf(muni_plot, coords = c("lon", "lat"), crs = 4326,
                            remove = FALSE))
     }
 
@@ -789,6 +801,8 @@ sus_data_plot_aggregate_map <- function(
       by = c("._code6_poly" = "._muni6")
     )
 
+    .spatial_out <- poly_joined
+
     if (return_sf) {
       return(poly_joined)
     }
@@ -944,6 +958,8 @@ sus_data_plot_aggregate_map <- function(
       reason = "required when interactive = TRUE.")
     return(plotly::ggplotly(p))
   }
+
+  if (!is.null(.spatial_out)) attr(p, "climasus_sf") <- .spatial_out
 
   p
 }

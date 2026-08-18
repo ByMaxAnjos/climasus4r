@@ -1516,6 +1516,7 @@ show_available_municipalities_internal <- function(available_muni_codes,
 #' @noRd
 get_spatial_municipio_cache <- function(cache_dir, use_cache, lang, verbose) {
   msg <- get_spatial_municipio_messages(lang)
+  cache_dir <- path.expand(cache_dir)
 
   use_arrow <- requireNamespace("arrow", quietly = TRUE)
   cache_file <- file.path(
