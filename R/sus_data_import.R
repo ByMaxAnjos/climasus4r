@@ -1030,23 +1030,28 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
     #   "MUNIC_RES", "SP_GESTOR"
     # )
     muni_col_patterns <- c(
-      # Originais fornecidos
+      # Originais fornecidos (residencia)
       "CODMUNRES", "MUNRES", "MUNAIH", "ID_MN_RESI",
-      "PA_MUNPCN", "CODMUNPAC", "CODUFMUN", "MUNNOT",
+      "PA_MUNPCN", "CODMUNPAC",
       "MUNIC_RES", "SP_GESTOR",
-      
-      # Adicionais SINAN  SIM  SINASC (Residencia e Ocorrencia)
-      "CODMUNOCOR", "MUNOCOR", "ID_MN_OCOR", "CODMUNNASC", 
-      "CODMUNNATU", "CODMUNINF", "MUNIC_OCOR",
-      
+
+      # Ocorrencia e notificacao -- NAO e residencia (CODUFMUN = municipio
+      # de ocorrencia no SIM; MUNNOT = municipio de notificacao no SINAN).
+      # Mantidos aqui apenas como ultimo recurso, depois de todo campo de
+      # residencia acima, para nao serem escolhidos por engano quando ambos
+      # existirem na mesma base (ver correcao analoga em
+      # sus_data_filter_demographics()).
+      "CODUFMUN", "MUNNOT", "CODMUNOCOR", "MUNOCOR", "ID_MN_OCOR",
+      "CODMUNNASC", "CODMUNNATU", "CODMUNINF", "MUNIC_OCOR",
+
       # Adicionais SIH  SIA (Hospitalar e Ambulatorial)
       "MUNIC_ESTAB", "CODMUNEST", "MUN_ESTAB", "CODMUNSERV",
       "PA_MUNORG", "SP_MUNINV", "SP_MUNCID",
-      
+
       # Adicionais CNES  IBGE (Gerais)
       "IBGE", "COD_MUNICIPIO", "MUNICIPIO_CODIGO", "CODMUN",
       "COD_IBGE", "CODMUNI", "MUN_RESIDENCIA"
-    ) 
+    )
     combined_data <- data.table::as.data.table(combined_data)
     combined_cols  <- names(combined_data)
     muni_col       <- muni_col_patterns[muni_col_patterns %in% combined_cols][1L]
@@ -1835,15 +1840,20 @@ if (!is.null(city) || !is.null(municipality_code)) {
   # Municipality filter (city / municipality_code)
 if (!is.null(all_muni_codes_import) && length(all_muni_codes_import) > 0L) {
     muni_col_patterns <- c(
-      # Originais fornecidos
+      # Originais fornecidos (residencia)
       "CODMUNRES", "MUNRES", "MUNAIH", "ID_MN_RESI",
-      "PA_MUNPCN", "CODMUNPAC", "CODUFMUN", "MUNNOT",
+      "PA_MUNPCN", "CODMUNPAC",
       "MUNIC_RES", "SP_GESTOR", "MUN_RES",
-      
-      # Adicionais SINAN  SIM  SINASC (Residencia e Ocorrencia)
-      "CODMUNOCOR", "MUNOCOR", "ID_MN_OCOR", "CODMUNNASC", 
-      "CODMUNNATU", "CODMUNINF", "MUNIC_OCOR",
-      
+
+      # Ocorrencia e notificacao -- NAO e residencia (CODUFMUN = municipio
+      # de ocorrencia no SIM; MUNNOT = municipio de notificacao no SINAN).
+      # Mantidos aqui apenas como ultimo recurso, depois de todo campo de
+      # residencia acima, para nao serem escolhidos por engano quando ambos
+      # existirem na mesma base (ver correcao analoga em
+      # sus_data_filter_demographics()).
+      "CODUFMUN", "MUNNOT", "CODMUNOCOR", "MUNOCOR", "ID_MN_OCOR",
+      "CODMUNNASC", "CODMUNNATU", "CODMUNINF", "MUNIC_OCOR",
+
       # Adicionais SIH  SIA (Hospitalar e Ambulatorial)
       "MUNIC_ESTAB", "CODMUNEST", "MUN_ESTAB", "CODMUNSERV",
       "PA_MUNORG", "SP_MUNINV", "SP_MUNCID",

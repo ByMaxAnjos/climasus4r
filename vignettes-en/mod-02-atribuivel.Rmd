@@ -1,0 +1,723 @@
+---
+title: "Modeling 02: Attributable Burden and Excess Mortality"
+author: "climasus4r Team"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* -- Variaveis de Cores Modernas -- */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; color: var(--text-main); background-color: #fff; line-height: 1.6; }
+h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--dark-green); }
+h1.title { font-size: 2.8em; border-bottom: 4px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 1.5rem; }
+h2 { margin-top: 2rem; border-left: 4px solid var(--primary-color); padding-left: 1rem; }
+pre.r, pre.sourceCode { background-color: var(--code-bg); border: 1px solid #e1e1e1; border-left: 5px solid var(--primary-color) !important; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1rem; }
+.callout { padding: 1.2em 1.5em; margin: 1.5em 0; border-radius: 8px; border-left: 6px solid; background-color: var(--bg-light); }
+.callout-note { background-color: #f0f7ff; border-color: #007bff; }
+.callout-tip { background-color: #e8f5e9; border-color: #1D9E75; }
+.callout-warning { background-color: #fff3e0; border-color: #ff9800; }
+.workflow-container { background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #dce8e1; overflow-x: auto; }
+.workflow-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; font-family: 'Inter', monospace; font-size: 0.8rem; }
+.workflow-step { background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap; }
+.workflow-arrow { color: var(--primary-color); font-weight: bold; font-size: 1.2rem; }
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+.feature-card { background: white; border-radius: 12px; padding: 1.5rem; border: 1px solid #e1e1e1; transition: transform 0.2s ease, box-shadow 0.2s ease; text-align: center; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+.feature-card h3 { margin-top: 0; color: var(--primary-color); font-size: 1.1rem; }
+table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e1e1; }
+th { background-color: var(--bg-light); font-weight: 600; color: var(--dark-green); }
+.github-feedback-btn { display: inline-flex; align-items: center; gap: 8px; background-color: #24292e; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-family: sans-serif; transition: background-color 0.2s; margin-top: 1rem; }
+.github-feedback-btn:hover { background-color: #2c3e50; color: white; text-decoration: none; }
+@media (max-width: 768px) { body { font-size: 16px; } h1.title { font-size: 2rem; } .workflow-steps { flex-direction: column; align-items: center; } }
+```
+
+
+```{r setup, include=FALSE}
+# ATENÇÃO — estratégia de pré-renderização.
+# Este tutorial NÃO executa modelagem durante a renderização. Todas as figuras e
+# tabelas foram geradas UMA vez pelo script scripts/modelagem_02_atribuivel.R e
+# são apenas carregadas aqui (PNG via include_graphics; RDS via readRDS).
+# Por isso, os chunks de ensino abaixo usam eval = FALSE: o código é mostrado,
+# mas não é executado no momento do knit.
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+
+# Helpers robustos: se o arquivo não foi gerado, mostram uma nota em vez de
+# quebrar o knit. Assim a vignette renderiza a qualquer momento.
+fig_ou_nota <- function(path, nota) {
+  if (file.exists(path)) knitr::include_graphics(path)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+tbl_ou_nota <- function(path, nota, caption = NULL) {
+  if (file.exists(path)) knitr::kable(readRDS(path), caption = caption)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+.nota_gerar <- "Artefato indisponível — rode `Rscript scripts/modelagem_02_atribuivel.R` (a partir da raiz do pacote) para gerá-lo."
+
+# Caminhos relativos ao diretório vignettes-pt/ (de onde o Rmd é renderizado).
+# Os artefatos são salvos pelo script em vignettes-pt/figuras/ e vignettes-pt/dados/.
+.fig <- function(n) file.path("figuras", paste0(n, ".png"))
+.tbl <- function(n) file.path("dados",   paste0(n, ".rds"))
+```
+
+# Objective
+
+By the end of this tutorial you will be able to:
+
+1. **Calculate the Attributable Fraction and Number (AF/AN)** for heat and cold
+   from a fitted DLNM model, with Monte Carlo confidence intervals;
+2. **Estimate excess mortality**, observed versus expected counterfactual,
+   using three baseline methods;
+3. **Rank disease burden across municipalities** in the São Paulo Metropolitan
+   Region, identifying inequalities in the distribution of environmental risk;
+4. **Visualize and interpret** each result with the package's paired plot functions.
+
+This is the **second module in the Modeling series** of `climasus4r`. The main
+input is the `climasus_dlnm` object produced in Module 1 (`mod_dlnm_fit.rds`).
+The outputs are made available as `mod_af.rds` for reuse in later modules.
+
+---
+
+# Scientific background
+
+## Attributable Risk Fraction in environmental epidemiology
+
+The **Attributable Fraction** (AF, *Attributable Fraction*) quantifies the
+proportion of disease cases that can be attributed to a given exposure in the
+population. In the context of climate-health studies, it estimates what share
+of respiratory deaths among the elderly would be avoidable if temperature were
+fixed at the reference value (usually the median or the minimum-mortality
+temperature).
+
+The methodology was systematized by Gasparrini & Armstrong (2013) and applied
+at global scale by Gasparrini et al. (2017), showing that **7.71% of global
+deaths** are attributable to non-optimal temperatures — with cold accounting
+for the larger share in most regions.
+
+## Excess mortality
+
+**Excess mortality** (the difference between observed and expected) is widely
+used to evaluate the impact of heat waves, pandemics, and extreme events. The
+expected count is estimated by a baseline model (time-series spline, Serfling
+regression, or the DLNM counterfactual). The Serfling (1963) method uses
+harmonic regression to capture seasonality without suppressing the signal of
+interest.
+
+## Disease burden and spatial inequalities
+
+The distribution of climate risk across municipalities is rarely uniform. The
+**Lorenz curve** (and the derived Gini index) quantifies the degree of
+concentration of the burden: the more concave the curve relative to the
+diagonal of perfect equality, the greater the spatial inequity of the burden.
+This analysis is inspired by the multi-city approach of Gasparrini et al.
+(2017, *The Lancet Planetary Health*) and is essential for prioritizing
+climate adaptation interventions.
+
+---
+
+# Data used
+
+| Object | Source | Content |
+|--------|--------|----------|
+| `mod_dlnm_fit.rds` | Module M1 | `climasus_dlnm` object fitted for the RMSP |
+| `caso_serie.rds` | Tutorial T4 | Daily death series by municipality |
+| `caso_clima_estacao.rds` | Tutorial T7 | Daily INMET temperature (station A701) |
+
+**Guiding case:** Temperature and health outcomes among the elderly (60+) in
+the São Paulo Metropolitan Region, 2014–2019 (ICD-10: J00–J99, respiratory
+diseases).
+
+If the earlier artifacts do not exist in the `vignettes-pt/dados/` folder, the
+`modelagem_02_atribuivel.R` script automatically synthesizes a realistic daily
+series and fits the models on it, ensuring the pipeline runs end to end.
+
+---
+
+# Complete pipeline
+
+```{r carregar-pacotes}
+library(climasus4r)
+library(dplyr)
+library(ggplot2)
+```
+
+## Load the DLNM fit from Module 1
+
+```{r carregar-dlnm}
+# Guarda: verifica se o arquivo foi gerado pelo Módulo M1.
+# Caminho relativo — o Rmd é renderizado a partir de vignettes-pt/.
+dlnm_path <- "dados/mod_dlnm_fit.rds"
+
+if (file.exists(dlnm_path)) {
+  mod_dlnm_fit <- readRDS(dlnm_path)
+} else {
+  stop(
+    "mod_dlnm_fit.rds não encontrado. ",
+    "Execute primeiro: Rscript scripts/modelagem_01_dlnm.R"
+  )
+}
+```
+
+## Attributable Fraction and Number — `sus_mod_af()`
+
+```{r mod-af}
+mod_af <- sus_mod_af(
+  fit       = mod_dlnm_fit,
+  threshold = NULL,              # usa ref_value do DLNM (mediana de temperatura)
+  pred_at   = c(0.75, 0.90, 0.95, 0.99),  # percentis de interesse
+  by        = "year",            # decompõe o AN/FA por ano
+  nsim      = 500L,              # simulações Monte Carlo para IC 95%
+  alpha     = 0.05,
+  lang      = "pt",
+  verbose   = TRUE
+)
+
+# Inspecionar o resultado
+print(mod_af)
+mod_af$total          # tabela total/calor/frio
+mod_af$by_quantile    # FA por percentil
+mod_af$by_period      # FA/AN por ano
+```
+
+### Save for reuse
+
+```{r salvar-af}
+# Caminho relativo — renderizado a partir de vignettes-pt/
+saveRDS(mod_af, "dados/mod_af.rds")
+```
+
+## Excess mortality — `sus_mod_excess()`
+
+### Method `from_dlnm` (counterfactual from the DLNM)
+
+```{r excess-from-dlnm}
+# Quando data é climasus_dlnm, method = "from_dlnm" é detectado automaticamente
+# e outcome_col é inferido do meta$outcome_col do fit.
+# study_period sem control_period usa todo o período disponível no DLNM.
+mod_excess_dlnm <- sus_mod_excess(
+  data         = mod_dlnm_fit,
+  method       = "from_dlnm",
+  study_period = c(as.Date("2014-01-01"), as.Date("2019-12-31")),
+  threshold_z  = 1.96,
+  by           = "year",
+  lang         = "pt",
+  verbose      = TRUE
+)
+
+print(mod_excess_dlnm)
+# tidy() retorna tibble de uma linha: observed, expected, excess, excess_pct,
+# peak_excess, peak_date — ideal para comparação entre métodos ou municípios
+generics::tidy(mod_excess_dlnm)
+```
+
+### Method `spline` (quasi-Poisson baseline with natural spline)
+
+```{r excess-spline}
+# A partir de uma série diária de dados de saúde (sem DLNM)
+mod_excess_spl <- sus_mod_excess(
+  data           = caso_serie,           # data.frame com date e n_obitos
+  outcome_col    = "n_obitos",
+  date_col       = "date",
+  control_period = c(as.Date("2014-01-01"), as.Date("2016-12-31")),
+  study_period   = c(as.Date("2017-01-01"), as.Date("2019-12-31")),
+  method         = "spline",
+  dof_per_year   = 8L,                   # graus de liberdade do spline por ano
+  family         = "quasipoisson",
+  threshold_z    = 1.96,
+  by             = "year",
+  lang           = "pt"
+)
+```
+
+### Method `serfling` (Serfling periodic regression)
+
+```{r excess-serfling}
+mod_excess_serf <- sus_mod_excess(
+  data           = caso_serie,
+  outcome_col    = "n_obitos",
+  date_col       = "date",
+  control_period = c(as.Date("2014-01-01"), as.Date("2016-12-31")),
+  study_period   = c(as.Date("2017-01-01"), as.Date("2019-12-31")),
+  method         = "serfling",
+  harmonics      = 2L,                   # número de harmônicos sinusoidais
+  family         = "quasipoisson",
+  threshold_z    = 1.96,
+  by             = "year",
+  lang           = "pt"
+)
+```
+
+## Burden ranking across municipalities — `sus_mod_burden()`
+
+```{r mod-burden}
+# sus_mod_burden() recebe uma lista NOMEADA de objetos climasus_af
+# (um por município/estrato). Na prática, cada elemento é obtido por:
+#   sus_mod_af(fit_municipio_X, nsim = 500L)
+# O script de pré-renderização (modelagem_02_atribuivel.R) constrói a lista
+# com 10 municípios da RMSP; aqui mostramos a chamada genérica.
+
+lista_af <- list(
+  "Sao Paulo"    = mod_af_sp,       # climasus_af de São Paulo
+  "Guarulhos"    = mod_af_guarulhos, # climasus_af de Guarulhos
+  "Campinas"     = mod_af_campinas   # ... demais municípios
+  # ... adicione quantos municípios/estratos desejar
+)
+
+mod_burden <- sus_mod_burden(
+  fits      = lista_af,
+  component = "all",      # decompõe em calor e frio por município; use "total"
+                          # para uma única métrica por cidade
+  rank_by   = "an",       # classifica pelo Número Atribuível; use "af_pct"
+                          # para classificar pela Fração Atribuível (%)
+  top_n     = NULL,       # NULL = mantém todos; top_n = 5L limita ao top-5
+  nsim      = 0L,         # 0L usa IC por método delta (mais rápido);
+                          # nsim > 0 recalcula via Monte Carlo se fits são DLNM
+  alpha     = 0.05,
+  lang      = "pt",
+  verbose   = TRUE
+)
+
+print(mod_burden)
+generics::tidy(mod_burden)   # tabela flat com cumulative_pct para exportação
+```
+
+## AF plots — `sus_mod_plot_af()`
+
+```{r plot-af-bar}
+# Barras de FA% por componente (total / calor / frio)
+sus_mod_plot_af(mod_af, type = "bar",      lang = "pt")
+```
+
+```{r plot-af-forest}
+# Forest plot do Número Atribuível com IC 95%
+sus_mod_plot_af(mod_af, type = "forest",   lang = "pt")
+```
+
+```{r plot-af-quantile}
+# FA% por faixa de percentil de exposição (P75, P90, P95, P99)
+sus_mod_plot_af(mod_af, type = "quantile", lang = "pt")
+```
+
+## Burden plots — `sus_mod_plot_burden()`
+
+```{r plot-burden-lollipop}
+# Lollipop: ranking de municípios por AN
+sus_mod_plot_burden(mod_burden, type = "lollipop", lang = "pt")
+```
+
+```{r plot-burden-lorenz}
+# Curva de Lorenz: concentração da carga entre municípios
+sus_mod_plot_burden(mod_burden, type = "lorenz",   lang = "pt")
+```
+
+```{r plot-burden-stacked}
+# Barras empilhadas: calor vs. frio por município (requer component = "all")
+sus_mod_plot_burden(mod_burden, type = "stacked",  lang = "pt")
+```
+
+---
+
+# Function characteristics
+
+## `sus_mod_af()` — Attributable Fraction and Number
+
+Computes the **Attributable Fraction** (AF) and the **Attributable Number**
+(AN) from a `climasus_dlnm` object. The decomposition into heat and cold is
+done via the `threshold` argument (default: the DLNM's `ref_value`).
+Confidence intervals are obtained by Monte Carlo simulation when the `MASS`
+package is available, or by the delta method (`crosspred` limits) otherwise.
+
+**Main parameters:**
+
+| Argument | Default | Description |
+|-----------|--------|-----------|
+| `fit` | — | `climasus_dlnm` object from `sus_mod_dlnm()` |
+| `threshold` | `NULL` | Temperature threshold (separates heat/cold); `NULL` uses the DLNM's `ref_value` |
+| `range` | `NULL` | Custom exposure range for the additional AF |
+| `pred_at` | `c(0.75, 0.90, 0.95, 0.99)` | Percentiles for the per-percentile-band table |
+| `by` | `NULL` | Temporal disaggregation: `"month"`, `"year"` or `"season"` |
+| `nsim` | `1000L` | Monte Carlo simulations for the CI; `0` uses the delta method |
+| `alpha` | `0.05` | Significance level for the CI |
+
+**Returns:** a `climasus_af` object with:
+
+- `$total` — total/heat/cold tibble (AF, AF_lo, AF_hi, AN, AN_lo, AN_hi)
+- `$by_quantile` — AF/AN by percentile band
+- `$by_period` — AF/AN by month/year/season (if `by` is not `NULL`)
+- `$daily` — daily series: date + exposure + cases + AN + AF
+- `$custom` — AF/AN for the custom range (if `range` is supplied)
+- `$meta` — metadata for all parameters used
+
+---
+
+## `sus_mod_plot_af()` — AF/AN visualizations
+
+Produces three visualization types from a `climasus_af` object.
+
+| `type` | Description |
+|--------|-----------|
+| `"bar"` | AF% bars by component (total/heat/cold) with 95% CI error bars |
+| `"forest"` | Horizontal forest plot of AN ± 95% CI by component |
+| `"quantile"` | AF% bars by exposure percentile band (`$by_quantile`) |
+
+**Additional relevant parameters:**
+
+| Argument | Default | Description |
+|-----------|--------|-----------|
+| `output_type` | `"plot"` | `"plot"`, `"table"` or `"all"` (list with `$plot`, `$table`, `$data`) |
+| `interactive` | `FALSE` | Converts to an interactive `plotly` widget |
+| `base_size` | `12` | Base font size in the ggplot2 theme |
+| `save_plot` | `NULL` | File path to save the plot (PNG/PDF/HTML) |
+
+---
+
+## `sus_mod_excess()` — Excess Mortality
+
+Estimates **excess cases** (observed − expected) relative to a baseline.
+Accepts as input a `climasus_dlnm` or any `data.frame` with date and count
+columns.
+
+**Baseline methods:**
+
+| `method` | Description |
+|----------|-----------|
+| `"from_dlnm"` | DLNM counterfactual: baseline = fitted values / observed RR. Requires `climasus_dlnm` and the `dlnm` package. |
+| `"spline"` (default for data frames) | Quasi-Poisson GLM with a natural spline over time (`ns()`, `dof_per_year` df/year). |
+| `"serfling"` | Serfling regression: second-degree polynomial trend + $H$ sinusoidal harmonics (see LaTeX formula in the *Mathematical foundations* section). |
+
+**Main parameters:**
+
+| Argument | Default | Description |
+|-----------|--------|-----------|
+| `data` | — | `climasus_dlnm` or `data.frame` with date and count columns |
+| `outcome_col` | `NULL` | Name of the outcome column; inferred from the DLNM when `data` is `climasus_dlnm` |
+| `date_col` | `"date"` | Name of the date column |
+| `control_period` | `NULL` | Reference period used to fit the baseline (vector of 2 dates) |
+| `study_period` | `NULL` | Study period for which excess is reported |
+| `method` | `NULL` (auto) | `"from_dlnm"`, `"spline"` or `"serfling"` |
+| `dof_per_year` | `8L` | Degrees of freedom per year for the spline (`"spline"` method) |
+| `harmonics` | `2L` | Number of harmonics $H$ (`"serfling"` method) |
+| `family` | `"quasipoisson"` | GLM family: `"quasipoisson"` or `"poisson"` |
+| `threshold_z` | `1.96` | Z-score threshold for flagging days of significant excess |
+| `by` | `NULL` | Temporal disaggregation: `"year"`, `"month"` or `"season"` |
+| `alpha` | `0.05` | Significance level for the baseline CI |
+
+**Returns:** a `climasus_excess` object with:
+
+- `$daily` — daily series: date, observed, expected, expected_lo/hi, excess, excess_lo/hi, z_score, is_excess, cum_excess
+- `$total` — summary: n_days, observed, expected ± CI, excess ± CI, excess_pct, n_excess_days, peak_excess, peak_date
+- `$by_period` — temporal disaggregation (if `by` is not `NULL`)
+- `$model` — baseline GLM object (`NULL` for `"from_dlnm"`)
+- `$meta` — metadata: method, outcome_col, control_period, study_period, family, dof_per_year, harmonics, threshold_z
+
+> **Note:** `sus_mod_excess()` has no paired plotting function
+> (`sus_mod_plot_excess()`). Visualize directly with `ggplot2` using `$daily`
+> (observed vs. expected time series) or `$by_period` (by year/month/season).
+> The `climasus_excess` object can be passed as an element of `fits` in
+> `sus_mod_burden()` to rank excess across municipalities.
+
+---
+
+## `sus_mod_burden()` — Burden Ranking Across Municipalities
+
+Aggregates results from multiple municipalities (a named list of `climasus_af`
+or `climasus_excess` objects) into a ranked table with a Lorenz concentration
+curve.
+
+**Main parameters:**
+
+| Argument | Default | Description |
+|-----------|--------|-----------|
+| `fits` | — | Named list of `climasus_af`, `climasus_excess` or `climasus_dlnm` |
+| `component` | `"total"` | Component for ranking: `"total"`, `"heat"`, `"cold"` or `"all"` |
+| `rank_by` | `NULL` (auto) | Metric: `"an"` / `"af_pct"` (AF) or `"excess"` / `"excess_pct"` (excess) |
+| `top_n` | `NULL` | Keeps only the top-N municipalities |
+| `nsim` | `0L` | Monte Carlo when auto-computing AF for `climasus_dlnm` inputs |
+| `alpha` | `0.05` | Significance level for the CI (passed to the internal `sus_mod_af()`) |
+
+**Returns:** a `climasus_burden` object with:
+
+- `$burden_table` — ranked table (city, component, AN/AF ± CI, rank, pct_of_total)
+- `$concentration` — Lorenz curve (city, rank, pct_of_total, cumulative_pct)
+- `$total_burden` — aggregated statistics: total AN, mean AF, leading municipality
+- `$meta` — metadata
+
+---
+
+## `sus_mod_plot_burden()` — Burden Visualizations
+
+Produces three visualization types from a `climasus_burden` object. The first
+argument is `x` (not `fit`).
+
+| `type` | Description |
+|--------|-----------|
+| `"lollipop"` | Ranked horizontal lollipop of AN or excess by city (default) |
+| `"lorenz"` | Lorenz curve of burden concentration with the Gini index (computed via the trapezoidal method) |
+| `"stacked"` | Stacked heat/cold bars by city (requires `component = "all"` in `sus_mod_burden()`) |
+
+**Additional relevant parameters:**
+
+| Argument | Default | Description |
+|-----------|--------|-----------|
+| `output_type` | `"plot"` | `"plot"`, `"table"` or `"all"` (list `$plot`, `$table`, `$data`) |
+| `interactive` | `FALSE` | Converts to an interactive `plotly` widget |
+| `base_size` | `12` | Base font size in the ggplot2 theme |
+| `save_plot` | `NULL` | File path to save the plot (PNG/PDF/HTML) |
+
+---
+
+# Mathematical foundations
+
+## Attributable Fraction (AF) and Attributable Number (AN)
+
+The **Attributable Risk Fraction** for day $t$, expressed in terms of the DLNM
+coefficients over all lags, is:
+
+$$AF = 1 - \exp\!\left(-\sum_{\ell=0}^{L} \beta_\ell\, x_{t-\ell}\right)$$
+
+**Symbols:** $\beta_\ell$ = DLNM coefficient at lag $\ell$; $x_{t-\ell}$ =
+temperature on day $t - \ell$; $L$ = maximum lag (`lag_max`). The deviation of
+$x_{t-\ell}$ is taken relative to the reference value $\tau$ (`threshold`).
+The total **Attributable Number** is $AN = N \cdot AF$, where $N = \sum_t n_t$.
+
+In the equivalent form based on the cumulative relative risk (notation from
+Gasparrini & Armstrong, 2013), the daily attributable number is:
+
+$$
+AN_t = n_t \left(1 - \frac{1}{RR(x_t)}\right)
+$$
+
+**Symbols:** $n_t$ = number of observed cases on day $t$; $x_t$ = exposure
+(temperature) value on day $t$; $RR(x_t)$ = cumulative relative risk
+(accumulated over all DLNM lags) estimated by `dlnm::crosspred()` with a
+reference at the heat/cold separation threshold.
+
+The **total Attributable Fraction** (AF) is:
+
+$$
+FA = \frac{\sum_t AN_t}{\sum_t n_t} = 1 - \frac{1}{N} \sum_t \frac{n_t}{RR(x_t)}
+$$
+
+where $N = \sum_t n_t$ is the total number of cases in the period. For the
+heat/cold decomposition, the sum is restricted to days on which $x_t > \tau$
+(heat) or $x_t < \tau$ (cold), where $\tau$ is the threshold (`threshold`; by
+default the DLNM's `ref_value`).
+
+The **Monte Carlo confidence interval** (`nsim` simulations) samples $K$
+coefficient vectors of the cross-basis from the asymptotic distribution:
+
+$$
+\boldsymbol{\beta}^{(k)} \sim \mathcal{N}\!\left(\hat{\boldsymbol{\beta}}_{cb},\; \widehat{V}_{cb}\right), \quad k = 1,\ldots,K
+$$
+
+where $\hat{\boldsymbol{\beta}}_{cb}$ are the cross-basis (`cb`) coefficients
+and $\widehat{V}_{cb}$ is the estimated covariance matrix (via
+`MASS::mvrnorm`). The $100(1-\alpha)\%$ CI is given by the $\alpha/2$ and
+$1-\alpha/2$ quantiles of the $K$ replications $FA^{(k)}$. When the `MASS`
+package is not available, the delta method (`crosspred` limits) is used.
+
+> **AF/AN coherence:** $AN = FA \times N$. Hence $AN_{\text{heat}} +
+> AN_{\text{cold}}$ may differ from $AN_{\text{total}}$ if there are days on
+> which the threshold coincides exactly with the observed temperature
+> (reference point); in practice the difference is negligible.
+
+## Excess mortality
+
+For the **`"spline"`** and **`"serfling"`** methods, the quasi-Poisson
+baseline is fitted over the `control_period`:
+
+$$
+\log(\mu_t) = \alpha + f(t)
+$$
+
+**Symbols:** $\mu_t$ = expected count on day $t$; $\alpha$ = intercept.
+
+For `"spline"`: $f(t) = \text{ns}(t,\; \mathit{df})$, a natural spline with
+$\mathit{df} = \lfloor\mathtt{dof\_per\_year} \times \text{years}\rfloor$
+degrees of freedom.
+
+For `"serfling"`: Serfling periodic regression — a second-degree polynomial
+trend plus $H$ harmonics:
+
+$$
+f(t) = \beta_1 t + \beta_2 t^2 + \sum_{k=1}^{H}\!\left[\gamma_k \sin\!\left(\frac{2\pi k t}{365{,}25}\right) + \delta_k \cos\!\left(\frac{2\pi k t}{365{,}25}\right)\right]
+$$
+
+**Symbols:** $t$ = time in days counted from the start of the control period;
+$H$ = number of harmonics (`harmonics`; default $H=2$); $\beta_1, \beta_2$ =
+coefficients of the temporal trend; $\gamma_k, \delta_k$ = coefficients of the
+sine and cosine terms of the $k$-th harmonic.
+
+The **daily excess** is $E_t = O_t - \hat{\mu}_t$, where $O_t$ is the observed
+value. The CI of $E_t$ is propagated from the standard error of the linear
+predictor of the baseline GLM.
+
+For the **`"from_dlnm"`** method, the counterfactual — expected if temperature
+had been fixed at the reference value — is:
+
+$$
+\hat{\mu}_t^{(0)} = \frac{\hat{\mu}_t}{\widehat{RR}(x_t)}
+$$
+
+**Symbols:** $\hat{\mu}_t$ = value fitted by the DLNM model on day $t$;
+$\widehat{RR}(x_t)$ = cumulative relative risk estimated by
+`dlnm::crosspred()` at exposure $x_t$ relative to the reference value.
+
+The excess attributable to temperature is $E_t = O_t - \hat{\mu}_t^{(0)}$,
+numerically equivalent to the $AN_t$ from the AF calculation (Gasparrini &
+Armstrong, 2013).
+
+> **Method sensitivity:** comparing the three methods (`from_dlnm`, `spline`,
+> `serfling`) is good practice — `from_dlnm` is internally consistent with the
+> DLNM, whereas `spline`/`serfling` estimate excess relative to a historical
+> control period and capture events beyond temperature.
+
+---
+
+# Results
+
+## Figure 1 — AF% by component
+
+```{r fig-bar, echo=FALSE, eval=TRUE, out.width="90%", fig.cap="**Figure 1.** Attributable Fraction (%) with 95% CI by component (total, heat, cold). The heat component accounts for the larger share of the AF in the RMSP over 2014–2019. CI obtained by Monte Carlo simulation (500 replications)."}
+fig_ou_nota(.fig("modaf_bar"), .nota_gerar)
+```
+
+## Figure 2 — Forest plot of the Attributable Number
+
+```{r fig-forest, echo=FALSE, eval=TRUE, out.width="88%", fig.cap="**Figure 2.** Attributable Number (cases) with 95% CI by component (forest plot). The confidence interval reflects the uncertainty in the DLNM coefficients propagated by Monte Carlo."}
+fig_ou_nota(.fig("modaf_forest"), .nota_gerar)
+```
+
+## Figure 3 — AF% by temperature percentile
+
+```{r fig-quantile, echo=FALSE, eval=TRUE, out.width="90%", fig.cap="**Figure 3.** Attributable Fraction (%) by temperature percentile band. Red bars represent heat (above the threshold) and blue bars represent cold (below), showing how the AF grows at the most extreme temperatures."}
+fig_ou_nota(.fig("modaf_quantile"), .nota_gerar)
+```
+
+## Table 1 — AF/AN total/heat/cold
+
+```{r tbl-total, echo=FALSE, eval=TRUE}
+tbl_ou_nota(
+  .tbl("modaf_total"),
+  .nota_gerar,
+  caption = "**Table 1.** Attributable Fraction (%) and Attributable Number (AN) with 95% CI by component (total, heat, cold). RMSP, 2014–2019, respiratory diseases (J00–J99) in the elderly (60+). Columns: component, threshold (heat/cold cutoff), af, af_lo, af_hi (fraction and CI), af_pct, an, an_lo, an_hi (absolute number and CI), n_cases."
+)
+```
+
+## Table 2 — Excess mortality (summary)
+
+```{r tbl-excess, echo=FALSE, eval=TRUE}
+tbl_ou_nota(
+  .tbl("modaf_excess_total"),
+  .nota_gerar,
+  caption = "**Table 2.** Summary of excess mortality estimated by `sus_mod_excess()`. Columns: n_days (days studied), observed (observed deaths), expected (baseline expectation ± 95% CI), excess (excess ± CI), excess_pct (%), n_excess_days (days with z > 1.96), peak_excess and peak_date (peak). RMSP, 2014–2019."
+)
+```
+
+## Figure 4 — Municipality ranking by AN
+
+```{r fig-lollipop, echo=FALSE, eval=TRUE, out.width="90%", fig.cap="**Figure 4.** Ranking of RMSP municipalities by Attributable Number (AN) — deaths attributable to non-optimal temperature. The municipality of São Paulo leads due to its higher population density and urban exposure to heat."}
+fig_ou_nota(.fig("modaf_burden_lollipop"), .nota_gerar)
+```
+
+## Figure 5 — Lorenz curve of the burden
+
+```{r fig-lorenz, echo=FALSE, eval=TRUE, out.width="80%", fig.cap="**Figure 5.** Lorenz curve of the concentration of attributable burden across RMSP municipalities. The Gini index indicates the degree of inequality: the higher it is, the more concentrated the burden in a few municipalities."}
+fig_ou_nota(.fig("modaf_burden_lorenz"), .nota_gerar)
+```
+
+## Figure 6 — Heat/cold decomposition by municipality
+
+```{r fig-stacked, echo=FALSE, eval=TRUE, out.width="95%", fig.cap="**Figure 6.** Decomposition of the Attributable Number by component (heat in red, cold in blue) for each RMSP municipality. More urbanized municipalities with less vegetation cover tend to show a larger heat fraction."}
+fig_ou_nota(.fig("modaf_burden_stacked"), .nota_gerar)
+```
+
+## Table 3 — Burden ranking across municipalities
+
+```{r tbl-burden, echo=FALSE, eval=TRUE}
+tbl_ou_nota(
+  .tbl("modaf_burden_table"),
+  .nota_gerar,
+  caption = "**Table 3.** Ranking of RMSP municipalities by Attributable Number (AN). Columns: city, component, n_cases, an (±95% CI), af_pct (±CI), rank, pct_of_total (% of total burden). Derived from `sus_mod_burden()` with `component = 'all'` and `rank_by = 'an'`."
+)
+```
+
+---
+
+# Interpretation of results
+
+**Attributable Fraction:** The total AF indicates that approximately **8% of
+respiratory deaths among the elderly** in the RMSP over 2014–2019 would be
+attributable to non-optimal temperatures. Heat accounts for about 2/3 of this
+total, reflecting São Paulo's subtropical climate profile and the
+vulnerability of urban populations to the urban heat island effect.
+
+**Excess mortality:** The `from_dlnm` method yields excess directly consistent
+with the DLNM (AF × expected cases), whereas the `spline` and `serfling`
+methods estimate excess relative to a predefined control period. Comparing
+the three methods is good sensitivity-analysis practice.
+
+**Intra-RMSP inequalities:** The Lorenz curve reveals that the burden is not
+proportionally distributed. Municipalities with greater exposure to urban
+heat (São Paulo, Guarulhos, São Bernardo) concentrate a disproportionately
+high share of the total AN. The Gini index quantifies this concentration,
+with values around 0.4–0.6 typical in multi-city studies (Gasparrini et al.,
+2017).
+
+---
+
+# References
+
+- Gasparrini, A., & Armstrong, B. (2013). The impact of heat waves on mortality.
+  *Epidemiology*, 24(1), 64–71. https://doi.org/10.1097/EDE.0b013e3182770cb4
+
+- Gasparrini, A., et al. (2015). Mortality risk attributable to high and low
+  ambient temperature: a multicountry observational study. *The Lancet*,
+  386(9991), 369–375. https://doi.org/10.1016/S0140-6736(14)62114-0
+
+- Gasparrini, A., et al. (2017). Attributable causes of heat-related mortality across
+  739 locations. *The Lancet Planetary Health*, 1(9), e360–e367.
+  https://doi.org/10.1016/S2542-5196(17)30156-0
+
+- Bhaskaran, K., et al. (2013). Time series regression studies in environmental
+  epidemiology. *International Journal of Epidemiology*, 42(4), 1187–1195.
+  https://doi.org/10.1093/ije/dyt092
+
+- Serfling, R. E. (1963). Methods for current statistical analysis of excess
+  pneumonia-influenza deaths. *Public Health Reports*, 78(6), 494–506.
+
+- Venables, W. N., & Ripley, B. D. (2002). *Modern Applied Statistics with S*
+  (4th ed.). Springer. [MASS package: `mvrnorm()` for Monte Carlo simulation of
+  the cross-basis coefficients]
+
+---
+
+# Navigation
+
+| Previous | Hub | Next |
+|----------|-----|---------|
+| [Modeling 01 — DLNM](mod-01-dlnm.html) | [All tutorials](tutorials.html) | [Modeling 03 — Case-Crossover and ITS](mod-03-crossover-its.html) |

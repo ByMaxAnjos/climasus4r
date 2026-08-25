@@ -104,7 +104,9 @@ Suggests:
     yaml,
     renv,
     quarto,
-    strucchange
+    strucchange,
+    testthat (>= 3.0.0)
 Additional_repositories: https://inla.r-inla-download.org/R/stable
 URL: https://bymaxanjos.r-universe.dev/climasus4r, https://github.com/ByMaxAnjos/climasus4r
 BugReports: https://github.com/ByMaxAnjos/climasus4r/issues
+Config/testthat/edition: 3

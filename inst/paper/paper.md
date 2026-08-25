@@ -32,9 +32,8 @@ bibliography: paper.bib
 
 # Summary
 
-`climasus4r` is an R package for reproducible climate-health research using Brazilian public health, environmental, and socioeconomic data. The package connects six DATASUS subsystems (SIM, SIH, SIA, SINAN, CNES, and SINASC) with station observations, gridded climate products, land-cover layers, pollution data, and census indicators. It then carries the integrated dataset into epidemiological designs commonly used in environmental health, including distributed lag non-linear models (DLNM), case-crossover and interrupted time-series analyses, attributable-fraction and burden estimation, multi-city meta-analysis, and spatial risk modelling.
-
-The package is designed around the `climasus_df` class, a tibble subclass that stores provenance metadata alongside the data. Source system, pipeline stage, spatial and temporal resolution, aggregation type, and processing history remain attached across the workflow and can be preserved in Parquet and DuckDB outputs. This design makes analytic datasets inspectable after intermediate storage, sharing, or reuse. Interfaces and messages are available in Portuguese, Spanish, and English, supporting multilingual research teams and public-health users across Brazil and Latin America.
+`climasus4r` is an R package for reproducible climate-health research using Brazilian public health, environmental, and socioeconomic data. Based on the reproducible analytical pipeline approach,  the package integrates six Brazilian Health System DATASUS subsystems (SIM, SIH, SIA, SINAN, CNES, and SINASC) to meteorological station observations, gridded cate products, pollution data, and census indicators. It then carries the integrated dataset into epidemiological designs commonly used in environmental health, including distributed lag non-linear models (DLNM), case-crossover and interrupted time-series analyses, attributable-fraction and burden estimation, multi-city meta-analysis, and spatial-temporal risk modelling.
+The package's functions  are assigned with the sistema S3, `climasus_df` a class that stores provenance metadata alongside the data. Source system, pipeline stage, spatial and temporal resolution, aggregation type, and processing history remain attached across the workflow (preparation, integration, and analysis/modelling) and can be preserved in the tibble, parquet and duckDB backends. This design makes analytic dataset auditable after intermediate storage, sharing, or reuse. Outputs and messages are available in Portuguese, Spanish, and English, supporting multilingual development teams and public-health users across Brazil, Latin America, and international collaboration. 
 
 # Statement of need
 
@@ -88,6 +87,9 @@ End-to-end examples are provided as reproducible fixtures and vignettes. They ar
 Several R packages are indispensable for climate-health research, but they usually address one layer of the workflow. `microdatasus` [@saldanha2019] provides DATASUS access; `dlnm` [@gasparrini2011] and `mvmeta` [@gasparrini2012] provide modelling tools; `geobr` and `censobr` provide Brazilian geographic and socioeconomic inputs. `climasus4r` contributes the missing integration layer: a metadata-aware pipeline that links Brazilian health microdata to environmental exposures and carries the resulting objects into established epidemiological models.
 
 By standardizing this integration layer, `climasus4r` lowers the cost of transparent climate-health analyses in Brazil. It also makes methodological choices visible: what data system was used, how locations were linked, which exposure source was chosen, what lag structure was assumed, and how the analysis can be re-run. These features are essential for policy-relevant research in a setting where climate hazards, health vulnerability, and administrative data quality vary sharply across regions.
+
+
+
 
 # Acknowledgements
 

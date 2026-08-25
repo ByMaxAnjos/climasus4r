@@ -1,0 +1,348 @@
+---
+title: "Tutorial 2: Encoding and Standardization"
+author: "climasus4r Team"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* -- Variaveis de Cores Modernas -- */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; color: var(--text-main); background-color: #fff; line-height: 1.6; }
+h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--dark-green); }
+h1.title { font-size: 2.8em; border-bottom: 4px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 1.5rem; }
+h2 { margin-top: 2rem; border-left: 4px solid var(--primary-color); padding-left: 1rem; }
+pre.r, pre.sourceCode { background-color: var(--code-bg); border: 1px solid #e1e1e1; border-left: 5px solid var(--primary-color) !important; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1rem; }
+.callout { padding: 1.2em 1.5em; margin: 1.5em 0; border-radius: 8px; border-left: 6px solid; background-color: var(--bg-light); }
+.callout-note { background-color: #f0f7ff; border-color: #007bff; }
+.callout-tip { background-color: #e8f5e9; border-color: #1D9E75; }
+.callout-warning { background-color: #fff3e0; border-color: #ff9800; }
+.workflow-container { background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #dce8e1; overflow-x: auto; }
+.workflow-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; font-family: 'Inter', monospace; font-size: 0.8rem; }
+.workflow-step { background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap; }
+.workflow-arrow { color: var(--primary-color); font-weight: bold; font-size: 1.2rem; }
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+.feature-card { background: white; border-radius: 12px; padding: 1.5rem; border: 1px solid #e1e1e1; transition: transform 0.2s ease, box-shadow 0.2s ease; text-align: center; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+.feature-card h3 { margin-top: 0; color: var(--primary-color); font-size: 1.1rem; }
+table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e1e1; }
+th { background-color: var(--bg-light); font-weight: 600; color: var(--dark-green); }
+.github-feedback-btn { display: inline-flex; align-items: center; gap: 8px; background-color: #24292e; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-family: sans-serif; transition: background-color 0.2s; margin-top: 1rem; }
+.github-feedback-btn:hover { background-color: #2c3e50; color: white; text-decoration: none; }
+@media (max-width: 768px) { body { font-size: 16px; } h1.title { font-size: 2rem; } .workflow-steps { flex-direction: column; align-items: center; } }
+```
+
+
+```{r setup, include=FALSE}
+# ATENÇÃO — estratégia de pré-renderização.
+# Este tutorial NÃO executa análise durante a renderização. Todas as figuras e
+# tabelas foram geradas UMA vez pelo script
+# scripts/tutorial_02_encoding_padronizacao.R e são apenas carregadas aqui
+# (PNG via include_graphics; RDS via readRDS). Por isso, os chunks de ensino
+# abaixo usam eval = FALSE: o código é mostrado, mas não é executado no knit.
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+
+# Helpers para exibir artefatos de forma robusta: se o arquivo ainda não foi
+# gerado (script de geração não executado), mostram uma nota em vez de quebrar
+# o knit. Assim a vignette renderiza a qualquer momento.
+fig_ou_nota <- function(path, nota) {
+  if (file.exists(path)) knitr::include_graphics(path)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+tbl_ou_nota <- function(path, nota, caption = NULL) {
+  if (file.exists(path)) knitr::kable(readRDS(path), caption = caption)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+.nota_gerar <- "Artefato indisponível — rode `Rscript scripts/tutorial_02_encoding_padronizacao.R` (a partir da raiz do pacote) para gerá-lo."
+```
+
+# Objective
+
+By the end of this tutorial you will be able to **get the raw DATASUS dataset
+ready for analysis**, running the two functions of the second pipeline stage:
+
+1. **`sus_data_clean_encoding()`** — audits text columns and fixes
+   **character encoding** issues (Latin1 text read as UTF-8, which turns
+   "São Paulo" into unreadable sequences);
+2. **`sus_data_standardize()`** — **translates column names** into readable
+   labels and **decodes categorical values** (for example, `SEXO = 1` becomes
+   `"Masculino"`, `RACACOR = 4` becomes `"Parda"`), and converts date columns
+   to the `Date` type. All of this in a **multilingual** way
+   (`"pt"`, `"en"`, `"es"`).
+
+This is the **second stage** of the pipeline (`import → clean → stand → …`). It
+transforms a table with cryptic names and numeric codes into an auditable
+table that the following tutorials (filtering, variable creation,
+aggregation) can handle unambiguously.
+
+# Scientific context
+
+DATASUS microdata are distributed in `.dbc` files inherited from legacy
+systems, which store text in **Latin1 (ISO-8859-1)**. When those bytes are
+read as **UTF-8**, accents and cedillas turn into "mojibake" — corrupted
+characters that break name-based joins, groupings, and reports. The
+`microdatasus` package (Saldanha, Bastos & Barcellos, 2019) already handles
+much of the preprocessing, but `sus_data_clean_encoding()` acts as a
+**final auditor**, ensuring every text column is valid UTF-8 before analysis.
+
+Beyond encoding, fields from SIM, SIH, SINAN, and other systems arrive with
+**abbreviated names** (`CAUSABAS`, `CODMUNRES`, `DTOBITO`) and **categories
+coded as numbers** (Brazil, Ministry of Health). Working directly with these
+codes is fragile and error-prone. Standardizing to a **controlled, readable
+vocabulary** — and being able to produce it in three languages — is what
+makes the analysis reproducible and communicable to readers from different
+countries (FAIR principle of interoperability; Wilkinson et al., 2016).
+
+> **Guiding case.** We are investigating **temperature and health outcomes in
+> older adults (60+) in the São Paulo Metropolitan Region, 2014–2019**. In
+> Tutorial 1 we assembled the raw multi-system dataset
+> (`caso_base_importado.rds`). Here we take the **deaths (SIM-DO)** dataset,
+> fix its encoding, and standardize names/categories (sex, race/color, ICD,
+> dates). The result is saved as `caso_padronizado.rds`, the input for
+> Tutorial 3 (Filtering).
+
+# Data used
+
+| Object | Source | Role in the case |
+|--------|--------|---------------|
+| `caso_base_importado$obitos` | SIM-DO (Tutorial 1) | Raw dataset to be cleaned and standardized |
+| PT/EN/ES translation dictionary | `R/utils-i18n.R` | Maps codes → labels per system |
+
+Scope: state of **São Paulo**, 2014–2019. If the `.rds` from Tutorial 1 does
+not yet exist, the generation script falls back to a **minimal example**
+(text deliberately in Latin1) so this stage remains illustrable offline.
+
+# Complete pipeline
+
+The blocks below reproduce what the script
+`scripts/tutorial_02_encoding_padronizacao.R` runs. Start by loading the
+package and the dataset from the previous tutorial:
+
+```{r carregar}
+library(climasus4r)
+
+caso_base   <- readRDS("vignettes-pt/dados/caso_base_importado.rds")
+obitos_bruto <- caso_base$obitos
+```
+
+## Step 1 — Fix the encoding
+
+`sus_data_clean_encoding()` scans all **text** columns, detects the ones
+containing invalid UTF-8 bytes, and converts them from **Latin1 to UTF-8**.
+Numeric and date columns are ignored.
+
+```{r clean-encoding}
+obitos_utf8 <- sus_data_clean_encoding(
+  df      = obitos_bruto,
+  backend = "tibble",   # "arrow" (lazy, padrão) ou "tibble" (em memória)
+  lang    = "pt",        # idioma das mensagens: "pt", "en", "es"
+  verbose = TRUE         # imprime quais colunas foram corrigidas
+)
+```
+
+## Step 2 — Standardize names and categories
+
+`sus_data_standardize()` **automatically detects the system** (SIM, SIH,
+SINAN, …), translates the column names to the controlled vocabulary, and
+decodes categorical values in the chosen language. It also converts date
+columns (prefix `data_` in Portuguese) to the `Date` type.
+
+```{r standardize}
+obitos_padr <- sus_data_standardize(
+  df                 = obitos_utf8,
+  lang               = "pt",   # "pt" / "en" / "es"
+  translate_columns  = TRUE,   # CAUSABAS -> causa_basica, SEXO -> sexo, ...
+  standardize_values = TRUE,   # 1 -> Masculino; 4 -> Parda; ...
+  keep_original      = FALSE,  # TRUE mantém as colunas originais lado a lado
+  backend            = "tibble",
+  verbose            = TRUE
+)
+```
+
+## Chaining the two functions
+
+Since every function in this stage receives and returns a `climasus_df`, the
+two chain naturally with the pipe — exactly the recommended way to use them:
+
+```{r pipe-completo}
+obitos_padr <- obitos_bruto |>
+  sus_data_clean_encoding(backend = "tibble", lang = "pt") |>
+  sus_data_standardize(lang = "pt", backend = "tibble")
+```
+
+In the end, `obitos_padr` is the **clean and standardized** dataset — with
+`stage = "stand"` in its metadata — which we save for the next tutorial.
+
+# Function characteristics
+
+## `sus_data_clean_encoding()`
+
+Final encoding auditor. Detects text columns with invalid UTF-8 bytes and
+converts Latin1 → UTF-8.
+
+| Argument | Essential? | Description |
+|-----------|------------|-----------|
+| `df` | yes | `data.frame`/`tibble`/`climasus_df` (or a collectible Arrow object) |
+| `backend` | optional | `"arrow"` (lazy, default) or `"tibble"` (in memory); with `"arrow"`, falls back to tibble if lazy evaluation fails |
+| `lang` | optional | Message language: `"pt"` (default), `"en"`, `"es"` |
+| `verbose` | optional | `TRUE` (default) prints the columns checked and corrected |
+
+**How it works.** For each text column, it tests `stringi::stri_enc_isutf8()`
+on the non-null values; if **any** value is invalid UTF-8, the whole column
+is considered "sick" and converted with `stringi::stri_conv(x, "latin1",
+"utf8")`. With the `"arrow"` backend, a sample of up to 10,000 rows is used
+to detect which columns need correction.
+
+**Return:** a `climasus_df` with text columns in valid UTF-8,
+`stage = "clean"`, and a history entry recording the correction.
+
+## `sus_data_standardize()`
+
+Translates column names and decodes categorical values, with automatic
+detection of the DATASUS system.
+
+| Argument | Essential? | Description |
+|-----------|------------|-----------|
+| `df` | yes | Output of `sus_data_import()` / `sus_data_clean_encoding()` |
+| `lang` | optional | Language of **names and labels**: `"pt"` (default), `"en"`, `"es"` |
+| `translate_columns` | optional | `TRUE` (default) translates column names |
+| `standardize_values` | optional | `TRUE` (default) decodes categorical values |
+| `keep_original` | optional | `TRUE` keeps the original columns alongside the translated ones |
+| `backend` | optional | `"arrow"` (lazy, default) or `"tibble"` (in memory) |
+| `verbose` | optional | `TRUE` (default) prints the standardization report |
+
+**Internal steps.** (1) detects the system (`detect_health_system()` or
+metadata); (2) translates column names using the system/language dictionary;
+(3) decodes categorical values (e.g., `SEXO`, `RACACOR`, `LOCOCOR`) into
+readable factors; (4) converts date columns to `Date` using explicit formats
+(`%Y-%m-%d`, `%Y%m%d`, `%d%m%Y`), portably across operating systems.
+
+**Return:** a `climasus_df` with `stage = "stand"`, `system` filled in, and
+unique column names (`make.unique()`).
+
+# Encoding detection: the heuristic
+
+The decision rule of `sus_data_clean_encoding()` for flagging a column $c$ as
+"to be corrected" can be written as:
+
+$$
+\text{corrigir}(c) \;=\;
+\Bigl[\; \exists\, x \in c \;:\; \neg\,\mathrm{isUTF8}(x) \;\Bigr]
+$$
+
+that is, just **one** value with invalid UTF-8 bytes is enough for the whole
+column to be converted from Latin1 to UTF-8. As a diagnostic, the generation
+script measures the **fraction of invalid strings** per column, before and
+after:
+
+$$
+f_{\text{inv}}(c) \;=\; \frac{1}{n_c}\sum_{i=1}^{n_c}
+\mathbf{1}\!\left[\neg\,\mathrm{isUTF8}(x_i)\right]
+$$
+
+where $n_c$ is the number of non-null values in the column. After the
+correction, $f_{\text{inv}}(c) = 0$ for every text column.
+
+# Supported systems and dictionaries
+
+`sus_data_standardize()` loads a different dictionary depending on the
+detected system. Each system has dictionaries in all three languages
+(`pt`, `en`, `es`):
+
+- **SIM** — `get_translation_dict_{pt,en,es}()`
+- **SIH** — `get_translation_dict_{pt,en,es}_sih()`
+- **SINAN** — `get_translation_dict_{pt,en,es}_sinan()`
+- **CNES** — `get_translation_dict_{pt,en,es}_cnes()`
+- **SINASC** — `get_translation_dict_{pt,en,es}_sinasc()`
+- **SIA** (and subtypes AM, AQ, AR, AD, PS) — `get_translation_dict_*_sia*()`
+
+The table below shows a sample of the **PT dictionary for SIM** used to
+decode the categorical values of the guiding case (sex, race/color, and place
+of occurrence of death):
+
+```{r tab-dicionario, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/enc_dicionario.rds", .nota_gerar,
+            caption = "Table 1. Sample of the SIM translation dictionary (pt): numeric code → readable label.")
+```
+
+# Illustrated results
+
+```{r fig-encoding, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/enc_pipeline_encoding.png", .nota_gerar)
+```
+
+**Figure 1.** Encoding diagnostic before and after `sus_data_clean_encoding()`.
+Each bar is the percentage of strings with invalid UTF-8 bytes in a text
+column. After the Latin1 → UTF-8 conversion, the fraction of invalid strings
+drops to zero — without any change to the readable content.
+
+```{r fig-sexo, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/enc_sexo.png", .nota_gerar)
+```
+
+**Figure 2.** Distribution of deaths by **sex** after standardization. The
+numeric SIM codes (`1`, `2`) were decoded into readable labels (`Masculino`,
+`Feminino`) by `sus_data_standardize()`, ready for use in charts and tables.
+
+```{r fig-raca, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/enc_raca.png", .nota_gerar)
+```
+
+**Figure 3.** Distribution of deaths by **race/color** after standardization.
+The codes (`1`–`5`, `9`) were translated into `Branca`, `Preta`, `Amarela`,
+`Parda`, `Indígena`, and `Ignorado`. This decoding is a prerequisite for
+health equity analyses in the following stages.
+
+```{r tab-resumo, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/enc_resumo.rds", .nota_gerar,
+            caption = "Table 2. Stage summary: dimensions, encoding, detected system, and pipeline stage.")
+```
+
+**Table 2.** Before/after summary of this stage. The metadata `stage`
+advances to `stand`, signaling to the following tutorials that the dataset
+is already standardized.
+
+# References
+
+- Brasil. Ministério da Saúde. *Manual de Instruções para o preenchimento da
+  Declaração de Óbito*. Brasília: Ministério da Saúde. (Defines the codes of
+  the SIM variables, such as `SEXO`, `RACACOR`, and `LOCOCOR`.)
+- Saldanha, R. de F., Bastos, R. R., & Barcellos, C. (2019). Microdatasus: pacote
+  para download e pré-processamento de microdados do Departamento de Informática do
+  SUS (DATASUS). *Cadernos de Saúde Pública*, 35(9), e00032419.
+- Wilkinson, M. D., et al. (2016). The FAIR Guiding Principles for scientific data
+  management and stewardship. *Scientific Data*, 3, 160018.
+
+---
+
+# Navigation
+
+- [Back to tutorial hub](tutorials.html)
+- **Previous:** [Tutorial 1 — DATASUS Data Import](01-importacao.html)
+- **Next:** [Tutorial 3 — Filtering (ICD-10 and demographics)](03-filtragem.html)
+
+```

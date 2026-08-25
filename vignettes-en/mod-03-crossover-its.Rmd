@@ -1,0 +1,550 @@
+---
+title: "Modeling 03: Case-Crossover and Interrupted Time Series"
+author: "climasus4r Team"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* -- Variaveis de Cores Modernas -- */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; color: var(--text-main); background-color: #fff; line-height: 1.6; }
+h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--dark-green); }
+h1.title { font-size: 2.8em; border-bottom: 4px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 1.5rem; }
+h2 { margin-top: 2rem; border-left: 4px solid var(--primary-color); padding-left: 1rem; }
+pre.r, pre.sourceCode { background-color: var(--code-bg); border: 1px solid #e1e1e1; border-left: 5px solid var(--primary-color) !important; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1rem; }
+.callout { padding: 1.2em 1.5em; margin: 1.5em 0; border-radius: 8px; border-left: 6px solid; background-color: var(--bg-light); }
+.callout-note { background-color: #f0f7ff; border-color: #007bff; }
+.callout-tip { background-color: #e8f5e9; border-color: #1D9E75; }
+.callout-warning { background-color: #fff3e0; border-color: #ff9800; }
+.workflow-container { background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #dce8e1; overflow-x: auto; }
+.workflow-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; font-family: 'Inter', monospace; font-size: 0.8rem; }
+.workflow-step { background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap; }
+.workflow-arrow { color: var(--primary-color); font-weight: bold; font-size: 1.2rem; }
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+.feature-card { background: white; border-radius: 12px; padding: 1.5rem; border: 1px solid #e1e1e1; transition: transform 0.2s ease, box-shadow 0.2s ease; text-align: center; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+.feature-card h3 { margin-top: 0; color: var(--primary-color); font-size: 1.1rem; }
+table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e1e1; }
+th { background-color: var(--bg-light); font-weight: 600; color: var(--dark-green); }
+.github-feedback-btn { display: inline-flex; align-items: center; gap: 8px; background-color: #24292e; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-family: sans-serif; transition: background-color 0.2s; margin-top: 1rem; }
+.github-feedback-btn:hover { background-color: #2c3e50; color: white; text-decoration: none; }
+@media (max-width: 768px) { body { font-size: 16px; } h1.title { font-size: 2rem; } .workflow-steps { flex-direction: column; align-items: center; } }
+```
+
+
+```{r setup, include=FALSE}
+# ATENÇÃO — estratégia de pré-renderização.
+# Este tutorial NÃO executa modelos durante a renderização. Todas as figuras e
+# tabelas foram geradas UMA vez pelo script scripts/modelagem_03_crossover_its.R
+# e são apenas carregadas aqui (PNG via include_graphics; RDS via readRDS).
+# Os chunks de ensino usam eval = FALSE: o código é mostrado, mas não é
+# executado no momento do knit.
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+
+# Helpers robustos: se o artefato não existe (script não rodou), mostram
+# uma nota em vez de interromper o knit.
+fig_ou_nota <- function(path, nota) {
+  if (file.exists(path)) knitr::include_graphics(path)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+tbl_ou_nota <- function(path, nota, caption = NULL) {
+  if (file.exists(path)) knitr::kable(readRDS(path), caption = caption)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+.nota_gerar <- "Artefato indisponível — rode `Rscript scripts/modelagem_03_crossover_its.R` (a partir da raiz do pacote) para gerá-lo."
+```
+
+---
+
+# Objective
+
+By the end of this tutorial you will be able to:
+
+1. Fit a **time-stratified Case-Crossover** (`sus_mod_casecrossover()`) to quantify the association between temperature and respiratory deaths, controlling for seasonal and long-term confounding by design.
+2. Compare lag specifications (**lag-0** and **lag 0-6**) and estimation methods (**Conditional Poisson** vs. **clogit**).
+3. Fit an **Interrupted Time Series** (`sus_mod_its()`) to estimate immediate and trend effects after an interruption date, with a projected **counterfactual**.
+4. Visualize and interpret the results with `sus_mod_plot_its()`.
+
+These approaches round out the time-series analysis toolkit in environmental epidemiology, complementing the DLNM (Modeling Tutorial 01) and the attributable fraction (Modeling Tutorial 02).
+
+---
+
+# Scientific background
+
+## Case-Crossover
+
+The **case-crossover design** (Maclure, 1991) was created to study transient exposures and acute outcomes. Each individual (or event-day) serves as its own control: the exposure on the event day is compared with exposure on reference days within the same time stratum. This eliminates, by construction, all slowly varying confounders — seasonality, long-term trends, stable socioeconomic factors.
+
+The **time-stratified** version (Levy et al., 2001; Armstrong et al., 2014) groups controls within months or weeks (year-month strata in `climasus4r`), making the estimator equivalent to a **Conditional Poisson** model with stratum fixed effects. The stratum fixed effects absorb all variation between months and years — annual seasonality, long-term trend, stable socioeconomic factors — but confounders that vary *within* the same month (e.g., holidays, relative humidity) must be adjusted for explicitly via `covariates`. For aggregated count data (daily death series by municipality), **Conditional Poisson** is preferable to clogit (Armstrong et al., 2014).
+
+> **IRR vs. OR:** In the `"conditional_poisson"` method, the estimated coefficient is an **IRR** (Incidence Rate Ratio) — a ratio of incidence rates. Under the rare-event assumption, IRR ≈ OR. In the `"clogit"` method, the estimator is a strict **OR**. `climasus4r` uses the fields `$or_table`, `or`, `or_lo`, `or_hi` for both methods for uniformity; interpret them as IRR when `method = "conditional_poisson"` and as OR when `method = "clogit"`.
+
+## Interrupted Time Series (ITS)
+
+**Interrupted time series analysis** (Bernal et al., 2017) evaluates the causal impact of an intervention or event on a count series. The segmented model estimates two components for each interruption:
+
+- **Level change**: immediate effect in the post period.
+- **Slope change**: sustained deviation in the trajectory after the interruption.
+
+The **counterfactual** is the projection of the pre-interruption trend into the post period, allowing an estimate of how many events were prevented (or exceeded) by the interruption.
+
+> **Driving case study.** We investigate the association between **temperature** and **respiratory deaths among older adults (60+) in the São Paulo Metropolitan Region, 2014–2019** (ICD-10: J00–J99). In the case-crossover, we estimate the **IRR** per 1 °C of temperature (lag-0 and lag 0-6; Conditional Poisson). In the ITS, we use October 2014 as a hypothetical interruption date — representing a climate-anomaly episode — to demonstrate the detection of abrupt changes in health series.
+
+---
+
+# Data used
+
+| Data | File | Key columns | Source |
+|------|---------|---------------|--------|
+| Daily death series, RMSP | `dados/caso_serie.rds` (`$serie_diaria`) | `date`, `n_obitos` | SIM-DO (Tutorial 1–4) |
+| Daily INMET temperature | `dados/caso_clima_estacao.rds` | `date`, `tair_dry_bulb_c` | Tutorial 7 |
+
+The data are loaded by the pre-rendering script. If the files do not exist, the script synthesizes a minimal, realistic series with an explicit warning — the tutorial renders without errors, but the numerical results should not be used for publication.
+
+---
+
+# Complete pipeline
+
+```{r carregar}
+library(climasus4r)
+library(dplyr)
+# tidy() é fornecido pelo pacote 'generics' (re-exportado pelo climasus4r)
+# Se não estiver disponível via climasus4r, carregue: library(generics)
+```
+
+## Load and prepare the data
+
+```{r dados}
+# Série de óbitos (caso_serie.rds gerado pelo Tutorial 4)
+# Caminhos relativos ao diretório da vignette (vignettes-pt/)
+raw_serie <- readRDS("dados/caso_serie.rds")
+df_serie  <- raw_serie$serie_diaria |>
+  group_by(date) |>
+  summarise(n_obitos = sum(n_obitos, na.rm = TRUE), .groups = "drop") |>
+  mutate(date = as.Date(date))
+
+# Temperatura INMET (caso_clima_estacao.rds gerado pelo Tutorial 7)
+df_clima <- readRDS("dados/caso_clima_estacao.rds") |>
+  group_by(date) |>
+  summarise(tair_dry_bulb_c = mean(tair_dry_bulb_c, na.rm = TRUE),
+            .groups = "drop") |>
+  mutate(date = as.Date(date))
+
+# Junção série + clima
+df_joint <- inner_join(df_serie, df_clima, by = "date")
+```
+
+## Case-Crossover — Lag-0
+
+```{r cc-lag0}
+cc0 <- sus_mod_casecrossover(
+  data         = df_joint,
+  outcome_col  = "n_obitos",
+  exposure_col = "tair_dry_bulb_c",
+  stratum      = "month",         # estratos = ano-mês (e.g. "2014-10")
+  lag          = 0L,              # temperatura do mesmo dia
+  method       = "conditional_poisson",
+  family       = "quasipoisson",  # robusto à superdispersão
+  alpha        = 0.05,
+  lang         = "pt"
+)
+
+print(cc0)
+tidy(cc0)   # tibble com IRR (campos: or/or_lo/or_hi), IC95%, p-valor
+# Nota: para method="conditional_poisson", o estimador é o IRR (Incidence Rate Ratio),
+# equivalente ao RR sob a hipótese de evento raro. Os campos chamam-se or/or_lo/or_hi
+# por uniformidade com o método clogit (que retorna OR estrito).
+```
+
+## Case-Crossover — Lag 0-6 (moving average)
+
+```{r cc-lag06}
+cc06 <- sus_mod_casecrossover(
+  data         = df_joint,
+  outcome_col  = "n_obitos",
+  exposure_col = "tair_dry_bulb_c",
+  stratum      = "month",
+  lag          = 0L:6L,           # média da temperatura dos últimos 7 dias
+  method       = "conditional_poisson",
+  family       = "quasipoisson",
+  alpha        = 0.05,
+  lang         = "pt"
+)
+
+print(cc06)
+```
+
+## Case-Crossover — clogit (optional)
+
+```{r cc-clogit}
+# Requer o pacote 'survival'. Trata o desfecho como binário (is_case = count > 0).
+# Adequado para eventos raros; para séries de contagem diária, prefira
+# method = "conditional_poisson" (Armstrong et al., 2014).
+if (requireNamespace("survival", quietly = TRUE)) {
+  cc_clogit <- sus_mod_casecrossover(
+    data         = df_joint,
+    outcome_col  = "n_obitos",
+    exposure_col = "tair_dry_bulb_c",
+    stratum      = "month",
+    lag          = 0L,
+    method       = "clogit",
+    alpha        = 0.05,
+    lang         = "pt"
+  )
+  print(cc_clogit)
+}
+```
+
+## Interrupted Time Series
+
+```{r its}
+its1 <- sus_mod_its(
+  data               = df_joint,
+  outcome_col        = "n_obitos",
+  date_col           = "date",
+  interruption_dates = as.Date("2014-10-01"),  # data de interrupção
+  harmonics          = 2L,      # 2 pares de harmônicos (sazonalidade)
+  family             = "quasipoisson",
+  covariates         = NULL,
+  alpha              = 0.05,
+  counterfactual     = TRUE,    # projeta tendência pré para comparação
+  lang               = "pt"
+)
+
+print(its1)
+tidy(its1)            # tibble: efeito imediato + tendência por interrupção
+its1$segments         # média diária por segmento (pré / pós)
+its1$counterfactual   # série: observado, ajustado, contrafactual, prevenidos
+```
+
+## Visualization with sus_mod_plot_its()
+
+> **Implementation note:** `sus_mod_plot_its()` is the visualization function paired with `sus_mod_its()`. The blocks below document the **planned API** (`eval = FALSE`). The figures shown in the illustrated results were generated with ggplot2 directly in the pre-rendering script. Once the function is available in the package, replace the script's blocks with the pattern below.
+
+```{r plot-its-serie}
+# Tipo "series": série observada, ajustada e contrafactual com IC
+p_serie <- sus_mod_plot_its(
+  fit         = its1,
+  type        = "series",
+  output_type = "plot",
+  lang        = "pt"
+)
+p_serie
+```
+
+```{r plot-its-effects}
+# Tipo "effects": floresta de RR de nível e tendência por interrupção
+p_effects <- sus_mod_plot_its(
+  fit         = its1,
+  type        = "effects",
+  output_type = "plot",
+  lang        = "pt"
+)
+p_effects
+```
+
+```{r plot-its-segments}
+# Tipo "segments": barras comparativas por segmento
+p_segs <- sus_mod_plot_its(
+  fit         = its1,
+  type        = "segments",
+  output_type = "plot",
+  lang        = "pt"
+)
+p_segs
+```
+
+```{r plot-its-prevented}
+# Tipo "prevented": série de eventos prevenidos (ou excedentes)
+p_prev <- sus_mod_plot_its(
+  fit         = its1,
+  type        = "prevented",
+  output_type = "plot",
+  lang        = "pt"
+)
+p_prev
+```
+
+```{r plot-its-table}
+# output_type = "table": retorna tibble com os dados do gráfico
+tbl_cf <- sus_mod_plot_its(
+  fit         = its1,
+  type        = "series",
+  output_type = "table",
+  lang        = "pt"
+)
+head(tbl_cf)
+```
+
+---
+
+# Function characteristics
+
+## `sus_mod_casecrossover()`
+
+Modeling function for the time-stratified case-crossover design. Accepts a `climasus_df` or `data.frame` with `date`, outcome, and exposure columns. Returns a `climasus_casecrossover` object.
+
+| Argument | Default | Description |
+|-----------|--------|-----------|
+| `data` | — | `climasus_df` (stage `"aggregate"` or `"climate"`) or `data.frame` |
+| `outcome_col` | `"n_obitos"` | Name of the outcome count column |
+| `exposure_col` | (required) | Name of the exposure column (e.g., `"tair_dry_bulb_c"`, `"pm25_mean"`) |
+| `covariates` | `NULL` | Additional confounders that vary within the stratum |
+| `stratum` | `"month"` | Type of time stratum: `"month"` (year-month strata, e.g., `"2014-10"`), `"week"` (ISO week), or the name of an existing column for custom strata |
+| `lag` | `0L` | Lag(s) applied to the exposure; a vector means the average across the specified lags |
+| `method` | `"conditional_poisson"` | `"conditional_poisson"` (GLM with `factor(stratum_id)`) or `"clogit"` (`survival::clogit()`) |
+| `family` | `"quasipoisson"` | GLM family for `conditional_poisson`; ignored for `clogit` |
+| `alpha` | `0.05` | Significance level for the CI |
+| `lang` | `"pt"` | Message language (`"pt"`, `"en"`, `"es"`) |
+| `verbose` | `TRUE` | Show progress |
+
+**Return value — `climasus_casecrossover`:**
+
+| Field | Content |
+|-------|----------|
+| `$model` | `glm` object (conditional_poisson) or `clogit` object (survival) |
+| `$or_table` | Tibble: `term`, `lag_spec`, `estimate` (log-IRR for `conditional_poisson`, log-OR for `clogit`), `or`, `or_lo`, `or_hi`, `p_value` |
+| `$data` | Analysis dataset: `date`, `outcome_val`, `exposure_val`, `stratum_id`, covariates |
+| `$diagnostics` | `n_obs`, `n_cases`, `n_strata`, `disp_ratio`, `method`, `family` |
+| `$meta` | Call parameters: `outcome_col`, `exposure_col`, `stratum`, `lag`, etc. |
+
+**Available S3 methods:** `print()`, `summary()`, `tidy()` (returns `$or_table` with prefixed metadata, suitable for `bind_rows()` across cities).
+
+---
+
+## `sus_mod_its()`
+
+Interrupted time series analysis via segmented Poisson regression. Supports multiple interruptions and a counterfactual. Returns a `climasus_its` object.
+
+| Argument | Default | Description |
+|-----------|--------|-----------|
+| `data` | — | `climasus_df` or `data.frame` with date and count columns |
+| `outcome_col` | `"n_obitos"` | Outcome column |
+| `date_col` | `"date"` | Date column |
+| `interruption_dates` | (required) | Interruption date(s) (ISO `"YYYY-MM-DD"`); scalar or vector |
+| `harmonics` | `2L` | Number of seasonal harmonic pairs ($H$ in the equation) |
+| `family` | `"quasipoisson"` | GLM family: `"quasipoisson"` or `"poisson"` |
+| `covariates` | `NULL` | Additional confounders (e.g., `"rh_pct"`, `"holiday"`) |
+| `alpha` | `0.05` | Significance level |
+| `counterfactual` | `TRUE` | Compute and return the counterfactual |
+| `lang` | `"pt"` | Message language |
+| `verbose` | `TRUE` | Show progress |
+
+**Return value — `climasus_its`:**
+
+| Field | Content |
+|-------|----------|
+| `$model` | `glm` object |
+| `$effects` | Tibble per interruption: `label`, `interruption_date`, `level_ratio`, `level_ci_lo`, `level_ci_hi`, `level_p`, `slope_daily_log`, `slope_ratio_annual`, `slope_p` |
+| `$counterfactual` | Daily tibble: `date`, `observed`, `predicted`, `counterfactual`, `cf_lo`, `cf_hi`, `ratio_to_cf`, `prevented` |
+| `$segments` | Tibble per segment: `segment`, `start_date`, `end_date`, `n_days`, `mean_observed`, `mean_predicted`, `mean_counterfactual` |
+| `$data` | Dataset with all model covariates |
+| `$meta` | Parameters and diagnostics: `n_obs`, `n_pre`, `disp_ratio`, `interruption_dates`, etc. |
+
+**Available S3 methods:** `print()`, `summary()`, `tidy()` (returns `$effects` with metadata, ideal for combining multiple cities with `bind_rows()`).
+
+---
+
+## `sus_mod_plot_its()`
+
+> **Status:** function planned for `climasus4r`. The API below documents the full specification. The figures in this tutorial were generated via ggplot2 directly in the pre-rendering script (`scripts/modelagem_03_crossover_its.R`); once `sus_mod_plot_its()` is available, it will replace that code.
+
+Paired visualization for the `climasus_its` object. All `type=` values operate on the same underlying data — choose according to the model aspect you want to communicate.
+
+| `type =` | What it shows | Table returned |
+|----------|-------------|-----------------|
+| `"series"` | Full time series with observed, fitted, and counterfactual (CI) + interruption line | Tibble with columns from `$counterfactual` |
+| `"effects"` | Forest plot of level RR and trend change per interruption | Tibble with formatted `$effects` |
+| `"segments"` | Comparative bars of observed/fitted/counterfactual means per segment | Tibble with `$segments` in long format |
+| `"prevented"` | Series of prevented (or excess) events = counterfactual − observed | Tibble with date and cumulative prevented events |
+
+**`output_type` argument:**
+- `"plot"` (default): returns a `ggplot2` object.
+- `"table"`: returns a tibble.
+- `"all"`: returns a list `list(plot = ..., table = ...)`.
+
+**`interactive = TRUE` argument:** converts the plot to `plotly` (requires `plotly` to be installed).
+
+---
+
+# Mathematical formulation
+
+## Case-Crossover (Conditional Poisson)
+
+$$
+\log(E[Y_t]) = \alpha_s + \beta\, X_{t,\ell} + \mathbf{z}_t^\top \boldsymbol{\gamma}
+$$
+
+where $\alpha_s$ is the intercept of stratum $s$ (absorbed as `factor(stratum_id)` in the GLM), $X_{t,\ell}$ is the exposure on day $t$ with lag $\ell$ (or the arithmetic mean of lags $\ell_1,\ldots,\ell_k$ when `lag` is a vector), and $\mathbf{z}_t$ are covariates that vary *within* the stratum. The **Incidence Rate Ratio** is:
+
+$$
+\text{IRR} = e^\beta
+$$
+
+In the `"clogit"` method (Maclure, 1991), the outcome is the binary indicator $D_t = \mathbf{1}(Y_t > 0)$ and the conditional Cox model is fitted with `survival::clogit()`, producing an **odds ratio** ($\text{OR} = e^\beta$). For count series with a frequent outcome, prefer `"conditional_poisson"`, since the OR overestimates the IRR when the event is not rare (Armstrong et al., 2014).
+
+## Interrupted Time Series
+
+For $K$ interruption dates $T_1 < T_2 < \cdots < T_K$, the segmented model is:
+
+$$
+\log(E[Y_t]) = \beta_0 + \beta_1\, t
+  + \sum_{j=1}^{K}\!\left[\beta_{2j}\, D_j(t)
+                          + \beta_{2j+1}\, S_j(t)\right]
+  + \sum_{k=1}^{H}\!\left[\gamma_k \sin\!\left(\frac{2\pi k\, t}{365.25}\right)
+                         + \delta_k \cos\!\left(\frac{2\pi k\, t}{365.25}\right)\right]
+  + \mathbf{z}_t^\top \boldsymbol{\eta}
+$$
+
+where $D_j(t) = \mathbf{1}(t \ge T_j)$ is the level (*step*) indicator and $S_j(t) = \max(0, t - T_j)$ is the slope term (*slope change* / "hockey stick").
+
+| Parameter | Interpretation |
+|-----------|---------------|
+| $e^{\beta_{2j}}$ | Immediate RR (level change) at interruption $j$ |
+| $e^{\beta_{2j+1}}$ | Trend RR per day after interruption $j$ |
+| $e^{365.25\,\beta_{2j+1}}$ | Annualized trend RR |
+
+The **counterfactual** is the model prediction with $D_j(t) = S_j(t) = 0$ for all $j$ — that is, the projection of the pre-interruption trend into the post period.
+
+---
+
+# Illustrated results
+
+## Table 1. IRR of Temperature on Respiratory Deaths (Case-Crossover)
+
+```{r tbl-or, eval=TRUE, echo=FALSE}
+tbl_ou_nota(
+  "dados/modcc_or_table.rds",
+  .nota_gerar,
+  caption = "Tabela 1. IRR (Incidence Rate Ratio) da temperatura (por 1 °C) sobre óbitos respiratórios em idosos na RMSP, 2014–2019. Método: Poisson condicional (quasipoisson). Estrato: ano-mês. Campos da tabela: or/or_lo/or_hi correspondem ao IRR e respectivos limites do IC 95%."
+)
+```
+
+## Figure 1. IRR by Lag Specification (Forest Plot)
+
+```{r fig-or-forest, eval=TRUE, echo=FALSE}
+fig_ou_nota(
+  "figuras/modcc_or_forest.png",
+  .nota_gerar
+)
+```
+
+*Figure 1. IRR (Incidence Rate Ratio) of temperature (per 1 °C) on daily respiratory deaths in RMSP, comparing lag-0 (same-day temperature) and lag 0-6 (average of the last 7 days). Conditional Poisson (quasipoisson), stratified by year-month. CI: 95%.*
+
+## Figure 2. IRR by Individual Lag (Lag 0 to 6)
+
+```{r fig-or-lag, eval=TRUE, echo=FALSE}
+fig_ou_nota(
+  "figuras/modcc_or_lag.png",
+  .nota_gerar
+)
+```
+
+*Figure 2. IRR of temperature for each individual lag (lag 0 to 6 days). Each point represents an independent case-crossover model with a fixed lag (Conditional Poisson, quasipoisson). The curve reveals the temporal profile of the exposure-response association.*
+
+## Figure 3. ITS — Observed, Fitted, and Counterfactual Series
+
+```{r fig-its-serie, eval=TRUE, echo=FALSE}
+fig_ou_nota(
+  "figuras/modcc_its_serie.png",
+  .nota_gerar
+)
+```
+
+*Figure 3. Daily respiratory death time series in RMSP (gray: observed; green: fitted by the ITS model; dashed orange: counterfactual with 95% CI). The vertical dotted line indicates the interruption date (01/10/2014). The gap between fitted and counterfactual measures the effect attributable to the interruption.*
+
+## Figure 4. ITS — Immediate Effect (Forest Plot)
+
+```{r fig-its-forest, eval=TRUE, echo=FALSE}
+fig_ou_nota(
+  "figuras/modcc_its_forest.png",
+  .nota_gerar
+)
+```
+
+*Figure 4. Level RR (immediate change) estimated by the ITS model for the interruption of 01/10/2014. RR > 1 indicates an increase in deaths; RR < 1, a decrease. CI: 95%.*
+
+## Table 2. ITS Model Effects
+
+```{r tbl-its-effects, eval=TRUE, echo=FALSE}
+tbl_ou_nota(
+  "dados/modcc_its_effects.rds",
+  .nota_gerar,
+  caption = "Tabela 2. Efeitos estimados pelo modelo ITS: mudança de nível (RR imediato) e mudança de tendência (RR anual) na data de interrupção."
+)
+```
+
+## Figure 5. ITS — Segment Means
+
+```{r fig-its-seg, eval=TRUE, echo=FALSE}
+fig_ou_nota(
+  "figuras/modcc_its_segmentos.png",
+  .nota_gerar
+)
+```
+
+*Figure 5. Daily average respiratory deaths by segment (pre- and post-interruption). Three bars per segment: observed, model-fitted, and counterfactual (projection of the pre-interruption trend).*
+
+## Figure 6. ITS — Daily Prevented (or Excess) Events
+
+```{r fig-its-prev, eval=TRUE, echo=FALSE}
+fig_ou_nota(
+  "figuras/modcc_its_prevenidos.png",
+  .nota_gerar
+)
+```
+
+*Figure 6. Daily series of prevented events (counterfactual − observed). Positive values indicate a reduction in deaths attributable to the interruption; negative values indicate an excess. The horizontal line at zero is the reference for no effect. Corresponds to the `prevented` field of `$counterfactual`.*
+
+---
+
+# References
+
+Armstrong, B.G., Gasparrini, A., & Tobias, A. (2014). Conditional Poisson models: a flexible alternative to conditional logistic case crossover analysis. *BMC Medical Research Methodology*, 14, 122. <https://doi.org/10.1186/1471-2288-14-122>
+
+Bernal, J.L., Cummins, S., & Gasparrini, A. (2017). Interrupted time series regression for the evaluation of public health interventions: a tutorial. *International Journal of Epidemiology*, 46(1), 348–355. <https://doi.org/10.1093/ije/dyw098>
+
+Levy, D., Lumley, T., Sheppard, L., Kaufman, J., & Checkoway, H. (2001). Referent selection in case-crossover analyses of acute health effects of air pollution. *Epidemiology*, 12(2), 186–192.
+
+Maclure, M. (1991). The case-crossover design: a method for studying transient effects on the risk of acute events. *American Journal of Epidemiology*, 133(2), 144–153. <https://doi.org/10.1093/oxfordjournals.aje.a115853>
+
+Penfold, R.B., & Zhang, F. (2013). Use of interrupted time series analysis in evaluating health care quality improvements. *Academic Pediatrics*, 13(6 Suppl), S38–44. <https://doi.org/10.1016/j.acap.2013.08.002>
+
+Saldanha, R.F., Bastos, R.R., & Barcellos, C. (2019). Microdatasus: pacote para download e pré-processamento de microdados do DataSUS. *Cadernos de Saúde Pública*, 35(9), e00032419. <https://doi.org/10.1590/0102-311X00032419>
+
+Whitaker, H.J., Farrington, C.P., Spiessens, B., & Musonda, P. (2006). Tutorial in biostatistics: the self-controlled case series method. *Statistics in Medicine*, 25(10), 1768–1797. <https://doi.org/10.1002/sim.2302>
+
+---
+
+# Navigation
+
+| | |
+|---|---|
+| Previous | [Modeling 02: Attributable Fraction](mod-02-atribuivel.html) |
+| Next | [Modeling 04: Multi-City and Meta-Analysis](mod-04-multicidade.html) |
+| Hub | [All tutorials](tutorials.html) |

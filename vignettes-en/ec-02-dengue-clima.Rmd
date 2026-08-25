@@ -1,0 +1,475 @@
+---
+title: "Case Study 2: Dengue, Precipitation and Temperature in Northeastern Brazil"
+subtitle: "Full SINAN-DENGUE + INMET Pipeline | CE, PE, BA, MA | 2015–2022"
+author:
+  - name: "Dr. Max Anjos"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* ── Variáveis de Cores Modernas ────────────────── */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+  --pipeline-purple: #9b59b6;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 18px;
+  color: var(--text-main);
+  background-color: #fff;
+  line-height: 1.6;
+}
+
+/* ── Títulos com Inter-spacing ─────────────────── */
+h1, h2, h3, h4 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  color: var(--dark-green);
+}
+
+h1.title {
+  font-size: 2.8em;
+  border-bottom: 4px solid var(--primary-color);
+  padding-bottom: 10px;
+  margin-bottom: 1.5rem;
+}
+
+h2 {
+  margin-top: 2rem;
+  border-left: 4px solid var(--primary-color);
+  padding-left: 1rem;
+}
+
+/* ── Code Blocks Estilizados ────────────────────── */
+pre.r, pre.sourceCode {
+  background-color: var(--code-bg);
+  border: 1px solid #e1e1e1;
+  border-left: 5px solid var(--primary-color) !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  padding: 1rem;
+}
+
+/* ── Custom Callouts (Estilo Quarto) ────────────── */
+.callout {
+  padding: 1.2em 1.5em;
+  margin: 1.5em 0;
+  border-radius: 8px;
+  border-left: 6px solid;
+  background-color: var(--bg-light);
+}
+
+.callout-note {
+  background-color: #f0f7ff;
+  border-color: #007bff;
+}
+
+.callout-tip {
+  background-color: #e8f5e9;
+  border-color: #1D9E75;
+}
+
+.callout-warning {
+  background-color: #fff3e0;
+  border-color: #ff9800;
+}
+
+.callout-info {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+}
+
+.callout-important {
+  background-color: #fef2e8;
+  border-color: #ff6b6b;
+}
+
+/* ── Pipeline cards ───────────────────────────────── */
+.pipeline-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.pipeline-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e1e1e1;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.pipeline-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.pipeline-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.pipeline-card h3 {
+  margin-top: 0;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
+
+.pipeline-card p {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  margin-bottom: 0;
+}
+
+.pipeline-badge {
+  display: inline-block;
+  background-color: var(--primary-color);
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-top: 0.5rem;
+}
+
+/* ── Table styling ───────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+th {
+  background-color: var(--bg-light);
+  font-weight: 600;
+  color: var(--dark-green);
+}
+
+tr:hover {
+  background-color: var(--bg-light);
+}
+
+/* ── Workflow container ─────────────────────────── */
+.workflow-container {
+  background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  overflow-x: auto;
+}
+
+.workflow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'Inter', monospace;
+  font-size: 0.8rem;
+}
+
+.workflow-step {
+  background: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.workflow-arrow {
+  color: var(--primary-color);
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+/* ── Comparison container ───────────────────────── */
+.comparison-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.comparison-box {
+  background: var(--bg-light);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.comparison-box pre {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+/* ── Botão GitHub aprimorado ───────────────────── */
+.github-feedback-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #24292e;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-family: sans-serif;
+  transition: background-color 0.2s;
+  margin-top: 1rem;
+}
+
+.github-feedback-btn:hover {
+  background-color: #2c3e50;
+  color: white;
+  text-decoration: none;
+}
+
+/* ── Responsive ─────────────────────────────────── */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+
+  h1.title {
+    font-size: 2rem;
+  }
+
+  .workflow-steps {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .workflow-arrow {
+    transform: rotate(90deg);
+  }
+
+  .pipeline-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .comparison-container {
+    grid-template-columns: 1fr;
+  }
+
+  th, td {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pipeline-card,
+  .github-feedback-btn {
+    transition: none;
+  }
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  eval    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  comment = "#>",
+  fig.align = "center",
+  out.width = "80%",
+  fig.retina = 2
+)
+```
+
+# Objective
+
+This case study examines how air temperature and accumulated precipitation modulate the weekly incidence of dengue in the four Brazilian Northeastern states with the highest historical disease burden — Ceara (CE), Pernambuco (PE), Bahia (BA) and Maranhao (MA) — over the 2015–2022 period. The final product is a weekly time series of notified cases integrated with 14-day moving averages of climate variables, ready for use in regression models with control for seasonality and trend.
+
+# Scientific Context
+
+Dengue is hyperendemic in Brazil, with cyclical epidemics of increasing magnitude observed since the 1990s. The Northeast concentrates episodes of high transmission associated with specific combinations of temperature and precipitation: the optimal temperature for *Aedes aegypti* development lies between 26°C and 34°C, while temperatures above 36°C reduce vector survival (Brady et al., 2013). Precipitation, in turn, creates and replenishes artificial and natural breeding sites; there is a characteristic time window of approximately 14 days between the peak in rainfall and the peak in notified cases, reflecting the mosquito's development cycle plus the virus's extrinsic incubation period (Simons et al., 2016).
+
+The Northeast displays substantial internal climatic heterogeneity: CE and PE have semi-arid climates in the interior (Sertao) with rainfall concentrated in the first half of the year (ITCZ), while the coastal Zona da Mata is more humid and warm year-round. MA has Amazonian influence in the west and an equatorial monsoon regime. This diversity justifies the stratified analysis by state (UF), which `climasus4r` implements directly via `group_by = "uf"`.
+
+The 14-day moving window strategy (`strategy = "moving_window"`, `window = 14`) captures the average of the two preceding weeks of temperature and precipitation, which corresponds biologically to the time required for an active breeding site to produce infectious adult mosquitoes after a heavy rain (Bhatt et al., 2013; Tauil, 2002).
+
+# Data Used
+
+| Source | System | Variables | States (UF) | Period |
+|-------|---------|-----------|-----|---------|
+| DATASUS | SINAN-DENGUE | Cases notified by municipality and date of symptom onset | CE, PE, BA, MA | 2015–2022 |
+| INMET | Automatic weather stations | Air temperature (tair_dry_bulb_c), precipitation (prec_mm) | CE, PE, BA, MA | 2015–2022 |
+
+```{=html}
+<div class="callout callout-note">
+  <strong>SINAN vs. SIM-DO:</strong> SINAN (Notifiable Diseases Information System) records <em>notified cases</em> (incidence), while SIM records <em>deaths</em> (mortality). For a high-incidence, low-lethality disease such as dengue, SINAN is the appropriate system for analyzing transmission and seasonality.
+</div>
+```
+
+# Full Pipeline
+
+```{r pipeline-ec02, eval=FALSE}
+library(climasus4r)
+
+# --- 1. Import and preparation of health data ---
+df_saude <- sus_data_import(
+  uf     = c("CE", "PE", "BA", "MA"),
+  year   = 2015:2022,
+  system = "SINAN-DENGUE",
+  lang   = "pt"
+) |>
+  sus_data_clean_encoding(lang = "pt") |>
+  sus_data_standardize(lang = "pt") |>
+  sus_data_create_variables(
+    create_calendar_vars = TRUE,
+    create_age_groups    = TRUE,
+    lang                 = "pt"
+  ) |>
+  sus_data_aggregate(
+    time_unit = "week",
+    group_by  = "uf",
+    lang      = "pt"
+  )
+
+# --- 2. INMET climate data ---
+df_clima <- sus_climate_inmet(
+  uf       = c("CE", "PE", "BA", "MA"),
+  year     = 2015:2022,
+  variable = c("tair_dry_bulb_c", "prec_mm"),
+  lang     = "pt"
+) |>
+  sus_climate_fill_inmet(method = "linear_interp", lang = "pt")
+
+# --- 3. Health + climate integration ---
+df_final <- sus_climate_aggregate(
+  df_health  = df_saude,
+  df_climate = df_clima,
+  strategy   = "moving_window",
+  window     = 14,
+  group_by   = "uf",
+  lang       = "pt"
+)
+```
+
+# Step-by-Step Explanation
+
+## `sus_data_import()` — Import of SINAN-DENGUE microdata
+
+For `system = "SINAN-DENGUE"`, the function downloads the annual files of confirmed and suspected dengue notifications from the DATASUS FTP. Each record includes: date of symptom onset (`DT_SIN_PRI`), notification date (`DT_NOTIFIC`), municipality of residence (`ID_MUNICIP`), final case classification (confirmed/discarded/suspected), confirmation criterion (laboratory/clinical-epidemiological) and serotyping result when available. `climasus4r` uses `DT_SIN_PRI` as the reference date for temporal alignment with the climate data, which is more epidemiologically appropriate than the notification date.
+
+## `sus_data_standardize()` — Controlled vocabulary
+
+After standardization, the date column is renamed `date` (date of symptom onset), the municipality of residence becomes `code_muni` (6-digit IBGE code), and the `n_cases` column is created for case counting in the subsequent aggregation. Confirmation status is stored in `case_status` with levels `"confirmed"`, `"suspected"` and `"discarded"`.
+
+## `sus_data_create_variables()` — Calendar and demographic variables
+
+With `create_calendar_vars = TRUE`, the columns `epiweek` (CDC epidemiological week — essential for alignment with the Ministry of Health's epidemiological bulletins), `year`, `month`, `season` and `day_of_week` are created. With `create_age_groups = TRUE` using the default breaks (0, 5, 15, 30, 60, Inf), the `age_group` column is created, useful for differential risk analyses by age group.
+
+```{=html}
+<div class="callout callout-tip">
+  <strong>Epidemiological week:</strong> The epidemiological week (EW) is the standard used in all arbovirus bulletins from the Ministry of Health. EW 1 begins on the first Sunday of the year. <code>climasus4r</code> uses the CDC definition (Sunday to Saturday), compatible with the Brazilian standard.
+</div>
+```
+
+## `sus_data_aggregate()` with `time_unit = "week"` and `group_by = "uf"`
+
+Produces the weekly count of cases per state (UF). Weeks with no notified cases receive a zero count, ensuring complete and continuous time series. The resulting `n_cases` column represents the total number of cases (confirmed + suspected) notified in that state in that epidemiological week.
+
+## `sus_climate_inmet()` — Dry-bulb temperature and precipitation
+
+`tair_dry_bulb_c` is the air temperature measured by the dry-bulb thermometer — the conventional ambient air temperature, distinct from wet-bulb temperature (which incorporates relative humidity). For dengue studies, dry-bulb temperature is the standard variable used in the literature to model the larval development rate of *Aedes aegypti* and the virus's extrinsic incubation period (Brady et al., 2013).
+
+## `sus_climate_fill_inmet()` with `method = "linear_interp"`
+
+For variables with an approximately continuous distribution (such as temperature), linear interpolation is often sufficient when gaps are short (1–3 consecutive days). For precipitation series with many zeros and long gaps, it may be necessary to use `method = "random_forest"`.
+
+## `sus_climate_aggregate()` with `strategy = "moving_window"` and `window = 14`
+
+The moving window strategy calculates the average of the climate variables over the `window` days preceding each outcome date. With `window = 14`, the climate value associated with week W is the average of the last 2 weeks (days -14 to -1 relative to the first day of week W). This window captures both the mosquito's larval development time (7–10 days) and the dengue virus's extrinsic incubation period (8–12 days at 28°C), totaling approximately 14–21 days between climate exposure and case notification.
+
+```{=html}
+<div class="callout callout-warning">
+  <strong>Note on temporal alignment:</strong> The 14-day window is an approximation. The sensitivity of results to different windows (7, 14, 21 days) should be assessed in the final models. <code>climasus4r</code> facilitates this analysis by running <code>sus_climate_aggregate()</code> multiple times with different values of <code>window</code>.
+</div>
+```
+
+# Expected Output
+
+After running the pipeline, `df_final` is a `climasus_df` object with the following main columns:
+
+| Column | Type | Description |
+|--------|------|-----------|
+| `date_week` | Date | First day of the epidemiological week |
+| `epiweek` | integer | Epidemiological week number (1–53) |
+| `uf` | character | State abbreviation (CE, PE, BA, MA) |
+| `n_cases` | integer | Dengue cases notified in the week |
+| `tair_dry_bulb_c_w14` | double | Mean air temperature (°C) — 14-day window |
+| `prec_mm_w14` | double | Mean precipitation (mm/day) — 14-day window |
+
+# Next Steps
+
+With the `df_final` dataset available, the analyses most commonly used in the dengue environmental epidemiology literature are:
+
+- **Quasi-Poisson GLM with seasonality**: quasi-Poisson regression with Fourier terms for annual seasonality and linear time trend. See the [Time Series Modeling](09-modelagem.html) tutorial.
+- **DLNM model for temperature**: nonlinear exposure-response function between temperature and incidence, with a lag distribution of 0 to 21 days.
+- **Temperature threshold analysis**: estimation of the critical temperature threshold above which transmission increases significantly.
+
+# References
+
+Bhatt, S., Gething, P. W., Brady, O. J., et al. (2013). The global distribution and burden of dengue. *Nature*, 496, 504–507.
+
+Brady, O. J., Golding, N., Pigott, D. M., et al. (2013). Global temperature constraints on *Aedes aegypti* and *Ae. albopictus* persistence and competence for dengue virus transmission. *Parasites & Vectors*, 6, 351.
+
+Simons, R. L., Rizzoli, A., Perez-Ramırez, E., et al. (2016). Socioeconomic factors associated with dengue fever: a cross-sectional survey in Rio de Janeiro, Brazil. *PLoS ONE*, 11(9), e0163367.
+
+Tauil, P. L. (2002). Aspectos criticos do controle do dengue no Brasil. *Cadernos de Saude Publica*, 18(3), 867–871.
+
+Brasil, Ministerio da Saude (2022). *SINAN — Sistema de Informacao de Agravos de Notificacao*. Brasilia: DATASUS. Available at: https://datasus.saude.gov.br/
+
+---
+
+```{=html}
+<p><a href="ec-01-respiratorio-pediatrico.html">&larr; Study 1</a> &nbsp;|&nbsp; <a href="ec-03-cardio-idosos-calor.html">Next: Study 3 &rarr;</a></p>
+```
+
+---
+
+## Have feedback or suggestions?
+
+Do you have an idea for improvement or found an error? Click the button below to open a new *issue* on GitHub and share your suggestions with us directly.
+
+```{=html}
+<a href='https://github.com/ByMaxAnjos/climasus4r/issues/new' class="github-feedback-btn">
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+  </svg>
+  Open issue on GitHub
+</a>
+```

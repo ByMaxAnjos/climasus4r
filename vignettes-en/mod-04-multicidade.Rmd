@@ -1,0 +1,623 @@
+---
+title: "Modeling 04: Multi-City Analysis — Pooling, Meta-Regression, and Sensitivity"
+author: "climasus4r Team"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* -- Variaveis de Cores Modernas -- */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; color: var(--text-main); background-color: #fff; line-height: 1.6; }
+h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--dark-green); }
+h1.title { font-size: 2.8em; border-bottom: 4px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 1.5rem; }
+h2 { margin-top: 2rem; border-left: 4px solid var(--primary-color); padding-left: 1rem; }
+pre.r, pre.sourceCode { background-color: var(--code-bg); border: 1px solid #e1e1e1; border-left: 5px solid var(--primary-color) !important; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1rem; }
+.callout { padding: 1.2em 1.5em; margin: 1.5em 0; border-radius: 8px; border-left: 6px solid; background-color: var(--bg-light); }
+.callout-note { background-color: #f0f7ff; border-color: #007bff; }
+.callout-tip { background-color: #e8f5e9; border-color: #1D9E75; }
+.callout-warning { background-color: #fff3e0; border-color: #ff9800; }
+.workflow-container { background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #dce8e1; overflow-x: auto; }
+.workflow-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; font-family: 'Inter', monospace; font-size: 0.8rem; }
+.workflow-step { background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap; }
+.workflow-arrow { color: var(--primary-color); font-weight: bold; font-size: 1.2rem; }
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+.feature-card { background: white; border-radius: 12px; padding: 1.5rem; border: 1px solid #e1e1e1; transition: transform 0.2s ease, box-shadow 0.2s ease; text-align: center; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+.feature-card h3 { margin-top: 0; color: var(--primary-color); font-size: 1.1rem; }
+table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e1e1; }
+th { background-color: var(--bg-light); font-weight: 600; color: var(--dark-green); }
+.github-feedback-btn { display: inline-flex; align-items: center; gap: 8px; background-color: #24292e; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-family: sans-serif; transition: background-color 0.2s; margin-top: 1rem; }
+.github-feedback-btn:hover { background-color: #2c3e50; color: white; text-decoration: none; }
+@media (max-width: 768px) { body { font-size: 16px; } h1.title { font-size: 2rem; } .workflow-steps { flex-direction: column; align-items: center; } }
+```
+
+
+```{r setup, include=FALSE}
+# ATENÇÃO — estratégia de pré-renderização.
+# Este tutorial NÃO executa modelos estatísticos durante a renderização.
+# Todas as figuras e tabelas foram geradas UMA vez pelo script
+# scripts/modelagem_04_multicidade.R e são apenas carregadas aqui.
+# Os chunks de ensino usam eval = FALSE: o código é mostrado, mas não executado.
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+
+# Helpers robustos para exibir artefatos: se o arquivo ainda não foi gerado
+# (script de geração não executado), mostram uma nota em vez de quebrar o knit.
+fig_ou_nota <- function(path, nota) {
+  if (file.exists(path)) knitr::include_graphics(path)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+tbl_ou_nota <- function(path, nota, caption = NULL) {
+  if (file.exists(path)) knitr::kable(readRDS(path), caption = caption)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+.nota_gerar <- paste0(
+  "Artefato indisponível — rode `Rscript scripts/modelagem_04_multicidade.R` ",
+  "(a partir da raiz do pacote) para gerá-lo."
+)
+```
+
+# Objective
+
+By the end of this tutorial you will be able to:
+
+1. **Fit a DLNM per city** and gather the models into a named list.
+2. **Pool the estimates** via two-stage multivariate meta-analysis (`sus_mod_pool()`), obtaining a combined exposure-response curve with heterogeneity statistics (Cochran's Q, I²) and BLUPs (Best Linear Unbiased Predictors) per city.
+3. **Apply meta-regression** (`sus_mod_metaregression()`) to test whether a city-level covariate (e.g., HDI) explains part of the heterogeneity between municipalities.
+4. **Compare population subgroups** (`sus_mod_sensitivity()`) — for example, age brackets among older adults — identifying which are most vulnerable to heat and cold.
+5. **Visualize** all results with the paired functions `sus_mod_plot_pool()` and `sus_mod_plot_sensitivity()`.
+
+This is **Modeling Tutorial 4** in the `climasus4r` series, framed under the **biostatistician / environmental epidemiologist** hat. The input data are the chained outputs of previous tutorials: `dados/caso_serie.rds` (daily health series) and `dados/caso_clima_estacao.rds` (aligned INMET temperature).
+
+---
+
+# Scientific context
+
+## The two-stage approach in environmental epidemiology
+
+Multi-city studies estimate the climate-health association separately in each location (Stage 1) and then combine the estimates into a single average estimator (Stage 2), also allowing quantification of the variation between locations (heterogeneity). This structure is known as **two-stage analysis** (Gasparrini et al., 2012; Gasparrini & Armstrong, 2013).
+
+In the context of Distributed Lag Non-linear Models (DLNMs), each city contributes a vector of cross-basis coefficients and its variance-covariance matrix. The second stage combines these vectors via **multivariate meta-analysis** (Berkey et al., 1995; White, 2011), preserving the full lag dimension of the effect.
+
+## Heterogeneity between cities
+
+Real heterogeneity in temperature-mortality associations between Brazilian cities has been documented in studies such as Zhao et al. (2021) and in regional analyses pointing to a North-South gradient influenced by mean temperature, altitude, and demographic structure. HDI is frequently used as a proxy for local adaptive capacity (Gasparrini et al., 2015).
+
+## Sensitivity by subgroups
+
+Sensitivity analysis compares exposure-response curves between population strata (age groups, sex, income quintile), identifying which subgroups exhibit higher relative risk in the face of thermal extremes — information directly usable in health action plans.
+
+> **Driving case.** In this tutorial we investigate **temperature and respiratory outcomes (J00–J99) in older adults (60+) in the São Paulo Metropolitan Region, 2014–2019**. We fit a DLNM for each of the six largest municipalities in the RMSP, pool them via `sus_mod_pool()` (REML, BLUPs), apply `sus_mod_metaregression()` with HDI as a city covariate, and assess sensitivity by age bracket (60–74 vs. 75+) with `sus_mod_sensitivity()`. The fitted `mod_pool` object is saved to `dados/mod_pool.rds` for reuse in subsequent tutorials.
+
+---
+
+# Data used
+
+| Object | Source | Content |
+|--------|--------|---------|
+| `caso_serie.rds` | Tutorial 4 (Variables/Aggregation) | Daily death series by RMSP municipality |
+| `caso_clima_estacao.rds` | Tutorial 7 (Climate — Stations) | Daily mean INMET temperature aligned by municipality |
+| `mod_fits_cidades.rds` | This tutorial (Block 3) | List of `climasus_dlnm` by municipality |
+| `mod_pool.rds` | This tutorial (output) | `climasus_pool` — result of REML pooling |
+
+If the input files are not present, the `scripts/modelagem_04_multicidade.R` script synthesizes series with a V-shaped temperature-mortality signal, realistic enough to illustrate how the functions work.
+
+---
+
+# Full pipeline
+
+Load the package and the tutorial infrastructure:
+
+```{r carregar}
+library(climasus4r)
+```
+
+## Block 0 — Check Suggests packages
+
+The pooling functions depend on `dlnm`, `splines`, and `mvmeta` (Suggests). Guard every call:
+
+```{r verifica-pkgs}
+tem_dlnm   <- all(vapply(c("dlnm", "splines"),
+                         function(p) requireNamespace(p, quietly = TRUE),
+                         logical(1L)))
+tem_mvmeta <- requireNamespace("mvmeta", quietly = TRUE)
+
+if (!tem_mvmeta)
+  message("Instale mvmeta: install.packages('mvmeta')")
+```
+
+## Block 1 — Load or synthesize series by municipality
+
+```{r bloco1-carregar}
+# Nota: os caminhos abaixo são relativos à RAIZ do pacote
+# (scripts/ e vignettes-pt/ estão no mesmo nível).
+# Em sessão interativa, defina o diretório de trabalho com setwd() antes.
+MUNICIPIOS <- c("Sao_Paulo", "Guarulhos", "Osasco",
+                "Santo_Andre", "Mogi_das_Cruzes", "Carapicuiba")
+
+# Carregar caso_serie.rds e caso_clima_estacao.rds se disponíveis
+# (produzidos pelos Tutoriais 4 e 7 do pipeline, respectivamente)
+path_saude <- file.path("vignettes-pt", "dados", "caso_serie.rds")
+path_clima <- file.path("vignettes-pt", "dados", "caso_clima_estacao.rds")
+
+if (file.exists(path_saude) && file.exists(path_clima)) {
+  # Usa dados reais do pipeline anterior
+  caso_serie <- readRDS(path_saude)
+  caso_clima <- readRDS(path_clima)
+  # series_municipios: lista nomeada com um tibble por município
+  series_municipios <- split(caso_serie, caso_serie$municipio)
+} else {
+  message("Dados encadeados ausentes — o script gerará séries sintéticas realistas.")
+  # O script modelagem_04_multicidade.R constrói series_municipios internamente
+}
+```
+
+## Block 2 — Build lag columns (crossbasis input)
+
+```{r bloco2-lags}
+VAR_TEMP <- "tair_dry_bulb_c"
+DESFECHO <- "n_obitos"
+LAG_MAX  <- 21L
+DOF_ANO  <- 6L
+
+# Função auxiliar: adiciona colunas de lag 0-LAG_MAX e promove a climasus_df
+.construir_df_lags <- function(serie, nome_mun) {
+  df_lags <- serie |> dplyr::arrange(date)
+  for (k in 0L:LAG_MAX) {
+    df_lags[[paste0(VAR_TEMP, "_lag", k)]] <- dplyr::lag(df_lags[[VAR_TEMP]], n = k)
+  }
+  df_lags <- df_lags |>
+    dplyr::select(date, dplyr::all_of(DESFECHO),
+                  dplyr::all_of(paste0(VAR_TEMP, "_lag", 0L:LAG_MAX))) |>
+    tidyr::drop_na()
+  attr(df_lags, "sus_meta") <- list(
+    system = "SIM", stage = "climate", type = "distributed_lag",
+    backend = "tibble",
+    history = paste0("[derivado] ", nome_mun, " — lags")
+  )
+  class(df_lags) <- c("climasus_df", class(df_lags))
+  df_lags
+}
+
+# series_municipios: lista nomeada de tibbles (carregada/sintetizada no Bloco 1)
+dfs_lags <- lapply(seq_along(MUNICIPIOS), function(i) {
+  .construir_df_lags(series_municipios[[i]], MUNICIPIOS[[i]])
+})
+names(dfs_lags) <- MUNICIPIOS
+```
+
+## Block 3 — DLNM fitting per municipality (Stage 1)
+
+```{r bloco3-dlnm-cidades}
+fits_cidades <- lapply(MUNICIPIOS, function(nm) {
+  sus_mod_dlnm(
+    df           = dfs_lags[[nm]],
+    outcome_col  = DESFECHO,
+    climate_col  = VAR_TEMP,
+    lag_max      = LAG_MAX,
+    argvar       = list(fun = "ns", df = 4L),
+    arglag       = list(fun = "ns", df = 3L),
+    family       = "quasipoisson",
+    dof_per_year = DOF_ANO,
+    lang         = "pt",
+    verbose      = FALSE
+  )
+})
+names(fits_cidades) <- MUNICIPIOS
+```
+
+## Block 4 — `sus_mod_pool()`: multivariate meta-analysis (Stage 2)
+
+```{r bloco4-pool}
+mod_pool <- sus_mod_pool(
+  fits           = fits_cidades,   # lista nomeada de climasus_dlnm
+  exposure_range = NULL,           # deriva do intervalo observado em todas as cidades
+  n_grid         = 100L,           # pontos na grade de predição
+  pred_at        = c(0.75, 0.90, 0.95, 0.99),  # quantis para tabela-resumo
+  blup           = TRUE,           # calcula BLUPs cidade-específicos
+  method         = "reml",         # estimação REML (recomendado)
+  lang           = "pt",
+  verbose        = TRUE
+)
+
+print(mod_pool)
+```
+
+## Block 5 — `sus_mod_metaregression()`: explaining heterogeneity
+
+```{r bloco5-metareg}
+# Covariável de cidade: IDH municipal (padronizado internamente)
+cov_idh <- data.frame(
+  idh = c(Sao_Paulo = 0.805, Guarulhos = 0.763, Osasco = 0.776,
+          Santo_Andre = 0.815, Mogi_das_Cruzes = 0.783, Carapicuiba = 0.749),
+  row.names = MUNICIPIOS
+)
+
+mod_meta <- sus_mod_metaregression(
+  fits           = fits_cidades,
+  covariates     = cov_idh,
+  covariate_cols = "idh",    # colunas numéricas a usar como preditoras
+  city_col       = NULL,     # usa rownames de covariates como identificador
+  pred_at        = c(0.75, 0.90, 0.95, 0.99),
+  blup           = TRUE,
+  method         = "reml",
+  alpha          = 0.05,
+  lang           = "pt",
+  verbose        = TRUE
+)
+
+print(mod_meta)
+```
+
+## Block 6 — `sus_mod_sensitivity()`: sensitivity by age bracket
+
+```{r bloco6-sensitivity}
+# Estratificação: usa a série de São Paulo dividida proporcionalmente por faixa
+# etária (60-74 anos ≈ 55 % dos óbitos; 75+ ≈ 45 %). Em fluxo real, as séries
+# viriam de caso_serie.rds filtrado por faixa etária.
+serie_sp <- series_municipios[["Sao_Paulo"]]
+set.seed(99L)
+n_sp <- nrow(serie_sp)
+
+serie_60_74  <- serie_sp |>
+  dplyr::mutate(n_obitos = stats::rbinom(n_sp, size = n_obitos, prob = 0.55))
+
+serie_75mais <- serie_sp |>
+  dplyr::mutate(n_obitos = n_obitos - serie_60_74$n_obitos)
+
+# Constrói dfs com colunas de lag para cada faixa (mesma função do Bloco 2)
+df_lags_60_74  <- .construir_df_lags(serie_60_74,  "60_74_anos")
+df_lags_75mais <- .construir_df_lags(serie_75mais, "75_mais_anos")
+
+# Ajuste DLNM por faixa etária (Estágio 1 da sensibilidade)
+fits_faixas <- list(
+  `60-74 anos` = sus_mod_dlnm(
+    df           = df_lags_60_74,
+    outcome_col  = DESFECHO,
+    climate_col  = VAR_TEMP,
+    lag_max      = LAG_MAX,
+    argvar       = list(fun = "ns", df = 4L),
+    arglag       = list(fun = "ns", df = 3L),
+    family       = "quasipoisson",
+    dof_per_year = DOF_ANO,
+    lang         = "pt"
+  ),
+  `75+ anos` = sus_mod_dlnm(
+    df           = df_lags_75mais,
+    outcome_col  = DESFECHO,
+    climate_col  = VAR_TEMP,
+    lag_max      = LAG_MAX,
+    argvar       = list(fun = "ns", df = 4L),
+    arglag       = list(fun = "ns", df = 3L),
+    family       = "quasipoisson",
+    dof_per_year = DOF_ANO,
+    lang         = "pt"
+  )
+)
+
+mod_sens <- sus_mod_sensitivity(
+  fits            = fits_faixas,
+  hot_percentile  = 0.99,   # p99 como ponto de comparação do calor
+  cold_percentile = 0.01,   # p01 como ponto de comparação do frio
+  stratum_labels  = NULL,   # usa nomes de fits_faixas como rótulos
+  alpha           = 0.05,
+  lang            = "pt",
+  verbose         = TRUE
+)
+
+print(mod_sens)
+```
+
+## Block 7 — Visualizations with `sus_mod_plot_pool()` and `sus_mod_plot_sensitivity()`
+
+```{r bloco7-figuras}
+# Curva pooled — três tipos de visualização
+sus_mod_plot_pool(mod_pool, type = "overall",   lang = "pt")
+sus_mod_plot_pool(mod_pool, type = "forest",    lang = "pt")
+sus_mod_plot_pool(mod_pool, type = "spaghetti", lang = "pt")
+
+# Sensibilidade — três tipos de visualização
+sus_mod_plot_sensitivity(mod_sens, type = "curves",  lang = "pt")
+sus_mod_plot_sensitivity(mod_sens, type = "scatter", lang = "pt")  # RR calor × RR frio
+sus_mod_plot_sensitivity(mod_sens, type = "bar",     lang = "pt")
+```
+
+## Block 8 — Save mod_pool.rds for reuse
+
+```{r bloco8-salvar}
+saveRDS(mod_pool, file.path("vignettes-pt", "dados", "mod_pool.rds"))
+```
+
+---
+
+# Function features
+
+## `sus_mod_pool()`
+
+Performs the two-stage multivariate meta-analysis of the cross-basis coefficients.
+
+| Argument | Description |
+|-----------|-----------|
+| `fits` | Named list of `climasus_dlnm` (one per city). All must share `climate_col`, `lag_max`, `argvar`, and `arglag`. |
+| `exposure_range` | Range of the prediction grid; `NULL` derives it from the set of all cities. |
+| `n_grid` | Number of points in the continuous prediction grid. Default `100L`. |
+| `pred_at` | Quantiles of the exposure distribution for the summary table. Default `c(.75, .90, .95, .99)`. |
+| `blup` | Compute city-specific BLUPs? Default `TRUE`. |
+| `method` | `mvmeta` estimation method: `"reml"` (default), `"ml"`, `"fixed"`. |
+| `lang` | Message language: `"pt"` (default), `"en"`, `"es"`. |
+| `verbose` | Show progress on console? Default `TRUE`. |
+
+**Return** — a `climasus_pool` object with:
+
+- `$mvmeta_fit` — the raw `mvmeta` model.
+- `$pooled_pred` — a `dlnm::crosspred` object with combined coefficients.
+- `$exposure_response` — pooled RR table at the `pred_at` quantiles.
+- `$exposure_curve` — full curve (100 points) of RR with CI.
+- `$lag_response` — lag-response curve at the p75 of exposure.
+- `$blup_preds` — named list of BLUP `crosspred` per city.
+- `$city_table` — original and BLUP RR per city at p75.
+- `$heterogeneity` — tibble with Q, df, p-value, and I².
+- `$meta` — metadata (cities, method, grid, time).
+
+Available S3 methods: `print()`, `summary()`, `coef()`, `vcov()`, `tidy()`.
+
+---
+
+## `sus_mod_plot_pool()`
+
+Visualizations of the pooled meta-analysis.
+
+| `type =` | Description |
+|----------|-----------|
+| `"overall"` | Pooled exposure-response curve with 95% CI band. |
+| `"forest"` | City-specific forest plot at p75: original estimate (diamond) + BLUP (circle). |
+| `"spaghetti"` | BLUP curves for each city (gray) overlaid on the pooled curve (solid color). |
+
+Argument `output_type`: `"plot"` (default), `"table"` (tibble of plotted data), or `"all"` (list `$plot`, `$table`, `$data`). `interactive = TRUE` converts to a `plotly` widget.
+
+---
+
+## `sus_mod_metaregression()`
+
+Extends pooling by including city covariates to explain heterogeneity.
+
+| Argument | Description |
+|-----------|-----------|
+| `fits` | Named list of `climasus_dlnm`. All cities must share `climate_col`, `lag_max`, `argvar`, and `arglag`. |
+| `covariates` | `data.frame` with one row per city and numeric covariates. Row names = city names (or use `city_col`). |
+| `covariate_cols` | Columns to use as predictors. `NULL` uses all available numeric columns. |
+| `city_col` | Column in `covariates` with the city identifier (alternative to rownames). Default `NULL`. |
+| `pred_at` | Quantiles for the RR summary table. Default `c(.75, .90, .95, .99)`. |
+| `blup` | BLUPs adjusted by covariate? Default `TRUE`. |
+| `method` | `mvmeta` method: `"reml"` (default), `"ml"`, `"fixed"`. |
+| `alpha` | Significance level for CIs. Default `0.05`. |
+| `lang` | Message language: `"pt"` (default), `"en"`, `"es"`. |
+| `verbose` | Show progress? Default `TRUE`. |
+
+**Return** — a `climasus_metaregression` object with:
+
+- `$mvmeta_fit` — model `mvmeta` with covariates (or a null model if fitting fails).
+- `$null_fit` — intercept-only model (for heterogeneity comparison).
+- `$pooled_pred` — `dlnm::crosspred` for the average city (standardized covariates = 0, i.e., the intercept).
+- `$blup_preds` — named list of BLUP `crosspred` per city, adjusted by the covariate (when `blup = TRUE`).
+- `$city_table` — tibble with raw and BLUP RR per city at p75.
+- `$covariate_tests` — table of Wald tests per covariate (multivariate chi-squared, df = number of cross-basis coefficients, p-value).
+- `$heterogeneity` — tibble comparing the null vs. full model: Cochran's Q, df, p-value, I², R²_het.
+- `$cov_scales` — tibble with mean and SD used to standardize each covariate (for back-transformation).
+- `$meta` — metadata (cities, covariates, method, grid, time).
+
+Available S3 methods: `print()`, `summary()`, `coef()`, `vcov()`, `tidy()`.
+
+---
+
+## `sus_mod_sensitivity()`
+
+Compares exposure-response curves and cumulative RRs between population strata.
+
+| Argument | Description |
+|-----------|-----------|
+| `fits` | Named list of `climasus_dlnm` — **one per stratum**. Minimum: 2. |
+| `hot_percentile` | Reference "hot" quantile. Default `0.99`. |
+| `cold_percentile` | Reference "cold" quantile. Default `0.01`. |
+| `stratum_labels` | Named vector of human-readable labels for the strata (optional). `NULL` uses the names of `fits`. |
+| `alpha` | Significance level for CIs. Default `0.05`. |
+| `lang` | Message language: `"pt"` (default), `"en"`, `"es"`. |
+| `verbose` | Show progress? Default `TRUE`. |
+
+**Return** — a `climasus_sensitivity` object with:
+
+- `$rr_table` — long table: one hot/cold pair per stratum, with exposure, RR, 95% CI, and reference.
+- `$comparison` — one row per stratum with hot_rr, cold_rr, hot_rank, cold_rank, and **sensitivity_index** (SI = log RR_heat + log RR_cold).
+- `$stratum_curves` — full ERC curve (100 points) per stratum, for overlay.
+- `$meta` — metadata.
+
+Available S3 methods: `print()`, `summary()`, `tidy()`.
+
+---
+
+## `sus_mod_plot_sensitivity()`
+
+Visualizations of the multi-stratum sensitivity analysis.
+
+| `type =` | Description | Data used |
+|----------|-----------|------------|
+| `"curves"` | ERCs for each stratum overlaid with CI band. Legend ordered by SI (most vulnerable stratum first). | `$stratum_curves` |
+| `"scatter"` | Scatter of RR_heat (Y axis) vs. RR_cold (X axis); point size proportional to `sensitivity_index`. Useful for identifying strata vulnerable to both extremes. | `$comparison` |
+| `"bar"` | Horizontal forest plot with heat (red) and cold (blue) estimates per stratum, ordered by SI. Equivalent to a two-sided forest plot. | `$rr_table` |
+
+Additional shared arguments: `output_type` (`"plot"`, `"table"`, `"all"`), `interactive` (converts to `plotly`), `base_size`, `save_plot`, `lang`, `verbose`.
+
+---
+
+# Key formulas
+
+## Two-stage multivariate meta-analysis
+
+Let $\boldsymbol{\theta}_i$ be the $p$-dimensional vector of cross-basis coefficients for city $i$, estimated with variance $S_i$. The multivariate random-effects model is:
+
+$$
+\boldsymbol{\theta}_i \sim \mathcal{N}\!\left(\boldsymbol{\theta},\; S_i + \Psi\right)
+$$
+
+where $\Psi$ is the between-city covariance matrix, estimated by REML. The combined estimator $\hat{\boldsymbol{\theta}}$ is obtained by minimizing the restricted log-likelihood of `mvmeta`, and is passed to `dlnm::crosspred()` to produce the pooled exposure-response curve.
+
+## City-specific BLUPs
+
+BLUPs shrink each city's raw estimates toward the pooled mean:
+
+$$
+\tilde{\boldsymbol{\theta}}_i = \hat{\boldsymbol{\theta}} + \hat{\Psi}\,(\hat{\Psi} + S_i)^{-1} \left(\hat{\boldsymbol{\theta}}_i - \hat{\boldsymbol{\theta}}\right)
+$$
+
+The larger the local uncertainty ($S_i$ large) or the smaller the heterogeneity ($\Psi$ small), the greater the shrinkage toward the mean.
+
+## Heterogeneity: Cochran's Q and I²
+
+Heterogeneity between cities is assessed by **Cochran's Q test**:
+
+$$
+Q = \sum_{i=1}^{k} (\hat{\boldsymbol{\theta}}_i - \hat{\boldsymbol{\theta}})^\top S_i^{-1} (\hat{\boldsymbol{\theta}}_i - \hat{\boldsymbol{\theta}}) \;\sim\; \chi^2_{(k-1)\,p}
+$$
+
+and quantified by **I²** (proportion of total variance that is heterogeneity):
+
+$$
+I^2 = \max\!\left(0,\; \frac{Q - \text{df}}{Q}\right) \times 100\%
+$$
+
+## Meta-regression: city covariates
+
+The meta-regression model includes city-level predictors $x_{ij}$:
+
+$$
+\boldsymbol{\theta}_i \sim \mathcal{N}\!\left(\boldsymbol{B}_0 + \sum_{j=1}^{k} \boldsymbol{B}_j x_{ij},\; S_i + \Psi\right)
+$$
+
+where the covariates are standardized (mean 0, SD 1) before fitting. **R²_het** measures the proportion of I² heterogeneity explained by the covariates:
+
+$$
+R^2_{\text{het}} = \frac{I^2_{\text{null}} - I^2_{\text{full}}}{I^2_{\text{null}}}
+$$
+
+## Sensitivity Index (SI)
+
+For stratum $s$, the SI combines the log relative risk in heat and cold:
+
+$$
+SI_s = \log RR_s(q_\text{hot}) + \log RR_s(q_\text{cold})
+$$
+
+Strata with a high SI are simultaneously vulnerable to both heat and cold.
+
+---
+
+# Illustrated results
+
+## Pooled exposure-response curve (REML)
+
+```{r fig-overall, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/modpool_overall.png", .nota_gerar)
+```
+
+**Figure 1.** Pooled exposure-response curve from the two-stage analysis (REML). RR is relative to the median temperature of the combined series. The shaded band represents the 95% CI. The J- or V-shaped association indicates excess risk at both lower temperatures (prolonged cold, longer lags) and higher temperatures (acute heat, shorter lags).
+
+## Forest plot: estimates by municipality
+
+```{r fig-forest, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/modpool_forest.png", .nota_gerar)
+```
+
+**Figure 2.** Forest plot of city-specific estimates at the 75th percentile of temperature (p75). The diamond corresponds to the raw estimate from the individual DLNM; the circle corresponds to the BLUP, shrunk toward the pooled estimate. Municipalities with smaller samples exhibit greater shrinkage (lower effective weight).
+
+```{r tbl-het, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/modpool_heterogeneidade.rds", .nota_gerar,
+            caption = "Table 1. Heterogeneity statistics (Cochran's Q, I²) from the meta-analysis.")
+```
+
+```{r tbl-cidades, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/modpool_cidade_rr.rds", .nota_gerar,
+            caption = "Table 2. Original and BLUP RR by municipality (exposure at p75).")
+```
+
+## BLUP curves by municipality (spaghetti)
+
+```{r fig-spaghetti, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/modpool_spaghetti.png", .nota_gerar)
+```
+
+**Figure 3.** BLUP exposure-response curves by municipality (gray) overlaid on the pooled estimate (solid color with CI). The variation between the gray lines reflects the residual heterogeneity after shrinkage; municipalities with greater agreement with the average show curves closer to the pooled curve.
+
+## Sensitivity by age bracket: overlaid ERCs
+
+```{r fig-sens-curves, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/modpool_sensitivity_curves.png", .nota_gerar)
+```
+
+**Figure 4.** Exposure-response curves by age bracket (60–74 years vs. 75+ years), obtained from individual DLNMs. The legend is ordered by the Combined Sensitivity Index (SI = log RR_heat + log RR_cold), with the most vulnerable stratum listed first.
+
+## Sensitivity by age bracket: RR heat × RR cold scatter
+
+```{r fig-sens-scatter, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/modpool_sensitivity_scatter.png", .nota_gerar)
+```
+
+**Figure 5.** Scatter plot of heat RR (Y axis, p99) versus cold RR (X axis, p01) by age bracket. Point size is proportional to the Sensitivity Index. Strata positioned in the upper-right quadrant (RR heat > 1 **and** RR cold > 1) are vulnerable to both thermal extremes.
+
+## Sensitivity by age bracket: heat/cold forest plot
+
+```{r fig-sens-bar, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/modpool_sensitivity_bar.png", .nota_gerar)
+```
+
+**Figure 6.** Forest plot of heat RR (p99, red) and cold RR (p01, blue) by age bracket, ordered by the Sensitivity Index. Older adults above 75 years tend to show higher RRs at both thermal extremes, reflecting greater physiological vulnerability and reduced thermoregulatory capacity.
+
+---
+
+# References
+
+- Berkey, C. S., Hoaglin, D. C., Mosteller, F., & Colditz, G. A. (1995). A random-effects regression model for meta-analysis. *Statistics in Medicine*, 14(4), 395–411.
+- Berkey, C. S., Hoaglin, D. C., Antczak-Bouckoms, A., Mosteller, F., & Colditz, G. A. (1998). Meta-analysis of multiple outcomes by regression with random effects. *Statistics in Medicine*, 17(22), 2537–2550.
+- Gasparrini, A., Armstrong, B., & Kenward, M. G. (2012). Multivariate meta-analysis for non-linear and other multi-parameter associations. *Statistics in Medicine*, 31(29), 3821–3839. doi:10.1002/sim.5471
+- Gasparrini, A., & Armstrong, B. (2013). Reducing and meta-analysing estimates from distributed lag non-linear models. *BMC Medical Research Methodology*, 13, 1. doi:10.1186/1471-2288-13-1
+- Gasparrini, A., Guo, Y., Hashizume, M., et al. (2015). Mortality risk attributable to high and low ambient temperature: a multicountry observational study. *The Lancet*, 386(9994), 369–375.
+- Zhao, Q., Guo, Y., Ye, T., et al. (2021). Global, regional, and national burden of mortality associated with non-optimal ambient temperatures from 2000 to 2019: a three-stage modelling study. *The Lancet Planetary Health*, 5(7), e415–e425.
+- Baccini, M., Biggeri, A., Accetta, G., et al. (2008). Heat effects on mortality in 15 European cities. *Epidemiology*, 19(5), 711–719.
+- White, I. R. (2011). Multivariate random-effects meta-regression: updates to mvmeta. *The Stata Journal*, 11(2), 255–270.
+
+---
+
+# Navigation
+
+- **Previous:** [Modeling 03 — Case-Crossover and Interrupted Time Series](mod-03-crossover-its.html)
+- **Next:** [Modeling 05 — Machine Learning (XGBoost)](mod-05-ml.html)
+- [Back to tutorial hub](tutorials.html)
+
+---
+
+> **How to reproduce the figures and tables.** Run once, from the package root:
+> `Rscript scripts/modelagem_04_multicidade.R`
+> The script saves the figures in `vignettes-pt/figuras/` (prefix `modpool_`), the tables in `vignettes-pt/dados/`, and the `mod_pool.rds` object for use in subsequent tutorials.

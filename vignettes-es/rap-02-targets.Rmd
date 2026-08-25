@@ -1,0 +1,529 @@
+---
+title: "Pipelines con Cache Inteligente usando targets"
+subtitle: "Generar `_targets.R`, ejecutar con paralelismo dinamico y monitorear con `sus_rap_targets()` y `sus_rap_make()`"
+author:
+  - name: "Dr. Max Anjos"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; color: var(--text-main); background-color: #fff; line-height: 1.6; }
+h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--dark-green); }
+h1.title { font-size: 2.8em; border-bottom: 4px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 1.5rem; }
+h2 { margin-top: 2rem; border-left: 4px solid var(--primary-color); padding-left: 1rem; }
+pre.r, pre.sourceCode { background-color: var(--code-bg); border: 1px solid #e1e1e1; border-left: 5px solid var(--primary-color) !important; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1rem; }
+.callout { padding: 1.2em 1.5em; margin: 1.5em 0; border-radius: 8px; border-left: 6px solid; background-color: var(--bg-light); }
+.callout-note { background-color: #f0f7ff; border-color: #007bff; }
+.callout-tip { background-color: #e8f5e9; border-color: #1D9E75; }
+.callout-warning { background-color: #fff3e0; border-color: #ff9800; }
+.workflow-container { background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #dce8e1; overflow-x: auto; }
+.workflow-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; font-family: 'Inter', monospace; font-size: 0.8rem; }
+.workflow-step { background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap; }
+.workflow-arrow { color: var(--primary-color); font-weight: bold; font-size: 1.2rem; }
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+.feature-card { background: white; border-radius: 12px; padding: 1.5rem; border: 1px solid #e1e1e1; transition: transform 0.2s ease, box-shadow 0.2s ease; text-align: center; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+.feature-card h3 { margin-top: 0; color: var(--primary-color); font-size: 1.1rem; }
+table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e1e1; }
+th { background-color: var(--bg-light); font-weight: 600; color: var(--dark-green); }
+.github-feedback-btn { display: inline-flex; align-items: center; gap: 8px; background-color: #24292e; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-family: sans-serif; transition: background-color 0.2s; margin-top: 1rem; }
+.github-feedback-btn:hover { background-color: #2c3e50; color: white; text-decoration: none; }
+@media (max-width: 768px) { body { font-size: 16px; } h1.title { font-size: 2rem; } .workflow-steps { flex-direction: column; align-items: center; } }
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo      = TRUE,
+  eval      = FALSE,
+  warning   = FALSE,
+  message   = FALSE,
+  comment   = "#>",
+  fig.align = "center",
+  out.width = "90%",
+  fig.retina = 2
+)
+```
+
+# Introducción — ¿Por qué usar `targets`?
+
+Los análisis epidemiológicos con datos climáticos raramente son lineales. A lo largo del ciclo de investigación, es común modificar un filtro de CID-10, cambiar la ventana de agregación climática o incluir un nuevo estado en el conjunto de datos. Sin un sistema de cache inteligente, cualquiera de estos cambios obliga a re-ejecutar **todo** el pipeline — incluyendo etapas costosas como la descarga del DATASUS, la estandarización de codificación y la unión espacial, que pueden tardar horas.
+
+El paquete `targets` (Landau, 2021) resuelve este problema con **rastreo automático de dependencias**: cada etapa del pipeline es un *target* (objetivo), y `targets` solo re-ejecuta los objetivos cuyas entradas cambiaron desde la última ejecución. Los resultados intermedios quedan en cache en el directorio `_targets/`, listos para cargarse instantáneamente.
+
+La función `sus_rap_targets()` conecta los objetos RAP de `climasus4r` con el ecosistema `targets`, generando automáticamente el archivo `_targets.R` con toda la estructura necesaria. La función `sus_rap_make()` ejecuta luego ese pipeline de forma reproducible, con soporte para paralelismo y monitoreo.
+
+```{=html}
+<div class="workflow-container">
+  <div class="workflow-steps">
+    <span class="workflow-step">rap_object</span>
+    <span class="workflow-arrow">→</span>
+    <span class="workflow-step">sus_rap_targets()</span>
+    <span class="workflow-arrow">→</span>
+    <span class="workflow-step">_targets.R</span>
+    <span class="workflow-arrow">→</span>
+    <span class="workflow-step">sus_rap_make()</span>
+    <span class="workflow-arrow">→</span>
+    <span class="workflow-step">resultados con cache</span>
+  </div>
+</div>
+```
+
+## Funciones abordadas en este tutorial
+
+Este tutorial cubre dos funciones exportadas de `climasus4r`:
+
+| Función | Descripción |
+|---|---|
+| `sus_rap_targets()` | Genera el archivo `_targets.R` a partir de un objeto RAP |
+| `sus_rap_make()` | Ejecuta el pipeline vía `targets::tar_make()` |
+
+# Prerrequisitos
+
+## Instalación de las dependencias
+
+El paquete `targets` está listado en `Suggests` de `climasus4r`. Instálelo antes de usar las funciones de este tutorial:
+
+```{r install-deps}
+# Dependencias necesarias
+install.packages("targets")
+install.packages("tarchetypes")  # opcional: helpers adicionales
+```
+
+```{=html}
+<div class="callout callout-warning">
+**Paquete targets necesario:** `targets` esta listado en `Suggests` de climasus4r. Instalelo antes de usar `sus_rap_targets()` y `sus_rap_make()`. El `climasus4r` verificara automaticamente la disponibilidad del paquete al llamar estas funciones.
+</div>
+```
+
+## Punto de partida: el objeto RAP
+
+Las funciones de este tutorial operan sobre un **objeto RAP** — una expresión de pipeline creada con las funciones de `climasus4r`. Puede obtenerlo de dos formas:
+
+```{r prereq-rap}
+library(climasus4r)
+
+# Opcao A: ler um RAP existente (criado con sus_rap_export())
+rap <- sus_rap_read("analise_dengue_nordeste.R")
+
+# Opcao B: usar uma expressao de pipeline diretamente
+pipeline <- quote(
+  sus_data_import(uf = c("CE", "RN", "PB", "PE", "AL"),
+                  years = 2018:2022, system = "SINAN") |>
+    sus_data_clean_encoding() |>
+    sus_data_standardize() |>
+    sus_data_filter_cid(cid_group = "dengue") |>
+    sus_data_aggregate(by = "month")
+)
+```
+
+```{=html}
+<div class="callout callout-note">
+**Sobre el objeto RAP:** El Tutorial RAP 1 — *Exportar y Ejecutar* — explica en detalle como crear, exportar y cargar objetos RAP con `sus_rap_export()` y `sus_rap_read()`. Consultelo si necesita crear el objeto desde cero.
+</div>
+```
+
+# `sus_rap_targets()` — Generar el `_targets.R`
+
+La función `sus_rap_targets()` recibe un pipeline de `climasus4r` y genera un archivo `_targets.R` listo para ejecutarse con el paquete `targets`.
+
+## Firma de la función
+
+```{r sig-targets}
+sus_rap_targets(
+  pipeline,
+  file_path  = "_targets.R",
+  branching  = c("none", "uf", "year", "cross"),
+  workers    = 1L,
+  include_qc = TRUE,
+  lang       = "pt",
+  overwrite  = FALSE
+)
+```
+
+## Uso básico
+
+```{r basic-targets}
+sus_rap_targets(
+  pipeline   = pipeline,
+  file_path  = "_targets.R",
+  branching  = "none",
+  workers    = 1L,
+  include_qc = TRUE,
+  lang       = "pt"
+)
+#> i Gerando _targets.R para 'Pipeline SINAN' (branching: none)...
+#> v Pipeline targets criado: /path/to/_targets.R
+```
+
+El archivo `_targets.R` generado contiene toda la estructura necesaria para que `targets` rastree dependencias y gestione el cache. Vea un extracto simplificado:
+
+```{r generated-targets-R}
+# _targets.R -- Generated by climasus4r::sus_rap_targets()
+# Pipeline: Pipeline SINAN
+# Created : 2026-06-18 10:30:00
+
+library(targets)
+library(tarchetypes)
+library(climasus4r)
+library(dplyr)
+
+options(clustermq.scheduler = "sequential")
+
+list(
+  tar_target(params_uf,        c("CE", "RN", "PB", "PE", "AL")),
+  tar_target(params_years,     2018:2022),
+  tar_target(params_system,    "SINAN"),
+  tar_target(params_time_unit, "month"),
+  tar_target(params_lang,      "pt"),
+
+  tar_target(pipeline_sinan,
+    climasus4r::sus_data_import(
+      uf     = params_uf,
+      year   = params_years,
+      system = params_system,
+      lang   = params_lang
+    )
+  ),
+
+  tar_target(pipeline_sinan_qc,
+    climasus4r::sus_data_quality_report(pipeline_sinan)
+  ),
+
+  NULL
+)
+```
+
+```{=html}
+<div class="callout callout-tip">
+**include_qc = TRUE:** Cuando esta activado (predeterminado), `sus_rap_targets()` agrega automaticamente un objetivo de control de calidad (`_qc`) despues de cada etapa principal. Esto registra metricas de integridad de los datos en el cache sin costo adicional de ejecucion.
+</div>
+```
+
+## El parámetro `overwrite`
+
+Por defecto, `overwrite = FALSE` protege archivos existentes. Si ya existe un `_targets.R` en la ruta indicada, la función emite una advertencia y se detiene. Use `overwrite = TRUE` para reemplazarlo:
+
+```{r overwrite}
+# Substituir um _targets.R existente
+sus_rap_targets(
+  pipeline  = pipeline,
+  file_path = "_targets.R",
+  overwrite = TRUE
+)
+#> ! Arquivo _targets.R existente sera substituido (overwrite = TRUE).
+#> v Pipeline targets criado: /path/to/_targets.R
+```
+
+# Las 4 Estrategias de Branching
+
+El parámetro `branching` define cómo se divide el pipeline en *branches* (ramas) paralelos. Cada estrategia tiene un caso de uso ideal:
+
+```{=html}
+<div class="feature-grid">
+  <div class="feature-card">
+    <div class="feature-icon">1️⃣</div>
+    <h3>"none"</h3>
+    <p>Analisis unico. Todos los UFs y anos procesados juntos. Ideal para analisis nacionales o prototipado rapido.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🗺️</div>
+    <h3>"uf"</h3>
+    <p>Una rama por estado (UF). Ideal para comparaciones interestatales con cache independiente por unidad federativa.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">📅</div>
+    <h3>"year"</h3>
+    <p>Una rama por ano. Util para series temporales largas donde los anos anteriores rara vez cambian despues de la recoleccion.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">⚡</div>
+    <h3>"cross"</h3>
+    <p>Producto cartesiano UF x ano. Maximo paralelismo. Requiere mas workers y espacio en disco.</p>
+  </div>
+</div>
+```
+
+## Branching por UF (`"uf"`)
+
+```{r branching-uf}
+sus_rap_targets(
+  pipeline  = pipeline,
+  file_path = "_targets_uf.R",
+  branching = "uf",
+  workers   = 4L
+)
+#> i Gerando _targets.R para 'Pipeline SINAN' (branching: uf)...
+#> i Estrategia: 1 branch por UF (5 UFs detectados)
+#> v Pipeline targets criado: /path/to/_targets_uf.R
+```
+
+Con `branching = "uf"`, el `_targets.R` generado utiliza `targets::tar_map()` para crear una rama independiente por estado. El extracto relevante del archivo generado se ve así:
+
+```{r branching-uf-generated}
+# Extrato do _targets_uf.R gerado
+list(
+  tar_target(params_uf,    c("CE", "RN", "PB", "PE", "AL")),
+  tar_target(params_years, 2018:2022),
+
+  tar_map(
+    values = list(uf = c("CE", "RN", "PB", "PE", "AL")),
+    tar_target(pipeline_sinan,
+      climasus4r::sus_data_import(
+        uf     = uf,
+        year   = params_years,
+        system = "SINAN"
+      ),
+      pattern = map(params_uf)
+    )
+  ),
+
+  NULL
+)
+```
+
+Cada UF tiene su propio cache: si los datos de `"CE"` cambian, solo se re-ejecuta la rama `"CE"`. Las demás permanecen en cache.
+
+## Branching cruzado (`"cross"`)
+
+```{r branching-cross}
+sus_rap_targets(
+  pipeline  = pipeline,
+  file_path = "_targets_cross.R",
+  branching = "cross",
+  workers   = 8L
+)
+#> i Gerando _targets.R para 'Pipeline SINAN' (branching: cross)...
+#> i Estrategia: produto cartesiano UF x ano (5 UFs x 5 anos = 25 branches)
+#> ! Aviso: 25 branches com workers = 8 pode exigir bastante memoria RAM.
+#> v Pipeline targets criado: /path/to/_targets_cross.R
+```
+
+```{=html}
+<div class="callout callout-warning">
+**Uso de recursos con "cross":** El producto cartesiano UF x ano puede generar muchas ramas simultaneamente. Para 10 UFs y 10 anos, son 100 ramas. Monitoree el uso de RAM y ajuste `workers` de acuerdo con los recursos disponibles en la maquina.
+</div>
+```
+
+## Comparación de las estrategias
+
+| Estrategia | Ramas | Cuando usar | Workers recomendados |
+|---|---|---|---|
+| `"none"` | 1 | Prototipado, analisis unicos | 1 |
+| `"uf"` | 1 por UF | Comparaciones estatales | n_UFs |
+| `"year"` | 1 por ano | Series largas, datos historicos | n_years |
+| `"cross"` | UFs × anos | Paneles espacio-temporales completos | n_UFs × n_years |
+
+# `sus_rap_make()` — Ejecutar el Pipeline
+
+La función `sus_rap_make()` ejecuta el pipeline generado con `sus_rap_targets()` llamando internamente a `targets::tar_make()`, con integración al sistema de metadatos de `climasus4r`.
+
+## Firma de la función
+
+```{r sig-make}
+sus_rap_make(
+  rap,
+  workers   = 1L,
+  reporter  = "verbose",
+  branching = "none",
+  lang      = "pt",
+  ...
+)
+```
+
+## Ejecución básica
+
+```{r basic-make}
+resultado <- sus_rap_make(
+  rap      = rap,
+  workers  = 1L,
+  reporter = "verbose",
+  lang     = "pt"
+)
+#> i Executando via targets::tar_make()...
+#> * Target params_uf
+#> * Target params_years
+#> * Target params_system
+#> * Target params_time_unit
+#> * Target pipeline_sinan [10.3s]
+#> * Target pipeline_sinan_qc [0.8s]
+#> v Execucao targets concluida.
+```
+
+## Accediendo a los resultados
+
+El objeto devuelto por `sus_rap_make()` es una lista con tres componentes:
+
+```{r access-results}
+# Acessar resultados
+head(resultado$results)  # data.frame final do pipeline
+resultado$store          # caminho do diretorio de cache (_targets/)
+resultado$rap            # rap_object original com metadados atualizados
+
+# Tambem pode usar a API nativa do targets
+targets::tar_load(pipeline_sinan)
+targets::tar_read("pipeline_sinan_qc")
+targets::tar_visnetwork()  # grafo visual de dependencias
+```
+
+```{=html}
+<div class="callout callout-tip">
+**Consejo:** Para ver el grafo de dependencias del pipeline, use `targets::tar_visnetwork()` despues de generar el `_targets.R`. Esto ayuda a identificar cuellos de botella y optimizar el orden de ejecucion de los objetivos.
+</div>
+```
+
+## El poder del cache: segunda ejecución
+
+En la segunda ejecución del mismo pipeline, `targets` verifica el hash de cada objetivo. Si nada cambió en las entradas, el objetivo se marca como `[skipped]` y se carga directamente desde el cache — sin re-ejecutar el código:
+
+```{r second-run}
+# Segunda execucao: apenas o que mudou e re-executado
+resultado2 <- sus_rap_make(rap, workers = 1L)
+#> i Executando via targets::tar_make()...
+#> * Target params_uf         [skipped]
+#> * Target params_years      [skipped]
+#> * Target params_system     [skipped]
+#> * Target params_time_unit  [skipped]
+#> * Target pipeline_sinan    [skipped]  # cache valido!
+#> * Target pipeline_sinan_qc [skipped]  # cache valido!
+#> v Execucao targets concluida.
+```
+
+Esto significa que, al alterar solo el filtro de CID-10, solo se re-ejecutan las etapas a partir de `sus_data_filter_cid()`. Las etapas de importación y codificación permanecen en cache.
+
+## Ejecución con paralelismo
+
+Para pipelines con `branching = "uf"` o `"cross"`, el paralelismo se habilita con `workers > 1`. `climasus4r` usa `future`/`furrr` internamente:
+
+```{r parallel-make}
+# Executar com 4 workers em paralelo
+resultado_paralelo <- sus_rap_make(
+  rap      = rap,
+  workers  = 4L,
+  reporter = "verbose",
+  branching = "uf",
+  lang     = "pt"
+)
+#> i Executando via targets::tar_make() com 4 workers (future::multisession)...
+#> * Target pipeline_sinan_CE [3.1s]
+#> * Target pipeline_sinan_RN [2.8s]  # executando em paralelo com CE
+#> * Target pipeline_sinan_PB [3.4s]
+#> * Target pipeline_sinan_PE [3.0s]  # executando em paralelo com PB
+#> * Target pipeline_sinan_AL [2.5s]
+#> v Execucao targets concluida em 7.2s (vs ~14s sequencial).
+```
+
+```{=html}
+<div class="callout callout-note">
+**Control del plan de paralelismo:** `climasus4r` nunca define el plan `future` globalmente. Si usted ya definio `future::plan(multisession, workers = 8)` antes de llamar `sus_rap_make()`, ese plan sera respetado. El parametro `workers` en `sus_rap_make()` se usa solo cuando ningun plan personalizado esta activo.
+</div>
+```
+
+# Workflow con `targets` + `renv`
+
+Para máxima reproducibilidad, combine el cache inteligente de `targets` con la gestión de dependencias de `renv`. Esta combinación garantiza que tanto el **entorno de paquetes** como los **resultados intermedios** sean reproducibles:
+
+```{r renv-workflow}
+# 1. Inicializar renv e criar snapshot das dependencias
+renv::init()
+renv::snapshot()
+
+# 2. Gerar _targets.R com estrategia de branching adequada
+sus_rap_targets(
+  pipeline  = pipeline,
+  file_path = "_targets.R",
+  branching = "uf",
+  workers   = 4L
+)
+
+# 3. Executar o pipeline (usa o _targets.R gerado no passo anterior)
+sus_rap_make(rap, workers = 4L)
+
+# 4. Verificar status do pipeline a qualquer momento
+targets::tar_progress()   # status de cada alvo
+targets::tar_outdated()   # alvos desatualizados
+targets::tar_visnetwork() # grafo interativo de dependencias
+```
+
+```{=html}
+<div class="callout callout-note">
+**Para proyectos completos:** Use `sus_rap_template()` (RAP Tutorial 3) que crea automaticamente la estructura del proyecto con `renv`, `_targets.R`, Quarto y GitHub Actions en una sola llamada. Ideal para iniciar un proyecto desde cero con todas las buenas practicas ya configuradas.
+</div>
+```
+
+## Estructura recomendada de proyecto
+
+Un proyecto `climasus4r` con `targets` y `renv` bien organizado sigue esta estructura de directorios:
+
+```{r project-structure}
+# Estrutura recomendada de um projeto climasus4r + targets
+# meu_projeto_dengue/
+# ├── _targets.R              # gerado por sus_rap_targets()
+# ├── _targets/               # cache do targets (nao versionar no git)
+# ├── renv/                   # ambiente renv
+# ├── renv.lock               # snapshot das dependencias (versionar)
+# ├── R/
+# │   └── funcoes_aux.R       # funcoes auxiliares do projeto
+# ├── data/
+# │   └── dados_brutos/       # dados originais (nao versionar)
+# ├── output/
+# │   ├── figuras/
+# │   └── tabelas/
+# └── relatorio.Rmd           # relatorio final que carrega do cache
+```
+
+```{=html}
+<div class="callout callout-tip">
+**Git y cache:** Agregue `_targets/` a su `.gitignore`. El cache puede ocupar gigabytes y no debe versionarse. Lo que debe ir al git es el `_targets.R` (generado por `sus_rap_targets()`) y el `renv.lock` — estos dos archivos permiten que cualquier colaborador reproduzca los resultados desde cero.
+</div>
+```
+
+# Referencias
+
+- Landau WM (2021). The targets R package: a dynamic Make-like function-oriented pipeline toolkit for reproducibility and high-performance computing. *Journal of Open Source Software*, 6(57), 2959. <https://doi.org/10.21105/joss.02959>
+
+- Marwick B, Boettiger C, Mullen L (2018). Packaging data analytical work reproducibly using R (and friends). *The American Statistician*, 72(1), 80–88. <https://doi.org/10.1080/00031305.2017.1375986>
+
+---
+
+**Navegación:**
+[Anterior: RAP 1 - Exportar y Ejecutar](rap-01-exportar-executar.html) | [Siguiente: RAP 3 - Compartir y Scaffolding](rap-03-compartilhar.html)
+
+```{=html}
+<div style="text-align: center; margin-top: 3rem; padding-top: 2rem; border-top: 2px solid #e1e1e1;">
+
+<p><strong>climasus4r</strong> · Analisis integrado salud-clima-ambiente en Brasil</p>
+
+<p>¿Encontró un problema o tiene sugerencias para este tutorial?</p>
+
+<a href="https://github.com/ByMaxAnjos/climasus4r/issues" class="github-feedback-btn" target="_blank">
+  &#x1F41B; Reportar en GitHub
+</a>
+
+</div>
+```

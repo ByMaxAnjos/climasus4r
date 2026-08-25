@@ -1,0 +1,1333 @@
+---
+title: "Heatwave Detection and Visualization"
+subtitle: "INMET → Gap-Filling → Indicators → Heatwaves Pipeline | `sus_climate_compute_heatwaves()` and `sus_climate_plot_heatwaves()`"
+author:
+  - name: "Dr. Max Anjos"
+  - name: "Thauã Menezes"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{css, echo=FALSE}
+/* ── Variáveis de Cores Modernas ────────────────── */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 18px;
+  color: var(--text-main);
+  background-color: #fff;
+  line-height: 1.6;
+}
+
+/* ── Títulos com Inter-spacing ─────────────────── */
+h1, h2, h3, h4 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  color: var(--dark-green);
+}
+
+h1.title {
+  font-size: 2.8em;
+  border-bottom: 4px solid var(--primary-color);
+  padding-bottom: 10px;
+  margin-bottom: 1.5rem;
+}
+
+h2 {
+  margin-top: 2rem;
+  border-left: 4px solid var(--primary-color);
+  padding-left: 1rem;
+}
+
+/* ── Code Blocks Estilizados ────────────────────── */
+pre.r, pre.sourceCode {
+  background-color: var(--code-bg);
+  border: 1px solid #e1e1e1;
+  border-left: 5px solid var(--primary-color) !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  padding: 1rem;
+}
+
+/* ── Custom Callouts (Estilo Quarto) ────────────── */
+.callout {
+  padding: 1.2em 1.5em;
+  margin: 1.5em 0;
+  border-radius: 8px;
+  border-left: 6px solid;
+  background-color: var(--bg-light);
+}
+
+.callout-note {
+  background-color: #f0f7ff;
+  border-color: #007bff;
+}
+
+.callout-tip {
+  background-color: #e8f5e9;
+  border-color: #1D9E75;
+}
+
+.callout-warning {
+  background-color: #fff3e0;
+  border-color: #ff9800;
+}
+
+.callout-info {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+}
+
+/* ── Workflow container ─────────────────────────── */
+.workflow-container {
+  background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  border: 1px solid #dce8e1;
+  overflow-x: auto;
+}
+
+.workflow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'Inter', monospace;
+  font-size: 0.8rem;
+}
+
+.workflow-step {
+  background: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.workflow-arrow {
+  color: var(--primary-color);
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+/* ── Feature cards ───────────────────────────────── */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.feature-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e1e1e1;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-align: center;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.feature-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+  margin-top: 0;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
+
+.feature-card p {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  margin-bottom: 0;
+}
+
+/* ── Table styling ───────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+th {
+  background-color: var(--bg-light);
+  font-weight: 600;
+  color: var(--dark-green);
+}
+
+tr:hover {
+  background-color: var(--bg-light);
+}
+
+/* ── Figure styling ─────────────────────────────── */
+.figure {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.figure img {
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  max-width: 100%;
+  height: auto;
+}
+
+.figure .caption {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* ── Botão GitHub aprimorado ───────────────────── */
+.github-feedback-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #24292e;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-family: sans-serif;
+  transition: background-color 0.2s;
+  margin-top: 1rem;
+}
+
+.github-feedback-btn:hover {
+  background-color: #2c3e50;
+  color: white;
+  text-decoration: none;
+}
+
+/* ── Responsive ─────────────────────────────────── */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+
+  h1.title {
+    font-size: 2rem;
+  }
+
+  .workflow-steps {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .workflow-arrow {
+    transform: rotate(90deg);
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  th, td {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-card,
+  .github-feedback-btn {
+    transition: none;
+  }
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo      = TRUE,
+  eval      = FALSE,
+  warning   = FALSE,
+  message   = FALSE,
+  comment   = "#>",
+  fig.align = "center",
+  out.width = "90%",
+  fig.retina = 2
+)
+```
+
+------------------------------------------------------------------------
+
+# Introduction
+
+Heatwaves are among the most relevant extreme climate events for public health, especially in a context of global warming, accelerated urbanization, and increasing socio-environmental vulnerability. These events are characterized by persistent periods of abnormally elevated temperatures relative to a location's climatological baseline, and can directly affect thermal comfort, demand for health services, and mortality and morbidity from heat-sensitive causes.
+
+In Brazil, recent episodes of extreme heat have highlighted the need for tools capable of identifying, quantifying, and visualizing heatwaves in a standardized and reproducible way. This need is even more important in studies applied to the Brazilian Unified Health System (SUS), in which the integration of meteorological data, environmental indicators, and health outcomes allows researchers to investigate risk patterns, support alert systems, and back environmental health surveillance strategies.
+
+The `climasus4r` package provides an integrated pipeline that spans from downloading hourly meteorological data from INMET, through gap-filling, computing climate indicators, detecting heatwaves, and visualizing the events. In this tutorial, we present each step of this process with practical examples, highlighting not only the execution of the functions but also the climatological, epidemiological, and operational interpretation of the results.
+
+
+::: {.callout .callout-note}
+**Note on reproducibility:** The whole pipeline is deterministic — given
+the same INMET data period and the same parameters, the results are
+identical across runs. Code chunks marked with `eval = FALSE` require
+an internet connection for the download step (INMET) and may take a
+few minutes depending on the requested period.
+:::
+
+## What is a heatwave?
+
+There is no single, universally accepted definition of a heatwave. In general, a heatwave can be understood as a period of abnormal, intense, and persistent heat, in which the observed temperature exceeds a given reference threshold for several consecutive days. This threshold can be defined in absolute terms, as a fixed temperature, or in relative terms, as a high percentile of the historical temperature distribution of a given region.
+
+This distinction matters because the impact of heat depends on the local climatic context. A temperature considered extreme in a city with a milder climate may be relatively common in tropical or semi-arid regions. For this reason, many studies use percentile-based thresholds, such as the 90th or 95th percentile, allowing the definition of extreme heat to be adapted to the climatology of each location.
+
+In general, most heatwave definitions combine two main components:
+
+1.  **Temperature threshold** — the temperature (or thermal comfort
+    index) must exceed a certain critical value, typically defined as
+    a high percentile of the historical distribution (P90, P95) or as
+    a fixed deviation from the climatological mean.
+2.  **Minimum duration** — the extreme condition must persist for at
+    least N consecutive days (commonly 3 or 5 days), distinguishing
+    sustained events from isolated spikes.
+
+The absence of consensus is not an operational limitation: `climasus4r`
+implements the seven most widely used definitions in the literature
+(Table 1), enabling sensitivity analyses and inter-method comparisons.
+
+::: {.callout .callout-tip}
+**Why compare methods?** In tropical and subtropical regions such as
+Brazil, the INMET method — calibrated for the national climatic
+reality — tends to detect events that generic percentile-based methods
+may underestimate. On the other hand, thermal comfort indices such as
+UTCI and WBGT capture the physiological perception of heat more
+completely than air temperature alone. Comparing results across
+methods is good sensitivity-analysis practice.
+:::
+
+## Pipeline overview
+
+:::: workflow-container
+::: workflow-steps
+[1. sus_climate_inmet()]{.workflow-step} [→]{.workflow-arrow} [2.
+sus_climate_fill_inmet()]{.workflow-step} [→]{.workflow-arrow} [3.
+sus_climate_compute_indicators()]{.workflow-step} [→]{.workflow-arrow}
+[4. sus_climate_compute_heatwaves()]{.workflow-step}
+[→]{.workflow-arrow} [5. sus_climate_plot_heatwaves()]{.workflow-step}
+:::
+::::
+
+Each step takes the output of the previous one and adds information.
+The function `sus_climate_compute_heatwaves()` expects **hourly** data
+with standardized temperature and thermal comfort index columns —
+exactly what `sus_climate_compute_indicators()` produces.
+
+------------------------------------------------------------------------
+
+# Environment setup
+
+```{r instalacao, eval=FALSE}
+# Instalar climasus4r (GitHub) se necessário
+# install.packages("remotes")
+# remotes::install_github("MaxAnjos/climasus4r")
+
+library(climasus4r)
+library(dplyr)
+```
+
+::: {.callout .callout-warning}
+**Optional dependencies:** The visualization functions require
+`ggplot2`, `ggsci`, and `plotly`. For interactive plots, also install
+`htmlwidgets`. The climate indicators step requires `slider` (sliding
+windows) and `jsonlite`.
+
+``` r
+install.packages(c("ggplot2", "ggsci", "plotly", "htmlwidgets", "slider", "jsonlite"))
+```
+:::
+
+------------------------------------------------------------------------
+
+# Step 1 — Climate data acquisition (INMET)
+
+## The INMET station network
+
+The Brazilian National Institute of Meteorology (INMET) operates the
+largest network of automatic weather stations in Brazil, with coverage
+in every state. The data are provided as CSV files at hourly
+resolution and include air temperature (dry bulb, maximum, minimum),
+relative humidity, wind speed and direction, atmospheric pressure, and
+precipitation.
+
+The function `sus_climate_inmet()` automates the download, parsing, and
+standardization of these files into an analysis-ready format.
+
+## Main parameters
+
+```{r inmet-args, eval=FALSE}
+# Estrutura da chamada completa
+df_inmet <- sus_climate_inmet(
+  years        = 2010:2023,   # Vetor de anos
+  uf           = "RN",        # UF (sigla) para filtrar estações
+  station_code = NULL,        # Código(s) específico(s) de estação (opcional)
+  use_cache    = TRUE,        # Reutilizar arquivos já baixados
+  cache_dir    = "~/.climasus4r_cache/climate",
+  parallel     = TRUE,        # Download paralelo
+  workers      = 4,           # Número de workers
+  lang         = "pt",
+  verbose      = TRUE
+)
+```
+
+| Parameter | Type | Description |
+|---------------------------|------------------|---------------------------|
+| `years` | integer or vector | Years to download (e.g., `2010:2023`) |
+| `uf` | character | State abbreviation to filter stations (e.g., `"RN"`, `"SP"`) |
+| `station_code` | character | Specific INMET station code(s) (e.g., `"A304"`) |
+| `use_cache` | logical | If `TRUE`, reuses files already downloaded in `cache_dir` |
+| `parallel` | logical | Enables parallel download via `furrr`/`future` |
+| `workers` | integer | Number of workers for parallel execution |
+
+## Example: Natal (RN) station
+
+In this tutorial, we use data from the automatic weather station of
+Natal (INMET code A304), in Rio Grande do Norte — a Brazilian
+Northeastern state with a semi-arid climate and a history of intense
+heatwaves.
+
+```{r download-inmet, eval=FALSE}
+# Download de dados horários (2010–2023)
+# A primeira execução pode levar alguns minutos; execuções subsequentes usam cache.
+df_inmet <- sus_climate_inmet(
+  years        = 2010:2023,
+  station_code = "A304",   # Natal - RN
+  use_cache    = TRUE,
+  lang         = "pt",
+  verbose      = TRUE
+)
+
+# Inspecionar estrutura
+glimpse(df_inmet)
+```
+
+The output is a `data.frame` with hourly resolution and columns
+standardized by `climasus4r`:
+
+```{r estrutura-inmet, eval=TRUE, echo=FALSE}
+# Colunas típicas do output de sus_climate_inmet()
+cat(
+  "Rows: ~122,640  (14 anos × 365 dias × 24 horas)\n",
+  "Columns: ~20\n\n",
+  "$ date               <POSIXct>  2010-01-01 00:00:00, 2010-01-01 01:00:00 ...\n",
+  "$ station_code       <chr>      'A304', 'A304', ...\n",
+  "$ station_name       <chr>      'NATAL', 'NATAL', ...\n",
+  "$ federal_unit       <chr>      'RN', 'RN', ...\n",
+  "$ region             <chr>      'Nordeste', 'Nordeste', ...\n",
+  "$ latitude           <dbl>      -5.84, -5.84, ...\n",
+  "$ longitude          <dbl>      -35.21, -35.21, ...\n",
+  "$ tair_dry_bulb_c    <dbl>      28.4, 27.9, ...\n",
+  "$ tair_max_c         <dbl>      29.1, 28.6, ...\n",
+  "$ tair_min_c         <dbl>      27.8, 27.3, ...\n",
+  "$ rh_pct             <dbl>      82.0, 84.0, ...\n",
+  "$ wind_speed_ms      <dbl>      3.2, 2.8, ...\n",
+  "$ precip_mm          <dbl>      0.0, 0.0, ...\n"
+)
+```
+
+::: {.callout .callout-info}
+**Data source:** The raw data are CSV files publicly provided by
+INMET at `https://portal.inmet.gov.br/dadoshistoricos`. `climasus4r`
+automatically parses each annual file, applies quality control, and
+standardizes the column names. No interpolation or modification of
+values is performed at this stage.
+:::
+
+------------------------------------------------------------------------
+
+# Step 2 — Gap-filling
+
+## The problem of gaps in hourly series
+
+Automatic INMET stations frequently show gaps caused by transmission
+failures, equipment maintenance, or extreme climate events. The
+presence of missing values (`NA`) in temperature columns can prevent
+the computation of thermal comfort indices and compromise the
+percentile estimates used in heatwave detection.
+
+The function `sus_climate_fill_inmet()` implements intelligent gap
+filling based on regression models trained on correlated meteorological
+covariates (air temperature, relative humidity, wind speed, hour of
+day, seasonality). Filling is performed variable by variable and
+respects a maximum gap threshold (`gap_percentage`): if the proportion
+of missing values in a given series exceeds this threshold, the
+station is flagged as low quality and no filling is applied.
+
+## Main parameters
+
+```{r fill-args, eval=FALSE}
+df_filled <- sus_climate_fill_inmet(
+  df               = df_inmet,
+  target_var       = "tair_dry_bulb_c",  # Variável a preencher
+  datetime_col     = NULL,     # Detectado automaticamente
+  station_col      = NULL,     # Detectado automaticamente
+  quality_threshold = 0.4,    # Máximo de NAs para aceitar a série (40%)
+  run_evaluation   = FALSE,   # Se TRUE: avalia métricas de ajuste
+  gap_percentage   = 0.2,     # Intervalo máximo de gap contínuo a preencher (20%)
+  keep_features    = FALSE,   # Manter covariáveis auxiliares no output
+  parallel         = TRUE,
+  workers          = NULL,    # NULL = detectar automaticamente
+  verbose          = TRUE,
+  lang             = "pt"
+)
+```
+
+## Filling the complete dataset
+
+In practice, we apply gap-filling to each relevant temperature and
+humidity variable before computing thermal comfort indicators:
+
+```{r fill-pipeline, eval=FALSE}
+# Preencher temperatura do ar (bulbo seco)
+df_filled <- sus_climate_fill_inmet(
+  df         = df_inmet,
+  target_var = "tair_dry_bulb_c",
+  lang       = "pt",
+  verbose    = TRUE
+)
+
+# Preencher temperatura máxima e mínima
+df_filled <- sus_climate_fill_inmet(df_filled, target_var = "tair_max_c",  lang = "pt")
+df_filled <- sus_climate_fill_inmet(df_filled, target_var = "tair_min_c",  lang = "pt")
+
+# Preencher umidade relativa (necessária para UTCI, WBGT, HI)
+df_filled <- sus_climate_fill_inmet(df_filled, target_var = "rh_pct",       lang = "pt")
+
+# Verificar proporção de NAs remanescentes
+df_filled |>
+  summarise(
+    n_total    = n(),
+    na_tmax    = mean(is.na(tair_max_c)),
+    na_tmin    = mean(is.na(tair_min_c)),
+    na_tair    = mean(is.na(tair_dry_bulb_c)),
+    na_rh      = mean(is.na(rh_pct))
+  )
+```
+
+::: {.callout .callout-warning}
+**Good practice:** Always apply `sus_climate_fill_inmet()` before
+`sus_climate_compute_heatwaves()`. The detection function issues a
+warning (`cli_warn`) if it finds `NA`s in the temperature columns, but
+it does **not** fill them automatically — that decision is left to the
+analyst, since different imputation strategies can influence the
+results.
+:::
+
+------------------------------------------------------------------------
+
+# Step 3 — Computing climate indicators
+
+## Why go beyond air temperature?
+
+Air temperature (dry bulb) is the most widely available meteorological
+variable, but it is not the best proxy for human thermal stress. The
+human body responds to the thermal environment resulting from the
+combination of temperature, humidity, solar radiation, and wind speed.
+Thermal comfort indices integrate these four factors and allow a more
+realistic estimate of the physiological perception of heat.
+
+The function `sus_climate_compute_indicators()` computes the main
+indices used in the heatwave detection methodologies implemented in
+`climasus4r`:
+
+::::::: feature-grid
+::: feature-card
+```
+<div class="feature-icon">🌡️</div>
+<h3>UTCI</h3>
+<p><strong>Universal Thermal Climate Index.</strong> The ISO 15743 reference biometeorological model. Integrates temperature, humidity, wind, and radiation into a physiological equivalent temperature (°C).</p>
+```
+:::
+
+::: feature-card
+```
+<div class="feature-icon">💧</div>
+<h3>WBGT</h3>
+<p><strong>Wet Bulb Globe Temperature.</strong> An operational index widely used in occupational health and sports. Combines wet-bulb temperature, black-globe temperature, and dry-bulb air temperature.</p>
+```
+:::
+
+::: feature-card
+```
+<div class="feature-icon">🥵</div>
+<h3>HI</h3>
+<p><strong>Heat Index.</strong> Apparent temperature computed from dry-bulb temperature and relative humidity. Indicates how heat is perceived by the general population.</p>
+```
+:::
+:::
+
+::: feature-card
+```
+<div class="feature-icon">🌿</div>
+<h3>PET</h3>
+<p><strong>Physiological Equivalent Temperature.</strong> The temperature of a reference environment with the same heat exchanges as the body. Frequently used in urban comfort studies.</p>
+```
+:::
+:::::::
+
+## Function call
+
+```{r compute-indicators, eval=FALSE}
+df_indicators <- sus_climate_compute_indicators(
+  df                   = df_filled,
+  indicators           = "all",      # Calcular todos os indicadores disponíveis
+  region               = "auto",     # Detectar região automaticamente por metadados
+  apply_validity_mask  = TRUE,       # Mascarar valores fora dos limites físicos
+  verify_physics       = TRUE,       # Verificar consistência física
+  keep_source_vars     = TRUE,       # Manter variáveis originais no output
+  verbose              = TRUE,
+  lang                 = "pt"
+)
+
+# Verificar colunas adicionadas
+names(df_indicators) |> grep("utci|wbgt|hi_c|pet", x = _, value = TRUE)
+```
+
+After this step, the `data.frame` contains the additional columns
+needed for heatwave detection using the UTCI, WBGT, and HI methods:
+
+| New column           | Index                 | Unit |
+|-----------------------|------------------------|---------|
+| `utci_c`              | UTCI                   | °C      |
+| `wbgt_c`              | WBGT                   | °C      |
+| `hi_c`                | Heat Index             | °C      |
+| `pet_c`               | PET                    | °C      |
+| `utci_c_flag_extreme` | Hours with UTCI \> 38°C | logical  |
+| `wbgt_c_flag_extreme` | Hours with WBGT \> 32°C | logical  |
+| `hi_c_flag_extreme`   | Hours with HI \> 51°C   | logical  |
+
+------------------------------------------------------------------------
+
+# Step 4 — Heatwave detection
+
+## The `sus_climate_compute_heatwaves()` function
+
+This is the central function of the `climasus4r` climate module. It
+takes hourly data (the output of `sus_climate_compute_indicators()`),
+aggregates it to daily scale, computes seasonally-varying historical
+percentile thresholds (using a ±15-day sliding window around each day
+of the year), applies each selected detection methodology, and returns
+a structured list with three components.
+
+### Full signature
+
+```{r hw-signature, eval=FALSE}
+hw_result <- sus_climate_compute_heatwaves(
+  data           = df_indicators,   # Output de sus_climate_compute_indicators()
+  method         = c("WHO", "WMO", "INMET", "EHF", "UTCI", "WBGT", "HI"),
+  baseline_start = "2010-01-01",    # Início do período de referência
+  baseline_end   = "2020-12-31",    # Fim do período de referência
+  percentile     = 90,              # Percentil para limiares (P90 por padrão)
+  min_duration   = NULL,            # NULL = usar defaults por método
+  lang           = "pt",
+  verbose        = TRUE
+)
+```
+
+## Implemented methodologies
+
+Table 1 presents the seven implemented methodologies, including the
+base variable, the threshold criterion, and the default minimum
+duration.
+
+**Table 1 — Heatwave detection methodologies implemented in
+`sus_climate_compute_heatwaves()`**
+
+| Method | Base variable | Threshold criterion | Minimum duration | Reference |
+|--------------|--------------|----------------|--------------|--------------|
+| **WHO** | Daily Tmax | Tmax \> P90(Tmax) | 3 days | WMO & WHO (2015) |
+| **WMO** | Daily Tmax and Tmin | Tmax \> P90(Tmax) **AND** Tmin \> P90(Tmin) | 5 days | Perkins & Alexander (2013) |
+| **INMET** | Daily Tmax | Tmax \> historical mean + 5°C | 5 days | INMET (2009) |
+| **EHF** | Daily Tmean | EHF \> 0 (composite formula; see below) | 3 days | Nairn & Fawcett (2015) |
+| **UTCI** | Daily UTCImax | UTCImax \> P90(UTCImax) | 3 days | Broede et al. (2012) |
+| **WBGT** | Daily WBGTmax | WBGTmax \> P90(WBGTmax) | 3 days | Liljegren et al. (2008) |
+| **HI** | Daily HImax | HImax \> P90(HImax) | 3 days | Steadman (1979) |
+
+::: {.callout .callout-info}
+**Seasonal smoothing of percentiles:** For all percentile-based
+methods, `climasus4r` uses a ±15-day sliding window around each day of
+the year (computed over the reference period), rather than a fixed
+percentile computed over the whole series. This approach, recommended
+by Fischer & Schär (2010), eliminates seasonal bias and ensures that
+the same level of relative extremeness is detected at any time of
+year.
+:::
+
+### Foundations of the Excess Heat Factor (EHF)
+
+The EHF (Nairn & Fawcett, 2015) is the only method that does not use
+direct percentiles of the base variable. It combines two components:
+
+$$\text{EHF} = \text{EHI}_{sig} \times \max(1, \text{EHI}_{acc})$$
+
+Where:
+
+-   **EHI_sig** (significance index): $\bar{T}_3 - T_{95}$, measures
+    how much the mean temperature of the last 3 days exceeds the
+    climatological 95th percentile of the mean temperature. Captures
+    the absolute magnitude of the heat.
+-   **EHI_acc** (acclimatization index): $\bar{T}_3 - \bar{T}_{30}$,
+    measures how much the mean temperature of the last 3 days exceeds
+    the mean of the previous 30 days. Captures the rate of warming and
+    the population's acclimatization capacity.
+
+Days with EHF \> 0 are classified as heatwave days. Event intensity is
+classified into three categories based on the 85th percentile (EHF85)
+of all positive EHF values observed at the station:
+
+-   **Low Intensity Heatwave (LIHW):** 0 \< EHF_peak \< EHF85
+-   **Severe (SHW):** EHF85 ≤ EHF_peak \< 3 × EHF85
+-   **Extreme (EHW):** EHF_peak ≥ 3 × EHF85
+
+### INMET method: calibration for Brazil
+
+The INMET method defines a heatwave when the daily maximum temperature
+exceeds the **climatological mean of the maximum temperature by at
+least 5°C** for 5 or more consecutive days (INMET, 2009). The
+climatological mean is computed over the reference period defined by
+the user (1981–2010 or 1991–2020 is recommended, depending on data
+availability).
+
+This criterion is particularly suitable for the Brazilian tropical and
+subtropical context, where absolute temperature values are already
+high and the health impact is more closely associated with the
+deviation from the local norm than with the absolute value.
+
+## Running the detection
+
+### Example 1: air-temperature-based methods
+
+```{r hw-temperature-methods, eval=FALSE}
+# Métodos que requerem apenas temperatura do ar (Tmax, Tmin, Tmean)
+hw_temp <- sus_climate_compute_heatwaves(
+  data           = df_indicators,
+  method         = c("WHO", "WMO", "INMET", "EHF"),
+  baseline_start = "2010-01-01",
+  baseline_end   = "2020-12-31",
+  percentile     = 90,
+  lang           = "pt",
+  verbose        = TRUE
+)
+```
+
+### Example 2: all methods (including comfort indices)
+
+```{r hw-all-methods, eval=FALSE}
+# Todos os métodos — requer colunas utci_c, wbgt_c, hi_c
+hw_all <- sus_climate_compute_heatwaves(
+  data           = df_indicators,
+  method         = "all",          # Equivale a c("WHO","WMO","INMET","EHF","UTCI","WBGT","HI")
+  baseline_start = "2010-01-01",
+  baseline_end   = "2020-12-31",
+  percentile     = 90,
+  lang           = "pt",
+  verbose        = TRUE
+)
+```
+
+### Example 3: customizing the percentile and minimum duration
+
+```{r hw-custom-params, eval=FALSE}
+# Critério mais conservador: P95 e mínimo de 5 dias para todos os métodos
+hw_strict <- sus_climate_compute_heatwaves(
+  data           = df_indicators,
+  method         = c("WHO", "INMET"),
+  baseline_start = "2010-01-01",
+  baseline_end   = "2020-12-31",
+  percentile     = 95,       # Limiar mais alto → menos eventos, mais intensos
+  min_duration   = 5,        # Substitui os defaults por método
+  lang           = "pt",
+  verbose        = TRUE
+)
+```
+
+::: {.callout .callout-tip}
+**Sensitivity analysis:** We recommend running the detection with
+different combinations of percentile (P85, P90, P95) and minimum
+duration (3, 5, 7 days) and comparing the number of detected events.
+This allows the robustness of the epidemiological results to be
+assessed against methodological choices.
+:::
+
+## Output structure
+
+The function returns a named list with three components:
+
+```{r hw-output-structure, eval=FALSE}
+# Inspecionar o output
+names(hw_all)
+#> [1] "events"  "daily"   "summary"
+```
+
+### `$events` — event table
+
+A `data.frame` with one row per detected heatwave event. Each row
+represents a continuous episode of days with the heatwave condition
+active for a given method and station.
+
+```{r hw-events, eval=FALSE}
+# Primeiros eventos detectados
+head(hw_all$events)
+```
+
+| Column | Type | Description |
+|-----------------------|------------------|-------------------------------|
+| `event_id` | character | Unique identifier: `<station>_<method>_<N>` |
+| `station_code` | character | INMET station code |
+| `method` | character | Detection method (WHO, WMO, etc.) |
+| `start_date` | Date | Event start date |
+| `end_date` | Date | Event end date |
+| `duration_days` | integer | Duration in consecutive days |
+| `temp_mean` | double | Mean temperature over the period (method-specific variable) |
+| `temp_peak` | double | Maximum temperature over the period |
+| `anomaly_mean` | double | Mean anomaly (temperature - threshold) |
+| `anomaly_cumulative` | double | Cumulative anomaly over the event |
+| `severity_index` | double | Severity index: duration × mean anomaly |
+| `ehf_peak` | double | Peak EHF (EHF method only; NA for others) |
+| `ehf_mean` | double | Mean EHF during the event (EHF only) |
+| `intensity_class` | character | Classification: Low, Severe, Extreme (EHF only) |
+| `region` | character | Geographic region of the station |
+| `federal_unit` | character | State (UF) of the station |
+
+```{r hw-events-filter, eval=FALSE}
+# Filtrar os 10 eventos mais severos pelo índice de severidade
+hw_all$events |>
+  arrange(desc(severity_index)) |>
+  select(event_id, method, start_date, end_date, duration_days,
+         temp_peak, anomaly_mean, severity_index) |>
+  head(10)
+```
+
+```{r hw-events-count, eval=FALSE}
+# Contar eventos por método
+hw_all$events |>
+  count(method, name = "n_eventos") |>
+  arrange(desc(n_eventos))
+```
+
+### `$daily` — daily series with flags
+
+The daily `data.frame` contains one row per station per day, with
+aggregated variables and logical columns (`TRUE`/`FALSE`) indicating
+whether that day belongs to a heatwave under each method:
+
+```{r hw-daily, eval=FALSE}
+# Inspecionar colunas de flags
+hw_all$daily |>
+  select(station_code, date_day, tmax, tmean, starts_with("hw_")) |>
+  head(10)
+```
+
+The `hw_any` column is `TRUE` if **any** method detected a heatwave on
+that day — useful for exposure analyses without committing to a single
+criterion.
+
+```{r hw-daily-any, eval=FALSE}
+# Dias com onda de calor ativa por pelo menos um método
+hw_all$daily |>
+  filter(hw_any == TRUE) |>
+  select(date_day, tmax, tmean, hw_who, hw_inmet, hw_ehf, hw_utci) |>
+  head(20)
+```
+
+```{r hw-daily-concordancia, eval=FALSE}
+# Concordância entre métodos: proporção de dias classificados por cada um
+hw_all$daily |>
+  summarise(
+    pct_who   = mean(hw_who,   na.rm = TRUE) * 100,
+    pct_wmo   = mean(hw_wmo,   na.rm = TRUE) * 100,
+    pct_inmet = mean(hw_inmet, na.rm = TRUE) * 100,
+    pct_ehf   = mean(hw_ehf,   na.rm = TRUE) * 100,
+    pct_utci  = mean(hw_utci,  na.rm = TRUE) * 100,
+    pct_wbgt  = mean(hw_wbgt,  na.rm = TRUE) * 100,
+    pct_hi    = mean(hw_hi,    na.rm = TRUE) * 100,
+    pct_any   = mean(hw_any,   na.rm = TRUE) * 100
+  )
+```
+
+### `$summary` — annual summary
+
+The annual summary aggregates statistics by station, method, and year,
+serving as the natural entry point for temporal trend analyses:
+
+```{r hw-summary, eval=FALSE}
+# Resumo anual
+hw_all$summary |>
+  filter(method == "INMET") |>
+  select(year, station_code, n_events, total_days_hw,
+         mean_duration, max_duration, mean_anomaly, severity_total) |>
+  arrange(desc(year))
+```
+
+| Column           | Description                                         |
+|------------------|---------------------------------------------------|
+| `year`           | Year                                               |
+| `station_code`   | Station code                                 |
+| `method`         | Detection method                                 |
+| `n_events`       | Number of events in the year                          |
+| `total_days_hw`  | Total heatwave days in the year             |
+| `mean_duration`  | Mean event duration (days)                  |
+| `max_duration`   | Duration of the longest event (days)               |
+| `mean_intensity` | Mean temperature during events                     |
+| `max_intensity`  | Peak temperature during events                   |
+| `mean_anomaly`   | Mean anomaly during events                   |
+| `severity_total` | Sum of the severity indices of the year's events |
+
+------------------------------------------------------------------------
+
+# Step 5 — Heatwave visualization
+
+## The `sus_climate_plot_heatwaves()` function
+
+Visualization turns the structured output of
+`sus_climate_compute_heatwaves()` into interpretable plots. The
+function offers four types of visualization, each answering a
+different analytical question:
+
+::::::: feature-grid
+::: feature-card
+```
+<div class="feature-icon">📅</div>
+<h3>timeline</h3>
+<p>A Gantt chart showing the timing, duration, and intensity of each event. Ideal for comparing events across methods and stations.</p>
+```
+:::
+
+::: feature-card
+```
+<div class="feature-icon">🗓️</div>
+<h3>calendar</h3>
+<p>A calendar heatmap displaying the daily occurrence of heatwaves across the months. Reveals seasonal patterns and intra-annual distribution.</p>
+```
+:::
+
+::: feature-card
+```
+<div class="feature-icon">⚡</div>
+<h3>intensity</h3>
+<p>A duration × peak-temperature scatter plot, with points colored by intensity class. Distinguishes long events from hot events.</p>
+```
+:::
+
+::: feature-card
+```
+<div class="feature-icon">📈</div>
+<h3>trend</h3>
+<p>Grouped bars showing the number of events per year and method. Allows long-term trends in heatwave frequency to be identified.</p>
+```
+:::
+:::::::
+
+### Full signature
+
+```{r plot-signature, eval=FALSE}
+p <- sus_climate_plot_heatwaves(
+  hw_result     = hw_all,          # Output de sus_climate_compute_heatwaves()
+  type          = "timeline",      # "timeline" | "calendar" | "intensity" | "trend"
+  station_code  = NULL,            # Filtrar por estação específica
+  method        = NULL,            # Filtrar por método (ex.: "INMET", "EHF")
+  year          = NULL,            # Filtrar por ano (útil para "calendar")
+  interactive   = TRUE,            # TRUE = plotly; FALSE = ggplot2 estático
+  color_palette = "npg",           # Paleta ggsci: "npg", "lancet", "jama", etc.
+  lang          = "pt",            # "pt" | "en" | "es"
+  save_plot     = NULL             # Caminho para salvar (HTML ou PNG)
+)
+```
+
+| Parameter | Options | Effect |
+|-----------------------------|----------------------|----------------------|
+| `type` | `"timeline"`, `"calendar"`, `"intensity"`, `"trend"` | Chart type |
+| `interactive` | `TRUE` (plotly), `FALSE` (ggplot2) | Interactivity |
+| `color_palette` | any palette from the `ggsci` package | Color scheme |
+| `lang` | `"pt"`, `"en"`, `"es"` | Label language |
+| `save_plot` | `.html` or `.png` path | Save the chart to disk |
+
+## Plot 1: Timeline
+
+The timeline chart presents each event as a horizontal segment
+(Gantt-style), with thickness proportional to duration and color
+indicating the intensity class (relevant for EHF; for other methods,
+all events are classified as "unknown" in the intensity legend).
+
+```{r plot-timeline, eval=FALSE}
+# Linha do tempo de todos os eventos — todos os métodos
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "timeline",
+  interactive = TRUE,
+  lang        = "pt"
+)
+```
+
+```{r plot-timeline-inmet, eval=FALSE}
+# Filtrar apenas eventos pelo método INMET
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "timeline",
+  method      = "INMET",
+  interactive = TRUE,
+  lang        = "pt"
+)
+```
+
+```{r plot-timeline-static, eval=FALSE}
+# Versão estática para publicação
+p_timeline <- sus_climate_plot_heatwaves(
+  hw_result     = hw_all,
+  type          = "timeline",
+  method        = c("WHO", "INMET", "EHF"),
+  interactive   = FALSE,        # ggplot2 puro
+  color_palette = "lancet",     # Paleta Lancet (jornais biomédicos)
+  lang          = "pt",
+  save_plot     = "timeline_ondas_calor.png"  # Salvar em PNG
+)
+print(p_timeline)
+```
+
+**Interpretation:** Longer segments indicate longer-lasting events;
+the thickness visually reinforces the duration. Note that the WMO
+method (dual threshold: Tmax AND Tmin) tends to generate fewer, longer
+events than WHO (Tmax only), since it requires both day and night to
+be exceptionally hot.
+
+## Plot 2: Calendar
+
+The calendar displays each day of the year as a colored cell — red for
+heatwave days, gray for normal days. It is the most intuitive chart
+for communicating event seasonality to a non-technical audience.
+
+```{r plot-calendar-year, eval=FALSE}
+# Calendário para um ano específico — método WHO
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "calendar",
+  method      = "WHO",
+  year        = 2023,
+  interactive = TRUE,
+  lang        = "pt"
+)
+```
+
+```{r plot-calendar-any, eval=FALSE}
+# Calendário com hw_any (qualquer método) — todos os anos
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "calendar",
+  method      = NULL,          # NULL → usa hw_any (qualquer método)
+  interactive = FALSE,
+  lang        = "pt"
+)
+```
+
+**Interpretation:** Note the concentration of heatwave days in the
+austral summer months (December–March) in the Northeast. Years with
+multiple consecutive red blocks deserve special attention: in these
+periods, excess mortality in the SUS tends to be higher (Fiocruz,
+2025).
+
+## Plot 3: Intensity vs. duration
+
+This scatter plot places each event on the duration × peak-temperature
+plane. Coloring by EHF intensity class (when available) allows
+identification of events that combine long duration **and** high
+temperature — those with the greatest epidemiological risk.
+
+```{r plot-intensity-ehf, eval=FALSE}
+# Intensidade EHF (com classificação Low / Severe / Extreme)
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "intensity",
+  method      = "EHF",
+  interactive = TRUE,
+  lang        = "pt"
+)
+```
+
+```{r plot-intensity-all, eval=FALSE}
+# Todos os métodos juntos (sem classificação de intensidade EHF)
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "intensity",
+  method      = NULL,
+  interactive = FALSE,
+  lang        = "pt"
+)
+```
+
+**Interpretation:** Events in the upper right quadrant (long duration
++ high temperature) are the most dangerous from a public health
+standpoint. Events in the lower right quadrant (long duration +
+moderate temperature) can be equally dangerous for non-acclimatized
+populations. EHF captures this nuance through the EHI_acc
+(acclimatization) component, penalizing events that occur after an
+abnormally cold period.
+
+## Plot 4: Annual trend
+
+The trend chart shows the number of events detected per year for each
+method, allowing identification of whether heatwave frequency is
+increasing over the analyzed period — one of the main climate change
+scenario projections for Brazil.
+
+```{r plot-trend-all, eval=FALSE}
+# Tendência anual — todos os métodos
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "trend",
+  interactive = TRUE,
+  lang        = "pt"
+)
+```
+
+```{r plot-trend-subset, eval=FALSE}
+# Tendência apenas para WHO e INMET (comparação de sensibilidade)
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "trend",
+  method      = c("WHO", "INMET"),
+  interactive = FALSE,
+  lang        = "pt",
+  save_plot   = "tendencia_ondas_calor.png"
+)
+```
+
+**Interpretation:** If the frequency trend is increasing, this is
+consistent with regional warming. Compare patterns across methods:
+the INMET method tends to be more restrictive in regions that are
+already hot (since it requires +5°C above the historical mean), while
+percentile-based methods capture relative increases even in regions
+where absolute temperatures are elevated year-round.
+
+## Saving plots
+
+```{r save-plots, eval=FALSE}
+# Gráfico interativo → arquivo HTML autossuficiente
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "timeline",
+  interactive = TRUE,
+  lang        = "pt",
+  save_plot   = "ondas_calor_timeline.html"
+)
+
+# Gráfico estático → PNG de alta resolução (300 dpi)
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "trend",
+  interactive = FALSE,
+  lang        = "pt",
+  save_plot   = "ondas_calor_tendencia.png"   # ggsave com dpi=300
+)
+```
+
+------------------------------------------------------------------------
+
+# Advanced analysis of the results
+
+## Integrating events into the epidemiological calendar
+
+The `$daily` component with the `hw_any` column can be directly joined
+with SUS mortality and morbidity data to compute excess deaths and
+hospitalizations during heatwaves:
+
+```{r integracao-sus, eval=FALSE}
+# Exemplo conceitual: cruzamento com dados de mortalidade SIM
+# (após completar o pipeline de importação dos dados SIM)
+
+# 1. Preparar a série diária de mortalidade cardiovascular
+# df_sim_diario <- sus_data_aggregate(df_sim, by = "day") |>
+#   filter(cid_grupo == "I" | cid_grupo == "J")  # Cardiovascular + Respiratório
+
+# 2. Adicionar flag de onda de calor
+# df_analise <- df_sim_diario |>
+#   left_join(
+#     hw_all$daily |> select(date_day, hw_any, hw_inmet, tmax),
+#     by = c("date" = "date_day")
+#   )
+
+# 3. Comparar mortalidade em dias com/sem onda de calor
+# df_analise |>
+#   group_by(hw_any) |>
+#   summarise(
+#     n_dias       = n(),
+#     obitos_medio = mean(n_obitos, na.rm = TRUE),
+#     sd           = sd(n_obitos, na.rm = TRUE)
+#   )
+```
+
+## Exporting events for external analysis
+
+```{r export, eval=FALSE}
+# Exportar tabela de eventos para CSV
+write.csv(
+  hw_all$events,
+  file      = "eventos_ondas_calor_A304_2010_2023.csv",
+  row.names = FALSE,
+  fileEncoding = "UTF-8"
+)
+
+# Exportar resumo anual
+write.csv(
+  hw_all$summary,
+  file      = "resumo_anual_ondas_calor_A304.csv",
+  row.names = FALSE,
+  fileEncoding = "UTF-8"
+)
+```
+
+## Concordance analysis across methods
+
+```{r concordancia, eval=FALSE}
+# Proporção de dias classificados como onda de calor por N métodos simultaneamente
+hw_all$daily |>
+  mutate(
+    n_methods = rowSums(
+      across(c(hw_who, hw_wmo, hw_inmet, hw_ehf, hw_utci, hw_wbgt, hw_hi)),
+      na.rm = TRUE
+    )
+  ) |>
+  count(n_methods) |>
+  mutate(pct = round(n / sum(n) * 100, 1))
+```
+
+Concordance analysis answers a central question in environmental
+epidemiology: **on how many of the days classified as a heatwave is
+there consensus among methods?** High concordance increases confidence
+in the results; low concordance suggests that the health impact may
+vary significantly depending on the criterion adopted.
+
+------------------------------------------------------------------------
+
+# References
+
+**General concepts and percentile framework**
+
+-   Perkins, S.E. (2015). A review on the scientific understanding of
+    heatwaves — their measurement, driving mechanisms, and changes at
+    the global scale. *Atmospheric Research*, 164–165, 242–267.
+    <https://doi.org/10.1016/j.atmosres.2015.05.009>
+-   Perkins, S.E. & Alexander, L.V. (2013). On the measurement of heat
+    waves. *Journal of Climate*, 26(13), 4500–4517.
+-   Fischer, E.M. & Schär, C. (2010). Consistent geographical patterns
+    of changes in high-impact European heatwaves. *Nature Geoscience*,
+    3, 398–403.
+
+**WHO and WMO methods**
+
+-   WMO & WHO (2015). *Heatwaves and Health: Guidance on Warning-System
+    Development*. World Meteorological Organization, Geneva.
+-   WMO (2021). *Guidelines on the Definition and Monitoring of Extreme
+    Weather and Climate Events*. World Meteorological Organization.
+
+**INMET method**
+
+-   INMET — National Institute of Meteorology (2009). *Normais
+    Climatológicas do Brasil 1961–1990*. Brasília: MAPA/INMET.
+-   MCTI/Gov.br (2025). Heatwave reports in Brazil (online).
+
+**EHF (Excess Heat Factor)**
+
+-   Nairn, J.R. & Fawcett, R.J.B. (2015). The Excess Heat Factor: A
+    metric for heatwave intensity and its use in classifying heatwave
+    severity. *International Journal of Environmental Research and
+    Public Health*, 12(1), 227–253.
+    <https://doi.org/10.3390/ijerph120100227>
+
+**UTCI (Universal Thermal Climate Index)**
+
+-   Broede, P., Fiala, D., Blazejczyk, K., Holmer, I., Jendritzky, G.,
+    Kampmann, B., Tinz, B. & Havenith, G. (2012). Deriving the
+    operational procedure for the Universal Thermal Climate Index
+    (UTCI). *International Journal of Biometeorology*, 56(3), 481–494.
+    <https://doi.org/10.1007/s00484-011-0454-1>
+
+**WBGT (Wet Bulb Globe Temperature)**
+
+-   Liljegren, J.C., Carhart, R.A., Lawday, P., Tschopp, S. & Sharp, R.
+    (2008). Modeling the wet bulb globe temperature using standard
+    meteorological measurements. *Journal of Occupational and
+    Environmental Hygiene*, 5(10), 645–655.
+-   ISO 7243:2017. *Ergonomics of the thermal environment — Assessment
+    of heat stress using the WBGT index*. International Organization
+    for Standardization.
+
+**HI (Heat Index)**
+
+-   Steadman, R.G. (1979). The assessment of sultriness. Part I: A
+    temperature-humidity index based on human physiology and clothing
+    science. *Journal of Applied Meteorology*, 18(7), 861–873.
+-   Steadman, R.G. (1984). A universal scale of apparent temperature.
+    *Journal of Applied Meteorology and Climatology*, 23(12), 1674–1687.
+
+**SUS context and Brazilian public health**
+
+-   Fiocruz (2025). Excess cardiovascular mortality associated with
+    extreme heatwaves in Southeast Brazil, 2014–2023. *Cadernos de Saúde
+    Pública*.
+-   Observatório do Clima (2024). Excess mortality during heatwaves in
+    Brazilian urban areas (2000–2018).
+
+------------------------------------------------------------------------
+
+# Session information
+
+```{r session-info, eval=FALSE}
+sessionInfo()
+```
+
+------------------------------------------------------------------------
+
+::: {style="text-align: center; margin-top: 3rem; padding-top: 2rem; border-top: 2px solid #e1e1e1;"}
+**climasus4r** · Integrated health–climate–environment analysis in Brazil
+
+Found an issue or have suggestions for this tutorial?
+
+<a href="https://github.com/MaxAnjos/climasus4r/issues" class="github-feedback-btn" target="_blank">
+🐛 Report on GitHub </a>
+:::

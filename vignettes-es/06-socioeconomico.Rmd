@@ -1,0 +1,470 @@
+---
+title: "Tutorial 6: Vínculo de Datos Socioeconómicos"
+author: "Equipo climasus4r"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* -- Variaveis de Cores Modernas -- */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; color: var(--text-main); background-color: #fff; line-height: 1.6; }
+h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--dark-green); }
+h1.title { font-size: 2.8em; border-bottom: 4px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 1.5rem; }
+h2 { margin-top: 2rem; border-left: 4px solid var(--primary-color); padding-left: 1rem; }
+pre.r, pre.sourceCode { background-color: var(--code-bg); border: 1px solid #e1e1e1; border-left: 5px solid var(--primary-color) !important; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1rem; }
+.callout { padding: 1.2em 1.5em; margin: 1.5em 0; border-radius: 8px; border-left: 6px solid; background-color: var(--bg-light); }
+.callout-note { background-color: #f0f7ff; border-color: #007bff; }
+.callout-tip { background-color: #e8f5e9; border-color: #1D9E75; }
+.callout-warning { background-color: #fff3e0; border-color: #ff9800; }
+.workflow-container { background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #dce8e1; overflow-x: auto; }
+.workflow-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; font-family: 'Inter', monospace; font-size: 0.8rem; }
+.workflow-step { background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap; }
+.workflow-arrow { color: var(--primary-color); font-weight: bold; font-size: 1.2rem; }
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+.feature-card { background: white; border-radius: 12px; padding: 1.5rem; border: 1px solid #e1e1e1; transition: transform 0.2s ease, box-shadow 0.2s ease; text-align: center; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+.feature-card h3 { margin-top: 0; color: var(--primary-color); font-size: 1.1rem; }
+table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e1e1; }
+th { background-color: var(--bg-light); font-weight: 600; color: var(--dark-green); }
+.github-feedback-btn { display: inline-flex; align-items: center; gap: 8px; background-color: #24292e; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-family: sans-serif; transition: background-color 0.2s; margin-top: 1rem; }
+.github-feedback-btn:hover { background-color: #2c3e50; color: white; text-decoration: none; }
+@media (max-width: 768px) { body { font-size: 16px; } h1.title { font-size: 2rem; } .workflow-steps { flex-direction: column; align-items: center; } }
+```
+
+
+```{r setup, include=FALSE}
+# ATENCIÓN — estrategia de pre-renderización.
+# Este tutorial NO ejecuta descargas del censo durante la renderización. Todas las
+# figuras y tablas fueron generadas UNA vez por el script
+# scripts/tutorial_06_socioeconomico.R y aquí solo se cargan (PNG vía
+# include_graphics; RDS vía readRDS). Por eso, los chunks didácticos de abajo usan
+# eval = FALSE: el código se muestra, pero no se ejecuta en el momento del knit.
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+
+# Helpers para mostrar artefactos de forma robusta: si el archivo aún no fue
+# generado (script de generación no ejecutado), muestran una nota en vez de romper
+# el knit. Así la viñeta se renderiza en cualquier momento.
+fig_ou_nota <- function(path, nota) {
+  if (file.exists(path)) knitr::include_graphics(path)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+tbl_ou_nota <- function(path, nota, caption = NULL) {
+  if (file.exists(path)) knitr::kable(readRDS(path), caption = caption)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+.nota_gerar <- "Artefacto no disponible — ejecute `Rscript scripts/tutorial_06_socioeconomico.R` (desde la raíz del paquete) para generarlo."
+```
+
+# Objetivo
+
+Al final de este tutorial usted será capaz de **vincular variables del Censo
+Demográfico brasileño con los datos de salud ya espacializados** y **calcular
+indicadores socioeconómicos y epidemiológicos estandarizados**. Aprenderá a:
+
+- **descubrir** qué variables del censo están disponibles con
+  `sus_census_select()`;
+- **descargar y agregar** microdatos (o sectores) del censo a nivel
+  municipal y unirlos a los datos de salud con `sus_census_join()` (mediante
+  el paquete `censobr`);
+- **calcular** indicadores como envejecimiento, dependencia y cobertura de
+  saneamiento — con **intervalos de confianza** — usando
+  `sus_socio_compute_indicators()`;
+- **consultar** el catálogo completo de indicadores con
+  `sus_socio_list_indicators()`.
+
+El vínculo socioeconómico es la **sexta etapa** del pipeline de `climasus4r`.
+Exige que los datos ya hayan pasado por la **unión espacial** (Tutorial 5),
+pues la clave del vínculo es el **código IBGE de 7 dígitos** del municipio
+(`code_muni_7`).
+
+# Contexto científico
+
+Los estudios de clima y salud rara vez pueden tratar a la población como
+homogénea. La **vulnerabilidad social** — pobreza, baja escolaridad,
+saneamiento precario, estructura etaria envejecida — modula la relación entre
+la exposición ambiental (temperatura, contaminación) y los desenlaces de
+salud, actuando tanto como **factor de confusión** como **modificador de
+efecto** (Gouveia, Hajat & Armstrong, 2003; Hajat, O'Connor & Kosatsky, 2010).
+Los adultos mayores en domicilios sin infraestructura adecuada, por ejemplo,
+sufren más durante las olas de calor.
+
+En Brasil, la fuente oficial de estas variables es el **Censo Demográfico**
+del IBGE, accesible programáticamente mediante el paquete `censobr` (Pereira &
+Barbosa, 2023). `climasus4r` encapsula ese acceso en `sus_census_join()`,
+descargando el dataset elegido, **filtrando solo los municipios presentes en
+los datos de salud antes de cargarlos en memoria** (optimización
+Arrow/Parquet), agregando los microdatos al nivel municipal y realizando la
+unión por la clave geográfica.
+
+A partir de estas variables, `sus_socio_compute_indicators()` calcula un
+conjunto de **indicadores estandarizados** (demográficos, socioeconómicos, de
+mortalidad, morbilidad, salud materno-infantil y recursos de salud), cada uno
+con su **fórmula**, **multiplicador** y **método de incertidumbre** declarados
+en un catálogo interno.
+
+> **Aviso metodológico (sesgo ecológico).** Los indicadores municipales
+> describen el *agregado*, no al individuo: las asociaciones observadas entre
+> la vulnerabilidad promedio de un municipio y sus desenlaces de salud **no**
+> se transfieren automáticamente a las personas (falacia ecológica). La
+> **escala de agregación** también importa — el mismo fenómeno puede cambiar
+> de signo según la unidad (problema de la unidad de área modificable, MAUP).
+> Use estos indicadores como covariables de área, no como atributos
+> individuales.
+
+> **Caso conductor.** Investigamos la **temperatura y los desenlaces de salud
+> en adultos mayores (60+) en la Región Metropolitana de São Paulo,
+> 2014–2019**. En el Tutorial 5 espacializamos las defunciones respiratorias
+> (J00–J99) y cardiovasculares (I00–I99) por municipio. Aquí vinculamos
+> variables del **Censo 2010** y calculamos indicadores de vulnerabilidad
+> (envejecimiento, dependencia, cobertura de alcantarillado y agua) que
+> servirán como **covariables/modificadores de efecto** en el modelado
+> clima–salud de los próximos tutoriales.
+
+# Datos utilizados
+
+| Ítem | Valor | Papel en el caso |
+|------|-------|---------------|
+| Entrada | `dados/caso_espacial.rds` (Tutorial 5) | Defunciones espacializadas por municipio (RMSP) |
+| Dataset del censo | `"population"` (Censo 2010) | Población por municipio (adultos mayores, jóvenes, activos) |
+| Clave de vínculo | `code_muni_7` (IBGE, 7 dígitos) | Une salud × censo |
+| Indicadores | envejecimiento, dependencia, alcantarillado, agua | Vulnerabilidad municipal |
+| Salida | `dados/caso_socio.rds` | Entrada del Tutorial 7 (clima INMET) |
+
+Todos los datos son **públicos y reales** (IBGE/Censo vía `censobr`).
+
+# Pipeline completo
+
+Los bloques de abajo reproducen lo que ejecuta el script
+`scripts/tutorial_06_socioeconomico.R`. Comience cargando el paquete y la
+entrada encadenada:
+
+```{r carregar}
+library(climasus4r)
+
+# Saída do Tutorial 5: óbitos espacializados por município (stage "spatial",
+# com a coluna code_muni_7 — chave do vínculo).
+caso_espacial <- readRDS("dados/caso_espacial.rds")
+```
+
+## Paso 1 — Descubrir variables del censo (`sus_census_select()`)
+
+Antes de descargar el censo, conviene **descubrir los códigos** de las
+variables. En uso interactivo, `output = "browser"` abre una interfaz HTML
+navegable; en scripts, prefiera `output = "codes"`, que **retorna un vector de
+códigos** sin abrir el navegador:
+
+```{r select}
+# Códigos das variáveis de população do Censo 2010 (uso programático):
+vars_pop <- sus_census_select(
+  dataset = "population",  # "all", "population", "households", "families", ...
+  year    = 2010,           # 2010 (padrão) ou 2000
+  output  = "codes",        # "browser" (padrão), "console" ou "codes"
+  lang    = "pt",
+  verbose = FALSE
+)
+head(vars_pop)
+```
+
+## Paso 2 — Vincular el censo (`sus_census_join()`)
+
+`sus_census_join()` descarga el dataset elegido vía `censobr`, **filtra solo
+los municipios presentes** en `code_muni_7`, agrega los microdatos al nivel
+municipal (`aggregation_fun`) y realiza el `left_join`. Requiere que los datos
+estén en la etapa `>= "spatial"`:
+
+```{r join}
+caso_enriquecido <- sus_census_join(
+  df              = caso_espacial,
+  dataset         = "population",     # "population"/"households"/"families"/
+                                       # "mortality"/"emigration"/"tracts"
+  year            = 2010,             # 2010 (padrão) ou 2000
+  census_vars     = head(vars_pop, 6),# NULL = todas (não recomendado)
+  aggregation_fun = "sum",            # "sum","mean","median","min","max","sd",
+                                       # "q25","q75","q95","q99"
+  use_cache       = TRUE,             # cache local do censobr
+  cache_dir       = "~/.climasus4r_cache/census",
+  lang            = "pt",
+  verbose         = TRUE
+)
+```
+
+Cada variable numérica agregada recibe el **sufijo del modo de agregación**
+(ej.: `V0001` agregada por suma se convierte en `V0001_sum`). Si la entrada es
+un objeto `sf`, la **geometría se conserva** en la salida.
+
+Para usar datos **de sectores censales** en lugar de microdatos, cambie a
+`dataset = "tracts"` y elija la tabla en `tracts_dataset` (ej.: `"Basico"`,
+`"DomicilioRenda"`, `"Pessoa03"`):
+
+```{r join-tracts}
+caso_setores <- sus_census_join(
+  df             = caso_espacial,
+  dataset        = "tracts",
+  tracts_dataset = "Basico",   # "Basico","Domicilio01/02","DomicilioRenda",
+                                # "Pessoa01"..."Pessoa13","ResponsavelRenda", ...
+  year           = 2010,
+  lang           = "pt"
+)
+```
+
+## Paso 3 — Consultar el catálogo de indicadores (`sus_socio_list_indicators()`)
+
+Antes de calcular, inspeccione lo disponible. Sin red, retorna un `tibble`
+con `id`, `name`, `category`, `required_cols`, `formula`, `multiplier`,
+`unit`, `uncertainty_method` y `source`:
+
+```{r list}
+catalogo <- sus_socio_list_indicators(lang = "pt")
+
+# Filtrar por categoria, se desejar:
+sus_socio_list_indicators(lang = "pt", category = "mortality")
+```
+
+## Paso 4 — Calcular indicadores (`sus_socio_compute_indicators()`)
+
+Los indicadores se definen en **espacio de fórmula** (nombres como
+`pop_elderly`, `total_hh`). Como las columnas provenientes del censo tienen
+otros nombres (ej.: `V0001_sum`), use `col_mapping` para **conectar** nombres
+de fórmula → columnas reales:
+
+```{r indicators}
+caso_socio <- sus_socio_compute_indicators(
+  df               = caso_enriquecido,
+  indicators       = c("aging_index", "dependency_ratio",
+                       "sewage_connection_rate", "water_connection_rate"),
+  col_mapping = list(
+    pop_elderly = "pop_65_plus_sum",  # aponte para as colunas agregadas reais
+    pop_young   = "pop_0_14_sum",
+    pop_working = "pop_15_64_sum",
+    pop_total   = "V0001_sum",
+    total_hh    = "V003_sum",
+    hh_sewage   = "V0207_sum",
+    hh_water    = "V0208_sum"
+  ),
+  confidence_level = 0.95,   # IC de Poisson (taxas) / Wilson (proporções)
+  add_ci           = TRUE,   # adiciona colunas ind_<id>_low / ind_<id>_high
+  lang             = "pt",
+  verbose          = TRUE
+)
+```
+
+Cada indicador calculado se convierte en una columna `ind_<id>` (ej.:
+`ind_aging_index`), y — cuando el método de incertidumbre no es `"none"` y
+`add_ci = TRUE` — también `ind_<id>_low` y `ind_<id>_high`. Si
+`indicators = NULL`, la función **detecta automáticamente** todos los
+indicadores cuyas columnas requeridas están presentes (después del
+`col_mapping`); los indicadores sin las columnas necesarias son **omitidos con
+aviso**, nunca interrumpen la ejecución.
+
+Al final, `caso_socio` se guarda (con `save_tbl()` en el script) y alimenta el
+Tutorial 7 (Clima basado en estaciones — INMET).
+
+# Características de las funciones
+
+## `sus_census_select()`
+
+Explorador de las variables del censo. Ayuda a **descubrir códigos** para usar
+en `sus_census_join(census_vars = ...)`.
+
+| Argumento | ¿Esencial? | Descripción |
+|-----------|------------|-----------|
+| `dataset` | recomendado | `"all"` (predeterminado), `"population"`, `"households"`, `"families"`, `"mortality"`, `"emigration"`, `"tracts"` |
+| `year` | opcional | `2010` (predeterminado) o `2000` |
+| `output` | recomendado | `"browser"` (HTML interactivo, predeterminado), `"console"` o `"codes"` (vector) |
+| `lang` | opcional | `"pt"` (predeterminado), `"en"`, `"es"` |
+| `verbose` | opcional | Mensajes informativos |
+
+**Retorno:** con `"codes"`, un vector de caracteres con los códigos; con
+`"browser"`/`"console"`, retorna de forma invisible un `data.frame` (y
+abre/imprime la interfaz).
+
+## `sus_census_join()`
+
+Vincula variables del censo (microdatos o sectores) con los datos de salud.
+Wrapper de `censobr::read_population()`, `read_households()`,
+`read_tracts()`, etc.
+
+| Argumento | ¿Esencial? | Descripción |
+|-----------|------------|-----------|
+| `df` | sí | `climasus_df`/`sf` en etapa `>= "spatial"`, con `code_muni_7` |
+| `dataset` | sí | `"population"` (predeterminado), `"households"`, `"families"`, `"mortality"`, `"emigration"`, `"tracts"` |
+| `tracts_dataset` | solo `tracts` | Tabla de sectores: `"Basico"` (predeterminado), `"DomicilioRenda"`, `"Pessoa01..13"`, … |
+| `year` | opcional | `2010` (predeterminado) o `2000` |
+| `census_vars` | recomendado | Vector de códigos (use `sus_census_select()`); `NULL` = todas |
+| `aggregation_fun` | opcional | `"sum"` (predeterminado), `"mean"`, `"median"`, `"min"`, `"max"`, `"sd"`, `"q25"`, `"q75"`, `"q95"`, `"q99"` |
+| `join_muni_col` | opcional | Columna del código IBGE; `NULL` detecta patrones SUS |
+| `use_cache` / `cache_dir` | recomendado | Caché de `censobr` (`~/.climasus4r_cache/census`) |
+| `translate_columns` / `standardize_values` | opcional | Traduce nombres y etiquetas (predeterminado `TRUE`) |
+| `lang` / `verbose` | opcional | Idioma y mensajes |
+
+**Retorno:** el mismo `df` (o `sf`) con columnas adicionales del censo
+(sufijadas por el modo de agregación, ej.: `_sum`); los metadatos avanzan a
+`stage = "census"`.
+
+## `sus_socio_compute_indicators()`
+
+Calcula indicadores estandarizados sobre las columnas presentes, con
+intervalos de confianza opcionales.
+
+| Argumento | ¿Esencial? | Descripción |
+|-----------|------------|-----------|
+| `df` | sí | `climasus_df` en etapa `>= "spatial"` (salida de `sus_census_join()`) |
+| `indicators` | opcional | Vector de IDs; `NULL` = todos los calculables (autodetección) |
+| `col_mapping` | recomendado | Lista nombrada: nombre de fórmula → columna real (ej.: `list(total_hh = "V003_sum")`) |
+| `confidence_level` | opcional | Nivel de confianza (predeterminado `0.95`) |
+| `add_ci` | opcional | `TRUE` (predeterminado) añade `ind_<id>_low`/`_high` |
+| `lang` / `verbose` | opcional | Idioma y mensajes |
+
+**Retorno:** el `climasus_df` con columnas `ind_<id>` (y `_low`/`_high` cuando
+corresponda); `sus_meta` actualizado a `type = "indicators"`.
+
+## `sus_socio_list_indicators()`
+
+Lista el catálogo completo de indicadores. **No depende de la red.**
+
+| Argumento | Descripción |
+|-----------|-----------|
+| `lang` | Idioma de los nombres: `"pt"` (predeterminado), `"en"`, `"es"` |
+| `category` | Filtra por categoría (ej.: `"demographic"`, `"mortality"`); `NULL` = todas |
+
+**Retorno:** un `tibble` con `id`, `name`, `category`, `required_cols`,
+`formula`, `multiplier`, `unit`, `uncertainty_method`, `source`.
+
+# Fórmulas
+
+Los indicadores se calculan como una razón (tasa/proporción) multiplicada por
+un factor de escala. De forma general:
+
+$$
+\text{indicador} = \left(\frac{\text{numerador}}{\text{denominador}}\right) \times m
+$$
+
+donde $m$ es el `multiplier` declarado en el catálogo. Ejemplos usados en el
+caso conductor:
+
+$$
+\text{Índice de Envejecimiento} = \frac{\text{pop}_{\text{idosa}}}{\text{pop}_{\text{jovem}}} \times 100
+$$
+
+$$
+\text{Razón de Dependencia} = \frac{\text{pop}_{\text{jovem}} + \text{pop}_{\text{idosa}}}{\text{pop}_{\text{ativa}}} \times 100
+$$
+
+$$
+\text{Cobertura de Alcantarillado} = \frac{\text{domicílios com esgoto}}{\text{total de domicílios}} \times 100
+$$
+
+**Intervalos de confianza.** Para **tasas** basadas en conteo de eventos
+(mortalidad, incidencia, hospitalizaciones), se usa el intervalo **exacto de
+Poisson (Garwood)**, basado en la distribución Gama:
+
+$$
+\text{IC}_{\text{inf}} = \frac{1}{n}\,\chi^2_{\alpha/2;\,2k}\big/2, \qquad
+\text{IC}_{\text{sup}} = \frac{1}{n}\,\chi^2_{1-\alpha/2;\,2(k+1)}\big/2
+$$
+
+Para **proporciones** (coberturas, %), se usa el intervalo de **puntuación de
+Wilson**:
+
+$$
+\hat{p} \pm \frac{z}{1 + z^2/n}\left[\frac{z}{2n} + \sqrt{\frac{\hat{p}(1-\hat{p})}{n} + \frac{z^2}{4n^2}}\right]
+$$
+
+con $z = z_{1-\alpha/2}$, $k$ el número de eventos y $n$ el denominador.
+Las razones con numeradores complejos o índices directos (ej.: Gini) no
+reciben IC (`uncertainty_method = "none"`).
+
+# Resultados ilustrados
+
+```{r tab-catalogo, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/socio_catalogo.rds", .nota_gerar,
+            caption = "Tabla 1. Muestra del catálogo de indicadores (sus_socio_list_indicators).")
+```
+
+```{r fig-categorias, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/socio_catalogo_categorias.png", .nota_gerar)
+```
+
+**Figura 1.** Número de indicadores disponibles por categoría en el catálogo
+de `sus_socio_compute_indicators()`. Las categorías cubren demografía,
+vulnerabilidad socioeconómica, mortalidad, morbilidad, salud materno-infantil
+y recursos de salud.
+
+```{r tab-resumo, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/socio_resumo.rds", .nota_gerar,
+            caption = "Tabla 2. Indicadores calculados por municipio (muestra).")
+```
+
+```{r fig-vulnerabilidade, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/socio_vulnerabilidade.png", .nota_gerar)
+```
+
+**Figura 2.** Ranking municipal según el Índice de Envejecimiento (adultos
+mayores por 100 jóvenes, Censo 2010) en la RMSP. Los municipios más
+envejecidos tienden a concentrar mayor riesgo frente a extremos de
+temperatura.
+
+```{r fig-ic, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/socio_indicador_ic.png", .nota_gerar)
+```
+
+**Figura 3.** Cobertura de alcantarillado por municipio con intervalo de
+confianza del 95% (puntuación de Wilson), tal como se produce con
+`add_ci = TRUE`. La barra de error comunica la incertidumbre de la estimación
+de proporción.
+
+```{r fig-dispersao, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/socio_dispersao_idosos.png", .nota_gerar)
+```
+
+**Figura 4.** Relación entre envejecimiento y cobertura de alcantarillado en
+los municipios de la RMSP. Cruzar la vulnerabilidad demográfica y de
+infraestructura ayuda a plantear hipótesis de confusión y modificación de
+efecto en la relación temperatura–salud de los próximos tutoriales.
+
+# Referencias
+
+- Pereira, R. H. M., & Barbosa, R. J. (2023). *censobr: Download Data from
+  Brazil's Population Census.* R package version 0.4.0.
+  <https://CRAN.R-project.org/package=censobr>. DOI: 10.32614/CRAN.package.censobr.
+- Gouveia, N., Hajat, S., & Armstrong, B. (2003). Socioeconomic differentials in
+  the temperature–mortality relationship in São Paulo, Brazil. *International
+  Journal of Epidemiology*, 32(3), 390–397.
+- Hajat, S., O'Connor, M., & Kosatsky, T. (2010). Health effects of hot weather:
+  from awareness of risk factors to effective health protection. *The Lancet*,
+  375(9717), 856–863.
+- IBGE — Instituto Brasileiro de Geografia e Estatística. *Censo Demográfico
+  2010.* Rio de Janeiro: IBGE.
+
+---
+
+# Navegación
+
+- [Volver al hub de tutoriales](tutorials.html)
+- **Anterior:** [Tutorial 5 — Unión Espacial](05-juncao-espacial.html)
+- **Siguiente:** [Tutorial 7 — Clima Basado en Estaciones (INMET)](07-clima-estacoes.html)

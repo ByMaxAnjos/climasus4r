@@ -707,7 +707,6 @@ sus_data_filter_demographics <- function(df,
     "municipality_code",
     "residence_municipality",
     "municipio_residencia",
-    "codigo_municipio",
     "codigo_municipio_residencia",
     "municipio_residencia_paciente_sp",
     "municipio_estabelecimento_sp",
@@ -724,7 +723,12 @@ sus_data_filter_demographics <- function(df,
     
     # Espanhol
     "municipio_establecimiento_sp",
-    "codigo_municipio_nacimiento"
+    "codigo_municipio_nacimiento",
+
+    # Generic fallback ONLY: in SIM this is CODUFMUN (municipality of
+    # occurrence/registration), NOT residence. Must stay last so it is never
+    # picked over a residence-specific column when both exist in the data.
+    "codigo_municipio"
     )
 
     muni_meta <- get_spatial_municipio_cache(
@@ -1233,7 +1237,6 @@ sus_data_filter_demographics <- function(df,
     "municipality_code",
     "residence_municipality",
     "municipio_residencia",
-    "codigo_municipio",
     "codigo_municipio_residencia",
     "municipio_residencia_paciente_sp",
     "municipio_estabelecimento_sp",
@@ -1250,7 +1253,12 @@ sus_data_filter_demographics <- function(df,
     
     # Espanhol
     "municipio_establecimiento_sp",
-    "codigo_municipio_nacimiento"
+    "codigo_municipio_nacimiento",
+
+    # Generic fallback ONLY: in SIM this is CODUFMUN (municipality of
+    # occurrence/registration), NOT residence. Must stay last so it is never
+    # picked over a residence-specific column when both exist in the data.
+    "codigo_municipio"
   )
 
   all_muni_codes <- if (!is.null(municipality_code)) {

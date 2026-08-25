@@ -1,0 +1,703 @@
+---
+title: "PART 1: Integration of Climate and Health Data"
+subtitle: "The 10 Temporal Alignment Strategies between Climate Data and Health Outcomes with sus_climate_aggregate()"
+author: "Max Anjos, Eucilene Santana, Thauã Menezes"
+date: "01 April, 2026"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{PART 1: Integration of Climate and Health Data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+## Introduction
+
+### Theoretical Foundation
+
+Understanding the dynamics between climate variables and health outcomes requires methods that go beyond simple linear correlation analysis. In environmental epidemiology, the plausibility of an association depends, among other factors, on the temporal coherence between exposure, the biological latency period, and the occurrence of the health outcome. This is because exposure to a stressor, such as a heat wave or an extreme precipitation event, rarely produces an immediate, isolated, and uniform biological effect across the entire population.
+
+**The greatest challenge in environmental epidemiology is not merely having climate and health data, but integrating them temporally in a biologically plausible way.** For example, if a patient is diagnosed with dengue on day "**t**", the mosquito that infected them likely bit them approximately **10 to 14 days before**, while the rain that favored the formation of breeding sites may have occurred approximately **30 days before**. Thus, using only the temperature or precipitation of the day of the record can introduce **temporal bias**, especially for conditions with **latency, incubation, or cumulative effects**. The [`sus_climate_aggregate()`](https://bymaxanjos.github.io/climasus4r/en/reference/sus_climate_aggregate.html) function was built to address this problem, offering **10 rigorous temporal alignment strategies** between climate exposures and health outcomes.
+
+The organic response and the dynamics of disease transmission are processes governed by **latency times**, **incubation periods**, and **cumulative effects** that require temporal alignment strategies specific to each phenomenon under study. The rigorous application of approaches such as distributed lag, offset windows, or degree-days allows researchers and public health managers to precisely identify windows of vulnerability and environmental triggers for diverse pathologies.
+
+### Figure 1: The Temporal Alignment Challenge
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         EPIDEMIOLOGICAL TIMELINE                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   Climate       Latency         Incubation      Propagation   Health        │
+│   Exposure      Period          Period          Period        Outcome      │
+│      ↓              ↓               ↓               ↓            ↓          │
+│   ═══╬═════════════╬═══════════════╬═══════════════╬════════════╬═══════►  │
+│      │             │               │               │            │          │
+│      │<─── Hours ──→│<─── Days ────→│<─── Weeks ───→│<─── Months →│          │
+│      │             │               │               │            │          │
+│   Heat/       Physiological  Viral         Community     Hospital-  Death   │
+│   Cold        Stress         Infection     Transmission  ization             │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+*Source: Adapted from Bhaskaran et al. (2013) - International Journal of Epidemiology*
+
+### The Fundamental Principle
+
+The choice of temporal alignment strategy should be guided by the epidemiological and biological hypothesis of the study, since different outcomes exhibit different response times to climate exposure:
+
+- If the goal is to study the impact of heat on mortality from acute myocardial infarction, the premise of an **acute effect** points the analysis toward "Exact Match"
+- On the other hand, studying dengue incidence in a metropolis requires recognizing that today's climate will influence vector abundance and viral transmission only after several weeks, justifying the use of **"Offset Windows"** and **"Degree-Days"**
+
+| Type | Time Scale | Examples |
+|------|-----------------|----------|
+| ⚡ **Acute Effect** | Minutes to Hours | Heart attack, stroke, asthma |
+| ⏳ **Subacute Effect** | Days to Weeks | Pneumonia, COPD |
+| 🦟 **Delayed Effect** | Weeks to Months | Dengue, malaria, Zika |
+
+## The Ten Temporal Alignment Strategies
+
+Alignment strategies work as **filters that allow statistical models to "see" the biological phenomenon through the noise of meteorological data**. Each approach offers a unique perspective on human and environmental exposure.
+
+| Strategy | Description |
+|------------|-----------|
+| 📅 **exact** | Aligns the health event on day t with the meteorological time on day t. Ideal for acute events (e.g., dehydration, heat stroke). |
+| ⏪ **discrete_lag** | Retrieves the meteorological time exactly L days before. Useful for identifying specific peaks of association. |
+| ⏳ **moving_window** | Computes the mean or sum of climate variables over the interval [t-w, t]. The widely used standard in time series (rolling window). |
+| 🔬 **offset_window** | Focuses on a specific historical interval [t-W2, t-W1]. Ideal for isolating the extrinsic incubation period. |
+| 🌀 **distributed_lag** | Creates a matrix of lags (0 to L). Organizes exposure across multiple lags, enabling subsequent application in distributed lag models, such as DLNM. |
+| 🌡️ **degree_days** | Computes accumulated Growing Degree Days (GDD). Essential for vector biology and human thermal stress. |
+| 🌍 **seasonal** | Aggregates climate variable values by season (DJF, MAM, JJA, SON). Indicated for studies of long-term trends. |
+| 📈 **threshold_exceedance** | Counts days that exceed a threshold. Ideal for heat waves and extreme precipitation events. |
+| 📉 **cold_wave_exceedance** | Counts days below a threshold. Critical for cold extremes in the South and Southeast regions. |
+| ⚖️ **weighted_window** | Applies decreasing weights to the days of the window, modeling the biological half-life of environmental exposure. |
+
+### 1. Exact Match: the trigger for acute events
+
+**Definition** — Exact Match alignment associates the health event with the climate exposure that occurred on the exact day of the record. This strategy is grounded in the hypothesis that the environmental stressor is capable of triggering acute physiological responses within a short time interval.
+
+**Mathematical Model:** $Y_t \leftarrow X_t$
+
+#### Physiological Mechanism
+
+Sudden exposure to elevated temperatures triggers a massive thermoregulatory demand. Intense peripheral vasodilation occurs to dissipate heat, requiring a significant increase in cardiac output. In individuals with limited cardiovascular reserve, this stress can lead to myocardial ischemia or acute heart failure within a few hours.
+
+#### Figure 2: Diagram of Exact Match
+
+```
+TIME:                     Day of Event (t)
+                               │
+    ═══════════════════════════╪═══════════════════════════►
+                               │
+    Thermal Exposure ──────────┼──► Biological Response
+    (Extreme heat/cold)        │    (Heart attack/stroke)
+                               │
+                               │
+    ← Previous Days ───────────┼──── Following Days ──────→
+                               │
+    ❌ IGNORED                  │ ✅ CAPTURED
+                               │
+```
+
+*Diagram: Only the exposure on the day of the event is considered.*
+
+#### Clinical Applications
+
+| Biological Phenomenon | Rationale | Mechanism |
+|---------------------|---------------|-----------|
+| **Myocardial Infarction** | Sudden hemodynamic stress | Immediate increase in cardiac load and blood viscosity |
+| **Ischemic Stroke** | Blood pressure fluctuation | Electrolyte imbalance and rapid vascular instability |
+| **Heatstroke** | Thermoregulatory failure | Critical elevation of core temperature in a short time |
+| **Asthma Attacks** | Pollen shock | Rupture of pollen grains due to humidity, causing immediate exposure |
+
+#### Limitations
+
+Although robust for identifying immediate risk, this strategy can overlook effects that manifest with a small delay, such as pulmonary inflammation that develops hours after exposure. Exact Match is often the starting point for more complex models, serving as "lag 0" in multi-day analyses.
+
+### 2. Discrete Lag: identifying the critical window
+
+**Definition** — The Discrete Lag strategy evaluates the effect of meteorological conditions occurring on a specific day in the past, allowing the researcher to identify which exposure day has the strongest association with the health outcome.
+
+**Mathematical Model:** $Y_t \leftarrow X_{t-L}$
+
+#### Latency Mechanism
+
+Many pathologies do not manifest on the day of exposure. In the case of cold-related respiratory diseases, there is often a delay of 2 to 5 days. Cold air inhibits the movement of cilia in the airways and reduces local immune response, facilitating pathogen colonization.
+
+#### Figure 3: Diagram of Discrete Lag
+
+```
+TIME:                     Today (t)
+                               │
+    ═══════════════════════════╪═══════════════════════════►
+                               │
+    t-21    t-14    t-7     t-3│
+     │        │        │       │
+     ▼        ▼        ▼       ▼
+    ═══════════════════════════╗
+                               ║
+    Past Exposure ─────────────║──► Response Today
+    (Specific lag)              ║
+                               ║
+    ← ────────────────────────╫──────────────────────────→
+                               │
+    ✅ TESTED                   │ ❌ IGNORED
+    (each lag individually)     │
+```
+
+*Diagram: Each past exposure day is tested separately.*
+
+#### Classification by Temporal Horizon
+
+| Lag Type | Horizon | Typical Use | Clinical Example |
+|-------------|-----------|------------|-----------------|
+| **Short Lag** | 1-3 days | Rapid inflammatory responses | COPD exacerbation |
+| **Intermediate Lag** | 4-10 days | Respiratory viral infections | Lobar pneumonia |
+| **Long Lag** | >10 days | Indirect effects | Behavioral changes induced by weather |
+
+#### Main Limitation
+
+The main limitation lies in **multicollinearity**. Temperatures on successive days are highly correlated, which can make it difficult to distinguish between the effect of "lag 2" and "lag 3". Nevertheless, it remains a valuable diagnostic tool for understanding primary temporal dynamics.
+
+### 3. Distributed Lag (DLNM): The Complexity of Non-Linear Models
+
+**Definition** — The Distributed Lag Model creates a matrix of lags that captures the effect of an exposure over a continuous period. When combined with non-linear functions, this gives rise to **DLNM (Distributed Lag Non-linear Model)**, one of the most well-established approaches for analyzing non-linear and lagged relationships between temperature and mortality. Strict preparation for DLNM models (`dlnm` package in R).
+
+**Mathematical Model:** $\log E = \alpha + \sum_{j=0}^{L} f_j + \text{covariates}$
+
+#### Model Logic
+
+Today's risk is the **sum of the residual risks of past exposures**. A heat wave from three days ago may still be contributing to the physiological stress of an elderly person today. DLNM uses basis functions (splines or polynomials) to smooth the relationship both in the intensity dimension (temperature) and in the time dimension (lag).
+
+#### Figure 4: Three-Dimensional Risk Surface of DLNM
+
+```
+                    RELATIVE RISK
+                         │
+                    ╱    │    ╲
+                   ╱     │     ╲
+                  ╱      │      ╲
+                 ╱       │       ╲
+                ╱        │        ╲
+               ╱         │         ╲
+              ╱          │          ╲
+             ╱           │           ╲
+            ╱            │            ╲
+           ╱             │             ╲
+    ──────┼──────────────┼──────────────┼──────►
+          │              │              │
+     TEMPERATURE ────────┼──────────────►
+          │              │              │
+          │              │              │
+          ▼              ▼              ▼
+        Cold           Comfort          Heat
+    (Persistent      (Minimum Risk)   (Intense
+     Effect)                          Effect)
+
+    LEGEND:
+    ══ Lines of equal risk
+    → Direction of increasing temperature
+    ↓ Direction of increasing lag
+```
+
+*Diagram: Three-dimensional surface showing that heat has an intense but short effect, while cold has a milder but more persistent effect lasting weeks. Adapted from Gasparrini (2011).*
+
+#### The "Harvesting" Phenomenon
+
+DLNM and distributed lag models can help identify patterns consistent with the harvesting phenomenon, when an initial increase in mortality is followed by a subsequent decline below what would be expected.
+
+#### Figure 5: Harvesting Effect
+
+```
+Mortality
+     │
+     ▲
+     │      ┌──────────────────────────────────────┐
+     │      │                                      │
+     │      │      Heat Wave                       │
+     │      │         │                            │
+     │    ──┼─────────┼──────────────────────────  │ Baseline
+     │      │         │                            │
+     │      │    ╱────╲                            │
+     │      │   ╱      ╲                           │
+     │      │  ╱        ╲    ┌──────────────────┐  │
+     │      │ ╱          ╲   │                  │  │
+     │      │╱            ╲──┘  Compensatory    │  │
+     │      │               ┌───── Dip           │  │
+     │      │               │                   │  │
+     │      └───────────────┴───────────────────┴──┼──►
+                                                  Time
+
+    LEGEND:
+    ── Observed mortality
+    - - Expected baseline
+    ▲ Peak deaths during event
+    ▼ Deaths below expected after event
+```
+
+*Source: Adapted from Gasparrini et al. (2015) - The Lancet*
+
+### 4. Moving Window: The Perspective of Cumulative Effect
+
+**Definition** — The Moving Window computes a central metric (mean, maximum, or minimum) of a climate variable over a defined recent period. Unlike individual lags, it treats exposure as a **cumulative burden**.
+
+**Mean:** $Y_t \leftarrow \frac{1}{W+1} \sum_{i=t-W}^{t} X_i$
+
+**Sum (rainfall):** $Y_t \leftarrow \sum_{i=t-W}^{t} X_i$
+
+**Why not a Symmetric Window ($\pm W$)?** In many statistical packages, a symmetric window $[t-W, t+W]$ is used. This can introduce temporal anticipation bias in etiological studies, known as *Look-Ahead Bias*. Weather conditions on day $t+7$ cannot cause an event on day $t$. `climasus4r` exclusively uses the *backward-looking* moving window $[t-W, t]$ to preserve causal integrity.
+
+#### Pathophysiology of Adaptive Exhaustion
+
+The human body can tolerate one day of extreme heat, but continuous exposure over seven days depletes hydration reserves and overloads the renal system. In hydrology and health, cumulative precipitation moving windows are used to predict leptospirosis outbreaks.
+
+#### Figure 6: Diagram of the Moving Window
+
+```
+TIME:                     Today (t)
+                               │
+    ═══════════════════════════╪═══════════════════════════►
+                               │
+    t-7  t-6  t-5  t-4  t-3  t-2│t-1   t
+     │    │    │    │    │    │  │    │
+     ▼    ▼    ▼    ▼    ▼    ▼  ▼    ▼
+    ═══════════════════════════════════╗
+    ║  M O V I N G   W I N D O W       ║
+    ║  (t-7  to  t)                    ║
+    ║                                   ║
+    ║  Mean = (X₁+X₂+...+X₈)/8         ║
+    ╚═══════════════════════════════════╝
+                                       │
+                                       ▼
+                                  Response Today
+
+    LEGEND:
+    ■ Days included in the window
+    □ Days outside the window
+```
+
+*Diagram: The window includes the day of the event and the W previous days, computing the mean or sum over the period.*
+
+#### Windows and Their Biological Focus
+
+| Window | Biological Focus | Application Example |
+|--------|----------------|----------------------|
+| **3 days** | Acute cumulative stress | Assessment of urban heat waves |
+| **7 days** | Environmental persistence | Virus survival on surfaces |
+| **14 days** | Metabolic adaptation | Chronic inflammatory response |
+| **30 days** | Ecotope change | Soil preparation for vectors |
+
+> **Methodological Note:** Unlike other methods that use a symmetric window, correct alignment in epidemiology exclusively uses the **backward-looking** window $[t-W, t]$ to avoid *Look-Ahead Bias*.
+
+### 5. Offset Window: The Time of Incubation and Transmission
+
+**Definition** — The Offset Window isolates a specific period in the past, **deliberately excluding the most recent days**. Fundamental for infectious diseases, where temporal alignment must account for incubation periods in the vector and in the human host.
+
+**Model:** $Y_t \leftarrow \frac{1}{W_1+1} \sum_{i=t-W_2}^{t-W_1} X_i$
+
+#### Components of the Delay in Dengue
+
+| Component | Duration (Days) | Climate Influence |
+|------------|----------------|---------------------|
+| Larval Development | 7 - 10 | Temperature and precipitation (breeding sites) |
+| Extrinsic Incubation in the Mosquito (EIP) | 8 - 12 | Temperature (accelerates viral replication) |
+| Incubation in Humans | 3 - 7 | Independent of climate |
+| Reporting Delay | 2 - 5 | Administrative/access factors |
+
+#### Figure 7: Dengue Transmission Chain
+
+```
+                    DENGUE TRANSMISSION CYCLE
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │                                                                 │
+    │   Egg      Larva     Pupa     Adult     EIP*      Human    Case │
+    │    │         │         │         │        │          │        │  │
+    │    ▼         ▼         ▼         ▼        ▼          ▼        ▼  │
+    │   ═╬═════════╬═════════╬═════════╬════════╬══════════╬════════╬═►│
+    │    │         │         │         │        │          │        │  │
+    │  7-10      3-5       2-3       5-7      8-12       3-7      2-5 │
+    │  days      days      days      days     days       days     days│
+    │                                                                 │
+    │  *EIP = Extrinsic Incubation Period (virus in the mosquito)     │
+    │                                                                 │
+    └─────────────────────────────────────────────────────────────────┘
+
+    TOTAL TIME: 30-45 days from egg to reported case
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │                    IDEAL OFFSET WINDOW                            │
+    │                                                                 │
+    │              ┌─────────────────────┐                            │
+    │              │    OFFSET WINDOW    │                            │
+    │              │    [t-28, t-14]     │                            │
+    │              └─────────────────────┘                            │
+    │                         │                                       │
+    │                         ▼                                       │
+    │              Captures the rainfall and heat that                │
+    │              created the vector and enabled                     │
+    │              viral replication                                  │
+    └─────────────────────────────────────────────────────────────────┘
+```
+
+*Source: Adapted from Lowe et al. (2021) - The Lancet Planetary Health*
+
+### 6. Degree Days: Biology's Thermal Clock
+
+**Definition** — The Degree-Days concept is based on **thermal time theory**, which posits that the development of ectothermic organisms (insects, parasites) is not governed by chronological time, but by the accumulation of heat above a baseline threshold.
+
+**Degree-Days:** $GDD = \sum_{i=t-W}^{t} \max(0, T_i - T_{base})$
+
+#### Thermal Thresholds by Species
+
+| Organism | T~base~ (°C) | GDD for Development | Application |
+|-----------|--------------|--------------------------|-----------|
+| *Aedes aegypti* | 11 | 100-150 | Dengue transmission |
+| *Anopheles gambiae* | 18 | 80-120 | Malaria transmission |
+| *Triatoma infestans* | 16 | 200-300 | Chagas disease |
+| *Human (stress)* | 20 | - | Cardiovascular morbidity |
+
+#### Thermal Time Theory
+
+Each species has a **Lower Thermal Threshold** ($T_{base}$), below which its development ceases. If a mosquito larva needs 100 accumulated degree-days to become an adult, it may take 10 days in an environment at 25°C or only 5 days in an environment at 35°C.
+
+#### Figure 8: Degree-Days Calculation
+
+```
+Example: Aedes aegypti (Tbase = 11°C)
+
+Day 1: Tavg = 25°C  →  GDD = 25 - 11 = 14
+Day 2: Tavg = 26°C  →  GDD = 26 - 11 = 15
+Day 3: Tavg = 24°C  →  GDD = 24 - 11 = 13
+Day 4: Tavg = 10°C  →  GDD = max(0, 10-11) = 0
+Day 5: Tavg = 28°C  →  GDD = 28 - 11 = 17
+
+Accumulated GDD = 14 + 15 + 13 + 0 + 17 = 59
+
+If the development requirement = 100 GDD:
+41 GDD remaining → approximately +3 days
+
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│   Temperature                                                   │
+│        ▲                                                        │
+│        │                                                        │
+│     35 ┤                                      ╱───╲             │
+│        │                                   ╱─╲    ╲             │
+│     30 ┤                                ╱─╲   ╲    ╲            │
+│        │                             ╱─╲   ╲   ╲    ╲           │
+│     25 ┤                          ╱─╲   ╲   ╲   ╲    ╲          │
+│        │                       ╱─╲   ╲   ╲   ╲   ╲    ╲         │
+│     20 ┤                    ╱─╲   ╲   ╲   ╲   ╲   ╲    ╲        │
+│        │                 ╱─╲   ╲   ╲   ╲   ╲   ╲   ╲    ╲       │
+│     15 ┤              ╱─╲   ╲   ╲   ╲   ╲   ╲   ╲   ╲    ╲      │
+│        │           ╱─╲   ╲   ╲   ╲   ╲   ╲   ╲   ╲   ╲    ╲     │
+│   Tbase=11 ┤────────╨───────╨───────╨───────╨───────╨───────╨──► │
+│        │                     Time                               │
+│                                                                 │
+│   ■ Area above Tbase = accumulated GDD                          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+*Diagram: The area under the temperature curve above the baseline threshold represents the accumulated degree-days.*
+
+### 7. Seasonal: Long-Term Trends and Cyclicity
+
+**Definition** — The Seasonal strategy focuses on identifying long-term patterns and trends, filtering out short-term variability to understand the annual dynamics of diseases.
+
+#### Figure 9: Seasonal Decomposition of Time Series
+
+```
+                    SEASONAL DECOMPOSITION
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  Original Series                                                │
+    │     ▲                                                          │
+    │     │    ╱╲    ╱╲    ╱╲    ╱╲                                 │
+    │     │   ╱  ╲  ╱  ╲  ╱  ╲  ╱  ╲                                │
+    │     │  ╱    ╲╱    ╲╱    ╲╱    ╲                               │
+    │     │ ╱                              ╲                         │
+    │     │╱                                ╲                        │
+    │     └──────────────────────────────────────────────────►       │
+    │                                                               │
+    │  Trend (Long Term)                                            │
+    │     ▲                                                         │
+    │     │                                     ╱────────────────    │
+    │     │                                 ╱───                    │
+    │     │                             ╱───                        │
+    │     │                         ╱───                            │
+    │     │                     ╱───                                │
+    │     │                 ╱───                                    │
+    │     │             ╱───                                        │
+    │     │         ╱───                                            │
+    │     │     ╱───                                                │
+    │     │ ╱───                                                    │
+    │     └──────────────────────────────────────────────────►       │
+    │                                                               │
+    │  Seasonality (Annual Cycle)                                   │
+    │     ▲                                                         │
+    │     │    ╱╲    ╱╲    ╱╲                                       │
+    │     │   ╱  ╲  ╱  ╲  ╱  ╲                                      │
+    │     │  ╱    ╲╱    ╲╱    ╲                                     │
+    │     │ ╱                    ╲                                  │
+    │     │╱                      ╲                                 │
+    │     └──────────────────────────────────────────────────►       │
+    │        J  F  M  A  M  J  J  A  S  O  N  D                     │
+    │                                                               │
+    └─────────────────────────────────────────────────────────────────┘
+```
+
+*Source: Adapted from Box & Jenkins (1976) - Time Series Analysis*
+
+#### Elements of Temporal Variation
+
+| Element | Periodicity | Health Impact | Example |
+|----------|---------------|-------------------|---------|
+| **Annual Cycle** | 365 days | Respiratory diseases in winter, diarrhea in summer | Influenza |
+| **Weekly Cycle** | 7 days | "Weekend effect" in reporting | Urban pollution |
+| **Multiannual Trend** | >1 year | Influence of climate phenomena | El Niño/La Niña |
+
+### 8. Threshold Exceedance and Cold Wave Exceedance: The Risk of Extremes
+
+**Definition** — The Threshold Exceedance strategy focuses on the impact of climate events that surpass critical values, recognizing that the relationship between climate and health is often governed by **"breakpoints"** where mortality rises exponentially.
+
+#### Threshold Definitions
+
+**Exceedance Count:** $N_{exc} = \sum_{d=0}^{W} \mathbf{1}(\tau)$
+
+Transforms a continuous variable into a count of **discrete events** within a time window, capturing the *frequency* of extreme exposure.
+
+**Automatic Regional Adaptation:** `climasus4r` automatically adapts thresholds based on the climate region:
+
+- **Tropical (North, Northeast):** Heat wave $T_{max}$ > 35°C
+- **Subtropical (Central-West, Southeast):** Heat wave $T_{max}$ > 32°C
+- **Temperate (South):** Heat wave $T_{max}$ > 30°C, Cold wave $T_{min}$ < 5°C
+
+#### "U"- or "J"-Shaped Mortality Curve
+
+##### Figure 10: Temperature-Mortality Curve
+
+```
+Relative Risk
+     │
+   4 ┤                                    ╱───╲
+     │                                 ╱─╲   ╲
+   3 ┤                              ╱─╲   ╲   ╲
+     │                           ╱─╲   ╲   ╲   ╲
+   2 ┤                        ╱─╲   ╲   ╲   ╲   ╲
+     │                     ╱─╲   ╲   ╲   ╲   ╲   ╲
+   1 ┤═══════════════════════════════════════════════►
+     │  ▲     ▲                             ▲     ▲
+     │  │     │                             │     │
+     │  │     │         Comfort             │     │
+     │  │     │         Zone                │     │
+     │  │     │         (Minimum            │     │
+     │  │     │         Risk)               │     │
+     │  │     │                             │     │
+     └──┴─────┴─────────────────────────────┴─────┴──► Temperature
+       5     10          20          30     35    40
+
+       Extreme Cold                    Extreme Heat
+       (Tmin < 5°C)                    (Tmax > 35°C)
+
+    LEGEND:
+    ── Risk curve ("U" or "J" shaped)
+    ▲ Breakpoints (critical thresholds)
+```
+
+*Source: Adapted from Basu & Samet (2002) - Epidemiologic Reviews*
+
+#### Thresholds by Region and Application
+
+| Threshold Type | Definition | Public Health Implication |
+|----------------|-----------|----------------------------|
+| Cardiovascular | 95th percentile of maximum temperatures | Activation of hospital alerts |
+| Thermal Stress | Heat Index > 41°C | Suspension of outdoor activities |
+| Minimum Mortality | Point of lowest risk on the U-curve | Reference for adaptation policies |
+| Extreme Precipitation | > 50mm in 24h | Leptospirosis alert |
+
+### 9. Weighted Window: The Biological Decay of Exposure
+
+**Definition** — The Weighted Window applies differentiated weights to the exposure days within a period, modeling the biological fact that the **impact of an event diminishes as time passes**.
+
+#### Decay Functions
+
+**Weighted Mean:** $\bar{X}_{weighted} = \frac{\sum_{d=0}^{W} w_d \cdot X_{t-d}}{\sum_{d=0}^{W} w_d}$
+
+| Decay Type | Function | Half-life | Application |
+|--------------------|--------|-----------|-----------|
+| Linear | $w_d = 1 - \frac{d}{W+1}$ | Variable | Generic effects |
+| Exponential | $w_d = e^{-\lambda d}$ | $\frac{\ln 2}{\lambda}$ | Air pollution |
+| Gaussian | $w_d = e^{-\mu^2 / 2\sigma^2}$ | $\sigma \sqrt{2 \ln 2}$ | Incubation period |
+
+#### Figure 11: Biological Decay Functions
+
+```
+Relative Weight
+     │
+   1.0┤ ●────────────────────────────────────────────────────────────
+     │  ●
+     │   ●
+   0.8┤    ●
+     │     ●
+     │      ●
+   0.6┤       ●
+     │        ●
+     │         ●
+   0.4┤          ●
+     │           ●
+     │            ●
+   0.2┤             ●
+     │              ●
+     │               ●
+   0.0┼─────────────────────────────────────────────────────────────►
+      0   1   2   3   4   5   6   7   8   9   10  11  12  13  14
+                              Days since exposure
+
+    LEGEND:
+    ●──● Linear decay (w = 1 - d/W)
+    ▲──▲ Exponential decay (w = e^{-λd})
+    ■──■ Gaussian decay (peak in the middle of the window)
+```
+
+*Diagram: Different weighting functions model different biological hypotheses about the half-life of exposure.*
+
+#### Types of Decay
+
+| Type | Mathematical Function | Half-life | Typical Application |
+|------|-------------------|-----------|------------------|
+| **Linear** | $w_d = 1 - \frac{d}{W+1}$ | Variable | Generic effects, no specific hypothesis |
+| **Exponential** | $w_d = e^{-\lambda d}$ | $\frac{\ln 2}{\lambda}$ | Air pollution, rapid decay |
+| **Gaussian** | $w_d = e^{-\mu^2 / 2\sigma^2}$ | $\sigma \sqrt{2 \ln 2}$ | Incubation period with a defined peak |
+
+#### Importance for Public Health
+
+This approach is vital for avoiding the error of **underestimating risks**. Often, the risk at an individual lag may be statistically small, but the sum of all the small risk increases from lag 0 to lag 21 reveals a massive impact on public health.
+
+#### Figure 12: Cumulative Effect vs. Effect by Lag
+
+```
+Relative Risk
+     │
+   1.5┤                                    ┌─────────────────────────
+     │                                   ╱
+   1.4┤                                 ╱
+     │                                ╱
+   1.3┤                              ╱
+     │                             ╱
+   1.2┤                           ╱
+     │                          ╱
+   1.1┤                        ╱
+     │                       ╱
+   1.0┤═══════════════════════════════════════════════════════════════►
+     │  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲
+     │  │  │  │  │  │  │  │  │  │  │  │  │  │  │  │  │  │  │  │  │  │
+     └──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──►
+       0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20
+                              Lag (days)
+
+    LEGEND:
+    ▲ Risk per individual lag (small)
+    ── Cumulative risk (sum of all lags)
+
+    The total effect (≈ 1.45) is much larger than any
+    individual effect (maximum ≈ 1.08)!
+```
+
+*Diagram: Demonstration of how the cumulative effect can be substantially larger than the individual effects by lag.*
+
+## Conclusions and Recommendations
+
+### Synthesis of the Ten Strategies
+
+#### Figure 18: Decision Map for Strategy Selection
+
+```
+                    METHODOLOGICAL DECISION MAP
+
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │                                                                         │
+    │                    WHAT IS THE HEALTH PHENOMENON?                      │
+    │                              │                                          │
+    │         ┌────────────────────┼────────────────────┐                    │
+    │         ▼                    ▼                    ▼                    │
+    │   ┌───────────┐        ┌───────────┐        ┌───────────┐              │
+    │   │  Acute    │        │ Infectious │       │  Chronic  │              │
+    │   │  Event    │        │  Disease   │       │  Disease  │              │
+    │   │           │        │  (Vector)  │        │           │              │
+    │   └───────────┘        └───────────┘        └───────────┘              │
+    │         │                    │                    │                    │
+    │         ▼                    ▼                    ▼                    │
+    │   Exact Match          Offset Window         Moving Window            │
+    │   Discrete Lag         Degree Days           Weighted Window          │
+    │   (lag 0-3)            (specific Tbase)      (7-30 days)              │
+    │         │                    │                    │                    │
+    │         └────────────────────┼────────────────────┘                    │
+    │                              │                                          │
+    │                              ▼                                          │
+    │                    ┌───────────────────┐                               │
+    │                    │   DLNM Model      │                               │
+    │                    │   (Distributed    │                               │
+    │                    │    Lag)           │                               │
+    │                    │                   │                               │
+    │                    │ + Seasonal        │                               │
+    │                    │ + Threshold       │                               │
+    │                    │ + Cumulative      │                               │
+    │                    └───────────────────┘                               │
+    │                              │                                          │
+    │                              ▼                                          │
+    │                    ┌───────────────────┐                               │
+    │                    │   Public Health   │                               │
+    │                    │   Surveillance    │                               │
+    │                    │                   │                               │
+    │                    └───────────────────┘                               │
+    │                                                                         │
+    └─────────────────────────────────────────────────────────────────────────┘
+```
+
+*Diagram: Decision flowchart for selecting the most appropriate temporal alignment strategy.*
+
+### Fundamental Principles
+
+| Principle | Description |
+|-----------|-----------|
+| ⚡ **Acute Events** | Exact Match and Discrete Lags resolve the etiology of acute events and the identification of critical exposure days. |
+| 📊 **Total Impact** | Distributed Lag (DLNM) and Cumulative Lag offer the most comprehensive view of total impact and risk non-linearity. |
+| ⏳ **Cumulative Stress** | Moving and Weighted Windows capture the accumulated stress burden and the decay of the biological response. |
+| 🦟 **Vector Ecology** | Offset Window, Degree-Days, and Seasonal analysis are the pillars for understanding the ecology of infectious diseases. |
+| ⚠️ **Extreme Events** | Threshold Exceedance defines critical intervention points, transforming continuous data into binary decisions. |
+| 🔬 **Integration** | Hybrid models combine multiple strategies to capture the full biological complexity. |
+
+### Final Message
+
+**Conclusion** — The analysis of the ten temporal alignment strategies shows that, in environmental epidemiology, precision does not depend only on having more data, but on **how that data is linked in time to biological processes**. The choice of strategy should be guided by the **epidemiological hypothesis**, the **biological mechanism**, and the **response time of the outcome**.
+
+Integrating these approaches into **hybrid models** and **health surveillance systems** strengthens the identification of **biologically plausible** associations, reduces the risk of **spurious correlations**, and generates useful evidence for **public health decision-making**. Thus, temporal alignment ceases to be merely a technical step and becomes a central element for understanding, anticipating, and responding to the impacts of climate on health.
+
+## Key References
+
+- **Armstrong, B. (2006)**. Models for the relationship between ambient temperature and daily mortality. *Epidemiology*, 17(6), 624-631.
+- **Basu, R., & Samet, J. M. (2002)**. Relation between elevated ambient temperature and mortality: a review of the epidemiologic evidence. *Epidemiologic Reviews*, 24(2), 190-202.
+- **Bhaskaran, K., et al. (2013)**. Time series regression studies in environmental epidemiology. *International Journal of Epidemiology*, 42(4), 1187-1195.
+- **Gasparrini, A. (2011)**. Distributed lag linear and non-linear models in R: the package dlnm. *Journal of Statistical Software*, 43(8), 1-20.
+- **Gasparrini, A., et al. (2015)**. Mortality risk attributable to high and low ambient temperature: a multicountry observational study. *The Lancet*, 386(9991), 369-375.
+- **Lowe, R., et al. (2021)**. Combined effects of hydrometeorological hazards and urbanisation on dengue risk in Brazil: a spatiotemporal modelling study. *The Lancet Planetary Health*, 5(4), e209-e219.
+
+---
+
+🌲 **Have feedback or suggestions?**
+
+Do you have an idea for improvement or found an error? Click the link below to open a new *issue* on GitHub and share your suggestions directly with us.
+
+[Open an issue on GitHub](https://github.com/ByMaxAnjos/climasus4r/issues/new)

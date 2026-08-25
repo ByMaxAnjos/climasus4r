@@ -1,0 +1,692 @@
+---
+title: "Sharing and Scaffolding RAP Projects"
+subtitle: "YAML recipes, Shiny GUI, RStudio addin, and scaffolding with `sus_rap_recipe()`, `sus_rap_gui()` and `sus_rap_template()`"
+author:
+  - name: "Dr. Max Anjos"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; color: var(--text-main); background-color: #fff; line-height: 1.6; }
+h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--dark-green); }
+h1.title { font-size: 2.8em; border-bottom: 4px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 1.5rem; }
+h2 { margin-top: 2rem; border-left: 4px solid var(--primary-color); padding-left: 1rem; }
+pre.r, pre.sourceCode { background-color: var(--code-bg); border: 1px solid #e1e1e1; border-left: 5px solid var(--primary-color) !important; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1rem; }
+.callout { padding: 1.2em 1.5em; margin: 1.5em 0; border-radius: 8px; border-left: 6px solid; background-color: var(--bg-light); }
+.callout-note { background-color: #f0f7ff; border-color: #007bff; }
+.callout-tip { background-color: #e8f5e9; border-color: #1D9E75; }
+.callout-warning { background-color: #fff3e0; border-color: #ff9800; }
+.workflow-container { background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #dce8e1; overflow-x: auto; }
+.workflow-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; font-family: 'Inter', monospace; font-size: 0.8rem; }
+.workflow-step { background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap; }
+.workflow-arrow { color: var(--primary-color); font-weight: bold; font-size: 1.2rem; }
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+.feature-card { background: white; border-radius: 12px; padding: 1.5rem; border: 1px solid #e1e1e1; transition: transform 0.2s ease, box-shadow 0.2s ease; text-align: center; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+.feature-card h3 { margin-top: 0; color: var(--primary-color); font-size: 1.1rem; }
+table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e1e1; }
+th { background-color: var(--bg-light); font-weight: 600; color: var(--dark-green); }
+.github-feedback-btn { display: inline-flex; align-items: center; gap: 8px; background-color: #24292e; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-family: sans-serif; transition: background-color 0.2s; margin-top: 1rem; }
+.github-feedback-btn:hover { background-color: #2c3e50; color: white; text-decoration: none; }
+@media (max-width: 768px) { body { font-size: 16px; } h1.title { font-size: 2rem; } .workflow-steps { flex-direction: column; align-items: center; } }
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo      = TRUE,
+  eval      = FALSE,
+  warning   = FALSE,
+  message   = FALSE,
+  comment   = "#>",
+  fig.align = "center",
+  out.width = "90%",
+  fig.retina = 2
+)
+```
+
+# Introduction — Sharing Formats
+
+A Reproducible Analytical Pipeline (RAP) only fulfills its purpose when it can be **shared and re-run** by other people — in other contexts, with other data, without losing traceability. `climasus4r` offers four complementary strategies for this, each suited to a different collaborator profile and use case.
+
+```{=html}
+<div class="feature-grid">
+  <div class="feature-card">
+    <div class="feature-icon">📄</div>
+    <h3>.R Script</h3>
+    <p>Complete file with code, metadata, and validations. Ideal for collaborators with advanced R skills (RAP 1).</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">📋</div>
+    <h3>YAML Recipe</h3>
+    <p>Compact format (&lt;50 lines). Easy to read, send by email, and import with sus_rap_from_recipe().</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🖥️</div>
+    <h3>Shiny GUI</h3>
+    <p>Visual interface with no code. Ideal for researchers without R experience or for demonstrations.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">📁</div>
+    <h3>Complete Project</h3>
+    <p>Ready-made structure with renv + targets + Quarto. For new long-term reproducible analysis projects.</p>
+  </div>
+</div>
+```
+
+The table below summarizes when to use each approach:
+
+| Format | Target audience | Artifact size | Requires R on the receiving end |
+|---|---|---|---|
+| `.R` Script | Developer / advanced analyst | Medium (100–300 lines) | Yes |
+| YAML Recipe | Any analyst with `climasus4r` | Compact (< 50 lines) | Yes |
+| Shiny GUI | Researcher without R experience | Web interface | No (for use) |
+| Complete project | New long-term project | Structured directory | Yes |
+
+```{=html}
+<div class="callout callout-note">
+**Prerequisite:** This tutorial assumes familiarity with the RAP concepts introduced in <a href="rap-01-exportar-executar.html">RAP 1 — Exporting and Running Pipelines</a> and with the `climasus4r` `rap_object` structure. If you have not yet read that tutorial, we recommend starting there.
+</div>
+```
+
+---
+
+# `sus_rap_recipe()` — Export as a Compact YAML
+
+## Motivation
+
+Imagine an analyst in São Paulo has developed a complete respiratory-cause mortality pipeline and wants to share it with a colleague in Rio de Janeiro. Sending a 200-line `.R` script can be intimidating; sending a 40-line YAML file is far more approachable. `sus_rap_recipe()` does exactly this: it serializes the parameters, steps, and package versions into a human-readable, machine-reimportable format.
+
+## Basic usage
+
+```r
+library(climasus4r)
+
+# Start from an existing rap_object (created with sus_rap_export())
+rap <- sus_rap_read("analise_mortalidade_sp.R")
+
+# Export as a YAML recipe
+sus_rap_recipe(
+  rap               = rap,
+  file_path         = "pipeline_mortalidade.yaml",
+  include_data_hash = TRUE,
+  lang              = "pt"
+)
+#> v Receita RAP exportada: pipeline_mortalidade.yaml
+```
+
+The generated file is compact and directly editable in any text editor:
+
+```yaml
+rap_version: '1.0'
+created: '2026-06-18 10:30:00'
+climasus4r_version: '1.0.0'
+pipeline_type: Pipeline SIM-DO
+parameters:
+  uf: SP
+  years:
+  - 2020
+  - 2021
+  - 2022
+  system: SIM-DO
+  time_unit: month
+  lang: pt
+steps:
+- function_name: sus_data_import
+  params: ~
+- function_name: sus_data_clean_encoding
+  params: ~
+- function_name: sus_data_standardize
+  params: ~
+- function_name: sus_data_filter_cid
+  params:
+    cid_group: respiratory
+- function_name: sus_data_aggregate
+  params:
+    by: month
+metadata:
+  r_version: R version 4.4.0 (2024-04-24)
+  platform: unix
+  package_version: 1.0.0
+data_hash: a3f9c21b
+```
+
+## Anatomy of the recipe
+
+| Field | Description |
+|---|---|
+| `rap_version` | Recipe schema version (compatibility control) |
+| `created` | Generation timestamp (ISO 8601) |
+| `climasus4r_version` | Package version at the time of export |
+| `pipeline_type` | Inferred pipeline type (e.g., "Pipeline SIM-DO") |
+| `parameters` | Editable block with UF, years, system, and other parameters |
+| `steps` | Ordered list of steps with function name and key parameters |
+| `metadata` | R version, platform, and package version |
+| `data_hash` | xxhash32 hash of the input parameters — ensures traceability |
+
+```{=html}
+<div class="callout callout-tip">
+**Tip — `data_hash`:** The `data_hash` field is computed from the input parameters (`uf`, `years`, `system`). If two analysts generate the same hash from different recipes, this indicates they started from exactly the same input data — useful for audits and certified reproduction.
+</div>
+```
+
+## Full parameters
+
+```r
+sus_rap_recipe(
+  rap               = rap,        # rap_object (required)
+  file_path         = NULL,       # NULL → timestamped name in the current directory
+  include_data_hash = TRUE,       # include hash for traceability
+  lang              = "pt",       # message language ("pt", "en", "es")
+  overwrite         = FALSE       # overwrite existing file?
+)
+```
+
+When `file_path = NULL`, the file is created in the current working directory with a name in the format `rap_recipe_YYYYMMDD_HHMMSS.yaml`.
+
+---
+
+# `sus_rap_from_recipe()` — Import and Re-run
+
+## Basic import
+
+The colleague in Rio de Janeiro receives the `pipeline_mortalidade.yaml` file and imports it with a single function call:
+
+```r
+# Colleague in RJ imports the recipe
+rap_rj <- sus_rap_from_recipe(
+  recipe_path     = "pipeline_mortalidade.yaml",
+  override_params = list(uf = "RJ", years = 2021:2023),
+  lang            = "pt"
+)
+#> i Importando receita: Pipeline SIM-DO
+#> v Receita carregada: 5 etapa(s).
+
+print(rap_rj)
+#> <rap_object>
+#>  - Tipo     : Pipeline SIM-DO
+#>  - Formato  : recipe
+#>  - Etapas   : 5
+#>  - UF       : RJ
+#>  - Anos     : 2021–2023
+#>  - Sistema  : SIM-DO
+```
+
+The `override_params` argument allows the original recipe to be **adapted** without editing the YAML file: here the UF was changed from SP to RJ and the period was extended. All other parameters — CID filters, temporal aggregation, language — are inherited from the original recipe.
+
+## Import and run in a single call
+
+For automation workflows, `execute = TRUE` chains the import and pipeline execution:
+
+```r
+resultado <- sus_rap_from_recipe(
+  recipe_path     = "pipeline_mortalidade.yaml",
+  override_params = list(uf = "RJ"),
+  execute         = TRUE,
+  lang            = "pt"
+)
+#> i Importando receita: Pipeline SIM-DO
+#> v Receita carregada: 5 etapa(s).
+#> i Iniciando execucao do pipeline...
+#> v Pipeline concluido em 12.3s | 2847 linhas
+```
+
+When `execute = TRUE`, the function returns the pipeline result (a `climasus_df`) instead of the `rap_object`.
+
+## SP → RJ collaborative workflow
+
+```{=html}
+<div class="workflow-container">
+  <div class="workflow-steps">
+    <span class="workflow-step">rap_object (SP)</span>
+    <span class="workflow-arrow">→</span>
+    <span class="workflow-step">sus_rap_recipe()</span>
+    <span class="workflow-arrow">→</span>
+    <span class="workflow-step">pipeline.yaml</span>
+    <span class="workflow-arrow">→</span>
+    <span class="workflow-step">send by email</span>
+    <span class="workflow-arrow">→</span>
+    <span class="workflow-step">sus_rap_from_recipe(uf="RJ")</span>
+    <span class="workflow-arrow">→</span>
+    <span class="workflow-step">result (RJ)</span>
+  </div>
+</div>
+```
+
+## Full parameters
+
+```r
+sus_rap_from_recipe(
+  recipe_path     = "pipeline_mortalidade.yaml",  # path to the .yaml file (required)
+  override_params = list(),     # parameters to override (named list)
+  execute         = FALSE,      # TRUE = execute immediately after importing
+  lang            = "pt",       # message language
+  ...                           # extra arguments passed to sus_rap_run() when execute=TRUE
+)
+```
+
+```{=html}
+<div class="callout callout-note">
+**Version check:** If the recipe was created with an earlier version of `climasus4r`, the function issues a warning but proceeds. For critical production environments, check the `climasus4r_version` field in the recipe before executing.
+</div>
+```
+
+---
+
+# `sus_rap_gui()` — Visual Shiny Interface
+
+## Who is the GUI for?
+
+The `climasus4r` graphical interface targets three profiles:
+
+1. **Researchers without R experience** who need to configure and run a pipeline
+2. **Demonstrations and workshops** where the focus is on results, not code
+3. **Rapid exploration** of parameter combinations before formalizing the pipeline
+
+## Launching the GUI
+
+```r
+# Launch with a pre-loaded rap_object
+sus_rap_gui(rap = rap, launch.browser = TRUE)
+```
+
+The interface opens in the system's default browser. If you prefer to view it in the RStudio Viewer, use `launch.browser = FALSE`.
+
+```{=html}
+<div class="callout callout-warning">
+**Requires the shiny package:** `sus_rap_gui()` requires the `shiny` package (listed in Suggests). Install it with `install.packages("shiny")` before use.
+</div>
+```
+
+## The three-panel interface
+
+The GUI is organized into three side-by-side panels that work together:
+
+**Left panel — Parameters:**
+
+- Text field for UF(s) separated by commas (e.g., `SP, RJ, MG`)
+- Year-range slider (2000–2024)
+- Dropdown for the DATASUS system (`SIM-DO`, `SIH`, `SINAN`, `SIA`, `CNES`, `SINASC`)
+- Dropdown for the temporal aggregation unit (`day`, `week`, `month`, `quarter`, `year`)
+- Language selector (`pt`, `en`, `es`)
+- Output directory field
+
+**Center panel — Pipeline:**
+
+- Visual cards, one per RAP step, listing the function name and the configured arguments
+- Automatically updated as parameters are changed
+
+**Right panel — Console:**
+
+- Real-time log with timestamps (`[HH:MM:SS] message`)
+- Preview of the R code that will be executed
+
+## Action buttons
+
+| Button | Action |
+|---|---|
+| **Code Preview** | Displays the equivalent R code in the right panel |
+| **Run Pipeline** | Calls `sus_rap_run()` in `dry_run = FALSE` mode |
+| **Export RAP** | Saves the pipeline as an `.R` script via `sus_rap_export()` |
+| **Save YAML Recipe** | Saves the pipeline as a `.yaml` recipe via `sus_rap_recipe()` |
+
+## Starting from scratch
+
+To create a pipeline interactively with no starting point, pass `rap = NULL`:
+
+```r
+# Launch without a pre-loaded RAP
+sus_rap_gui(rap = NULL)
+```
+
+The GUI initializes with a default template (`SIM-DO`, SP, 2019–2022) that can be freely edited.
+
+```{=html}
+<div class="callout callout-tip">
+**Workflow tip:** Use the GUI to quickly explore parameter combinations, click "Code Preview" to see the generated R code, copy it into your script, and then refine it with `sus_rap_export()` to produce the final artifact. This combines the best of both worlds: the speed of the GUI and the traceability of a script.
+</div>
+```
+
+---
+
+# `sus_rap_addin_export()` — RStudio Addin
+
+## What are RStudio addins?
+
+Addins are RStudio IDE extensions that appear in the **Addins** menu (top toolbar) and can be triggered with a keyboard shortcut or via `Tools → Addins`. They run R functions in the context of the active session and can interact with the code editor, the environment, and the console.
+
+`climasus4r` registers two addins in the `inst/rstudio/addins.dcf` file:
+
+```
+Name: Exportar Pipeline como RAP
+Description: Exporta o pipeline selecionado no editor como script reprodutivel.
+Binding: sus_rap_addin_export
+Interactive: false
+
+Name: Abrir GUI de RAP
+Description: Abre interface visual para editar e executar Reproducible Analytical Pipelines.
+Binding: sus_rap_gui
+Interactive: true
+```
+
+After installing `climasus4r`, the addins become automatically available in RStudio's **Addins** menu — no additional configuration is needed.
+
+## How to use `sus_rap_addin_export()`
+
+The workflow is intuitive:
+
+1. Open an `.R` script in RStudio containing a `climasus4r` pipeline
+2. Select the pipeline code with the cursor (from `sus_data_import()` to the last step)
+3. Go to **Addins → Exportar Pipeline como RAP**
+4. The addin captures the selected text via `rstudioapi::getSourceEditorContext()`, parses the expression, and calls `sus_rap_export()` to create an `.R` file in the same directory as the active script
+
+The exported file is named in the format `rap_YYYYMMDD_HHMMSS.R` and contains the complete pipeline with embedded metadata, an editable parameter block, and validations.
+
+## Example interaction
+
+```r
+# Code selected in the editor:
+sus_data_import(uf = "SP", years = 2020:2022, system = "SIM-DO") |>
+  sus_data_clean_encoding() |>
+  sus_data_standardize() |>
+  sus_data_filter_cid(cid_group = "respiratory") |>
+  sus_data_aggregate(by = "month")
+
+# After triggering the addin → creates: ./rap_20260618_103045.R
+#> [Dialogo RStudio] Pipeline exportado com sucesso:
+#>   /home/usuario/analises/rap_20260618_103045.R
+```
+
+```{=html}
+<div class="callout callout-tip">
+**Tip:** The addin only works inside the RStudio IDE. For command-line use or VS Code, use `sus_rap_export()` directly (see RAP Tutorial 1).
+</div>
+```
+
+```{=html}
+<div class="callout callout-note">
+**Partial selection:** The addin expects the selected code to be a valid R expression (using a pipe, `|>` or `%>%`). If the selection cannot be parsed, a dialog box will report the error. Select only the pipeline lines, without comments in between.
+</div>
+```
+
+---
+
+# `sus_rap_template()` — Complete Project Scaffolding
+
+## The problem it solves
+
+Setting up a reproducible analysis project from scratch involves a series of repetitive decisions: creating the directory structure, configuring `renv` to capture dependencies, writing `_targets.R` with the pipeline logic, creating the Quarto report, adding the correct `.gitignore`... `sus_rap_template()` automates all of this in a single call.
+
+## Creating a SINAN project for dengue analysis in Amazonas
+
+```r
+sus_rap_template(
+  path                   = "~/projetos",
+  name                   = "dengue_am",
+  system                 = "SINAN",
+  include_renv           = TRUE,
+  include_targets        = TRUE,
+  include_quarto         = TRUE,
+  include_github_actions = FALSE,
+  lang                   = "pt"
+)
+#> -- Criando projeto RAP: dengue_am --
+#> i Estrutura de diretorios criada.
+#> i _targets.R e run.R criados.
+#> i analysis.qmd criado.
+#> i renv inicializado.
+#> v Projeto 'dengue_am' pronto em ~/projetos/dengue_am
+```
+
+## Generated structure
+
+```
+dengue_am/
+|-- _targets.R          # pipeline targets (generated automatically)
+|-- run.R               # runner: source + tar_make()
+|-- analysis.qmd        # parameterized Quarto report
+|-- R/
+|   `-- functions.R     # project helper functions
+|-- data/               # raw data (git-ignored)
+|-- output/             # results (git-ignored)
+|-- renv/               # dependency snapshot
+|-- renv.lock
+|-- .gitignore
+`-- README.md
+```
+
+Each file plays a clear role in the RAP architecture:
+
+| File | Purpose |
+|---|---|
+| `_targets.R` | Defines the pipeline's dependency graph |
+| `run.R` | Single execution entry point: `targets::tar_make()` |
+| `analysis.qmd` | Parameterized report that loads the `_targets` results |
+| `R/functions.R` | Project-specific helper functions |
+| `data/` | Raw data (never committed to git) |
+| `output/` | Computed results (never committed to git) |
+| `renv.lock` | Exact snapshot of package versions |
+
+## Excerpt from the generated `_targets.R`
+
+```r
+# _targets.R  - Generated by climasus4r::sus_rap_template()
+# Project: dengue_am
+
+library(targets)
+library(climasus4r)
+
+list(
+  tar_target(params, list(
+    uf         = "AM",   # edit: UF code(s)
+    years      = 2019:2021,
+    system     = "SINAN",
+    time_unit  = "month",
+    lang       = "pt"
+  )),
+
+  tar_target(raw_data,
+    sus_data_import(
+      uf       = params$uf,
+      years    = params$years,
+      system   = params$system,
+      parallel = TRUE,
+      lang     = params$lang
+    )
+  ),
+
+  tar_target(clean_data,
+    raw_data |>
+      sus_data_clean_encoding(lang = params$lang) |>
+      sus_data_standardize(lang = params$lang)
+  ),
+
+  tar_target(agg_data,
+    clean_data |>
+      sus_data_aggregate(by = params$time_unit, lang = params$lang)
+  ),
+
+  tar_target(qc_report,
+    sus_data_quality_report(clean_data, lang = params$lang)
+  ),
+
+  # ... additional steps
+  NULL
+)
+```
+
+```{=html}
+<div class="callout callout-tip">
+**Tip:** After creating the project, edit the `uf` field and the `years` range in the `tar_target(params, ...)` block at the top of `_targets.R`. Then run `targets::tar_make()` from the project directory to run the complete pipeline.
+</div>
+```
+
+## Continuous integration with GitHub Actions
+
+For projects that need automated execution — for example, a monthly update of an epidemiological dashboard — use `include_github_actions = TRUE`:
+
+```r
+sus_rap_template(
+  path                   = "~/projetos",
+  name                   = "dengue_am_ci",
+  system                 = "SINAN",
+  include_github_actions = TRUE
+)
+```
+
+The generated `.github/workflows/rap.yml` file has the following structure:
+
+```yaml
+name: Reproducible Analysis Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.4'
+
+      - uses: r-lib/actions/setup-renv@v2
+
+      - name: Run targets pipeline
+        run: Rscript run.R
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-results
+          path: output/
+```
+
+The workflow is triggered on every push to `main` and can also be triggered manually via `workflow_dispatch`. The results are made available as a build artifact in GitHub Actions.
+
+```{=html}
+<div class="callout callout-note">
+**Sensitive data:** The `data/` directory is included in the automatically generated `.gitignore`. Never commit raw DATASUS data to public repositories. For CI/CD pipelines, consider storing data in an S3 bucket or equivalent and retrieving it during the CI step.
+</div>
+```
+
+## Full parameters
+
+```r
+sus_rap_template(
+  path                   = "~/projetos",  # parent directory (required)
+  name                   = "meu_projeto", # project/directory name (required)
+  system                 = "SIM-DO",      # DATASUS system for the template
+  include_renv           = TRUE,          # initialize renv?
+  include_targets        = TRUE,          # create _targets.R and run.R?
+  include_quarto         = TRUE,          # create analysis.qmd?
+  include_github_actions = FALSE,         # create .github/workflows/rap.yml?
+  lang                   = "pt"           # language of the generated comments
+)
+```
+
+---
+
+# Complete Collaborative Workflow
+
+The five functions in this tutorial are designed to work together. The diagram below illustrates a complete flow: from creating the pipeline to reproduction by another analyst.
+
+```{=html}
+<div class="workflow-container">
+  <div class="workflow-steps">
+    <span class="workflow-step">Analyst A: pipeline</span>
+    <span class="workflow-arrow">→</span>
+    <span class="workflow-step">sus_rap_recipe()</span>
+    <span class="workflow-arrow">→</span>
+    <span class="workflow-step">recipe.yaml</span>
+    <span class="workflow-arrow">→</span>
+    <span class="workflow-step">Analyst B</span>
+    <span class="workflow-arrow">→</span>
+    <span class="workflow-step">sus_rap_from_recipe()</span>
+    <span class="workflow-arrow">→</span>
+    <span class="workflow-step">adapted result</span>
+  </div>
+</div>
+```
+
+## Summary table of functions
+
+| Function | Input | Output | Main use case |
+|---|---|---|---|
+| `sus_rap_recipe()` | `rap_object` | `.yaml` file | Share a compact pipeline with colleagues |
+| `sus_rap_from_recipe()` | `.yaml` file | `rap_object` | Import and optionally re-run |
+| `sus_rap_gui()` | `rap_object` or NULL | Shiny app | Visual interface for non-programmers |
+| `sus_rap_addin_export()` | RStudio editor selection | `.R` file | Quick workflow within the IDE |
+| `sus_rap_template()` | configuration parameters | project directory | Scaffolding a new reproducible project |
+
+```{=html}
+<div class="callout callout-tip">
+<strong>Choosing the right format:</strong>
+<ul>
+<li><strong>YAML</strong> when the recipient is an analyst who needs to adapt parameters</li>
+<li><strong>GUI</strong> when the recipient does not program in R or for live demonstrations</li>
+<li><strong>Template</strong> when starting a new project and you want the complete structure from the outset</li>
+<li><strong>.R Script</strong> (via <code>sus_rap_export()</code>) when the recipient is a developer who will modify the code</li>
+</ul>
+</div>
+```
+
+---
+
+# References
+
+- Marwick B, Boettiger C, Mullen L (2018). Packaging data analytical work reproducibly using R (and friends). *The American Statistician*, 72(1), 80–88.
+
+- UK Government Data Science (2022). Reproducible Analytical Pipelines (RAP) Strategy. Cabinet Office. Available at: <https://www.gov.uk/government/publications/better-broader-safer-using-health-data-for-research-and-analysis>.
+
+- Wilson G et al. (2017). Good enough practices in scientific computing. *PLOS Computational Biology*, 13(6), e1005510.
+
+---
+
+**Navigation:**
+[Previous: RAP 2 - Pipelines with targets](rap-02-targets.html) | [All tutorials](tutorials.html)
+
+```{=html}
+<div style="text-align: center; margin-top: 3rem; padding-top: 2rem; border-top: 2px solid #e1e1e1;">
+
+<p><strong>climasus4r</strong> · Integrated health-climate-environment analysis in Brazil</p>
+
+<p>Found a problem or have suggestions for this tutorial?</p>
+
+<a href="https://github.com/ByMaxAnjos/climasus4r/issues" class="github-feedback-btn" target="_blank">
+  &#x1F41B; Report on GitHub
+</a>
+
+</div>
+```

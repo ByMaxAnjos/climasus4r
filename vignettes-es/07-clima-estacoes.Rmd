@@ -1,0 +1,500 @@
+---
+title: "Tutorial 7: Integración Climática por Estaciones (INMET)"
+author: "Equipo climasus4r"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* -- Variaveis de Cores Modernas -- */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; color: var(--text-main); background-color: #fff; line-height: 1.6; }
+h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--dark-green); }
+h1.title { font-size: 2.8em; border-bottom: 4px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 1.5rem; }
+h2 { margin-top: 2rem; border-left: 4px solid var(--primary-color); padding-left: 1rem; }
+pre.r, pre.sourceCode { background-color: var(--code-bg); border: 1px solid #e1e1e1; border-left: 5px solid var(--primary-color) !important; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1rem; }
+.callout { padding: 1.2em 1.5em; margin: 1.5em 0; border-radius: 8px; border-left: 6px solid; background-color: var(--bg-light); }
+.callout-note { background-color: #f0f7ff; border-color: #007bff; }
+.callout-tip { background-color: #e8f5e9; border-color: #1D9E75; }
+.callout-warning { background-color: #fff3e0; border-color: #ff9800; }
+.workflow-container { background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #dce8e1; overflow-x: auto; }
+.workflow-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; font-family: 'Inter', monospace; font-size: 0.8rem; }
+.workflow-step { background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap; }
+.workflow-arrow { color: var(--primary-color); font-weight: bold; font-size: 1.2rem; }
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+.feature-card { background: white; border-radius: 12px; padding: 1.5rem; border: 1px solid #e1e1e1; transition: transform 0.2s ease, box-shadow 0.2s ease; text-align: center; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+.feature-card h3 { margin-top: 0; color: var(--primary-color); font-size: 1.1rem; }
+table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e1e1; }
+th { background-color: var(--bg-light); font-weight: 600; color: var(--dark-green); }
+.github-feedback-btn { display: inline-flex; align-items: center; gap: 8px; background-color: #24292e; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-family: sans-serif; transition: background-color 0.2s; margin-top: 1rem; }
+.github-feedback-btn:hover { background-color: #2c3e50; color: white; text-decoration: none; }
+@media (max-width: 768px) { body { font-size: 16px; } h1.title { font-size: 2rem; } .workflow-steps { flex-direction: column; align-items: center; } }
+```
+
+
+```{r setup, include=FALSE}
+# ATENÇÃO — estratégia de pré-renderização.
+# Este tutorial NÃO executa downloads nem treina modelos durante a renderização.
+# Todas as figuras e tabelas foram geradas UMA vez pelo script
+# scripts/tutorial_07_clima_estacoes.R e são apenas carregadas aqui (PNG via
+# include_graphics; RDS via readRDS). Por isso, os chunks de ensino abaixo usam
+# eval = FALSE: o código é mostrado, mas não é executado no momento do knit.
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+
+# Helpers para exibir artefatos de forma robusta: se o arquivo ainda não foi
+# gerado (script de geração não executado), mostram uma nota em vez de quebrar
+# o knit. Assim a vignette renderiza a qualquer momento.
+fig_ou_nota <- function(path, nota) {
+  if (file.exists(path)) knitr::include_graphics(path)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+tbl_ou_nota <- function(path, nota, caption = NULL) {
+  if (file.exists(path)) knitr::kable(readRDS(path), caption = caption)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+.nota_gerar <- "Artefato indisponível — rode `Rscript scripts/tutorial_07_clima_estacoes.R` (a partir da raiz do pacote) para gerá-lo."
+```
+
+# Objetivo
+
+Al final de este tutorial usted será capaz de **incorporar la dimensión
+climática observada al pipeline** usando datos de las estaciones
+meteorológicas del **Instituto Nacional de Meteorología de Brasil (INMET)**.
+Específicamente, aprenderá a:
+
+1. **Importar** la serie horaria de una estación con `sus_climate_inmet()`;
+2. **Rellenar lagunas** de la serie con modelos de aprendizaje automático
+   (XGBoost) por estación, con `sus_climate_fill_inmet()`;
+3. **Visualizar** el resultado del relleno (observado vs. imputado) con
+   `sus_climate_plot_fill()`;
+4. **Calcular las normales climatológicas** de 30 años con `sus_climate_normals()`,
+   que sirven de línea base climatológica;
+5. **Alinear** la serie climática con la serie de salud usando estrategias
+   temporales epidemiológicamente fundamentadas (mismo día, rezago, ventana
+   móvil...) con `sus_climate_aggregate()`.
+
+Esta es la **séptima etapa** del pipeline (`stage = "climate"`). Conecta la
+serie de salud ya agregada (Tutorial 4) con el clima observado, produciendo
+la base exposición × desenlace que alimentará la etapa de clima en grilla
+(Tutorial 8) y el modelado (Tutorial 9).
+
+# Contexto científico
+
+La epidemiología ambiental relaciona **exposiciones climáticas** con
+**desenlaces de salud**. En Brasil, las estaciones automáticas del INMET
+proporcionan observaciones horarias de temperatura, humedad, precipitación,
+presión y viento, con cobertura nacional creciente desde los años 2000. A
+diferencia de los productos de reanálisis en grilla (Tutorial 8), los datos
+de estación miden el ambiente *in situ*, con alta resolución temporal, pero
+con **representatividad espacial limitada** al entorno de la estación
+(Saldanha et al., 2019; Geirinhas et al., 2018).
+
+Tres desafíos metodológicos atraviesan esta etapa:
+
+- **Calidad y lagunas.** Los sensores fallan; las series tienen valores
+  faltantes e inconsistencias físicas. El relleno con modelos como XGBoost
+  (Chen & Guestrin, 2016) recupera lagunas a partir de patrones temporales
+  (rezagos, ciclos diario y estacional), preservando la estructura de la
+  serie sin introducir sesgos groseros de interpolación lineal.
+- **Línea base climatológica.** Las **normales climatológicas** (promedios de
+  30 años) definen el clima de referencia de cada lugar — esencial para
+  contextualizar anomalías y definir el punto de referencia de los modelos de
+  respuesta dosis-exposición (Gasparrini, 2011).
+- **Alineamiento temporal causal.** El efecto del calor o del frío sobre la
+  salud rara vez es instantáneo: hay **rezagos** (efectos retardados) y
+  **acumulación** (exposición acumulada). La elección de la estrategia
+  temporal debe reflejar el mecanismo biológico hipotetizado (Bhaskaran et
+  al., 2013; Gasparrini et al., 2010), y nunca usar el clima *futuro* para
+  explicar un evento presente (sesgo de anticipación).
+
+> **Caso conductor.** Investigamos **temperatura y desenlaces de salud en
+> adultos mayores (60+) en la Región Metropolitana de São Paulo (RMSP),
+> 2014–2019**. En esta etapa, importamos la serie de la estación de
+> referencia de la RMSP — **São Paulo – Mirante de Santana (código A701)** —,
+> rellenamos sus lagunas, calculamos las normales y **alineamos la
+> temperatura con la serie diaria de salud** heredada del Tutorial 4. La
+> base resultante (salud × clima) se guarda para el Tutorial 8.
+
+# Datos utilizados
+
+| Fuente | Función | Papel en el caso |
+|-------|--------|---------------|
+| Serie horaria INMET, estación A701 (RMSP) | `sus_climate_inmet()` | Exposición climática observada |
+| Serie A701 con lagunas rellenadas (XGBoost) | `sus_climate_fill_inmet()` | Serie continua de temperatura |
+| Normales climatológicas 1991–2020 (SP) | `sus_climate_normals()` | Línea base climatológica |
+| Serie de salud diaria del T4 (`dados/caso_serie.rds`) | `sus_climate_aggregate()` | Desenlace a ser alineado |
+
+**Entrada encadenada:** `dados/caso_serie.rds` (serie de salud del Tutorial
+4). **Salida encadenada:** `dados/caso_clima_estacao.rds` (salud + clima
+alineado), que el Tutorial 8 cargará. Todos los datos son **públicos y
+reales** (INMET).
+
+# Pipeline completo
+
+Los bloques a continuación reproducen lo que ejecuta el script
+`scripts/tutorial_07_clima_estacoes.R`. Cargue el paquete:
+
+```{r carregar}
+library(climasus4r)
+```
+
+## Importar la serie de la estación (A701)
+
+`sus_climate_inmet()` descarga los datos horarios del INMET, estandariza los
+nombres de las columnas a nombres canónicos (ej.: `tair_dry_bulb_c`,
+`rh_mean_porc`, `rainfall_mm`) y aplica control de calidad físico. Filtramos
+por la estación de referencia de la RMSP mediante `station_code`.
+
+```{r import-inmet}
+clima_horario <- sus_climate_inmet(
+  years        = 2014:2019,
+  uf           = "SP",
+  station_code = "A701",    # São Paulo - Mirante de Santana
+  use_cache    = TRUE,       # cache em dois níveis (memória + disco/Parquet)
+  parallel     = TRUE,       # paraleliza entre anos e entre arquivos do ano
+  workers      = 4,
+  lang         = "pt",
+  verbose      = TRUE
+)
+```
+
+El retorno es un `climasus_df` en `stage = "climate"`, `type = "inmet"`, con
+frecuencia **horaria** y fechas en **UTC**.
+
+## Rellenar lagunas con XGBoost
+
+`sus_climate_fill_inmet()` ajusta un modelo XGBoost **por estación y por
+variable**, creando automáticamente atributos temporales (hora, día, mes,
+transformaciones cíclicas), rezagos (1, 2, 3, 12, 24, 168 períodos) y
+estadísticas móviles. Primero evaluamos la exactitud (modo evaluación),
+luego rellenamos de hecho (modo producción):
+
+```{r fill-avaliacao}
+# Modo AVALIAÇÃO: cria lacunas artificiais (MCAR) e devolve métricas por estação
+aval <- sus_climate_fill_inmet(
+  df                = clima_horario,
+  target_var        = "tair_dry_bulb_c",
+  quality_threshold = 0.4,    # exclui estações com > 40% de faltantes
+  run_evaluation    = TRUE,
+  gap_percentage    = 0.2,    # 20% de lacunas artificiais
+  parallel          = TRUE,
+  workers           = 4,
+  lang              = "pt"
+)
+aval$tair_dry_bulb_c$metrics   # RMSE, MAE, R², sMAPE, slope_bias, n_gaps
+```
+
+```{r fill-producao}
+# Modo PRODUÇÃO: preenche as lacunas reais e adiciona a flag is_imputed_<var>
+clima_preenchido <- sus_climate_fill_inmet(
+  df                = clima_horario,
+  target_var        = "tair_dry_bulb_c",
+  quality_threshold = 0.4,
+  run_evaluation    = FALSE,
+  keep_features     = FALSE,   # retorna só as colunas originais + flag
+  parallel          = TRUE,
+  workers           = 4,
+  lang              = "pt"
+)
+```
+
+Para imputar **todas** las 17 variables canónicas del INMET de una vez, use
+`target_var = "all"`.
+
+## Visualizar el relleno
+
+`sus_climate_plot_fill()` detecta automáticamente el modo (producción vs.
+evaluación) y dibuja la serie observada con los puntos imputados destacados.
+En el modo estático (`interactive = FALSE`) retorna un objeto `ggplot2`:
+
+```{r plot-fill}
+sus_climate_plot_fill(
+  df_filled   = clima_preenchido,
+  df_original = clima_horario,
+  target_var  = "tair_dry_bulb_c",
+  interactive = FALSE,        # FALSE = ggplot2; TRUE = plotly interativo
+  output_type = "plot",       # "plot", "table", "metrics" ou "all"
+  lang        = "pt"
+)
+```
+
+## Calcular las normales climatológicas
+
+`sus_climate_normals()` descarga las normales de 30 años del INMET. Elegimos
+el período más reciente y las variables de temperatura:
+
+```{r normais}
+normais <- sus_climate_normals(
+  period     = "1991-2020",                       # ou "1961-1990", "1981-2010"
+  target_var = c("t_max", "t_min", "t_mean_comp"),
+  use_cache  = TRUE,
+  lang       = "pt"
+)
+
+# Para explorar os códigos de variável disponíveis antes:
+# sus_climate_normals_meta(period = "1991-2020", lang = "pt")
+```
+
+## Alinear clima y salud (estrategias temporales)
+
+`sus_climate_aggregate()` vincula cada registro de salud a la estación más
+cercana (distancia euclidiana) y aplica la estrategia temporal elegida.
+Comparamos la exposición del **mismo día** (`exact`) con la **ventana móvil
+de 7 días** (`moving_window`, recomendada para exposición acumulada):
+
+```{r aggregate}
+# Exposição aguda (mesmo dia)
+saude_exact <- sus_climate_aggregate(
+  health_data       = saude_df,             # série de saúde do T4 (com geometria)
+  climate_data      = clima_preenchido,
+  climate_var       = "tair_dry_bulb_c",
+  temporal_strategy = "exact",
+  lang              = "pt"
+)
+
+# Exposição cumulativa (média móvel retroativa de 7 dias: t-6 .. t)
+saude_movel <- sus_climate_aggregate(
+  health_data       = saude_df,
+  climate_data      = clima_preenchido,
+  climate_var       = "tair_dry_bulb_c",
+  temporal_strategy = "moving_window",
+  window_days       = 7,
+  lang              = "pt"
+)
+```
+
+La serie resultante (salud + temperatura alineada) se guarda en
+`dados/caso_clima_estacao.rds` para el Tutorial 8.
+
+# Características de las funciones
+
+## `sus_climate_inmet()`
+
+Importa, estandariza y controla la calidad de los datos horarios del INMET.
+
+| Argumento | ¿Esencial? | Descripción |
+|-----------|------------|-----------|
+| `years` | recomendado | Año(s), 2000–año actual (ej.: `2014:2019`); `NULL` usa los 2 últimos |
+| `uf` | recomendado | UF(s) (`"SP"`, `c("RJ","MG")`); `NULL` descarga las 27 UF |
+| `station_code` | opcional | Filtra estaciones por código (`"A701"`); `NULL` = todas de la UF |
+| `use_cache` / `cache_dir` | recomendado | Cache en dos niveles (memoria + Parquet/Zstd) |
+| `parallel` / `workers` | opcional | Paraleliza entre años y entre CSV del año |
+| `lang` / `verbose` | opcional | Idioma (`"pt"`/`"en"`/`"es"`) y progreso |
+
+**Retorno:** `climasus_df` (`stage = "climate"`, `type = "inmet"`), frecuencia
+**horaria**, fechas en **UTC**, columnas canónicas. **CC automático:**
+validación de rangos físicos, consistencia del punto de rocío (fórmula de
+Magnus) y radiación solar nocturna en cero.
+
+## `sus_climate_fill_inmet()`
+
+Imputa valores faltantes con XGBoost, un modelo por estación por variable.
+
+| Argumento | ¿Esencial? | Descripción |
+|-----------|------------|-----------|
+| `df` | sí | Salida de `sus_climate_inmet()` |
+| `target_var` | sí | Columna(s) a imputar, o `"all"` (las 17 variables canónicas) |
+| `quality_threshold` | recomendado | Proporción máx. de faltantes por estación (predeterminado `0.4`) |
+| `run_evaluation` | opcional | `TRUE` crea lagunas artificiales y devuelve métricas |
+| `gap_percentage` | opcional | Proporción de lagunas artificiales en la evaluación (predeterminado `0.2`) |
+| `keep_features` | opcional | `TRUE` conserva atributos generados (rezagos/promedios móviles) |
+| `parallel` / `workers` | opcional | Procesa estaciones en paralelo (`furrr`) |
+| `datetime_col` / `station_col` | opcional | Nombres de las columnas; autodetectados si `NULL` |
+
+**Retorno (producción):** mismo tibble con `target_var` imputada y bandera
+`is_imputed_<var>`. **Retorno (evaluación):** lista nombrada con `$data` y
+`$metrics` (RMSE, MAE, R², sMAPE, `slope_bias`, `n_gaps`) por estación.
+
+## `sus_climate_plot_fill()`
+
+Visualiza el relleno; detecta automáticamente producción vs. evaluación.
+
+| Argumento | ¿Esencial? | Descripción |
+|-----------|------------|-----------|
+| `df_filled` | sí | Salida de `sus_climate_fill_inmet()` |
+| `df_original` | solo producción | Serie bruta (de `sus_climate_inmet()`) |
+| `target_var` | sí | Variable(s) a visualizar |
+| `interactive` | opcional | `FALSE` → `ggplot2`; `TRUE` → `plotly` |
+| `output_type` | opcional | `"plot"`, `"table"`, `"metrics"` o `"all"` |
+| `save_plot` | opcional | Ruta para guardar (`.png` o `.html`) |
+
+**Retorno:** el gráfico, la tabla, las métricas, o una lista con los cuatro
+componentes. **Modo evaluación** dibuja un panel diagnóstico 2×2
+(observado vs. predicho, histograma de residuos, residuos en el tiempo y vs.
+observado).
+
+## `sus_climate_normals()`
+
+Descarga las normales climatológicas de 30 años del INMET.
+
+| Argumento | ¿Esencial? | Descripción |
+|-----------|------------|-----------|
+| `period` | recomendado | `"1961-1990"`, `"1981-2010"` o `"1991-2020"` (predeterminado) |
+| `target_var` | opcional | Códigos de variable (`c("t_max","t_min")`); `NULL` = todas |
+| `use_cache` / `cache_dir` | recomendado | Cache en disco del catálogo y de los archivos |
+| `lang` / `verbose` | opcional | Idioma y progreso |
+
+**Retorno:** `climasus_df` (`type = "normals"`), formato largo con `codigo`,
+`nome_estacao`, `uf`, `mes`, `decada`, `valor`, `var_code` y etiquetas
+multilingües. Compañera: `sus_climate_normals_meta()` lista los códigos
+disponibles.
+
+## `sus_climate_aggregate()`
+
+Vincula el clima con la salud por la estación más cercana y aplica la
+estrategia temporal.
+
+| Argumento | ¿Esencial? | Descripción |
+|-----------|------------|-----------|
+| `health_data` | sí | `climasus_df` con `date`, `code_muni` y geometría (`sf`) |
+| `climate_data` | sí | Salida de `sus_climate_fill_inmet()` |
+| `climate_var` | recomendado | Variable(s) climática(s); `"all"` (predeterminado) |
+| `temporal_strategy` | sí | Una de las 10 estrategias (ver abajo) |
+| `window_days` | condicional | Tamaño de la ventana (móvil, grados-día, umbral, ponderada) |
+| `lag_days` | condicional | Rezago(s) para `discrete_lag` / máx. para `distributed_lag` |
+| `offset_days` | condicional | `c(W1, W2)` para `offset_window` |
+| `temp_base` / `gdd_temp_var` | condicional | Base térmica y variable para `degree_days` |
+| `threshold_value` / `threshold_direction` | condicional | Umbral para `*_exceedance` |
+| `climate_region` | opcional | `"auto"` (predeterminado), `"tropical"`, `"subtropical"`, `"temperate"` |
+| `min_obs` | opcional | Proporción mínima de observaciones válidas en la ventana (predeterminado `0.7`) |
+
+**Estrategias temporales (`temporal_strategy`):** `exact`, `discrete_lag`,
+`moving_window`, `offset_window`, `distributed_lag`, `degree_days`, `seasonal`,
+`threshold_exceedance`, `cold_wave_exceedance`, `weighted_window`.
+
+**Retorno:** `climasus_df` con los datos de salud y las variables climáticas
+integradas como nuevas columnas.
+
+# Fórmulas
+
+**Promedio móvil retroactivo (`moving_window`, ventana de $W$ días).** La
+exposición acumulada del día $t$ es el promedio de las observaciones de
+$t-W+1$ hasta $t$ — nunca usa el futuro (evita el sesgo de anticipación):
+
+$$
+\bar{x}_t^{(W)} = \frac{1}{W} \sum_{\ell=0}^{W-1} x_{t-\ell}
+$$
+
+**Rezago discreto (`discrete_lag`).** La exposición es el valor observado
+exactamente $L$ días antes del evento:
+
+$$
+x_t^{(L)} = x_{t-L}
+$$
+
+**Grados-día (`degree_days`, base $T_b$).** Acumulación del exceso de
+temperatura sobre la base a lo largo de la ventana (estrés térmico):
+
+$$
+\mathrm{GDD}_t = \sum_{\ell=0}^{W-1} \max\!\left(x_{t-\ell} - T_b,\; 0\right)
+$$
+
+**Excedencia de umbral (`threshold_exceedance`).** Número de días en la
+ventana en que la temperatura supera el umbral $\tau$ (proxy de ola de
+calor):
+
+$$
+N_t = \sum_{\ell=0}^{W-1} \mathbb{1}\!\left(x_{t-\ell} > \tau\right)
+$$
+
+# Resultados ilustrados
+
+```{r fig-serie, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/inmet_serie.png", .nota_gerar)
+```
+
+**Figura 1.** Temperatura media diaria observada en la estación A701 (São
+Paulo – Mirante de Santana), 2014–2019. La estacionalidad de invierno
+(temperaturas menores entre junio y agosto) es nítida y será el eje del
+alineamiento con la mortalidad de adultos mayores.
+
+```{r tab-resumo, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/inmet_resumo.rds", .nota_gerar,
+            caption = "Tabla 1. Cobertura y lagunas de la serie importada (antes del relleno).")
+```
+
+```{r fig-fill, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/inmet_fill.png", .nota_gerar)
+```
+
+**Figura 2.** Resultado del relleno de lagunas (`sus_climate_plot_fill()`):
+la serie observada con los valores imputados por XGBoost destacados. La
+imputación preserva los ciclos diario y estacional, en lugar de "aplanar"
+los tramos faltantes.
+
+```{r tab-metricas, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/inmet_fill_metricas.rds", .nota_gerar,
+            caption = "Tabla 2. Métricas de evaluación del relleno (lagunas artificiales MCAR): RMSE, MAE, R² y n. de lagunas por estación.")
+```
+
+```{r fig-normais, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/inmet_normais.png",
+            "Figura 3 no disponible: las normales climatológicas requieren acceso al portal del INMET. Vuelva a ejecutar el script de generación con internet.")
+```
+
+**Figura 3.** Ciclo anual de las normales climatológicas de temperatura
+(1991–2020) para el estado de São Paulo. Las normales proporcionan la línea
+base climatológica contra la cual se miden anomalías y extremos en los
+tutoriales siguientes.
+
+```{r fig-lag, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/inmet_lag.png", .nota_gerar)
+```
+
+**Figura 4.** Exposición a la temperatura por estrategia temporal en el
+invierno de 2014 (RMSP): el valor del **mismo día** (`exact`) oscila más,
+mientras que el **promedio móvil de 7 días** (`moving_window`) suaviza la
+señal y captura la exposición acumulada — elección que refleja el mecanismo
+biológico de interés en el modelo final.
+
+# Referencias
+
+- Bhaskaran, K., Gasparrini, A., Hajat, S., Smeeth, L., & Armstrong, B. (2013).
+  Time series regression studies in environmental epidemiology.
+  *International Journal of Epidemiology*, 42(4), 1187–1195.
+- Chen, T., & Guestrin, C. (2016). XGBoost: A scalable tree boosting system.
+  *Proceedings of the 22nd ACM SIGKDD*, 785–794.
+- Gasparrini, A. (2011). Distributed lag linear and non-linear models in R: the
+  package dlnm. *Journal of Statistical Software*, 43(8), 1–20.
+- Gasparrini, A., Armstrong, B., & Kenward, M. G. (2010). Distributed lag
+  non-linear models. *Statistics in Medicine*, 29(21), 2224–2234.
+- Geirinhas, J. L., et al. (2018). Climatic and synoptic characterization of heat
+  waves in Brazil. *International Journal of Climatology*, 38(4), 1760–1776.
+- Saldanha, R. de F., Bastos, R. R., & Barcellos, C. (2019). Microdatasus:
+  pacote para download e pré-processamento de microdados do DATASUS.
+  *Cadernos de Saúde Pública*, 35(9), e00032419.
+- INMET — Instituto Nacional de Meteorologia. Dados históricos.
+  Disponible en: <https://portal.inmet.gov.br/dadoshistoricos>.
+
+---
+
+# Navegación
+
+- [Volver al hub de tutoriales](tutorials.html)
+- **Anterior:** [Tutorial 6 — Vínculo Socioeconómico (Censo)](06-socioeconomico.html)
+- **Siguiente:** [Tutorial 8 — Clima en Grilla y Datos Ambientales (ERA5/CHIRPS)](08-clima-grade.html)

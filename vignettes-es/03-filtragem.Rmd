@@ -1,0 +1,420 @@
+---
+title: "Tutorial 3: Filtrado por Enfermedad (CIE-10) y Demografía"
+author: "Equipo climasus4r"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* -- Variaveis de Cores Modernas -- */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; color: var(--text-main); background-color: #fff; line-height: 1.6; }
+h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--dark-green); }
+h1.title { font-size: 2.8em; border-bottom: 4px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 1.5rem; }
+h2 { margin-top: 2rem; border-left: 4px solid var(--primary-color); padding-left: 1rem; }
+pre.r, pre.sourceCode { background-color: var(--code-bg); border: 1px solid #e1e1e1; border-left: 5px solid var(--primary-color) !important; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1rem; }
+.callout { padding: 1.2em 1.5em; margin: 1.5em 0; border-radius: 8px; border-left: 6px solid; background-color: var(--bg-light); }
+.callout-note { background-color: #f0f7ff; border-color: #007bff; }
+.callout-tip { background-color: #e8f5e9; border-color: #1D9E75; }
+.callout-warning { background-color: #fff3e0; border-color: #ff9800; }
+.workflow-container { background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #dce8e1; overflow-x: auto; }
+.workflow-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; font-family: 'Inter', monospace; font-size: 0.8rem; }
+.workflow-step { background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap; }
+.workflow-arrow { color: var(--primary-color); font-weight: bold; font-size: 1.2rem; }
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+.feature-card { background: white; border-radius: 12px; padding: 1.5rem; border: 1px solid #e1e1e1; transition: transform 0.2s ease, box-shadow 0.2s ease; text-align: center; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+.feature-card h3 { margin-top: 0; color: var(--primary-color); font-size: 1.1rem; }
+table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e1e1; }
+th { background-color: var(--bg-light); font-weight: 600; color: var(--dark-green); }
+.github-feedback-btn { display: inline-flex; align-items: center; gap: 8px; background-color: #24292e; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-family: sans-serif; transition: background-color 0.2s; margin-top: 1rem; }
+.github-feedback-btn:hover { background-color: #2c3e50; color: white; text-decoration: none; }
+@media (max-width: 768px) { body { font-size: 16px; } h1.title { font-size: 2rem; } .workflow-steps { flex-direction: column; align-items: center; } }
+```
+
+
+```{r setup, include=FALSE}
+# ATENCIÓN — estrategia de prerrenderizado.
+# Este tutorial NO ejecuta el análisis durante el renderizado. Todas las figuras y
+# tablas fueron generadas UNA vez por el script scripts/tutorial_03_filtragem.R y
+# aquí solo se cargan (PNG vía include_graphics; RDS vía readRDS).
+# Por eso, los chunks didácticos de abajo usan eval = FALSE: el código se muestra,
+# pero no se ejecuta en el momento del knit.
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+
+# Helpers para mostrar los artefactos de forma robusta: si el archivo aún no fue
+# generado (el script de generación no se ejecutó), muestran una nota en lugar de
+# romper el knit. Así la viñeta se renderiza en cualquier momento.
+fig_ou_nota <- function(path, nota) {
+  if (file.exists(path)) knitr::include_graphics(path)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+tbl_ou_nota <- function(path, nota, caption = NULL) {
+  if (file.exists(path)) knitr::kable(readRDS(path), caption = caption)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+.nota_gerar <- "Artefacto no disponible — ejecute `Rscript scripts/tutorial_03_filtragem.R` (desde la raíz del paquete) para generarlo."
+```
+
+# Objetivo
+
+Al final de este tutorial usted será capaz de **recortar los microdatos de
+salud ya estandarizados** según dos ejes complementarios:
+
+1. **Por enfermedad (CIE-10)** — con `sus_data_filter_cid()`, seleccionando
+   códigos específicos, intervalos, capítulos enteros o uno de los **más de 50
+   grupos de enfermedad predefinidos** del paquete;
+2. **Por características demográficas** — con `sus_data_filter_demographics()`,
+   restringiendo por sexo, raza/color, **grupo etario**, escolaridad, región o
+   municipio.
+
+También conocerá `sus_data_cid_select()`, un **explorador interactivo** que
+ayuda a descubrir los nombres de los grupos de enfermedad sin necesidad de
+memorizar códigos CIE-10.
+
+El filtrado es la **tercera etapa** del pipeline (`import → clean → stand →
+**filter_cid → filter_demo** → derive → aggregate → …`). Exige que los datos
+ya hayan sido estandarizados (etapa `stand`); por eso las funciones abortan
+con un mensaje orientador si reciben datos en una etapa anterior.
+
+# Contexto científico
+
+Los estudios de **clima y salud** rara vez analizan todas las muertes o
+internaciones a la vez: el interés recae sobre **desenlaces sensibles al
+clima** en **subpoblaciones vulnerables**. La literatura es consistente al
+mostrar que los extremos térmicos afectan de forma desproporcionada a las
+causas **respiratorias** (CIE-10 capítulo J, J00–J99) y **cardiovasculares**
+(capítulo I, I00–I99), sobre todo entre **adultos mayores** (Gasparrini et
+al., 2015; Bhaskaran et al., 2013).
+
+La **Clasificación Internacional de Enfermedades, 10ª revisión (CIE-10)**,
+organiza las causas en capítulos identificados por letra inicial y en códigos
+de tres a cuatro caracteres (OMS, 2016). El `climasus4r` traduce esa
+estructura en una sintaxis de filtrado flexible — código único, intervalo
+(`"J00-J99"`), capítulo (`"J"`) o grupo nombrado (`"respiratory"`) — y detecta
+automáticamente la columna de causa adecuada para cada sistema del DATASUS
+(`CAUSABAS`/`causa_basica` en el SIM, `DIAG_PRINC`/`diagnostico_principal` en
+el SIH).
+
+Recortar **antes** de agregar es también una buena práctica de
+reproducibilidad: el objeto `climasus_df` registra en su historial exactamente
+qué códigos y criterios demográficos fueron aplicados, haciendo el estudio
+auditable.
+
+> **Caso guía.** Investigamos la **temperatura y los desenlaces de salud en
+> adultos mayores (60+) en la Región Metropolitana de São Paulo, 2014–2019**.
+> En este tutorial recortamos, a partir de la base estandarizada del Tutorial
+> 2, las **causas respiratorias (J00–J99)** y **cardiovasculares (I00–I99)** y
+> restringimos a la **población de adultos mayores (60 años o más)** residente
+> en la RMSP. El objeto filtrado alimenta el Tutorial 4 (Creación de Variables
+> y Agregación).
+
+# Datos utilizados
+
+Entrada: `vignettes-pt/dados/caso_padronizado.rds` — la base SIM-DO
+**estandarizada** producida por el Tutorial 2 (columnas canónicas como
+`causa_basica`, `age_years`, `sex`, `residence_municipality_code`). El script
+carga ese `.rds` con guarda `file.exists()`; si aún no existe (Tutorial 2 no
+ejecutado), continúa con un **ejemplo mínimo sintético** solo para producir
+los artefactos didácticos.
+
+| Recorte | Criterio | Función |
+|---------|----------|--------|
+| Causas respiratorias | CIE-10 J00–J99 (`disease_group = "respiratory"`) | `sus_data_filter_cid()` |
+| Causas cardiovasculares | CIE-10 I00–I99 (`icd_codes = "I00-I99"`) | `sus_data_filter_cid()` |
+| Adultos mayores | `age_range = c(60, Inf)` | `sus_data_filter_demographics()` |
+| RMSP | `municipality_code = <códigos IBGE>` | `sus_data_filter_demographics()` |
+
+# Pipeline completo
+
+Los bloques a continuación reproducen lo que ejecuta el script
+`scripts/tutorial_03_filtragem.R`. Comience cargando el paquete y la base
+estandarizada del tutorial anterior:
+
+```{r carregar}
+library(climasus4r)
+
+# Salida del Tutorial 2 (Encoding & Estandarización):
+caso_padronizado <- readRDS("vignettes-pt/dados/caso_padronizado.rds")
+obitos_std <- caso_padronizado$obitos   # SIM-DO estandarizado (etapa "stand")
+```
+
+## Explorar grupos de enfermedad
+
+`sus_data_cid_select()` ayuda a descubrir **qué grupos existen** y cuáles son
+**sensibles al clima**, sin abrir el código fuente. En modo interactivo
+(`output = "browser"`) abre una interfaz HTML; en modo `"console"` devuelve,
+de forma invisible, un `data.frame` con los grupos:
+
+```{r cid-select}
+# Interfaz interactiva en el navegador (predeterminado):
+sus_data_cid_select(lang = "pt")
+
+# Solo los grupos sensibles al clima:
+sus_data_cid_select(lang = "pt", filter_climate = TRUE)
+
+# Sin abrir el navegador — devuelve el data.frame de grupos:
+grupos <- sus_data_cid_select(lang = "pt", output = "console", verbose = FALSE)
+```
+
+## Filtrar por CIE-10
+
+Hay dos formas equivalentes de recortar las causas respiratorias y
+cardiovasculares: por el **grupo nombrado** (más legible) o por el
+**intervalo de códigos** (más explícito). La columna de causa
+(`causa_basica`, en el SIM-DO) se **detecta automáticamente** a partir de los
+metadatos del `climasus_df`.
+
+```{r filter-cid}
+# (a) Respiratorio (J00-J99) por grupo de enfermedad:
+resp <- sus_data_filter_cid(
+  df            = obitos_std,
+  disease_group = "respiratory",   # equivale a icd_codes = "J00-J99"
+  match_type    = "starts_with",   # "J18" coincide con "J18", "J18.0", "J18.9"
+  backend       = "tibble",        # "arrow" (lazy) o "tibble" (en memoria)
+  lang          = "pt"
+)
+
+# (b) Cardiovascular (I00-I99) por intervalo de códigos:
+cardio <- sus_data_filter_cid(
+  df         = obitos_std,
+  icd_codes  = "I00-I99",          # equivale a disease_group = "cardiovascular"
+  match_type = "starts_with",
+  backend    = "tibble",
+  lang       = "pt"
+)
+```
+
+## Filtrar por demografía (adultos mayores 60+ en la RMSP)
+
+Encadenamos el recorte demográfico sobre el subconjunto respiratorio. El
+argumento `age_range = c(60, Inf)` exige la columna `age_years`; el recorte
+espacial usa **códigos IBGE** de los municipios de la Región Metropolitana de
+São Paulo:
+
+```{r filter-demo}
+# Municipios de la RMSP (códigos IBGE de 7 dígitos):
+RMSP <- c("3550308", "3548708", "3509502", "3548500",
+          "3547809", "3530607", "3534401", "3505708")
+
+resp_idosos <- sus_data_filter_demographics(
+  df                = resp,
+  age_range         = c(60, Inf),   # adultos mayores: 60 años o más
+  municipality_code = RMSP,         # recorte espacial: RMSP
+  drop_ignored      = FALSE,        # TRUE eliminaría sexo/raza "Ignorado"/NA
+  backend           = "tibble",
+  use_cache         = TRUE,
+  lang              = "pt"
+)
+
+cardio_idosos <- sus_data_filter_demographics(
+  df                = cardio,
+  age_range         = c(60, Inf),
+  municipality_code = RMSP,
+  backend           = "tibble",
+  lang              = "pt"
+)
+```
+
+También puede filtrar por **nombre de ciudad** (tolerante a acentos y a
+errores de tipeo), por **sexo/raza/escolaridad** o por **región**
+predefinida:
+
+```{r filter-demo-extra}
+# Por nombre de ciudad (en lugar de código) y por sexo:
+mulheres_sp <- sus_data_filter_demographics(
+  df   = resp,
+  sex  = "Feminino",
+  city = "Sao Paulo",   # acepta acentos; hace correspondencia aproximada
+  lang = "pt"
+)
+
+# Por macrorregión (atajo que resuelve a un conjunto de UF):
+sudeste <- sus_data_filter_demographics(resp, region = "sudeste", lang = "pt")
+```
+
+Al final de esta etapa tenemos `resp_idosos` y `cardio_idosos` — los
+**recortes de interés** que se guardarán y alimentarán el Tutorial 4.
+
+# Características de las funciones
+
+## `sus_data_filter_cid()`
+
+Filtra por CIE-10. Exige `icd_codes` **o** `disease_group` (si se
+proporcionan ambos, prevalece `disease_group`). La columna de causa se
+detecta automáticamente según el sistema (`SIM → causa_basica`,
+`SIH → diagnostico_principal`).
+
+| Argumento | ¿Esencial? | Descripción |
+|-----------|------------|-----------|
+| `df` | sí | `climasus_df` en la etapa `stand` o posterior |
+| `icd_codes` | uno de los dos | Código(s)/intervalo(s): `"J18.9"`, `c("I21","I22")`, `"J00-J99"` |
+| `disease_group` | uno de los dos | Grupo nombrado: `"respiratory"`, `"cardiovascular"`, `"dengue"`, … |
+| `icd_column` | opcional | Columna de causa; `NULL` = autodetección |
+| `match_type` | opcional | `"starts_with"` (predeterminado), `"exact"`, `"range"` |
+| `backend` | opcional | `"arrow"` (lazy, predeterminado) o `"tibble"` (en memoria) |
+| `lang` / `verbose` | opcional | Idioma (`"pt"`/`"en"`/`"es"`) y mensajes |
+
+**Retorno:** un `climasus_df` filtrado (etapa `filter_cid`), preservando
+todas las columnas originales y registrando en el historial los
+códigos/grupos aplicados.
+
+## `sus_data_filter_demographics()`
+
+Filtra por características demográficas y geográficas. Todos los criterios
+son opcionales; si no se informa ninguno, los datos se devuelven sin
+cambios. Las combinaciones se aplican en secuencia (intersección entre
+criterios); `city` y `municipality_code` se combinan por **unión**.
+
+| Argumento | Descripción |
+|-----------|-----------|
+| `df` | `climasus_df` en la etapa `stand` o posterior |
+| `sex` | `"Masculino"`/`"Feminino"` (acepta pt/en/es) |
+| `race` | Categorías IBGE: `"Branca"`, `"Preta"`, `"Parda"`, … |
+| `age_range` | Vector `c(min, max)`; use `Inf` para sin límite superior. Exige `age_years` |
+| `education` | Niveles de escolaridad |
+| `region` | Grupo predefinido de UF (`"sudeste"`, `"semi_arido"`, …) |
+| `city` | Nombre(s) de municipio (tolerante a acentos/errores) |
+| `municipality_code` | Código(s) IBGE de 6 o 7 dígitos |
+| `drop_ignored` | `TRUE` elimina `NA`/códigos "Ignorado" de las variables demográficas |
+| `backend`, `use_cache`, `cache_dir` | Backend y caché espacial (relevante con `city`) |
+| `lang` / `verbose` | Idioma y mensajes |
+
+**Retorno:** un `climasus_df` filtrado (etapa `filter_demo`). Internamente,
+los códigos de municipio se expanden para cubrir **ambos** formatos (6
+dígitos del DATASUS y 7 dígitos del IBGE), de modo que el filtro funciona
+cualquiera sea el formato almacenado.
+
+## `sus_data_cid_select()`
+
+Explorador de grupos de enfermedad. **No altera los datos** — solo ayuda en
+la búsqueda de nombres de grupos para usar en `sus_data_filter_cid()`.
+
+| Argumento | Descripción |
+|-----------|-----------|
+| `lang` | `"pt"` (predeterminado), `"en"`, `"es"` |
+| `output` | `"browser"` (HTML interactivo, predeterminado) o `"console"` (resumen en R) |
+| `filter_climate` | `TRUE` muestra solo grupos sensibles al clima |
+| `verbose` | Mensajes informativos |
+
+**Retorno:** de forma invisible, un `data.frame` con `name`, `icd_codes`,
+`climate_factors`, `description`, `category` y `climate_sensitive`.
+
+# Sintaxis de códigos CIE-10
+
+La sintaxis de `icd_codes` se expande internamente mediante
+`process_icd_codes()`. Un **intervalo** `"J00-J99"` se expande a la secuencia
+de prefijos $J00, J01, \dots, J99$. Formalmente, para un intervalo de la
+misma letra $L$ entre los números $a$ y $b$:
+
+$$
+\mathrm{expand}(L\,a\text{–}L\,b) = \{\, L\,n : n \in \{a, a+1, \dots, b\} \,\}
+$$
+
+El parámetro `match_type` define cómo se compara cada código con la columna
+de causa:
+
+- **`"exact"`** — igualdad exacta (`"I10"` coincide solo con `"I10"`);
+- **`"starts_with"`** (predeterminado) — prefijo (`"I10"` coincide con
+  `"I10"`, `"I10.0"`, `"I10.9"`), lo que refleja la jerarquía de la CIE-10;
+- **`"range"`** — correspondencia por cualquier prefijo del intervalo
+  expandido.
+
+La fracción de registros retenidos en cada filtro es simplemente
+
+$$
+\text{retenido (\%)} = 100 \times \frac{n_{\text{filtrado}}}{n_{\text{original}}}\,.
+$$
+
+# Resultados ilustrados
+
+```{r tab-grupos, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/filt_grupos_doenca.rds", .nota_gerar,
+            caption = "Tabla 1. Grupos de enfermedad CIE-10 de interés en el caso guía (salida de sus_data_cid_select).")
+```
+
+```{r tab-resumo, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/filt_resumo.rds", .nota_gerar,
+            caption = "Tabla 2. Embudo de filtrado: registros retenidos en cada etapa.")
+```
+
+```{r fig-funil, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/filt_funil_cid.png", .nota_gerar)
+```
+
+**Figura 1.** Embudo de filtrado. Cada barra muestra cuántos registros
+permanecen después de la base estandarizada, el recorte por CIE-10
+(respiratorio, J00–J99) y el recorte demográfico (adultos mayores 60+
+residentes en la RMSP). El estrechamiento ilustra cómo el objeto de análisis
+se restringe progresivamente al alcance del estudio.
+
+```{r fig-comp, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/filt_resp_vs_cardio.png", .nota_gerar)
+```
+
+**Figura 2.** Muertes en adultos mayores (60+) en la RMSP por gran grupo de
+causa, después del filtrado combinado (CIE-10 + demografía). La comparación
+entre los capítulos respiratorio (J) y cardiovascular (I) es el punto de
+partida del análisis de sensibilidad al clima de los próximos tutoriales.
+
+```{r fig-piramide, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/filt_piramide_idade.png", .nota_gerar)
+```
+
+**Figura 3.** Distribución etaria de las muertes respiratorias. El filtro
+`age_range = c(60, Inf)` retiene solo los grupos 60–79 y 80+, dejando
+explícito el efecto del recorte demográfico sobre la población analizada.
+
+```{r fig-serie, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/filt_serie_idosos.png", .nota_gerar)
+```
+
+**Figura 4.** Serie mensual de muertes respiratorias en adultos mayores (60+)
+en la RMSP, 2014–2019, después del filtrado. La estacionalidad de invierno —
+esperada para causas respiratorias — ya aparece en el objeto recortado y será
+contrastada con la temperatura en las etapas de clima y modelado.
+
+# Referencias
+
+- Bhaskaran, K., Gasparrini, A., Hajat, S., Smeeth, L., & Armstrong, B. (2013).
+  Time series regression studies in environmental epidemiology.
+  *International Journal of Epidemiology*, 42(4), 1187–1195.
+- Gasparrini, A., Guo, Y., Hashizume, M., et al. (2015). Mortality risk
+  attributable to high and low ambient temperature: a multicountry observational
+  study. *The Lancet*, 386(9991), 369–375.
+- Organização Mundial da Saúde. (2016). *CID-10: Classificação Estatística
+  Internacional de Doenças e Problemas Relacionados à Saúde*, 10ª revisão.
+- Ministério da Saúde (Brasil). DATASUS — CID-10. Disponible en:
+  <http://datasus.saude.gov.br/cid10>.
+
+---
+
+# Navegación
+
+- [Volver al hub de tutoriales](tutorials.html)
+- **Anterior:** [Tutorial 2 — Encoding y Estandarización](02-encoding-padronizacao.html)
+- **Siguiente:** [Tutorial 4 — Creación de Variables y Agregación](04-variaveis-agregacao.html)

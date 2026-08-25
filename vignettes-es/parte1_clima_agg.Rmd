@@ -1,0 +1,703 @@
+---
+title: "PARTE 1: Integración de Datos Climáticos y de Salud"
+subtitle: "Las 10 Estrategias de Alineamiento Temporal entre Datos Climáticos y Desenlaces de Salud con sus_climate_aggregate()"
+author: "Max Anjos, Eucilene Santana, Thauã Menezes"
+date: "01 April, 2026"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{PARTE 1: Integración de Datos Climáticos y de Salud}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+## Introducción
+
+### Fundamento Teórico
+
+La comprensión de las dinámicas entre variables climáticas y desenlaces de salud exige métodos que vayan más allá del simple análisis de correlación lineal. En la epidemiología ambiental, la plausibilidad de la asociación depende, entre otros factores, de la coherencia temporal entre la exposición, el período de latencia biológica y la ocurrencia del desenlace en salud. Esto ocurre porque la exposición a un factor estresor, como una ola de calor o un evento de precipitación extrema, rara vez produce un efecto biológico inmediato, aislado y uniforme en toda la población.
+
+**El mayor desafío en la epidemiología ambiental no es solo tener datos de clima y de salud, sino integrarlos temporalmente de forma biológicamente plausible.** Por ejemplo, si un paciente es diagnosticado con dengue el día "**t**", el mosquito que lo infectó probablemente lo picó cerca de **10 a 14 días antes**, mientras que la lluvia que favoreció la formación de criaderos puede haber ocurrido aproximadamente **30 días antes**. Así, utilizar solo la temperatura o la precipitación del día del registro puede introducir un **sesgo temporal**, especialmente en enfermedades con **latencia, incubación o efecto acumulado**. La función [`sus_climate_aggregate()`](https://bymaxanjos.github.io/climasus4r/es/reference/sus_climate_aggregate.html) fue construida para abordar este problema, ofreciendo **10 estrategias rigurosas de alineamiento temporal** entre exposiciones climáticas y desenlaces de salud.
+
+La respuesta orgánica y la dinámica de transmisión de enfermedades son procesos gobernados por **tiempos de latencia**, **períodos de incubación** y **efectos acumulados** que requieren estrategias de alineamiento temporal específicas para cada fenómeno estudiado. La aplicación rigurosa de enfoques como el rezago distribuido, la ventana desplazada o los grados-día permite que investigadores y gestores de salud pública identifiquen con precisión las ventanas de vulnerabilidad y los disparadores ambientales de diversas patologías.
+
+### Figura 1: El Desafío del Alineamiento Temporal
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         LINHA DO TEMPO EPIDEMIOLÓGICA                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   Exposição     Período de      Período de      Período de     Desfecho     │
+│   Climática     Latência        Incubação       Propagação    de Saúde      │
+│      ↓              ↓               ↓               ↓            ↓          │
+│   ═══╬═════════════╬═══════════════╬═══════════════╬════════════╬═══════►  │
+│      │             │               │               │            │          │
+│      │<─── Horas ──→│<─── Dias ────→│<─── Semanas ─→│<─── Meses ─→│          │
+│      │             │               │               │            │          │
+│   Calor/      Estresse      Infecção      Transmissão   Hospital-   Óbito   │
+│   Frio        Fisiológico   Viral         Comunitária   ização              │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+*Fuente: Adaptado de Bhaskaran et al. (2013) - International Journal of Epidemiology*
+
+### El Principio Fundamental
+
+La elección de la estrategia de alineamiento temporal debe guiarse por la hipótesis epidemiológica y biológica del estudio, pues diferentes desenlaces presentan diferentes tiempos de respuesta a la exposición climática:
+
+- Si el objetivo es estudiar el impacto del calor en la mortalidad por infarto agudo de miocardio, la premisa de un **efecto agudo** orienta el análisis hacia el "Match Exacto"
+- Por otro lado, el estudio de la incidencia de dengue en una metrópoli exige reconocer que el clima de hoy influirá en la abundancia de vectores y en la transmisión viral solo después de varias semanas, justificando el uso de **"Ventanas Desplazadas"** y **"Grados-Día"**
+
+| Tipo | Escala Temporal | Ejemplos |
+|------|-----------------|----------|
+| ⚡ **Efecto Agudo** | Minutos a Horas | Infarto, ACV, Asma |
+| ⏳ **Efecto Subagudo** | Días a Semanas | Neumonía, EPOC |
+| 🦟 **Efecto Tardío** | Semanas a Meses | Dengue, Malaria, Zika |
+
+## Las Diez Estrategias de Alineamiento Temporal
+
+Las estrategias de alineamiento funcionan como **filtros que permiten a los modelos estadísticos "ver" el fenómeno biológico a través del ruido de los datos meteorológicos**. Cada enfoque ofrece una perspectiva única sobre la exposición humana y ambiental.
+
+| Estrategia | Descripción |
+|------------|-----------|
+| 📅 **exact** | Alinea el evento de salud en el día t con el tiempo meteorológico en el día t. Ideal para eventos agudos (ej.: deshidratación, ACV por calor). |
+| ⏪ **discrete_lag** | Busca el tiempo meteorológico exactamente L días atrás. Útil para identificar picos de asociación específicos. |
+| ⏳ **moving_window** | Calcula el promedio o la suma de las variables climáticas en el intervalo [t-w, t]. El estándar ampliamente utilizado en series temporales (Rolling Window). |
+| 🔬 **offset_window** | Se enfoca en un intervalo histórico específico [t-W2, t-W1]. Ideal para aislar el período de incubación extrínseca. |
+| 🌀 **distributed_lag** | Crea una matriz de rezagos (0 hasta L). Organiza la exposición en múltiples rezagos, permitiendo su posterior aplicación en modelos de rezago distribuido, como DLNM. |
+| 🌡️ **degree_days** | Calcula Grados-Día de Crecimiento (GDD) acumulados. Esencial para la biología de vectores y el estrés térmico humano. |
+| 🌍 **seasonal** | Agrega los valores de las variables climáticas por estaciones del año (DJF, MAM, JJA, SON). Indicado para estudios de tendencias a largo plazo. |
+| 📈 **threshold_exceedance** | Cuenta días que exceden un umbral. Ideal para olas de calor y eventos extremos de precipitación. |
+| 📉 **cold_wave_exceedance** | Cuenta días por debajo de un umbral. Crítico para extremos de frío en las regiones Sur y Sudeste. |
+| ⚖️ **weighted_window** | Aplica pesos decrecientes a los días de la ventana, modelando la vida media biológica de la exposición ambiental. |
+
+### 1. Exact Match: el disparador de los eventos agudos
+
+**Definición** — El alineamiento por Match Exacto asocia el evento de salud a la exposición climática ocurrida en el día exacto del registro. Esta estrategia se fundamenta en la hipótesis de que el estresor ambiental posee la capacidad de desencadenar respuestas fisiológicas agudas en un corto intervalo de tiempo.
+
+**Modelo Matemático:** $Y_t \leftarrow X_t$
+
+#### Mecanismo Fisiológico
+
+La exposición súbita a temperaturas elevadas provoca una demanda masiva de termorregulación. Ocurre una vasodilatación periférica intensa para disipar el calor, lo que exige un aumento significativo del gasto cardíaco. En individuos con reserva cardiovascular limitada, este estrés puede llevar a isquemia miocárdica o a insuficiencia cardíaca aguda en pocas horas.
+
+#### Figura 2: Diagrama del Match Exacto
+
+```
+TEMPO:                    Dia do Evento (t)
+                               │
+    ═══════════════════════════╪═══════════════════════════►
+                               │
+    Exposição Térmica ─────────┼──► Resposta Biológica
+    (Calor/Frio extremo)       │    (Infarto/AVC)
+                               │
+                               │
+    ← Dias Anteriores ─────────┼──── Dias Seguintes ──────→
+                               │
+    ❌ IGNORADOS                │ ✅ CAPTURADO
+                               │
+```
+
+*Esquema: Solo la exposición en el día del evento es considerada.*
+
+#### Aplicaciones Clínicas
+
+| Fenómeno Biológico | Justificación | Mecanismo |
+|---------------------|---------------|-----------|
+| **Infarto de Miocardio** | Estrés hemodinámico súbito | Aumento inmediato de la carga cardíaca y la viscosidad sanguínea |
+| **ACV Isquémico** | Fluctuación de la presión arterial | Desequilibrio electrolítico e inestabilidad vascular rápida |
+| **Insolación (Heatstroke)** | Falla termorregulatoria | Elevación crítica de la temperatura central en corto plazo |
+| **Crisis de Asma** | Choque polínico | Ruptura de granos de polen por humedad, causando exposición inmediata |
+
+#### Limitaciones
+
+Aunque robusta para identificar el riesgo inmediato, esta estrategia puede ignorar efectos que se manifiestan con un pequeño retraso, como la inflamación pulmonar que se desarrolla horas después de la exposición. El Match Exacto es frecuentemente el punto de partida para modelos más complejos, sirviendo como el "lag 0" en análisis de múltiples días.
+
+### 2. Discrete Lag: identificación de la ventana crítica
+
+**Definición** — La estrategia de Rezago Discreto evalúa el efecto de las condiciones meteorológicas ocurridas en un día específico en el pasado, permitiendo que el investigador identifique qué día de exposición posee la mayor fuerza de asociación con el desenlace de salud.
+
+**Modelo Matemático:** $Y_t \leftarrow X_{t-L}$
+
+#### Mecanismo de Latencia
+
+Muchas patologías no se manifiestan el día de la exposición. En el caso de enfermedades respiratorias causadas por el frío, existe frecuentemente un retraso de 2 a 5 días. El aire frío inhibe el movimiento de los cilios en las vías aéreas y reduce la respuesta inmunológica local, facilitando la colonización por patógenos.
+
+#### Figura 3: Diagrama del Discrete Lag
+
+```
+TEMPO:                    Hoje (t)
+                               │
+    ═══════════════════════════╪═══════════════════════════►
+                               │
+    t-21    t-14    t-7     t-3│
+     │        │        │       │
+     ▼        ▼        ▼       ▼
+    ═══════════════════════════╗
+                               ║
+    Exposição Passada ─────────║──► Resposta Hoje
+    (Lag específico)           ║
+                               ║
+    ← ────────────────────────╫──────────────────────────→
+                               │
+    ✅ TESTADO                  │ ❌ IGNORADO
+    (cada lag isoladamente)     │
+```
+
+*Esquema: Se prueba cada día de exposición en el pasado por separado.*
+
+#### Clasificación por Horizonte Temporal
+
+| Tipo de Lag | Horizonte | Uso Típico | Ejemplo Clínico |
+|-------------|-----------|------------|-----------------|
+| **Lag Corto** | 1-3 días | Respuestas inflamatorias rápidas | Exacerbación de EPOC |
+| **Lag Intermedio** | 4-10 días | Infecciones virales respiratorias | Neumonía lobar |
+| **Lag Largo** | >10 días | Efectos indirectos | Cambios de comportamiento inducidos por el tiempo meteorológico |
+
+#### Limitación Principal
+
+La principal limitación radica en la **multicolinealidad**. Las temperaturas de días sucesivos están altamente correlacionadas, lo que puede dificultar la distinción entre el efecto del "lag 2" y del "lag 3". Sin embargo, sigue siendo una herramienta diagnóstica valiosa para entender la dinámica temporal primaria.
+
+### 3. Distributed Lag (DLNM): La Complejidad de los Modelos No Lineales
+
+**Definición** — El Modelo de Rezago Distribuido crea una matriz de rezagos que permite capturar el efecto de una exposición a lo largo de un período continuo. Cuando se combina con funciones no lineales, surge el **DLNM (Distributed Lag Non-linear Model)**, uno de los enfoques más consolidados para analizar relaciones no lineales y rezagadas entre temperatura y mortalidad. Preparación estricta para modelos DLNM (paquete `dlnm` en R).
+
+**Modelo Matemático:** $\log E = \alpha + \sum_{j=0}^{L} f_j + \text{covariáveis}$
+
+#### Lógica del Modelo
+
+El riesgo de hoy es la **suma de los riesgos residuales de exposiciones pasadas**. Una ola de calor de hace tres días aún puede estar contribuyendo al estrés fisiológico de un adulto mayor hoy. El DLNM utiliza funciones de base (splines o polinomios) para suavizar la relación tanto en la dimensión de la intensidad (temperatura) como en la dimensión del tiempo (lag).
+
+#### Figura 4: Superficie Tridimensional de Riesgo del DLNM
+
+```
+                    RISCO RELATIVO
+                         │
+                    ╱    │    ╲
+                   ╱     │     ╲
+                  ╱      │      ╲
+                 ╱       │       ╲
+                ╱        │        ╲
+               ╱         │         ╲
+              ╱          │          ╲
+             ╱           │           ╲
+            ╱            │            ╲
+           ╱             │             ╲
+    ──────┼──────────────┼──────────────┼──────►
+          │              │              │
+     TEMPERATURA ────────┼──────────────►
+          │              │              │
+          │              │              │
+          ▼              ▼              ▼
+       Frio           Conforto         Calor
+    (Efeito        (Risco Mínimo)   (Efeito
+    Persistente)                    Intenso)
+
+    LEGENDA:
+    ══ Linhas de mesmo risco
+    → Direção do aumento da temperatura
+    ↓ Direção do aumento da defasagem
+```
+
+*Esquema: Superficie tridimensional que muestra que el calor tiene un efecto intenso pero corto, mientras que el frío tiene un efecto más leve pero persistente durante semanas. Adaptado de Gasparrini (2011).*
+
+#### Fenómeno de "Cosecha" (Harvesting)
+
+El DLNM y los modelos de rezago distribuido pueden ayudar a identificar patrones compatibles con el fenómeno de harvesting, cuando el aumento inicial de la mortalidad es seguido por una reducción posterior por debajo de lo esperado.
+
+#### Figura 5: Efecto de Cosecha (Harvesting)
+
+```
+Mortalidade
+     │
+     ▲
+     │      ┌──────────────────────────────────────┐
+     │      │                                      │
+     │      │      Onda de Calor                   │
+     │      │         │                            │
+     │    ──┼─────────┼──────────────────────────  │ Linha de Base
+     │      │         │                            │
+     │      │    ╱────╲                            │
+     │      │   ╱      ╲                           │
+     │      │  ╱        ╲    ┌──────────────────┐  │
+     │      │ ╱          ╲   │                  │  │
+     │      │╱            ╲──┘     Queda        │  │
+     │      │               ┌───── Compensatória │  │
+     │      │               │                   │  │
+     │      └───────────────┴───────────────────┴──┼──►
+                                                  Tempo
+
+    LEGENDA:
+    ── Mortalidade observada
+    - - Linha de base esperada
+    ▲ Pico de mortes durante evento
+    ▼ Mortes abaixo do esperado após evento
+```
+
+*Fuente: Adaptado de Gasparrini et al. (2015) - The Lancet*
+
+### 4. Moving Window: La Perspectiva del Efecto Acumulado
+
+**Definición** — La Ventana Móvil calcula una métrica central (promedio, máximo o mínimo) de una variable climática durante un período reciente definido. A diferencia de los rezagos individuales, trata la exposición como una **carga acumulativa**.
+
+**Promedio:** $Y_t \leftarrow \frac{1}{W+1} \sum_{i=t-W}^{t} X_i$
+
+**Suma (lluvia):** $Y_t \leftarrow \sum_{i=t-W}^{t} X_i$
+
+**¿Por qué no una Ventana Simétrica ($\pm W$)?** En muchos paquetes estadísticos se usa una ventana simétrica $[t-W, t+W]$. Esto puede introducir un sesgo de anticipación temporal en estudios etiológicos, conocido como *Look-Ahead Bias* (Sesgo de Mirar hacia el Futuro). Las condiciones del tiempo del día $t+7$ no pueden causar un evento en el día $t$. El `climasus4r` usa exclusivamente la ventana *móvil retroactiva* $[t-W, t]$ para mantener la integridad causal.
+
+#### Fisiopatología del Agotamiento Adaptativo
+
+El cuerpo humano puede tolerar un día de calor extremo, pero la exposición continua durante siete días agota las reservas de hidratación y sobrecarga el sistema renal. En hidrología y salud, las ventanas móviles de precipitación acumulada se usan para predecir brotes de leptospirosis.
+
+#### Figura 6: Esquema de la Ventana Móvil
+
+```
+TEMPO:                    Hoje (t)
+                               │
+    ═══════════════════════════╪═══════════════════════════►
+                               │
+    t-7  t-6  t-5  t-4  t-3  t-2│t-1   t
+     │    │    │    │    │    │  │    │
+     ▼    ▼    ▼    ▼    ▼    ▼  ▼    ▼
+    ═══════════════════════════════════╗
+    ║  J A N E L A   M Ó V E L         ║
+    ║  (t-7  até  t)                   ║
+    ║                                   ║
+    ║  Média = (X₁+X₂+...+X₈)/8        ║
+    ╚═══════════════════════════════════╝
+                                       │
+                                       ▼
+                                  Resposta Hoje
+
+    LEGENDA:
+    ■ Dias incluídos na janela
+    □ Dias fora da janela
+```
+
+*Esquema: La ventana incluye el día del evento y los W días anteriores, calculando el promedio o la suma del período.*
+
+#### Ventanas y sus Enfoques Biológicos
+
+| Ventana | Enfoque Biológico | Ejemplo de Aplicación |
+|--------|----------------|----------------------|
+| **3 días** | Estrés Agudo Acumulado | Evaluación de olas de calor urbanas |
+| **7 días** | Persistencia Ambiental | Supervivencia de virus en superficies |
+| **14 días** | Adaptación Metabólica | Respuesta inflamatoria crónica |
+| **30 días** | Cambio de Ecótopo | Preparación del suelo para vectores |
+
+> **Atención Metodológica:** A diferencia de otros métodos que usan ventana simétrica, el alineamiento correcto en epidemiología usa exclusivamente la ventana **retroactiva** $[t-W, t]$ para evitar el *Look-Ahead Bias* (sesgo de mirar hacia el futuro).
+
+### 5. Offset Window: El Tiempo de la Incubación y Transmisión
+
+**Definición** — La Ventana Desplazada aísla un período específico en el pasado, **excluyendo deliberadamente los días más recientes**. Fundamental para enfermedades infecciosas, donde el alineamiento temporal debe considerar los períodos de incubación en el vector y en el humano.
+
+**Modelo:** $Y_t \leftarrow \frac{1}{W_1+1} \sum_{i=t-W_2}^{t-W_1} X_i$
+
+#### Componentes del Retraso en el Dengue
+
+| Componente | Duración (Días) | Influencia del Clima |
+|------------|----------------|---------------------|
+| Desarrollo Larvario | 7 - 10 | Temperatura y precipitación (criaderos) |
+| Incubación en el Mosquito (PIE) | 8 - 12 | Temperatura (acelera la replicación viral) |
+| Incubación en el Humano | 3 - 7 | Independiente del clima |
+| Retraso de Notificación | 2 - 5 | Factores administrativos/acceso |
+
+#### Figura 7: Cadena de Transmisión del Dengue
+
+```
+                    CICLO DE TRANSMISSÃO DA DENGUE
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │                                                                 │
+    │   Ovo      Larva     Pupa     Adulto    PIE*      Humano    Caso │
+    │    │         │         │         │        │          │        │  │
+    │    ▼         ▼         ▼         ▼        ▼          ▼        ▼  │
+    │   ═╬═════════╬═════════╬═════════╬════════╬══════════╬════════╬═►│
+    │    │         │         │         │        │          │        │  │
+    │  7-10      3-5       2-3       5-7      8-12       3-7      2-5 │
+    │  dias      dias      dias      dias     dias       dias     dias│
+    │                                                                 │
+    │  *PIE = Período de Incubação Extrínseco (vírus no mosquito)     │
+    │                                                                 │
+    └─────────────────────────────────────────────────────────────────┘
+
+    TEMPO TOTAL: 30-45 dias desde o ovo até o caso notificado
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │                    JANELA DESLOCADA IDEAL                        │
+    │                                                                 │
+    │              ┌─────────────────────┐                            │
+    │              │    OFFSET WINDOW    │                            │
+    │              │    [t-28, t-14]     │                            │
+    │              └─────────────────────┘                            │
+    │                         │                                       │
+    │                         ▼                                       │
+    │              Captura chuvas e calor que                         │
+    │              criaram o vetor e permitiram                       │
+    │              a replicação viral                                 │
+    └─────────────────────────────────────────────────────────────────┘
+```
+
+*Fuente: Adaptado de Lowe et al. (2021) - The Lancet Planetary Health*
+
+### 6. Degree Days: El Cronómetro Térmico de la Biología
+
+**Definición** — El concepto de Grados-Día se basa en la **teoría del tiempo térmico**, que postula que el desarrollo de organismos ectotérmicos (insectos, parásitos) no está gobernado por el tiempo cronológico, sino por la acumulación de calor por encima de un umbral basal.
+
+**Grados-Día:** $GDD = \sum_{i=t-W}^{t} \max(0, T_i - T_{base})$
+
+#### Umbrales Térmicos por Especie
+
+| Organismo | T~base~ (°C) | GDD para Desarrollo | Aplicación |
+|-----------|--------------|--------------------------|-----------|
+| *Aedes aegypti* | 11 | 100-150 | Transmisión de dengue |
+| *Anopheles gambiae* | 18 | 80-120 | Transmisión de malaria |
+| *Triatoma infestans* | 16 | 200-300 | Enfermedad de Chagas |
+| *Humano (estrés)* | 20 | - | Morbilidad cardiovascular |
+
+#### Teoría del Tiempo Térmico
+
+Cada especie posee un **Umbral Térmico Inferior** ($T_{base}$), por debajo del cual su desarrollo cesa. Si una larva de mosquito necesita 100 grados-día acumulados para convertirse en adulta, puede tardar 10 días en un ambiente a 25°C o solo 5 días en un ambiente a 35°C.
+
+#### Figura 8: Cálculo de los Grados-Día
+
+```
+Exemplo: Aedes aegypti (Tbase = 11°C)
+
+Dia 1: Tmed = 25°C  →  GDD = 25 - 11 = 14
+Dia 2: Tmed = 26°C  →  GDD = 26 - 11 = 15
+Dia 3: Tmed = 24°C  →  GDD = 24 - 11 = 13
+Dia 4: Tmed = 10°C  →  GDD = max(0, 10-11) = 0
+Dia 5: Tmed = 28°C  →  GDD = 28 - 11 = 17
+
+GDD Acumulado = 14 + 15 + 13 + 0 + 17 = 59
+
+Se necessidade de desenvolvimento = 100 GDD:
+Faltam 41 GDD → aproximadamente +3 dias
+
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│   Temperatura                                                   │
+│        ▲                                                        │
+│        │                                                        │
+│     35 ┤                                      ╱───╲             │
+│        │                                   ╱─╲    ╲             │
+│     30 ┤                                ╱─╲   ╲    ╲            │
+│        │                             ╱─╲   ╲   ╲    ╲           │
+│     25 ┤                          ╱─╲   ╲   ╲   ╲    ╲          │
+│        │                       ╱─╲   ╲   ╲   ╲   ╲    ╲         │
+│     20 ┤                    ╱─╲   ╲   ╲   ╲   ╲   ╲    ╲        │
+│        │                 ╱─╲   ╲   ╲   ╲   ╲   ╲   ╲    ╲       │
+│     15 ┤              ╱─╲   ╲   ╲   ╲   ╲   ╲   ╲   ╲    ╲      │
+│        │           ╱─╲   ╲   ╲   ╲   ╲   ╲   ╲   ╲   ╲    ╲     │
+│   Tbase=11 ┤────────╨───────╨───────╨───────╨───────╨───────╨──► │
+│        │                     Tempo                              │
+│                                                                 │
+│   ■ Área acima da Tbase = GDD acumulado                         │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+*Esquema: El área bajo la curva de temperatura por encima del umbral basal representa los Grados-Día acumulados.*
+
+### 7. Seasonal: Tendencias de Largo Plazo y Ciclicidad
+
+**Definición** — La estrategia Estacional se enfoca en la identificación de patrones y tendencias de largo plazo, ocultando la variabilidad de corto plazo para entender la dinámica anual de las enfermedades.
+
+#### Figura 9: Descomposición Estacional de Series Temporales
+
+```
+                    DECOMPOSIÇÃO SAZONAL
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  Série Original                                                 │
+    │     ▲                                                          │
+    │     │    ╱╲    ╱╲    ╱╲    ╱╲                                 │
+    │     │   ╱  ╲  ╱  ╲  ╱  ╲  ╱  ╲                                │
+    │     │  ╱    ╲╱    ╲╱    ╲╱    ╲                               │
+    │     │ ╱                              ╲                         │
+    │     │╱                                ╲                        │
+    │     └──────────────────────────────────────────────────►       │
+    │                                                               │
+    │  Tendência (Longo Prazo)                                      │
+    │     ▲                                                         │
+    │     │                                     ╱────────────────    │
+    │     │                                 ╱───                    │
+    │     │                             ╱───                        │
+    │     │                         ╱───                            │
+    │     │                     ╱───                                │
+    │     │                 ╱───                                    │
+    │     │             ╱───                                        │
+    │     │         ╱───                                            │
+    │     │     ╱───                                                │
+    │     │ ╱───                                                    │
+    │     └──────────────────────────────────────────────────►       │
+    │                                                               │
+    │  Sazonalidade (Ciclo Anual)                                   │
+    │     ▲                                                         │
+    │     │    ╱╲    ╱╲    ╱╲                                       │
+    │     │   ╱  ╲  ╱  ╲  ╱  ╲                                      │
+    │     │  ╱    ╲╱    ╲╱    ╲                                     │
+    │     │ ╱                    ╲                                  │
+    │     │╱                      ╲                                 │
+    │     └──────────────────────────────────────────────────►       │
+    │        J  F  M  A  M  J  J  A  S  O  N  D                     │
+    │                                                               │
+    └─────────────────────────────────────────────────────────────────┘
+```
+
+*Fuente: Adaptado de Box & Jenkins (1976) - Time Series Analysis*
+
+#### Elementos de Variación Temporal
+
+| Elemento | Periodicidad | Impacto en la Salud | Ejemplo |
+|----------|---------------|-------------------|---------|
+| **Ciclo Anual** | 365 días | Enfermedades respiratorias en invierno, diarreas en verano | Influenza |
+| **Ciclo Semanal** | 7 días | "Efecto fin de semana" en las notificaciones | Contaminación urbana |
+| **Tendencia Multianual** | >1 año | Influencia de fenómenos climáticos | El Niño/La Niña |
+
+### 8. Threshold Exceedance y Cold Wave Exceedance: El Riesgo de los Extremos
+
+**Definición** — La estrategia de Excedencia de Umbral se enfoca en el impacto de eventos climáticos que sobrepasan valores críticos, reconociendo que la relación entre clima y salud está muchas veces gobernada por **"puntos de quiebre"** donde la mortalidad se dispara exponencialmente.
+
+#### Definición de Umbrales
+
+**Conteo de Excedencia:** $N_{exc} = \sum_{d=0}^{W} \mathbf{1}(\tau)$
+
+Transforma una variable continua en un conteo de **eventos discretos** dentro de una ventana temporal, capturando la *frecuencia* de exposición extrema.
+
+**Adaptación Regional Automática:** El `climasus4r` adapta los umbrales automáticamente según la región climática:
+
+- **Tropical (Norte, Nordeste):** Ola de calor $T_{max}$ > 35°C
+- **Subtropical (Centro-Oeste, Sudeste):** Ola de calor $T_{max}$ > 32°C
+- **Templado (Sur):** Ola de calor $T_{max}$ > 30°C, Ola de frío $T_{min}$ < 5°C
+
+#### Curva en "U" o "J" de la Mortalidad
+
+##### Figura 10: Curva de Mortalidad por Temperatura
+
+```
+Risco Relativo
+     │
+   4 ┤                                    ╱───╲
+     │                                 ╱─╲   ╲
+   3 ┤                              ╱─╲   ╲   ╲
+     │                           ╱─╲   ╲   ╲   ╲
+   2 ┤                        ╱─╲   ╲   ╲   ╲   ╲
+     │                     ╱─╲   ╲   ╲   ╲   ╲   ╲
+   1 ┤═══════════════════════════════════════════════►
+     │  ▲     ▲                             ▲     ▲
+     │  │     │                             │     │
+     │  │     │         Zona de             │     │
+     │  │     │         Conforto            │     │
+     │  │     │         (Risco              │     │
+     │  │     │         Mínimo)             │     │
+     │  │     │                             │     │
+     └──┴─────┴─────────────────────────────┴─────┴──► Temperatura
+       5     10          20          30     35    40
+
+       Frio Extremo                    Calor Extremo
+       (Tmin < 5°C)                    (Tmax > 35°C)
+
+    LEGENDA:
+    ── Curva de risco (forma de "U" ou "J")
+    ▲ Pontos de ruptura (limiares críticos)
+```
+
+*Fuente: Adaptado de Basu & Samet (2002) - Epidemiologic Reviews*
+
+#### Umbrales por Región y Aplicación
+
+| Tipo de Umbral | Definición | Implicación en Salud Pública |
+|----------------|-----------|----------------------------|
+| Cardiovascular | Percentil 95 de las temperaturas máximas | Activación de alertas hospitalarias |
+| Estrés Térmico | Índice de Calor > 41°C | Suspensión de actividades al aire libre |
+| Mortalidad Mínima | Punto de menor riesgo en la curva en U | Referencia para políticas de adaptación |
+| Precipitación Extrema | > 50mm en 24h | Alerta para leptospirosis |
+
+### 9. Weighted Window: El Decaimiento Biológico de la Exposición
+
+**Definición** — La Ventana Ponderada aplica pesos diferenciados a los días de exposición dentro de un período, modelando el hecho biológico de que el **impacto de un evento disminuye conforme pasa el tiempo**.
+
+#### Funciones de Decaimiento
+
+**Promedio Ponderado:** $\bar{X}_{weighted} = \frac{\sum_{d=0}^{W} w_d \cdot X_{t-d}}{\sum_{d=0}^{W} w_d}$
+
+| Tipo de Decaimiento | Función | Vida Media | Aplicación |
+|--------------------|--------|-----------|-----------|
+| Lineal | $w_d = 1 - \frac{d}{W+1}$ | Variable | Efectos genéricos |
+| Exponencial | $w_d = e^{-\lambda d}$ | $\frac{\ln 2}{\lambda}$ | Contaminación del aire |
+| Gaussiano | $w_d = e^{-\mu^2 / 2\sigma^2}$ | $\sigma \sqrt{2 \ln 2}$ | Período de incubación |
+
+#### Figura 11: Funciones de Decaimiento Biológico
+
+```
+Peso Relativo
+     │
+   1.0┤ ●────────────────────────────────────────────────────────────
+     │  ●
+     │   ●
+   0.8┤    ●
+     │     ●
+     │      ●
+   0.6┤       ●
+     │        ●
+     │         ●
+   0.4┤          ●
+     │           ●
+     │            ●
+   0.2┤             ●
+     │              ●
+     │               ●
+   0.0┼─────────────────────────────────────────────────────────────►
+      0   1   2   3   4   5   6   7   8   9   10  11  12  13  14
+                              Dias desde exposição
+
+    LEGENDA:
+    ●──● Decaimento Linear (w = 1 - d/W)
+    ▲──▲ Decaimento Exponencial (w = e^{-λd})
+    ■──■ Decaimento Gaussiano (pico no meio da janela)
+```
+
+*Esquema: Diferentes funciones de peso modelan diferentes hipótesis biológicas sobre la vida media de la exposición.*
+
+#### Tipos de Decaimiento
+
+| Tipo | Función Matemática | Vida Media | Aplicación Típica |
+|------|-------------------|-----------|------------------|
+| **Lineal** | $w_d = 1 - \frac{d}{W+1}$ | Variable | Efectos genéricos, sin hipótesis específica |
+| **Exponencial** | $w_d = e^{-\lambda d}$ | $\frac{\ln 2}{\lambda}$ | Contaminación del aire, decaimiento rápido |
+| **Gaussiano** | $w_d = e^{-\mu^2 / 2\sigma^2}$ | $\sigma \sqrt{2 \ln 2}$ | Período de incubación con pico definido |
+
+#### Importancia para la Salud Pública
+
+Este enfoque es vital para evitar el error de **subestimar riesgos**. Muchas veces, el riesgo en un rezago individual puede ser estadísticamente pequeño, pero la suma de todos los pequeños aumentos de riesgo del lag 0 al lag 21 revela un impacto masivo en la salud pública.
+
+#### Figura 12: Efecto Acumulado vs. Efecto por Rezago
+
+```
+Risco Relativo
+     │
+   1.5┤                                    ┌─────────────────────────
+     │                                   ╱
+   1.4┤                                 ╱
+     │                                ╱
+   1.3┤                              ╱
+     │                             ╱
+   1.2┤                           ╱
+     │                          ╱
+   1.1┤                        ╱
+     │                       ╱
+   1.0┤═══════════════════════════════════════════════════════════════►
+     │  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲  ▲
+     │  │  │  │  │  │  │  │  │  │  │  │  │  │  │  │  │  │  │  │  │  │
+     └──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──►
+       0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20
+                              Defasagem (dias)
+
+    LEGENDA:
+    ▲ Risco por defasagem individual (pequeno)
+    ── Risco acumulado (soma de todos os lags)
+
+    O efeito total (≈ 1.45) é muito maior que qualquer
+    efeito individual (máximo ≈ 1.08)!
+```
+
+*Esquema: Demostración de cómo el efecto acumulado puede ser sustancialmente mayor que los efectos individuales por rezago.*
+
+## Conclusiones y Recomendaciones
+
+### Síntesis de las Diez Estrategias
+
+#### Figura 18: Mapa de Decisión para la Selección de Estrategias
+
+```
+                    MAPA DE DECISÃO METODOLÓGICA
+
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │                                                                         │
+    │                    QUAL É O FENÔMENO DE SAÚDE?                          │
+    │                              │                                          │
+    │         ┌────────────────────┼────────────────────┐                    │
+    │         ▼                    ▼                    ▼                    │
+    │   ┌───────────┐        ┌───────────┐        ┌───────────┐              │
+    │   │  Evento   │        │  Doença   │        │  Doença   │              │
+    │   │  Agudo    │        │  Infecciosa│       │  Crônica  │              │
+    │   │           │        │  (Vetor)  │        │           │              │
+    │   └───────────┘        └───────────┘        └───────────┘              │
+    │         │                    │                    │                    │
+    │         ▼                    ▼                    ▼                    │
+    │   Exact Match          Offset Window         Moving Window            │
+    │   Discrete Lag         Degree Days           Weighted Window          │
+    │   (lag 0-3)            (Tbase específica)    (7-30 dias)              │
+    │         │                    │                    │                    │
+    │         └────────────────────┼────────────────────┘                    │
+    │                              │                                          │
+    │                              ▼                                          │
+    │                    ┌───────────────────┐                               │
+    │                    │   Modelo DLNM     │                               │
+    │                    │   (Distributed    │                               │
+    │                    │    Lag)           │                               │
+    │                    │                   │                               │
+    │                    │ + Seasonal        │                               │
+    │                    │ + Threshold       │                               │
+    │                    │ + Cumulative      │                               │
+    │                    └───────────────────┘                               │
+    │                              │                                          │
+    │                              ▼                                          │
+    │                    ┌───────────────────┐                               │
+    │                    │   Vigilância      │                               │
+    │                    │   em Saúde        │                               │
+    │                    │   Pública         │                               │
+    │                    └───────────────────┘                               │
+    │                                                                         │
+    └─────────────────────────────────────────────────────────────────────────┘
+```
+
+*Esquema: Diagrama de flujo de decisión para la selección de la estrategia de alineamiento temporal más adecuada.*
+
+### Principios Fundamentales
+
+| Principio | Descripción |
+|-----------|-----------|
+| ⚡ **Eventos Agudos** | Match Exacto y Rezagos Discretos resuelven la etiología de los eventos agudos y la identificación de días críticos de exposición. |
+| 📊 **Impacto Total** | Distributed Lag (DLNM) y Rezago Acumulado ofrecen la visión más abarcadora del impacto total y de la no linealidad del riesgo. |
+| ⏳ **Estrés Acumulado** | Las Ventanas Móviles y Ponderadas capturan la carga de estrés acumulado y el decaimiento de la respuesta biológica. |
+| 🦟 **Ecología de Vectores** | Offset Window, Grados-Día y el análisis Estacional son los pilares para entender la ecología de enfermedades infecciosas. |
+| ⚠️ **Eventos Extremos** | La Excedencia de Umbral define los puntos críticos de intervención, transformando datos continuos en decisiones binarias. |
+| 🔬 **Integración** | Los modelos híbridos combinan múltiples estrategias para capturar toda la complejidad biológica. |
+
+### Mensaje Final
+
+**Conclusión** — El análisis de las diez estrategias de alineamiento temporal muestra que, en la epidemiología ambiental, la precisión no depende solo de tener más datos, sino de **cómo esos datos se vinculan en el tiempo con los procesos biológicos**. La elección de la estrategia debe guiarse por la **hipótesis epidemiológica**, por el **mecanismo biológico** y por el **tiempo de respuesta del desenlace**.
+
+La integración de estos enfoques en **modelos híbridos** y en **sistemas de vigilancia en salud** fortalece la identificación de asociaciones **biológicamente plausibles**, reduce el riesgo de **correlaciones espurias** y genera evidencia útil para la **toma de decisiones en salud pública**. Así, el alineamiento temporal deja de ser solo una etapa técnica y pasa a ser un elemento central para comprender, anticipar y responder a los impactos del clima sobre la salud.
+
+## Referencias Clave
+
+- **Armstrong, B. (2006)**. Models for the relationship between ambient temperature and daily mortality. *Epidemiology*, 17(6), 624-631.
+- **Basu, R., & Samet, J. M. (2002)**. Relation between elevated ambient temperature and mortality: a review of the epidemiologic evidence. *Epidemiologic Reviews*, 24(2), 190-202.
+- **Bhaskaran, K., et al. (2013)**. Time series regression studies in environmental epidemiology. *International Journal of Epidemiology*, 42(4), 1187-1195.
+- **Gasparrini, A. (2011)**. Distributed lag linear and non-linear models in R: the package dlnm. *Journal of Statistical Software*, 43(8), 1-20.
+- **Gasparrini, A., et al. (2015)**. Mortality risk attributable to high and low ambient temperature: a multicountry observational study. *The Lancet*, 386(9991), 369-375.
+- **Lowe, R., et al. (2021)**. Combined effects of hydrometeorological hazards and urbanisation on dengue risk in Brazil: a spatiotemporal modelling study. *The Lancet Planetary Health*, 5(4), e209-e219.
+
+---
+
+🌲 **¿Tiene comentarios o sugerencias?**
+
+¿Tiene alguna idea de mejora o encontró algún error? Haga clic en el enlace de abajo para abrir un nuevo *issue* en GitHub y compartir sus sugerencias directamente con nosotros.
+
+[Abrir issue en GitHub](https://github.com/ByMaxAnjos/climasus4r/issues/new)

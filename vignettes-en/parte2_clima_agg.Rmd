@@ -1,0 +1,843 @@
+---
+title: "PART 2: Integration of Climate and Health Data"
+subtitle: "Practical Guide::sus_climate_aggregate()"
+author:
+  - name: "Max Anjos"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* ── Variáveis de Cores Modernas ────────────────── */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 18px;
+  color: var(--text-main);
+  background-color: #fff;
+  line-height: 1.6;
+}
+
+/* ── Títulos com Inter-spacing ─────────────────── */
+h1, h2, h3, h4 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  color: var(--dark-green);
+}
+
+h1.title {
+  font-size: 2.8em;
+  border-bottom: 4px solid var(--primary-color);
+  padding-bottom: 10px;
+  margin-bottom: 1.5rem;
+}
+
+h2 {
+  margin-top: 2rem;
+  border-left: 4px solid var(--primary-color);
+  padding-left: 1rem;
+}
+
+/* ── Code Blocks Estilizados ────────────────────── */
+pre.r, pre.sourceCode {
+  background-color: var(--code-bg);
+  border: 1px solid #e1e1e1;
+  border-left: 5px solid var(--primary-color) !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  padding: 1rem;
+}
+
+/* ── Custom Callouts (Estilo Quarto) ────────────── */
+.callout {
+  padding: 1.2em 1.5em;
+  margin: 1.5em 0;
+  border-radius: 8px;
+  border-left: 6px solid;
+  background-color: var(--bg-light);
+}
+
+.callout-note {
+  background-color: #f0f7ff;
+  border-color: #007bff;
+}
+
+.callout-tip {
+  background-color: #e8f5e9;
+  border-color: #1D9E75;
+}
+
+.callout-warning {
+  background-color: #fff3e0;
+  border-color: #ff9800;
+}
+
+.callout-info {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+}
+
+/* ── Workflow container ─────────────────────────── */
+.workflow-container {
+  background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  border: 1px solid var(--fc-border);
+  overflow-x: auto;
+}
+
+.workflow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'Inter', monospace;
+  font-size: 0.8rem;
+}
+
+.workflow-step {
+  background: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.workflow-arrow {
+  color: var(--primary-color);
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+/* ── Feature cards ───────────────────────────────── */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.feature-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e1e1e1;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-align: center;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.feature-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+  margin-top: 0;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
+
+.feature-card p {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  margin-bottom: 0;
+}
+
+/* ── Table styling ───────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+th {
+  background-color: var(--bg-light);
+  font-weight: 600;
+  color: var(--dark-green);
+}
+
+tr:hover {
+  background-color: var(--bg-light);
+}
+
+/* ── Figure styling ─────────────────────────────── */
+.figure {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.figure img {
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  max-width: 100%;
+  height: auto;
+}
+
+.figure .caption {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* ── Botão GitHub aprimorado ───────────────────── */
+.github-feedback-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #24292e;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-family: sans-serif;
+  transition: background-color 0.2s;
+  margin-top: 1rem;
+}
+
+.github-feedback-btn:hover {
+  background-color: #2c3e50;
+  color: white;
+  text-decoration: none;
+}
+
+/* ── Responsive ─────────────────────────────────── */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+
+  h1.title {
+    font-size: 2rem;
+  }
+
+  .workflow-steps {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .workflow-arrow {
+    transform: rotate(90deg);
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  th, td {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-card,
+  .github-feedback-btn {
+    transition: none;
+  }
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  eval    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  comment = "#>",
+  fig.align = "center",
+  out.width = "80%",
+  fig.retina = 2
+)
+```
+
+# Introduction
+
+::: callout-tip
+**Complete Tutorial** — This tutorial covers everything from the basic temporal strategies to the most advanced ones of the `sus_climate_aggregate()` function, the mathematical and epidemiological engine of `climasus4r` responsible for aligning health data (DATASUS) with meteorological time series (INMET).
+:::
+
+# Function Inputs
+
+For the integration to happen, you need to provide two ready `climasus_df` objects:
+
+| Argument | Description | `stage` Requirement in Metadata |
+|-----------|-----------|-----------------------------------|
+| `health_data` | DATASUS health data already spatially aggregated. | Must be at the `"spatial"` stage (output of `sus_spatial_join()`). |
+| `climate_data` | INMET meteorological data with no gaps. | Must be at the `"climate"` stage (output of `sus_climate_inmet()` and/or `sus_climate_fill()`). |
+| `climate_var` | Which climate variables to pull (e.g., `"tair_dry_bulb_c"`, `"rainfall_mm"`). Default: `"all"`. | - |
+| `temporal_strategy` | One of the 10 strategies detailed in the previous tutorial. | - |
+| `climate_region` | `"auto"`, `"tropical"`, `"subtropical"`, or `"temperate"`. Automatically adapts parameters. | - |
+| `window_days` | Integer. Required for `moving_window`, `degree_days`, and the exceedance/weighting strategies. | - |
+| `lag_days` | Integer (or vector). Required for `discrete_lag` and `distributed_lag`. | - |
+| `offset_days` | Vector of 2 integers (e.g., `c(7, 14)`). Required for `offset_window`. | - |
+
+::: callout-warning
+**Attention:** The function will abort with messages in Portuguese, English, or Spanish (`lang` parameter) if the metadata indicates that the data has not gone through the correct pipeline stages. This prevents silent biases in your analysis.
+:::
+
+---
+
+# Part 1: Health Data Preparation (SIM-DO)
+
+## 1.1 Import and Cleaning of Death Data
+
+The pipeline below processes data from the Mortality Information System (SIM) for the state of Amazonas in 2023.
+
+```{r step1_health_data, eval=FALSE}
+# ============================================================================
+# COMPLETE HEALTH DATA PROCESSING PIPELINE
+# ============================================================================
+library(climasus4r)
+df_sim <- sus_data_import(
+  uf = "AM",                    # Amazonas
+  year = 2023,                  # Full year
+  system = "SIM-DO",            # SIM Death Certificate
+  use_cache = TRUE,             # Use cache to avoid re-downloading
+  verbose = TRUE
+) |>
+  # Encoding cleanup (accents, special characters)
+  sus_data_clean_encoding() |>
+
+  # Column standardization (names, types, formats)
+  sus_data_standardize(lang = "pt") |>
+
+  # CID filter - respiratory diseases (J00-J99)
+  sus_data_filter_cid(disease_group = "respiratory") |>
+
+  # Creation of derived variables
+  sus_data_create_variables(
+    create_age_groups = TRUE,                    # Age groups
+    age_breaks = c(60, 70, 80, 90, Inf),        # Bins for the elderly
+    age_labels = c("60-69", "70-79", "80-89", "90+"),
+    create_calendar_vars = TRUE,                 # Month, week, day of week
+    create_climate_vars = TRUE,                  # Derived climate variables
+    climate_region = "Norte",                    # Northern region of Brazil
+    lang = "pt"
+  ) |>
+
+  # Demographic filters
+  sus_data_filter_demographics(
+    sex = c("Masculino", "Feminino"),            # Both sexes
+    age_range = c(65, Inf)                       # Elderly only (65+)
+  ) |>
+
+  # Temporal aggregation (daily)
+  sus_data_aggregate(
+    date_col = NULL,              # Uses death date automatically
+    complete_dates = FALSE,       # Do not complete missing dates
+    time_unit = "day",            # Daily aggregation
+    lang = "pt"
+  )
+
+# View the object's metadata
+sus_meta(df_sim)
+
+# Statistical summary
+summary(df_sim)
+```
+
+::: callout-info
+**Interpretation of Results:**
+- The `df_sim` object contains the daily count of deaths from respiratory diseases
+- Target population: elderly (65+ years) in Amazonas
+- Period: January 1 to December 31, 2023
+:::
+
+# Part 2: Spatial Aggregation
+
+## 2.1 Spatial Join with the Municipal Mesh
+
+The `sus_spatial_join()` function assigns each death the geographic coordinates of the municipality of occurrence.
+
+```{r step2_spatial_join, eval=FALSE}
+# ============================================================================
+# SPATIAL AGGREGATION AT THE MUNICIPAL LEVEL
+# ============================================================================
+
+sf_sim_spatial <- sus_spatial_join(
+  df = df_sim,
+  level = "munic",              # Municipal level (vs. "state" or "health_region")
+  lang = "pt"
+)
+
+# Check metadata (now with a spatial component)
+sus_meta(sf_sim_spatial)
+
+```
+
+::: callout-note
+**Note:** The object is now an `sf` (simple features) object with municipal geometry.
+:::
+
+---
+
+# Part 3: Climate Data (INMET)
+
+## 3.1 Download, Preprocessing, and Gap Filling
+
+We download meteorological data from INMET stations in Amazonas.
+
+```{r step3_climate_data, eval=FALSE}
+# ============================================================================
+# DOWNLOAD OF INMET DATA
+# ============================================================================
+
+df_inmet_raw <- sus_climate_inmet(
+  years = 2023,                 # Same year as the health data
+  uf = "AM"                     # Only stations in Amazonas
+)
+
+# Check downloaded stations
+unique(df_inmet_raw$station_name)
+
+# ============================================================================
+# IMPUTATION OF MISSING DATA
+# ============================================================================
+
+df_inmet <- sus_climate_fill_inmet(
+  df_inmet_raw,
+  target_var = "all",           # Impute all climate variables
+  parallel = TRUE,              # Parallel processing (faster)
+  run_evaluation = FALSE        # Skip detailed evaluation
+)
+
+# To speed up the examples, we can save/read the processed data in the ultra-fast parquet format
+# sus_data_export(df_inmet, "df_inmet_AM_2023_filled.parquet")
+# sus_data_export(sf_sim_spatial, "df_sim_AM_2023_spatial.parquet")
+
+# Load pre-processed data (if available)
+# df_inmet <- sus_data_read("df_inmet_AM_2023_filled.parquet")
+# sf_sim_spatial <- sus_data_read("df_sim_AM_2023_spatial.parquet")
+```
+
+---
+
+# Part 4: Climate Aggregation Strategies with sus_climate_aggregate()
+
+## 4.1 Exact Strategy (Exact Match)
+
+**Objective:** Associate the temperature of the same day as the death.
+**Application:** Acute events such as hyperthermia, stroke, heart attack.
+
+```{r step4_exact, eval=FALSE}
+# ============================================================================
+# EXACT: Same-day temperature
+# ============================================================================
+
+df_exact <- sus_climate_aggregate(
+  health_data = sf_sim_spatial,
+  climate_data = df_inmet,
+  climate_var = "tair_dry_bulb_c",      # Dry-bulb temperature (°C)
+  temporal_strategy = "exact",
+  lang = "pt",
+  verbose = TRUE
+)
+
+# Check new column
+names(df_exact)
+summary(df_exact$tair_dry_bulb_c)
+
+# Quick analysis: relationship between temperature and deaths
+library(ggplot2)
+df_exact %>%
+    ggplot(aes(x = tair_dry_bulb_c, y = n_obitos)) +
+    geom_point(alpha = 0.5) +
+    geom_smooth(method = "loess", color = "red") +
+    labs(
+      title = "Relação entre Temperatura e Óbitos (Mesmo Dia)",
+      x = "Temperatura (°C)",
+      y = "Número de Óbitos"
+    ) +
+    theme_minimal()
+
+```
+
+::: callout-tip
+INMET Supported Variables
+**Atmospheric Pressure**: patm_mb (Mean), patm_max_mb (Maximum), patm_min_mb (Minimum)
+
+**Air Temperature**: tair_dry_bulb_c (Dry Bulb), tair_max_c (Maximum), tair_min_c (Minimum)
+
+**Dew Point**: dew_tmean_c (Mean), dew_tmax_c (Maximum), dew_tmin_c (Minimum)
+
+**Relative Humidity**: rh_mean_porc (Mean), rh_max_porc (Maximum), rh_min_porc (Minimum)
+
+**Wind**: ws_2_m_s (Speed), ws_gust_m_s (Gust), wd_degrees (Direction)
+
+**Miscellaneous**: rainfall_mm (Rainfall), sr_kj_m2 (Solar Radiation)
+:::
+
+## 4.2 Discrete Lag Strategy
+
+**Objective:** Assess the effect of temperature at different lags, identifying the critical exposure period.
+
+```{r step4_discrete_lag, eval=FALSE}
+# ============================================================================
+# DISCRETE LAG: Temperature 7, 14, and 21 days before
+# ============================================================================
+
+df_discrete_lag <- sus_climate_aggregate(
+  health_data = sf_sim_spatial,
+  climate_data = df_inmet,
+  climate_var = "tair_dry_bulb_c",
+  temporal_strategy = "discrete_lag",
+  lag_days = c(7, 14, 21),          # Three distinct lags
+  lang = "pt",
+  verbose = TRUE
+)
+
+# Check created columns
+names(df_discrete_lag)
+
+# Compare correlations at different lags
+correlations <- data.frame(
+  lag = c(0, 7, 14, 21),
+  correlation = c(
+    cor(df_exact$tair_dry_bulb_c, df_exact$n_obitos, use = "complete.obs"),
+    cor(df_discrete_lag$lag7_tair_dry_bulb_c, df_discrete_lag$n_obitos, use = "complete.obs"),
+    cor(df_discrete_lag$lag14_tair_dry_bulb_c, df_discrete_lag$n_obitos, use = "complete.obs"),
+    cor(df_discrete_lag$lag21_tair_dry_bulb_c, df_discrete_lag$n_obitos, use = "complete.obs")
+  )
+)
+
+print(correlations)
+```
+
+::: callout-info
+**Interpretation:** The correlation values between lag and temperature are purely illustrative and reflect the period used in this tutorial.
+:::
+
+---
+
+## 4.3 Distributed Lag Strategy (Matrix for DLNM)
+
+**Objective:** Build a lag matrix for DLNM models.
+**Application:** Non-linear modeling of lagged effects.
+
+```{r step4_distributed_lag, eval=FALSE}
+# ============================================================================
+# DISTRIBUTED LAG: Lag matrix from 0 to 21
+# ============================================================================
+
+df_distributed <- sus_climate_aggregate(
+  health_data = sf_sim_spatial,
+  climate_data = df_inmet,
+  climate_var = "tair_dry_bulb_c",
+  temporal_strategy = "distributed_lag",
+  lag_days = 21,                    # Maximum lag (0 to 21)
+  lang = "pt",
+  verbose = TRUE
+)
+
+# Check matrix structure
+head(df_distributed)
+
+```
+
+::: callout-info
+**DLNM:** The generated matrix will serve as input for the DLNM model (the `dlnm` package). `climasus4r` will soon provide new modeling and results-visualization functionality.
+:::
+---
+
+## 4.4 Moving Window Strategy
+
+**Objective:** Average temperature over the last 14 days.
+**Application:** Cumulative effect of prolonged exposure.
+
+```{r step4_moving_window, eval=FALSE}
+# ============================================================================
+# MOVING WINDOW: Average of the last 14 days
+# ============================================================================
+
+df_moving <- sus_climate_aggregate(
+  health_data = sf_sim_spatial,
+  climate_data = df_inmet,
+  climate_var = "tair_dry_bulb_c",
+  temporal_strategy = "moving_window",
+  window_days = 14,                 # 14-day window
+  min_obs = 0.7,                    # Minimum 70% valid data
+  lang = "pt",
+  verbose = TRUE
+)
+
+# Compare daily temperature vs. moving average
+df_compare <- df_exact %>%
+    dplyr::select(date, tair_dry_bulb_c) %>%
+    dplyr::left_join(
+      df_moving %>% dplyr::select(date, tair_dry_bulb_c_mean_w14),
+      by = "date", relationship = "many-to-many"
+    ) %>%
+    tidyr::pivot_longer(-date, names_to = "metric", values_to = "temperature")
+  ggplot(df_compare, aes(x = date, y = temperature, color = metric)) +
+    geom_line(alpha = 0.7) +
+    labs(
+      title = "Temperatura Diária vs. Média Móvel (14 dias)",
+      x = "Data",
+      y = "Temperatura (°C)",
+      color = "Métrica"
+    ) +
+    theme_minimal()
+```
+
+---
+
+## 4.5 Offset Window Strategy
+
+**Objective:** Isolate the incubation period (excluding recent days).
+**Application:** Dengue, Zika, and other diseases with an incubation period.
+
+```{r step4_offset_window, eval=FALSE}
+# ============================================================================
+# OFFSET WINDOW: Average between 14 and 7 days before (ignores the last week)
+# ============================================================================
+
+df_offset <- sus_climate_aggregate(
+  health_data = sf_sim_spatial,
+  climate_data = df_inmet,
+  climate_var = "tair_dry_bulb_c",
+  temporal_strategy = "offset_window",
+  offset_days = c(7, 14),           # Window [t-14, t-7]
+  min_obs = 0.7,
+  lang = "pt",
+  verbose = TRUE
+)
+
+head(df_offset)
+```
+
+::: callout-note
+**Interpretation:** This variable represents exposure over the period that excludes the week immediately preceding death, useful for isolating long-term effects from acute exposures.
+:::
+
+---
+
+## 4.6 Degree Days Strategy
+
+**Objective:** Accumulate heat above a base temperature.
+**Application:** Vector development (Aedes aegypti), heat stress.
+
+
+```{r step4_degree_days, eval=FALSE}
+# ============================================================================
+# DEGREE DAYS: Accumulated GDD over the last 21 days (base 20°C)
+# ============================================================================
+
+df_gdd <- sus_climate_aggregate(
+  health_data = sf_sim_spatial,
+  climate_data = df_inmet,
+  temporal_strategy = "degree_days",
+  window_days = 21,                 # Accumulation period
+  temp_base = 20,                   # Base temperature (human)
+  gdd_temp_var = "tair_dry_bulb_c",
+  min_obs = 0.7,
+  lang = "pt",
+  verbose = TRUE
+)
+
+head(df_gdd)
+
+# Example with base temperature for Aedes aegypti (11°C)
+df_gdd_aedes <- sus_climate_aggregate(
+  health_data = sf_sim_spatial,
+  climate_data = df_inmet,
+  temporal_strategy = "degree_days",
+  window_days = 21,
+  temp_base = 11,                   # Base for Aedes aegypti
+  gdd_temp_var = "tair_dry_bulb_c",
+  lang = "pt",
+  verbose = TRUE
+)
+
+head(df_gdd_aedes)
+```
+
+### Thermal Thresholds by Species
+
+| Organism | Tbase (temp_base) (°C) | GDD for Development | Application |
+|-----------|------------|--------------------------|-----------|
+| *Aedes aegypti* | 11 | 100-150 | Dengue transmission |
+| *Anopheles gambiae* | 18 | 80-120 | Malaria transmission |
+| *Triatoma infestans* | 16 | 200-300 | Chagas disease |
+| *Human (stress)* | 20 | - | Cardiovascular morbidity |
+
+---
+
+## 4.7 Seasonal Strategy
+
+**Objective:** Analyze seasonal patterns.
+**Application:** Ecological studies, long-term trends.
+
+```{r step4_seasonal, eval=FALSE}
+# ============================================================================
+# SEASONAL: Averages by season of the year
+# ============================================================================
+
+df_seasonal <- sus_climate_aggregate(
+  health_data = sf_sim_spatial,
+  climate_data = df_inmet,
+  temporal_strategy = "seasonal",
+  lang = "pt",
+  verbose = TRUE
+)
+
+head(df_seasonal)
+```
+
+---
+
+## 4.8 Threshold Exceedance Strategy
+
+**Objective:** Count days with extreme temperatures.
+**Application:** Heat waves, extreme precipitation events.
+
+```{r step4_threshold, eval=FALSE}
+# ============================================================================
+# THRESHOLD EXCEEDANCE: Days with Tmax > 35°C over the last 7 days
+# ============================================================================
+
+df_threshold <- sus_climate_aggregate(
+  health_data = sf_sim_spatial,
+  climate_data = df_inmet,
+  climate_var = "tair_max_c",
+  temporal_strategy = "threshold_exceedance",
+  window_days = 7,
+  threshold_value = 35,
+  threshold_direction = "above",    # Count days ABOVE the threshold
+  min_obs = 0.7,
+  lang = "pt",
+  verbose = TRUE
+)
+
+head(df_threshold)
+
+```
+
+---
+
+## 4.9 Weighted Window Strategy
+
+**Objective:** Apply decreasing weights to the days in the window.
+**Application:** Modeling biological decay of exposure.
+
+```{r step4_weighted, eval=FALSE}
+# ============================================================================
+# WEIGHTED WINDOW: Weighted average with different weighting functions
+# ============================================================================
+
+# Case 1: Linear weights (automatic)
+df_wlin <- sus_climate_aggregate(
+  health_data = sf_sim_spatial,
+  climate_data = df_inmet,
+  climate_var = "tair_dry_bulb_c",
+  temporal_strategy = "weighted_window",
+  window_days = 7,
+  weights = NULL,                   # Automatic linear decay
+  min_obs = 0.7,
+  lang = "pt",
+  verbose = TRUE
+)
+
+head(df_wlin)
+
+# Case 2: Exponential weights (fast decay)
+lambda <- 0.3
+W <- 7
+pesos_exp <- exp(-lambda * seq(0, W))
+pesos_exp <- pesos_exp / pesos_exp[1]  # Normalize (peak = 1)
+
+df_wexp <- sus_climate_aggregate(
+  health_data = sf_sim_spatial,
+  climate_data = df_inmet,
+  climate_var = "tair_dry_bulb_c",
+  temporal_strategy = "weighted_window",
+  window_days = W,
+  weights = pesos_exp,
+  min_obs = 0.7,
+  lang = "pt",
+  verbose = TRUE
+)
+
+head(df_wexp)
+
+# Case 3: Gaussian weights (peak in the middle of the window)
+mu <- 3          # Peak at day t-3
+sigma <- 1.5     # Window width
+pesos_gaus <- exp(-((seq(0, W) - mu)^2) / (2 * sigma^2))
+pesos_gaus <- pesos_gaus / max(pesos_gaus)
+
+df_wgaus <- sus_climate_aggregate(
+  health_data = sf_sim_spatial,
+  climate_data = df_inmet,
+  climate_var = "tair_dry_bulb_c",
+  temporal_strategy = "weighted_window",
+  window_days = W,
+  weights = pesos_gaus,
+  min_obs = 0.7,
+  lang = "pt",
+  verbose = TRUE
+)
+head(df_wgaus)
+
+```
+
+---
+
+## 🎉 Conclusion
+
+The `sus_climate_aggregate()` function elevates `climasus4r` from a simple data-cleaning package into an **epidemiological inference tool**.
+
+By aligning naming conventions with the R community standard (`moving_window`), providing a unique mathematical tool for incubation periods (`offset_window`), and introducing advanced strategies such as `threshold_exceedance` and `weighted_window`, this package ensures that your conclusions about "How climate affects health in Brazil" are methodologically sound and ready for publication in high-impact journals.
+
+---
+
+## 🌲 Have feedback or suggestions?
+
+Do you have an idea for improvement or found a bug? Click the button below to open a new *issue* on GitHub and share your suggestions directly with us.
+
+```{=html}
+<a href='https://github.com/ByMaxAnjos/climasus4r/issues/new' class="github-feedback-btn">
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+  </svg>
+  Open issue on GitHub
+</a>
+```

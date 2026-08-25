@@ -1,0 +1,486 @@
+---
+title: "Tutorial 4: Creación de Variables y Agregación Temporal"
+author: "Equipo climasus4r"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* -- Variaveis de Cores Modernas -- */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; color: var(--text-main); background-color: #fff; line-height: 1.6; }
+h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--dark-green); }
+h1.title { font-size: 2.8em; border-bottom: 4px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 1.5rem; }
+h2 { margin-top: 2rem; border-left: 4px solid var(--primary-color); padding-left: 1rem; }
+pre.r, pre.sourceCode { background-color: var(--code-bg); border: 1px solid #e1e1e1; border-left: 5px solid var(--primary-color) !important; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1rem; }
+.callout { padding: 1.2em 1.5em; margin: 1.5em 0; border-radius: 8px; border-left: 6px solid; background-color: var(--bg-light); }
+.callout-note { background-color: #f0f7ff; border-color: #007bff; }
+.callout-tip { background-color: #e8f5e9; border-color: #1D9E75; }
+.callout-warning { background-color: #fff3e0; border-color: #ff9800; }
+.workflow-container { background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #dce8e1; overflow-x: auto; }
+.workflow-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; font-family: 'Inter', monospace; font-size: 0.8rem; }
+.workflow-step { background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap; }
+.workflow-arrow { color: var(--primary-color); font-weight: bold; font-size: 1.2rem; }
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+.feature-card { background: white; border-radius: 12px; padding: 1.5rem; border: 1px solid #e1e1e1; transition: transform 0.2s ease, box-shadow 0.2s ease; text-align: center; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+.feature-card h3 { margin-top: 0; color: var(--primary-color); font-size: 1.1rem; }
+table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e1e1; }
+th { background-color: var(--bg-light); font-weight: 600; color: var(--dark-green); }
+.github-feedback-btn { display: inline-flex; align-items: center; gap: 8px; background-color: #24292e; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-family: sans-serif; transition: background-color 0.2s; margin-top: 1rem; }
+.github-feedback-btn:hover { background-color: #2c3e50; color: white; text-decoration: none; }
+@media (max-width: 768px) { body { font-size: 16px; } h1.title { font-size: 2rem; } .workflow-steps { flex-direction: column; align-items: center; } }
+```
+
+
+```{r setup, include=FALSE}
+# ATENCIÓN — estrategia de pre-renderización.
+# Este tutorial NO ejecuta el análisis durante el renderizado. Todas las figuras
+# y tablas fueron generadas UNA vez por el script scripts/tutorial_04_variaveis_agregacao.R
+# y aquí solo se cargan (PNG vía include_graphics; RDS vía readRDS).
+# Por eso, los chunks didácticos de abajo usan eval = FALSE: el código se
+# muestra, pero no se ejecuta en el momento del knit.
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+
+# Helpers para mostrar artefactos de forma robusta: si el archivo aún no fue
+# generado (script de generación no ejecutado), muestran una nota en lugar de
+# romper el knit. Así la viñeta se renderiza en cualquier momento.
+fig_ou_nota <- function(path, nota) {
+  if (file.exists(path)) knitr::include_graphics(path)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+tbl_ou_nota <- function(path, nota, caption = NULL) {
+  if (file.exists(path)) knitr::kable(readRDS(path), caption = caption)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+.nota_gerar <- "Artefato indisponível — rode `Rscript scripts/tutorial_04_variaveis_agregacao.R` (a partir da raiz do pacote) para gerá-lo."
+```
+
+# Objetivo
+
+Al final de este tutorial serás capaz de **transformar microdatos individuales
+en una serie temporal lista para análisis**. Son dos operaciones encadenadas y
+dos de visualización:
+
+1. **Crear variables derivadas** — `sus_data_create_variables()` — generando
+   **grupos de edad** (definidos por el usuario, de riesgo climático y
+   quinquenales del IBGE) y **variables de calendario** (año, mes, trimestre,
+   estación del año);
+2. **Agregar en el tiempo y en el espacio** — `sus_data_aggregate()` —
+   convirtiendo los registros individuales en **conteos por período y por
+   municipio** (diaria, mensual, estacional, etc.);
+3. **Visualizar la serie temporal** — `sus_data_plot_aggregate_ts()` — con
+   curvas epidémicas, boxplots estacionales, mapas de calor de calendario y
+   tendencias anuales;
+4. **Visualizar la distribución espacial** — `sus_data_plot_aggregate_map()` —
+   con mapas de burbujas o coropléticos municipales.
+
+Esta es la **cuarta etapa** del pipeline (`derive → aggregate`). Ocupa un lugar
+crítico: es aquí donde los datos dejan de ser una tabla de eventos individuales
+y pasan a tener la forma exigida por los modelos clima–salud del Tutorial 9
+(un conteo $Y_t$ por unidad de tiempo $t$).
+
+# Contexto científico
+
+Los estudios de series temporales en epidemiología ambiental modelan el
+**conteo de desenlaces por período** (por ejemplo, muertes por día) en función
+de la exposición ambiental (temperatura, contaminación). Para ello, los
+microdatos deben ser **agregados** en una grilla temporal regular y, con
+frecuencia, estratificados por **grupo de edad**, ya que la vulnerabilidad al
+calor y al frío varía mucho con la edad (Gasparrini et al., 2015; Bhaskaran et
+al., 2013).
+
+Dos decisiones metodológicas de esta etapa tienen consecuencias directas en el
+análisis:
+
+- **La unidad temporal de agregación** (`time_unit`) define la resolución del
+  estudio. Las series **diarias** captan efectos agudos de corto plazo
+  (ideales para DLNM); las series **mensuales** o **estacionales** evidencian
+  patrones de largo plazo y estacionalidad (Bhaskaran et al., 2013).
+- **El relleno de fechas faltantes** (`complete_dates = TRUE`) garantiza una
+  serie **sin lagunas**: los días sin ninguna muerte reciben conteo cero. Sin
+  esto, los modelos de serie temporal interpretarían erróneamente la ausencia
+  de una fecha como ausencia de información, y no como un cero verdadero.
+
+Los grupos de edad siguen categorizaciones reconocidas — incluyendo la
+estructura **quinquenal del IBGE** (0–4, 5–9, …, 80+), que asegura
+comparabilidad nacional e internacional — y un **grupo de riesgo climático**
+(0–4, 5–64, 65+) diseñado para destacar a los grupos más vulnerables (IBGE,
+2010; WHO, 2014).
+
+> **Caso conductor.** Investigamos la **temperatura y los desenlaces de salud
+> en adultos mayores (60+) en la Región Metropolitana de São Paulo,
+> 2014–2019**. Partiendo de las **muertes respiratorias de adultos mayores ya
+> filtradas** en el Tutorial 3 (`caso_filtrado.rds`), creamos grupos de edad
+> (60–69, 70–79, 80+) y variables de calendario, y agregamos en **serie
+> diaria** (todas las muertes) y en **serie mensual por grupo de edad**. La
+> serie resultante (`caso_serie.rds`) alimenta la unión espacial (Tutorial 5)
+> y, más adelante, el modelado (Tutorial 9).
+
+# Datos utilizados
+
+| Ítem | Detalle |
+|------|---------|
+| Entrada | `dados/caso_filtrado.rds` (salida del Tutorial 3) |
+| Desenlace | Muertes respiratorias (CID-10 J00–J99) en adultos mayores 60+ |
+| Sistema | SIM-DO (mortalidad) |
+| Recorte | Región Metropolitana de São Paulo, 2014–2019 |
+| Salida | `dados/caso_serie.rds` (entrada del Tutorial 5) |
+
+Si el Tutorial 3 aún no ha sido ejecutado, el script de generación avisa y
+continúa con un **ejemplo mínimo sintético** que tiene la misma estructura de
+columnas estandarizadas (`data_obito`, `codigo_municipio_residencia`, `idade`,
+`sexo`, `causa_basica`) — así la etapa se ilustra de punta a punta.
+
+# Pipeline completo
+
+Los bloques de abajo reproducen lo que ejecuta el script
+`scripts/tutorial_04_variaveis_agregacao.R`. Comienza cargando el paquete:
+
+```{r carregar}
+library(climasus4r)
+```
+
+## Cargar la salida de la etapa anterior
+
+```{r carregar-entrada}
+caso_filtrado <- sus_data_read("output/caso_filtrado.parquet")
+# ou, no fluxo dos tutoriais, readRDS("vignettes-pt/dados/caso_filtrado.rds")
+obitos <- caso_filtrado            # climasus_df no stage "filter_cid"/"stand"
+```
+
+## Crear variables derivadas
+
+`sus_data_create_variables()` crea grupos de edad y variables de calendario en
+una sola llamada. Aquí usamos grupos orientados al recorte de adultos mayores
+del caso conductor y vinculamos las variables estacionales con la región
+climática `"sudeste"`.
+
+```{r criar-variaveis}
+obitos_vars <- sus_data_create_variables(
+  obitos,
+  create_age_groups    = TRUE,
+  age_breaks           = c(60, 70, 80, Inf),     # idosos jovens / 70-79 / 80+
+  age_labels           = c("60-69", "70-79", "80+"),
+  create_calendar_vars = TRUE,                   # ano, mes, trimestre, ...
+  create_climate_vars  = TRUE,                   # estação do ano
+  climate_region       = "sudeste",              # região climática do caso
+  hemisphere           = "south",                # Brasil
+  backend              = "tibble",
+  lang                 = "pt"
+)
+```
+
+Además de `age_group` (definida por `age_breaks`/`age_labels`), la función crea
+automáticamente el **grupo de riesgo climático** (`grupo_risco_climatico`) y el
+**grupo quinquenal del IBGE** (`faixa_etaria_ibge`), y — con
+`create_calendar_vars = TRUE` — las variables `ano`, `mes`, `trimestre` y la
+estación del año (`estacao_climatica` + `estacao_seca_chuvosa` cuando se
+informa `climate_region`; si no, `estacao_astronomica`).
+
+## Agregar en serie temporal diaria
+
+`sus_data_aggregate()` convierte los registros individuales en conteos. Con
+`fun = "count"` y sistema SIM, la columna agregada se nombra automáticamente
+como `n_obitos`. `complete_dates = TRUE` rellena los días sin muertes con cero.
+
+```{r agregar-diaria}
+serie_diaria <- sus_data_aggregate(
+  obitos_vars,
+  time_unit      = "day",      # uma observação por dia
+  fun            = "count",    # contagem de óbitos
+  group_by       = NULL,       # agrega no código de município detectado
+  complete_dates = TRUE,       # preenche dias sem evento com zero
+  backend        = "tibble",
+  lang           = "pt"
+)
+```
+
+## Agregar en serie mensual por grupo de edad
+
+La misma función, ahora estratificando por `age_group`. Esta es la serie que
+se guarda para el próximo tutorial.
+
+```{r agregar-mensal}
+serie_mensal <- sus_data_aggregate(
+  obitos_vars,
+  time_unit      = "month",
+  fun            = "count",
+  group_by       = "age_group",   # faixa etária criada acima
+  complete_dates = TRUE,
+  backend        = "tibble",
+  lang           = "pt"
+)
+```
+
+## Visualizar la serie temporal
+
+`sus_data_plot_aggregate_ts()` recibe un `climasus_df` en el stage
+`"aggregate"` y produce gráficos de calidad de publicación. `plot_type` acepta
+`"epidemic"`, `"seasonal"`, `"heatmap"` y `"trend"` (y combinaciones, vía
+`patchwork`).
+
+```{r plot-ts}
+# Curva epidêmica diária com suavização loess
+sus_data_plot_aggregate_ts(
+  serie_diaria,
+  plot_type     = "epidemic",
+  smooth_method = "loess",
+  palette       = "lancet",
+  lang          = "pt"
+)
+
+# Boxplot da distribuição sazonal mensal
+sus_data_plot_aggregate_ts(
+  serie_diaria,
+  plot_type = "seasonal",
+  lang      = "pt"
+)
+```
+
+## Visualizar la distribución espacial
+
+`sus_data_plot_aggregate_map()` mapea los conteos por municipio. Para ello,
+agregamos preservando el **código de municipio** como variable de grupo.
+
+```{r plot-map}
+serie_muni <- sus_data_aggregate(
+  obitos_vars,
+  time_unit = "month",
+  fun       = "count",
+  group_by  = "codigo_municipio_residencia",
+  backend   = "tibble",
+  lang      = "pt"
+)
+
+sus_data_plot_aggregate_map(
+  serie_muni,
+  map_type  = "bubble",     # não exige geobr/sf
+  log_scale = TRUE,
+  palette   = "YlOrRd",
+  lang      = "pt"
+)
+```
+
+Al final de esta etapa tenemos `serie_mensal` (por grupo de edad) y
+`serie_muni` (por municipio) — la base temporal/espacial que alimenta los
+próximos tutoriales.
+
+# Características de las funciones
+
+## `sus_data_create_variables()`
+
+Crea variables derivadas a partir de la edad y de la fecha del evento.
+Requiere que los datos estén en el stage `"stand"` (o posterior).
+
+| Argumento | ¿Esencial? | Descripción |
+|-----------|------------|-----------|
+| `df` | sí | `climasus_df` estandarizado (stage `"stand"`+) |
+| `create_age_groups` | sí | Crea `age_group`, `grupo_risco_climatico` y `faixa_etaria_ibge` (predeterminado `TRUE`) |
+| `age_breaks` | opcional | Cortes de los grupos de edad; predeterminado `c(0, 5, 15, 60, Inf)` |
+| `age_labels` | opcional | Etiquetas de los grupos; si es `NULL`, generadas a partir de `age_breaks` |
+| `create_calendar_vars` | sí | Crea `ano`, `mes`, `trimestre`, etc. (predeterminado `TRUE`) |
+| `create_climate_vars` | opcional | Crea la estación del año; exige `create_calendar_vars = TRUE` |
+| `climate_region` | opcional | Región climática (`"norte"`, `"nordeste"`, `"centro-oeste"`, `"sudeste"`, `"sul"`); define estación seca/lluviosa |
+| `hemisphere` | opcional | `"south"` (predeterminado, Brasil) o `"north"` |
+| `age_col` / `date_col` | opcional | Fuerzan la columna de edad/fecha; si es `NULL`, autodetecta |
+| `backend` | opcional | `"arrow"` (lazy, predeterminado) o `"tibble"` |
+| `lang` / `verbose` | opcional | Idioma (`"pt"`/`"en"`/`"es"`) y mensajes |
+
+**Retorno:** el `climasus_df` con las nuevas columnas y el stage avanzado a
+`"derive"`. La edad se determina mediante una jerarquía: (1) columna de edad
+existente, (2) cálculo a partir de la fecha de nacimiento y la fecha del
+evento (estándar de referencia), (3) decodificación del código de edad del
+DATASUS (alternativa).
+
+## `sus_data_aggregate()`
+
+Agrega microdatos individuales en una serie temporal de conteos. Requiere el
+stage `"stand"` (o posterior).
+
+| Argumento | ¿Esencial? | Descripción |
+|-----------|------------|-----------|
+| `df` | sí | `climasus_df` (salida de estandarización/filtrado/derivación) |
+| `time_unit` | sí | `"day"`, `"week"`, `"month"`, `"quarter"`, `"year"`, `"season"`, o múltiplos como `"5 days"`, `"14 days"`, `"3 months"` (predeterminado `"day"`) |
+| `fun` | opcional | `"count"` (predeterminado), `"sum"`, `"mean"`, `"median"`, `"min"`, `"max"`, `"sd"`, `"q25"`, `"q75"`, `"q95"`, `"q99"`, o lista con nombres |
+| `group_by` | opcional | Columnas de estratificación (p. ej., `c("age_group", "sexo")`); `NULL` agrega en el municipio detectado |
+| `value_col` | solo si `fun != "count"` | Columna numérica a agregar |
+| `complete_dates` | recomendado | `TRUE` rellena los períodos sin evento con cero (predeterminado `FALSE`) |
+| `date_col` | opcional | Columna de fecha; si es `NULL`, autodetecta según el sistema |
+| `backend` | opcional | `"arrow"` (lazy, predeterminado) o `"tibble"` |
+| `lang` / `verbose` | opcional | Idioma y mensajes |
+
+**Retorno:** un `climasus_df` en el stage `"aggregate"` con una columna `date`
+(inicio del período), las columnas de `group_by` y la columna de conteo
+**nombrada de forma inteligente** según el sistema: `n_obitos` (SIM),
+`n_internacoes` (SIH), `n_nascimentos` (SINASC), `n_casos` (SINAN),
+`n_procedimentos` (SIA), `n_estabelecimentos` (CNES).
+
+## `sus_data_plot_aggregate_ts()`
+
+Gráficos de serie temporal a partir de un `climasus_df` en el stage
+`"aggregate"`.
+
+| Argumento | Descripción |
+|-----------|-----------|
+| `df` | `climasus_df` agregado |
+| `value_col` | Columna del desenlace; si es `NULL`, autodetecta (`n_obitos`, `n_casos`, …) |
+| `plot_type` | `"epidemic"`, `"seasonal"`, `"heatmap"`, `"trend"` (acepta varios, vía `patchwork`) |
+| `group_col` / `facet_col` | Columna para el color (epidemic/seasonal) y para los paneles (`facet_wrap`) |
+| `smooth_method` / `smooth_span` | Suavizado de la curva epidémica: `"loess"` (predeterminado), `"gam"`, `"lm"`, `"none"` |
+| `log_transform` | Aplica `log1p` en el eje y / relleno |
+| `palette` | `"lancet"` (predeterminado), `"nejm"`, `"jco"`, `"uchicago"`, `"viridis"` |
+| `city` | Filtra municipios (nombre o código IBGE) antes de graficar |
+| `interactive` | `TRUE` retorna un widget `plotly` |
+| `lang` / `verbose` | Idioma y mensajes |
+
+**Retorno:** el objeto `ggplot2` (o `plotly` si `interactive = TRUE`), de
+forma invisible; también imprime el gráfico. No altera el stage de `df`.
+
+## `sus_data_plot_aggregate_map()`
+
+Mapa municipal de los conteos agregados.
+
+| Argumento | Descripción |
+|-----------|-----------|
+| `df` | `climasus_df` agregado con columna de código municipal |
+| `value_col` | Columna del desenlace; si es `NULL`, autodetecta |
+| `map_type` | `"bubble"` (predeterminado, sin `geobr`/`sf`), `"choropleth"`, `"quantile_choropleth"` |
+| `rate_per_100k` | `TRUE` calcula la incidencia por 100.000 habitantes (usa `pop_25`) |
+| `period` | `Date` o `c(inicio, fin)` para filtrar antes de agregar |
+| `city` / `top_n` | Restringe a municipios; etiqueta los `top_n` mayores |
+| `state_borders` | Superpone fronteras estatales (vía `geobr`) |
+| `palette` | Paleta `RColorBrewer` (`"YlOrRd"`, `"Blues"`, …) o `"lancet"`/`"nejm"` |
+| `log_scale` | `log1p` en la escala de color (predeterminado `TRUE`) |
+| `interactive` | `TRUE` retorna `plotly` |
+| `use_cache` / `cache_dir` | Caché de los metadatos municipales |
+| `lang` / `verbose` | Idioma y mensajes |
+
+**Retorno:** un objeto `ggplot2` (o `plotly`). El coroplético exige los
+paquetes **Suggests** `geobr` y `sf`; si están ausentes, la función recurre al
+mapa de burbujas con una advertencia. **No** modifica `df` ni avanza el stage.
+
+# Fórmulas
+
+El **conteo agregado** de un desenlace en el período $t$ (con `fun = "count"`)
+es simplemente el número de registros cuya fecha cae en ese período:
+
+$$
+Y_t \;=\; \sum_{i=1}^{N} \mathbf{1}\!\left[\,\lfloor d_i \rfloor_{u} = t\,\right]
+$$
+
+donde $d_i$ es la fecha del evento $i$, $\lfloor \cdot \rfloor_{u}$ redondea al
+inicio del período en la unidad $u$ (`time_unit`), y $\mathbf{1}[\cdot]$ es la
+función indicadora.
+
+La figura de **tendencia anual** (`plot_type = "trend"`) reporta la variación
+porcentual año a año (YoY):
+
+$$
+\Delta\%_{a} \;=\; \left( \frac{Y_{a}}{Y_{a-1}} - 1 \right) \times 100
+$$
+
+Cuando `rate_per_100k = TRUE` en el mapa, la **tasa de incidencia** por
+municipio es
+
+$$
+\text{taxa}_{m} \;=\; \frac{\text{casos}_{m}}{\text{pop}_{m}} \times 10^{5}
+$$
+
+# Resultados ilustrados
+
+```{r fig-serie, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/agg_serie_diaria.png", .nota_gerar)
+```
+
+**Figura 1.** Curva epidémica diaria de muertes respiratorias en adultos
+mayores (60+) en la Región Metropolitana de São Paulo, 2014–2019, generada por
+`sus_data_plot_aggregate_ts(plot_type = "epidemic")`. El área y la línea
+muestran el conteo diario; la curva suavizada (loess) destaca la tendencia de
+fondo.
+
+```{r fig-sazonal, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/agg_sazonalidade.png", .nota_gerar)
+```
+
+**Figura 2.** Distribución estacional mensual
+(`sus_data_plot_aggregate_ts(plot_type = "seasonal")`). Los boxplots por mes
+evidencian la estacionalidad invernal (junio–agosto) de la mortalidad
+respiratoria de adultos mayores — el punto de partida de la hipótesis
+clima–salud del caso conductor.
+
+```{r fig-faixa, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/agg_serie_faixa.png", .nota_gerar)
+```
+
+**Figura 3.** Serie mensual estratificada por los grupos de edad creados en
+`sus_data_create_variables()` (60–69, 70–79, 80+). Es esta estructura
+estratificada la que se guarda en `caso_serie.rds` para los próximos
+tutoriales.
+
+```{r fig-mapa, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/agg_mapa_municipios.png",
+            "Figura 4 indisponível: o mapa requer os metadados municipais (cache/rede). Reexecute o script de geração com acesso à internet.")
+```
+
+**Figura 4.** Distribución espacial de las muertes por municipio
+(`sus_data_plot_aggregate_map(map_type = "bubble")`). El tamaño y el color de
+las burbujas codifican el total de eventos por municipio de la Región
+Metropolitana de São Paulo (escala `log1p`).
+
+```{r tab-variaveis, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/agg_amostra_variaveis.rds", .nota_gerar,
+            caption = "Tabela 1. Amostra das variáveis derivadas por sus_data_create_variables() (faixas etárias e calendário).")
+```
+
+```{r tab-resumo, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/agg_resumo.rds", .nota_gerar,
+            caption = "Tabela 2. Resumo das séries agregadas: número de períodos, total de eventos e intervalo de datas.")
+```
+
+# Referencias
+
+- Bhaskaran, K., Gasparrini, A., Hajat, S., Smeeth, L., & Armstrong, B. (2013).
+  Time series regression studies in environmental epidemiology.
+  *International Journal of Epidemiology*, 42(4), 1187–1195.
+- Gasparrini, A., Guo, Y., Hashizume, M., Lavigne, E., Zanobetti, A.,
+  Schwartz, J., et al. (2015). Mortality risk attributable to high and low
+  ambient temperature: a multicountry observational study. *The Lancet*,
+  386(9991), 369–375.
+- Instituto Brasileiro de Geografia e Estatística (IBGE). (2010). *Censo
+  Demográfico 2010*. Rio de Janeiro: IBGE.
+- World Health Organization (WHO). (2014). *Quantitative risk assessment of the
+  effects of climate change on selected causes of death, 2030s and 2050s*.
+  Geneva: WHO.
+
+---
+
+# Navegación
+
+- [Volver al hub de tutoriales](tutorials.html)
+- **Anterior:** [Tutorial 3 — Filtrado (CID-10 y demografía)](03-filtragem.html)
+- **Siguiente:** [Tutorial 5 — Unión Espacial](05-juncao-espacial.html)

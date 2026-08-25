@@ -1,0 +1,1343 @@
+---
+title: "Detección y Visualización de Olas de Calor"
+subtitle: "Pipeline INMET → Relleno → Indicadores → Olas de Calor | `sus_climate_compute_heatwaves()` y `sus_climate_plot_heatwaves()`"
+author:
+  - name: "Dr. Max Anjos"
+  - name: "Thauã Menezes"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{css, echo=FALSE}
+/* ── Variáveis de Cores Modernas ────────────────── */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 18px;
+  color: var(--text-main);
+  background-color: #fff;
+  line-height: 1.6;
+}
+
+/* ── Títulos com Inter-spacing ─────────────────── */
+h1, h2, h3, h4 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  color: var(--dark-green);
+}
+
+h1.title {
+  font-size: 2.8em;
+  border-bottom: 4px solid var(--primary-color);
+  padding-bottom: 10px;
+  margin-bottom: 1.5rem;
+}
+
+h2 {
+  margin-top: 2rem;
+  border-left: 4px solid var(--primary-color);
+  padding-left: 1rem;
+}
+
+/* ── Code Blocks Estilizados ────────────────────── */
+pre.r, pre.sourceCode {
+  background-color: var(--code-bg);
+  border: 1px solid #e1e1e1;
+  border-left: 5px solid var(--primary-color) !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  padding: 1rem;
+}
+
+/* ── Custom Callouts (Estilo Quarto) ────────────── */
+.callout {
+  padding: 1.2em 1.5em;
+  margin: 1.5em 0;
+  border-radius: 8px;
+  border-left: 6px solid;
+  background-color: var(--bg-light);
+}
+
+.callout-note {
+  background-color: #f0f7ff;
+  border-color: #007bff;
+}
+
+.callout-tip {
+  background-color: #e8f5e9;
+  border-color: #1D9E75;
+}
+
+.callout-warning {
+  background-color: #fff3e0;
+  border-color: #ff9800;
+}
+
+.callout-info {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+}
+
+/* ── Workflow container ─────────────────────────── */
+.workflow-container {
+  background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  border: 1px solid #dce8e1;
+  overflow-x: auto;
+}
+
+.workflow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'Inter', monospace;
+  font-size: 0.8rem;
+}
+
+.workflow-step {
+  background: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.workflow-arrow {
+  color: var(--primary-color);
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+/* ── Feature cards ───────────────────────────────── */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.feature-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e1e1e1;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-align: center;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.feature-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+  margin-top: 0;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
+
+.feature-card p {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  margin-bottom: 0;
+}
+
+/* ── Table styling ───────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+th {
+  background-color: var(--bg-light);
+  font-weight: 600;
+  color: var(--dark-green);
+}
+
+tr:hover {
+  background-color: var(--bg-light);
+}
+
+/* ── Figure styling ─────────────────────────────── */
+.figure {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.figure img {
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  max-width: 100%;
+  height: auto;
+}
+
+.figure .caption {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* ── Botão GitHub aprimorado ───────────────────── */
+.github-feedback-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #24292e;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-family: sans-serif;
+  transition: background-color 0.2s;
+  margin-top: 1rem;
+}
+
+.github-feedback-btn:hover {
+  background-color: #2c3e50;
+  color: white;
+  text-decoration: none;
+}
+
+/* ── Responsive ─────────────────────────────────── */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+
+  h1.title {
+    font-size: 2rem;
+  }
+
+  .workflow-steps {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .workflow-arrow {
+    transform: rotate(90deg);
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  th, td {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-card,
+  .github-feedback-btn {
+    transition: none;
+  }
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo      = TRUE,
+  eval      = FALSE,
+  warning   = FALSE,
+  message   = FALSE,
+  comment   = "#>",
+  fig.align = "center",
+  out.width = "90%",
+  fig.retina = 2
+)
+```
+
+------------------------------------------------------------------------
+
+# Introducción
+
+Las olas de calor están entre los eventos climáticos extremos de mayor relevancia para la salud pública, especialmente en un contexto de calentamiento global, urbanización acelerada y aumento de la vulnerabilidad socioambiental. Estos eventos se caracterizan por periodos persistentes de temperaturas anormalmente elevadas en relación con el patrón climatológico de una localidad determinada, y pueden afectar directamente el confort térmico, la demanda de servicios de salud, la mortalidad y la morbilidad por causas sensibles al calor.
+
+En Brasil, episodios recientes de calor extremo han evidenciado la necesidad de herramientas capaces de identificar, cuantificar y visualizar olas de calor de forma estandarizada y reproducible. Esta necesidad es aún más importante en estudios aplicados al Sistema Único de Salud (SUS), en los cuales la integración entre datos meteorológicos, indicadores ambientales y desenlaces en salud permite investigar patrones de riesgo, respaldar sistemas de alerta y apoyar estrategias de vigilancia en salud ambiental.
+
+El paquete `climasus4r` ofrece un pipeline integrado que va desde la descarga de datos meteorológicos horarios del INMET hasta el relleno de lagunas, el cálculo de indicadores climáticos, la detección de olas de calor y la visualización de los eventos. En este tutorial presentamos cada etapa de este proceso con ejemplos prácticos, destacando no solo la ejecución de las funciones, sino también la interpretación climatológica, epidemiológica y operacional de los resultados.
+
+
+::: {.callout .callout-note}
+**Nota sobre reproducibilidad:** Todo el pipeline es determinístico —
+dado el mismo periodo de datos INMET y los mismos parámetros, los
+resultados son idénticos entre ejecuciones. Los bloques de código
+marcados con `eval = FALSE` requieren conexión a internet para la
+etapa de descarga (INMET) y pueden tardar algunos minutos según el
+periodo solicitado.
+:::
+
+## ¿Qué es una ola de calor?
+
+No existe una definición única y universalmente aceptada de ola de calor. En general, una ola de calor puede entenderse como un periodo de calor anormal, intenso y persistente, en el que la temperatura observada supera un determinado umbral de referencia durante varios días consecutivos. Este umbral puede definirse de forma absoluta, como una temperatura fija, o de forma relativa, como un percentil elevado de la distribución histórica de temperatura de una región determinada.
+
+Esta distinción es importante porque el impacto del calor depende del contexto climático local. Una temperatura considerada extrema en una ciudad de clima más templado puede ser relativamente común en regiones tropicales o semiáridas. Por ese motivo, muchos estudios utilizan umbrales basados en percentiles, como el percentil 90 o 95, permitiendo que la definición de calor extremo se adapte a la climatología de cada localidad.
+
+De modo general, la mayoría de las definiciones de ola de calor combinan dos componentes principales:
+
+1.  **Umbral de temperatura** — la temperatura (o índice de confort
+    térmico) debe superar determinado valor crítico, típicamente
+    definido como un percentil alto de la distribución histórica (P90, P95)
+    o como una desviación fija respecto a la media climatológica.
+2.  **Duración mínima** — la condición extrema debe persistir durante
+    al menos N días consecutivos (comúnmente 3 o 5 días), distinguiendo
+    eventos sostenidos de picos aislados.
+
+La ausencia de consenso no es una limitación operativa: `climasus4r`
+implementa las siete definiciones más utilizadas en la literatura (Tabla 1),
+permitiendo análisis de sensibilidad y comparaciones intermetodológicas.
+
+::: {.callout .callout-tip}
+**¿Por qué comparar métodos?** En regiones tropicales y subtropicales como
+Brasil, el método INMET —calibrado para la realidad climática nacional—
+tiende a detectar eventos que los métodos percentílicos genéricos pueden
+subestimar. Por otro lado, índices de confort térmico como UTCI y WBGT
+capturan la percepción fisiológica del calor de forma más completa que
+la temperatura del aire de forma aislada. Comparar resultados entre métodos
+es una buena práctica de análisis de sensibilidad.
+:::
+
+## Visión general del pipeline
+
+:::: workflow-container
+::: workflow-steps
+[1. sus_climate_inmet()]{.workflow-step} [→]{.workflow-arrow} [2.
+sus_climate_fill_inmet()]{.workflow-step} [→]{.workflow-arrow} [3.
+sus_climate_compute_indicators()]{.workflow-step} [→]{.workflow-arrow}
+[4. sus_climate_compute_heatwaves()]{.workflow-step}
+[→]{.workflow-arrow} [5. sus_climate_plot_heatwaves()]{.workflow-step}
+:::
+::::
+
+Cada etapa recibe el producto de la anterior y añade información. La
+función `sus_climate_compute_heatwaves()` espera datos **horarios** con
+columnas estandarizadas de temperatura e índices de confort térmico —
+exactamente lo que produce `sus_climate_compute_indicators()`.
+
+------------------------------------------------------------------------
+
+# Configuración del entorno
+
+```{r instalacao, eval=FALSE}
+# Instalar climasus4r (GitHub) se necessário
+# install.packages("remotes")
+# remotes::install_github("MaxAnjos/climasus4r")
+
+library(climasus4r)
+library(dplyr)
+```
+
+::: {.callout .callout-warning}
+**Dependencias opcionales:** Las funciones de visualización requieren
+`ggplot2`, `ggsci` y `plotly`. Para gráficos interactivos, instale también
+`htmlwidgets`. La etapa de indicadores climáticos requiere `slider`
+(ventanas deslizantes) y `jsonlite`.
+
+``` r
+install.packages(c("ggplot2", "ggsci", "plotly", "htmlwidgets", "slider", "jsonlite"))
+```
+:::
+
+------------------------------------------------------------------------
+
+# Etapa 1 — Adquisición de datos climáticos (INMET)
+
+## La red de estaciones INMET
+
+El Instituto Nacional de Meteorología (INMET) opera la mayor red de
+estaciones meteorológicas automáticas de Brasil, con cobertura en todos
+los estados. Los datos se ponen a disposición en formato CSV con
+resolución horaria e incluyen temperatura del aire (bulbo seco, máxima,
+mínima), humedad relativa, velocidad y dirección del viento, presión
+atmosférica y precipitación.
+
+La función `sus_climate_inmet()` automatiza la descarga, el parsing y
+la estandarización de estos archivos a un formato listo para el análisis.
+
+## Parámetros principales
+
+```{r inmet-args, eval=FALSE}
+# Estrutura da chamada completa
+df_inmet <- sus_climate_inmet(
+  years        = 2010:2023,   # Vetor de anos
+  uf           = "RN",        # UF (sigla) para filtrar estações
+  station_code = NULL,        # Código(s) específico(s) de estação (opcional)
+  use_cache    = TRUE,        # Reutilizar arquivos já baixados
+  cache_dir    = "~/.climasus4r_cache/climate",
+  parallel     = TRUE,        # Download paralelo
+  workers      = 4,           # Número de workers
+  lang         = "pt",
+  verbose      = TRUE
+)
+```
+
+| Parámetro | Tipo | Descripción |
+|---------------------------|------------------|---------------------------|
+| `years` | entero o vector | Años a descargar (ej.: `2010:2023`) |
+| `uf` | character | Sigla del estado para filtrar estaciones (ej.: `"RN"`, `"SP"`) |
+| `station_code` | character | Código(s) específico(s) de estación INMET (ej.: `"A304"`) |
+| `use_cache` | lógico | Si `TRUE`, reutiliza archivos ya descargados en `cache_dir` |
+| `parallel` | lógico | Habilita descarga paralela vía `furrr`/`future` |
+| `workers` | entero | Número de workers para ejecución paralela |
+
+## Ejemplo: estación de Natal (RN)
+
+En este tutorial utilizamos datos de la estación automática de Natal
+(código INMET A304), en Rio Grande do Norte — estado del Nordeste
+brasileño con clima semiárido e historial de olas de calor intensas.
+
+```{r download-inmet, eval=FALSE}
+# Download de dados horários (2010–2023)
+# A primeira execução pode levar alguns minutos; execuções subsequentes usam cache.
+df_inmet <- sus_climate_inmet(
+  years        = 2010:2023,
+  station_code = "A304",   # Natal - RN
+  use_cache    = TRUE,
+  lang         = "pt",
+  verbose      = TRUE
+)
+
+# Inspecionar estrutura
+glimpse(df_inmet)
+```
+
+La salida es un `data.frame` con resolución horaria y columnas
+estandarizadas por `climasus4r`:
+
+```{r estrutura-inmet, eval=TRUE, echo=FALSE}
+# Colunas típicas do output de sus_climate_inmet()
+cat(
+  "Rows: ~122,640  (14 anos × 365 dias × 24 horas)\n",
+  "Columns: ~20\n\n",
+  "$ date               <POSIXct>  2010-01-01 00:00:00, 2010-01-01 01:00:00 ...\n",
+  "$ station_code       <chr>      'A304', 'A304', ...\n",
+  "$ station_name       <chr>      'NATAL', 'NATAL', ...\n",
+  "$ federal_unit       <chr>      'RN', 'RN', ...\n",
+  "$ region             <chr>      'Nordeste', 'Nordeste', ...\n",
+  "$ latitude           <dbl>      -5.84, -5.84, ...\n",
+  "$ longitude          <dbl>      -35.21, -35.21, ...\n",
+  "$ tair_dry_bulb_c    <dbl>      28.4, 27.9, ...\n",
+  "$ tair_max_c         <dbl>      29.1, 28.6, ...\n",
+  "$ tair_min_c         <dbl>      27.8, 27.3, ...\n",
+  "$ rh_pct             <dbl>      82.0, 84.0, ...\n",
+  "$ wind_speed_ms      <dbl>      3.2, 2.8, ...\n",
+  "$ precip_mm          <dbl>      0.0, 0.0, ...\n"
+)
+```
+
+::: {.callout .callout-info}
+**Origen de los datos:** Los datos brutos son los archivos CSV
+disponibles públicamente por el INMET en
+`https://portal.inmet.gov.br/dadoshistoricos`. `climasus4r` realiza el
+parsing automático de cada archivo anual, aplica control de calidad y
+estandariza los nombres de las columnas. No se realiza ninguna
+interpolación ni modificación de valores en esta etapa.
+:::
+
+------------------------------------------------------------------------
+
+# Etapa 2 — Relleno de lagunas (gap-filling)
+
+## El problema de las lagunas en series horarias
+
+Las estaciones automáticas del INMET presentan con frecuencia lagunas
+causadas por fallas de transmisión, mantenimiento de equipos o eventos
+climáticos extremos. La presencia de valores ausentes (`NA`) en columnas
+de temperatura puede inviabilizar el cálculo de índices de confort
+térmico y comprometer las estimaciones percentílicas utilizadas en la
+detección de olas de calor.
+
+La función `sus_climate_fill_inmet()` implementa un relleno inteligente
+basado en modelos de regresión entrenados con covariables meteorológicas
+correlacionadas (temperatura del aire, humedad relativa, velocidad del
+viento, hora del día, estacionalidad). El relleno se realiza variable
+por variable y respeta un umbral máximo de lagunas (`gap_percentage`):
+si la proporción de valores ausentes en una serie determinada supera
+ese umbral, la estación se marca como de baja calidad y no se aplica
+ningún relleno.
+
+## Parámetros principales
+
+```{r fill-args, eval=FALSE}
+df_filled <- sus_climate_fill_inmet(
+  df               = df_inmet,
+  target_var       = "tair_dry_bulb_c",  # Variável a preencher
+  datetime_col     = NULL,     # Detectado automaticamente
+  station_col      = NULL,     # Detectado automaticamente
+  quality_threshold = 0.4,    # Máximo de NAs para aceitar a série (40%)
+  run_evaluation   = FALSE,   # Se TRUE: avalia métricas de ajuste
+  gap_percentage   = 0.2,     # Intervalo máximo de gap contínuo a preencher (20%)
+  keep_features    = FALSE,   # Manter covariáveis auxiliares no output
+  parallel         = TRUE,
+  workers          = NULL,    # NULL = detectar automaticamente
+  verbose          = TRUE,
+  lang             = "pt"
+)
+```
+
+## Relleno del conjunto completo
+
+En la práctica, aplicamos el relleno a cada variable de temperatura y
+humedad relevante antes de calcular los indicadores de confort térmico:
+
+```{r fill-pipeline, eval=FALSE}
+# Preencher temperatura do ar (bulbo seco)
+df_filled <- sus_climate_fill_inmet(
+  df         = df_inmet,
+  target_var = "tair_dry_bulb_c",
+  lang       = "pt",
+  verbose    = TRUE
+)
+
+# Preencher temperatura máxima e mínima
+df_filled <- sus_climate_fill_inmet(df_filled, target_var = "tair_max_c",  lang = "pt")
+df_filled <- sus_climate_fill_inmet(df_filled, target_var = "tair_min_c",  lang = "pt")
+
+# Preencher umidade relativa (necessária para UTCI, WBGT, HI)
+df_filled <- sus_climate_fill_inmet(df_filled, target_var = "rh_pct",       lang = "pt")
+
+# Verificar proporção de NAs remanescentes
+df_filled |>
+  summarise(
+    n_total    = n(),
+    na_tmax    = mean(is.na(tair_max_c)),
+    na_tmin    = mean(is.na(tair_min_c)),
+    na_tair    = mean(is.na(tair_dry_bulb_c)),
+    na_rh      = mean(is.na(rh_pct))
+  )
+```
+
+::: {.callout .callout-warning}
+**Buena práctica:** Aplique siempre `sus_climate_fill_inmet()` antes de
+`sus_climate_compute_heatwaves()`. La función de detección emite un
+aviso (`cli_warn`) si encuentra `NA`s en las columnas de temperatura,
+pero **no** los rellena automáticamente — esa decisión corresponde al
+analista, ya que diferentes estrategias de imputación pueden influir
+en los resultados.
+:::
+
+------------------------------------------------------------------------
+
+# Etapa 3 — Cálculo de indicadores climáticos
+
+## ¿Por qué ir más allá de la temperatura del aire?
+
+La temperatura del aire (bulbo seco) es la variable meteorológica más
+disponible, pero no es la mejor proxy para el estrés térmico humano.
+El cuerpo humano responde al ambiente térmico resultante de la
+combinación de temperatura, humedad, radiación solar y velocidad del
+viento. Los índices de confort térmico integran estos cuatro factores
+y permiten estimar la percepción fisiológica del calor de forma más
+realista.
+
+La función `sus_climate_compute_indicators()` calcula los principales
+índices utilizados en las metodologías de detección de olas de calor
+implementadas en `climasus4r`:
+
+::::::: feature-grid
+::: feature-card
+```
+<div class="feature-icon">🌡️</div>
+<h3>UTCI</h3>
+<p><strong>Universal Thermal Climate Index.</strong> Modelo biometeorológico de referencia de la ISO 15743. Integra temperatura, humedad, viento y radiación en una temperatura equivalente fisiológica (°C).</p>
+```
+:::
+
+::: feature-card
+```
+<div class="feature-icon">💧</div>
+<h3>WBGT</h3>
+<p><strong>Wet Bulb Globe Temperature.</strong> Índice operacional ampliamente utilizado en salud ocupacional y deportes. Combina temperatura húmeda, temperatura del globo negro y temperatura del aire seco.</p>
+```
+:::
+
+::: feature-card
+```
+<div class="feature-icon">🥵</div>
+<h3>HI</h3>
+<p><strong>Heat Index (Índice de Calor).</strong> Temperatura aparente calculada a partir del bulbo seco y de la humedad relativa. Indica cómo percibe el calor la población en general.</p>
+```
+:::
+
+::: feature-card
+```
+<div class="feature-icon">🌿</div>
+<h3>PET</h3>
+<p><strong>Physiological Equivalent Temperature.</strong> Temperatura de un ambiente de referencia con los mismos intercambios de calor del cuerpo. Frecuentemente utilizado en estudios de confort urbano.</p>
+```
+:::
+:::::::
+
+## Llamada a la función
+
+```{r compute-indicators, eval=FALSE}
+df_indicators <- sus_climate_compute_indicators(
+  df                   = df_filled,
+  indicators           = "all",      # Calcular todos os indicadores disponíveis
+  region               = "auto",     # Detectar região automaticamente por metadados
+  apply_validity_mask  = TRUE,       # Mascarar valores fora dos limites físicos
+  verify_physics       = TRUE,       # Verificar consistência física
+  keep_source_vars     = TRUE,       # Manter variáveis originais no output
+  verbose              = TRUE,
+  lang                 = "pt"
+)
+
+# Verificar colunas adicionadas
+names(df_indicators) |> grep("utci|wbgt|hi_c|pet", x = _, value = TRUE)
+```
+
+Después de esta etapa, el `data.frame` contiene las columnas
+adicionales necesarias para la detección de olas de calor por los
+métodos UTCI, WBGT y HI:
+
+| Columna nueva         | Índice                 | Unidad |
+|-----------------------|------------------------|---------|
+| `utci_c`              | UTCI                   | °C      |
+| `wbgt_c`              | WBGT                   | °C      |
+| `hi_c`                | Heat Index             | °C      |
+| `pet_c`               | PET                    | °C      |
+| `utci_c_flag_extreme` | Horas con UTCI \> 38°C | lógico  |
+| `wbgt_c_flag_extreme` | Horas con WBGT \> 32°C | lógico  |
+| `hi_c_flag_extreme`   | Horas con HI \> 51°C   | lógico  |
+
+------------------------------------------------------------------------
+
+# Etapa 4 — Detección de olas de calor
+
+## La función `sus_climate_compute_heatwaves()`
+
+Esta es la función central del módulo climático de `climasus4r`. Recibe
+datos horarios (producto de `sus_climate_compute_indicators()`), los
+agrega a escala diaria, calcula umbrales históricos percentílicos por
+estación del año (usando una ventana deslizante de ±15 días alrededor
+de cada día del año), aplica cada metodología de detección seleccionada
+y devuelve una lista estructurada con tres componentes.
+
+### Firma completa
+
+```{r hw-signature, eval=FALSE}
+hw_result <- sus_climate_compute_heatwaves(
+  data           = df_indicators,   # Output de sus_climate_compute_indicators()
+  method         = c("WHO", "WMO", "INMET", "EHF", "UTCI", "WBGT", "HI"),
+  baseline_start = "2010-01-01",    # Início do período de referência
+  baseline_end   = "2020-12-31",    # Fim do período de referência
+  percentile     = 90,              # Percentil para limiares (P90 por padrão)
+  min_duration   = NULL,            # NULL = usar defaults por método
+  lang           = "pt",
+  verbose        = TRUE
+)
+```
+
+## Metodologías implementadas
+
+La Tabla 1 presenta las siete metodologías implementadas, incluyendo la
+variable base, el criterio de umbral y la duración mínima predeterminada.
+
+**Tabla 1 — Metodologías de detección de olas de calor implementadas en
+`sus_climate_compute_heatwaves()`**
+
+| Método | Variable base | Criterio de umbral | Duración mínima | Referencia |
+|--------------|--------------|----------------|--------------|--------------|
+| **WHO** | Tmax diaria | Tmax \> P90(Tmax) | 3 días | WMO & WHO (2015) |
+| **WMO** | Tmax y Tmin diarias | Tmax \> P90(Tmax) **Y** Tmin \> P90(Tmin) | 5 días | Perkins & Alexander (2013) |
+| **INMET** | Tmax diaria | Tmax \> media histórica + 5°C | 5 días | INMET (2009) |
+| **EHF** | Tmean diaria | EHF \> 0 (fórmula compuesta; ver abajo) | 3 días | Nairn & Fawcett (2015) |
+| **UTCI** | UTCImax diario | UTCImax \> P90(UTCImax) | 3 días | Broede et al. (2012) |
+| **WBGT** | WBGTmax diario | WBGTmax \> P90(WBGTmax) | 3 días | Liljegren et al. (2008) |
+| **HI** | HImax diario | HImax \> P90(HImax) | 3 días | Steadman (1979) |
+
+::: {.callout .callout-info}
+**Suavizado estacional de los percentiles:** Para todos los métodos
+basados en percentiles, `climasus4r` utiliza una ventana deslizante de
+±15 días en torno a cada día del año (calculada sobre el periodo de
+referencia), y no un percentil fijo calculado sobre toda la serie. Este
+enfoque, recomendado por Fischer & Schär (2010), elimina el sesgo
+estacional y garantiza que el mismo nivel de extremidad relativa sea
+detectado en cualquier época del año.
+:::
+
+### Fundamentos del Excess Heat Factor (EHF)
+
+El EHF (Nairn & Fawcett, 2015) es el único método que no utiliza
+percentiles directos de la variable base. Combina dos componentes:
+
+$$\text{EHF} = \text{EHI}_{sig} \times \max(1, \text{EHI}_{acc})$$
+
+Donde:
+
+-   **EHI_sig** (índice de significancia): $\bar{T}_3 - T_{95}$, mide
+    cuánto la temperatura media de los últimos 3 días supera el
+    percentil 95 climatológico de la temperatura media. Captura la
+    magnitud absoluta del calor.
+-   **EHI_acc** (índice de aclimatación): $\bar{T}_3 - \bar{T}_{30}$,
+    mide cuánto la temperatura media de los últimos 3 días supera la
+    media de los 30 días anteriores. Captura la velocidad de
+    calentamiento y la capacidad de aclimatación de la población.
+
+Los días con EHF \> 0 se clasifican como días de ola de calor. La
+intensidad del evento se clasifica en tres categorías con base en el
+percentil 85 (EHF85) de todos los valores positivos de EHF observados
+en la estación:
+
+-   **Baja Intensidad (LIHW):** 0 \< EHF_peak \< EHF85
+-   **Severa (SHW):** EHF85 ≤ EHF_peak \< 3 × EHF85
+-   **Extrema (EHW):** EHF_peak ≥ 3 × EHF85
+
+### Método INMET: calibración para Brasil
+
+El método INMET define una ola de calor cuando la temperatura máxima
+diaria supera la **media climatológica de la temperatura máxima en al
+menos 5°C** durante 5 o más días consecutivos (INMET, 2009). La media
+climatológica se calcula sobre el periodo de referencia definido por
+el usuario (se recomienda 1981–2010 o 1991–2020, según la disponibilidad
+de datos).
+
+Este criterio es particularmente adecuado para el contexto tropical y
+subtropical brasileño, donde los valores absolutos de temperatura ya
+son elevados y el impacto sobre la salud está más asociado a la
+desviación respecto a la norma local que al valor absoluto.
+
+## Ejecutando la detección
+
+### Ejemplo 1: métodos basados en temperatura del aire
+
+```{r hw-temperature-methods, eval=FALSE}
+# Métodos que requerem apenas temperatura do ar (Tmax, Tmin, Tmean)
+hw_temp <- sus_climate_compute_heatwaves(
+  data           = df_indicators,
+  method         = c("WHO", "WMO", "INMET", "EHF"),
+  baseline_start = "2010-01-01",
+  baseline_end   = "2020-12-31",
+  percentile     = 90,
+  lang           = "pt",
+  verbose        = TRUE
+)
+```
+
+### Ejemplo 2: todos los métodos (incluyendo índices de confort)
+
+```{r hw-all-methods, eval=FALSE}
+# Todos os métodos — requer colunas utci_c, wbgt_c, hi_c
+hw_all <- sus_climate_compute_heatwaves(
+  data           = df_indicators,
+  method         = "all",          # Equivale a c("WHO","WMO","INMET","EHF","UTCI","WBGT","HI")
+  baseline_start = "2010-01-01",
+  baseline_end   = "2020-12-31",
+  percentile     = 90,
+  lang           = "pt",
+  verbose        = TRUE
+)
+```
+
+### Ejemplo 3: personalizando el percentil y la duración mínima
+
+```{r hw-custom-params, eval=FALSE}
+# Critério mais conservador: P95 e mínimo de 5 dias para todos os métodos
+hw_strict <- sus_climate_compute_heatwaves(
+  data           = df_indicators,
+  method         = c("WHO", "INMET"),
+  baseline_start = "2010-01-01",
+  baseline_end   = "2020-12-31",
+  percentile     = 95,       # Limiar mais alto → menos eventos, mais intensos
+  min_duration   = 5,        # Substitui os defaults por método
+  lang           = "pt",
+  verbose        = TRUE
+)
+```
+
+::: {.callout .callout-tip}
+**Análisis de sensibilidad:** Se recomienda ejecutar la detección con
+diferentes combinaciones de percentil (P85, P90, P95) y duración
+mínima (3, 5, 7 días) y comparar el número de eventos detectados. Esto
+permite evaluar la robustez de los resultados epidemiológicos frente a
+las decisiones metodológicas.
+:::
+
+## Estructura del output
+
+La función devuelve una lista con nombre con tres componentes:
+
+```{r hw-output-structure, eval=FALSE}
+# Inspecionar o output
+names(hw_all)
+#> [1] "events"  "daily"   "summary"
+```
+
+### `$events` — tabla de eventos
+
+Un `data.frame` con una fila por evento de ola de calor detectado.
+Cada fila representa un episodio continuo de días con la condición de
+ola de calor activa para un método y estación determinados.
+
+```{r hw-events, eval=FALSE}
+# Primeiros eventos detectados
+head(hw_all$events)
+```
+
+| Columna | Tipo | Descripción |
+|-----------------------|------------------|-------------------------------|
+| `event_id` | character | Identificador único: `<estación>_<método>_<N>` |
+| `station_code` | character | Código INMET de la estación |
+| `method` | character | Método de detección (WHO, WMO, etc.) |
+| `start_date` | Date | Fecha de inicio del evento |
+| `end_date` | Date | Fecha de fin del evento |
+| `duration_days` | integer | Duración en días consecutivos |
+| `temp_mean` | double | Temperatura media del periodo (variable del método) |
+| `temp_peak` | double | Temperatura máxima del periodo |
+| `anomaly_mean` | double | Anomalía media (temperatura - umbral) |
+| `anomaly_cumulative` | double | Anomalía acumulada a lo largo del evento |
+| `severity_index` | double | Índice de severidad: duración × anomalía media |
+| `ehf_peak` | double | Pico del EHF (solo método EHF; NA para otros) |
+| `ehf_mean` | double | Media del EHF durante el evento (solo EHF) |
+| `intensity_class` | character | Clasificación: Low, Severe, Extreme (solo EHF) |
+| `region` | character | Región geográfica de la estación |
+| `federal_unit` | character | UF de la estación |
+
+```{r hw-events-filter, eval=FALSE}
+# Filtrar os 10 eventos mais severos pelo índice de severidade
+hw_all$events |>
+  arrange(desc(severity_index)) |>
+  select(event_id, method, start_date, end_date, duration_days,
+         temp_peak, anomaly_mean, severity_index) |>
+  head(10)
+```
+
+```{r hw-events-count, eval=FALSE}
+# Contar eventos por método
+hw_all$events |>
+  count(method, name = "n_eventos") |>
+  arrange(desc(n_eventos))
+```
+
+### `$daily` — serie diaria con flags
+
+El `data.frame` diario contiene una fila por estación por día, con las
+variables agregadas y columnas lógicas (`TRUE`/`FALSE`) que indican si
+ese día pertenece a una ola de calor según cada método:
+
+```{r hw-daily, eval=FALSE}
+# Inspecionar colunas de flags
+hw_all$daily |>
+  select(station_code, date_day, tmax, tmean, starts_with("hw_")) |>
+  head(10)
+```
+
+La columna `hw_any` es `TRUE` si **cualquier** método detectó ola de
+calor ese día — útil para análisis de exposición sin compromiso con un
+único criterio.
+
+```{r hw-daily-any, eval=FALSE}
+# Dias com onda de calor ativa por pelo menos um método
+hw_all$daily |>
+  filter(hw_any == TRUE) |>
+  select(date_day, tmax, tmean, hw_who, hw_inmet, hw_ehf, hw_utci) |>
+  head(20)
+```
+
+```{r hw-daily-concordancia, eval=FALSE}
+# Concordância entre métodos: proporção de dias classificados por cada um
+hw_all$daily |>
+  summarise(
+    pct_who   = mean(hw_who,   na.rm = TRUE) * 100,
+    pct_wmo   = mean(hw_wmo,   na.rm = TRUE) * 100,
+    pct_inmet = mean(hw_inmet, na.rm = TRUE) * 100,
+    pct_ehf   = mean(hw_ehf,   na.rm = TRUE) * 100,
+    pct_utci  = mean(hw_utci,  na.rm = TRUE) * 100,
+    pct_wbgt  = mean(hw_wbgt,  na.rm = TRUE) * 100,
+    pct_hi    = mean(hw_hi,    na.rm = TRUE) * 100,
+    pct_any   = mean(hw_any,   na.rm = TRUE) * 100
+  )
+```
+
+### `$summary` — resumen anual
+
+El resumen anual agrega las estadísticas por estación, método y año,
+siendo el punto de entrada natural para análisis de tendencia temporal:
+
+```{r hw-summary, eval=FALSE}
+# Resumo anual
+hw_all$summary |>
+  filter(method == "INMET") |>
+  select(year, station_code, n_events, total_days_hw,
+         mean_duration, max_duration, mean_anomaly, severity_total) |>
+  arrange(desc(year))
+```
+
+| Columna          | Descripción                                        |
+|------------------|---------------------------------------------------|
+| `year`           | Año                                                |
+| `station_code`   | Código de la estación                              |
+| `method`         | Método de detección                                |
+| `n_events`       | Número de eventos en el año                        |
+| `total_days_hw`  | Total de días de ola de calor en el año            |
+| `mean_duration`  | Duración media de los eventos (días)               |
+| `max_duration`   | Duración del evento más largo (días)               |
+| `mean_intensity` | Temperatura media en los eventos                   |
+| `max_intensity`  | Temperatura de pico en los eventos                 |
+| `mean_anomaly`   | Anomalía media en los eventos                      |
+| `severity_total` | Suma de los índices de severidad de los eventos del año |
+
+------------------------------------------------------------------------
+
+# Etapa 5 — Visualización de olas de calor
+
+## La función `sus_climate_plot_heatwaves()`
+
+La visualización transforma el output estructurado de
+`sus_climate_compute_heatwaves()` en gráficos interpretativos. La
+función ofrece cuatro tipos de visualización, cada uno respondiendo a
+una pregunta analítica diferente:
+
+::::::: feature-grid
+::: feature-card
+```
+<div class="feature-icon">📅</div>
+<h3>timeline</h3>
+<p>Diagrama de Gantt que muestra la posición temporal, duración e intensidad de cada evento. Ideal para comparar eventos entre métodos y estaciones.</p>
+```
+:::
+
+::: feature-card
+```
+<div class="feature-icon">🗓️</div>
+<h3>calendar</h3>
+<p>Mapa de calor tipo calendario que muestra la ocurrencia diaria de olas de calor a lo largo de los meses. Revela patrones estacionales y distribución intraanual.</p>
+```
+:::
+
+::: feature-card
+```
+<div class="feature-icon">⚡</div>
+<h3>intensity</h3>
+<p>Dispersión duración × temperatura de pico, con punto coloreado según la clase de intensidad. Distingue eventos largos de eventos cálidos.</p>
+```
+:::
+
+::: feature-card
+```
+<div class="feature-icon">📈</div>
+<h3>trend</h3>
+<p>Barras agrupadas del número de eventos por año y método. Permite identificar tendencias de largo plazo en la frecuencia de olas de calor.</p>
+```
+:::
+:::::::
+
+### Firma completa
+
+```{r plot-signature, eval=FALSE}
+p <- sus_climate_plot_heatwaves(
+  hw_result     = hw_all,          # Output de sus_climate_compute_heatwaves()
+  type          = "timeline",      # "timeline" | "calendar" | "intensity" | "trend"
+  station_code  = NULL,            # Filtrar por estação específica
+  method        = NULL,            # Filtrar por método (ex.: "INMET", "EHF")
+  year          = NULL,            # Filtrar por ano (útil para "calendar")
+  interactive   = TRUE,            # TRUE = plotly; FALSE = ggplot2 estático
+  color_palette = "npg",           # Paleta ggsci: "npg", "lancet", "jama", etc.
+  lang          = "pt",            # "pt" | "en" | "es"
+  save_plot     = NULL             # Caminho para salvar (HTML ou PNG)
+)
+```
+
+| Parámetro | Opciones | Efecto |
+|-----------------------------|----------------------|----------------------|
+| `type` | `"timeline"`, `"calendar"`, `"intensity"`, `"trend"` | Tipo de gráfico |
+| `interactive` | `TRUE` (plotly), `FALSE` (ggplot2) | Interactividad |
+| `color_palette` | cualquier paleta del paquete `ggsci` | Esquema de colores |
+| `lang` | `"pt"`, `"en"`, `"es"` | Idioma de las etiquetas |
+| `save_plot` | ruta `.html` o `.png` | Guardar el gráfico en disco |
+
+## Plot 1: Línea del tiempo (timeline)
+
+El gráfico de línea del tiempo presenta cada evento como un segmento
+horizontal (estilo Gantt), con espesor proporcional a la duración y
+color que indica la clase de intensidad (relevante para EHF; para
+otros métodos, todos los eventos se clasifican como "desconocido" en
+la leyenda de intensidad).
+
+```{r plot-timeline, eval=FALSE}
+# Linha do tempo de todos os eventos — todos os métodos
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "timeline",
+  interactive = TRUE,
+  lang        = "pt"
+)
+```
+
+```{r plot-timeline-inmet, eval=FALSE}
+# Filtrar apenas eventos pelo método INMET
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "timeline",
+  method      = "INMET",
+  interactive = TRUE,
+  lang        = "pt"
+)
+```
+
+```{r plot-timeline-static, eval=FALSE}
+# Versão estática para publicação
+p_timeline <- sus_climate_plot_heatwaves(
+  hw_result     = hw_all,
+  type          = "timeline",
+  method        = c("WHO", "INMET", "EHF"),
+  interactive   = FALSE,        # ggplot2 puro
+  color_palette = "lancet",     # Paleta Lancet (jornais biomédicos)
+  lang          = "pt",
+  save_plot     = "timeline_ondas_calor.png"  # Salvar em PNG
+)
+print(p_timeline)
+```
+
+**Interpretación:** Los segmentos más largos indican eventos más
+duraderos; el espesor refuerza visualmente la duración. Observe que el
+método WMO (doble umbral: Tmax Y Tmin) tiende a generar menos eventos
+y de mayor duración que el WHO (solo Tmax), pues exige que tanto el
+día como la noche sean excepcionalmente cálidos.
+
+## Plot 2: Calendario (calendar)
+
+El calendario muestra cada día del año en celdas coloreadas — rojo
+para días de ola de calor, gris para días normales. Es el gráfico más
+intuitivo para comunicar la estacionalidad de los eventos al público
+no técnico.
+
+```{r plot-calendar-year, eval=FALSE}
+# Calendário para um ano específico — método WHO
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "calendar",
+  method      = "WHO",
+  year        = 2023,
+  interactive = TRUE,
+  lang        = "pt"
+)
+```
+
+```{r plot-calendar-any, eval=FALSE}
+# Calendário com hw_any (qualquer método) — todos os anos
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "calendar",
+  method      = NULL,          # NULL → usa hw_any (qualquer método)
+  interactive = FALSE,
+  lang        = "pt"
+)
+```
+
+**Interpretación:** Observe la concentración de días de ola de calor
+en los meses de verano austral (diciembre–marzo) en el Nordeste. Los
+años con múltiples bloques rojos consecutivos merecen atención
+especial: en esos periodos, el exceso de mortalidad en el SUS tiende a
+ser mayor (Fiocruz, 2025).
+
+## Plot 3: Intensidad vs. duración (intensity)
+
+Este gráfico de dispersión ubica cada evento en el plano cartesiano
+duración × temperatura de pico. La coloración por clase de intensidad
+EHF (cuando está disponible) permite identificar eventos que combinan
+larga duración **y** alta temperatura — los de mayor riesgo
+epidemiológico.
+
+```{r plot-intensity-ehf, eval=FALSE}
+# Intensidade EHF (com classificação Low / Severe / Extreme)
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "intensity",
+  method      = "EHF",
+  interactive = TRUE,
+  lang        = "pt"
+)
+```
+
+```{r plot-intensity-all, eval=FALSE}
+# Todos os métodos juntos (sem classificação de intensidade EHF)
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "intensity",
+  method      = NULL,
+  interactive = FALSE,
+  lang        = "pt"
+)
+```
+
+**Interpretación:** Los eventos en el cuadrante superior derecho (larga
+duración + alta temperatura) son los más peligrosos desde el punto de
+vista de la salud pública. Los eventos en el cuadrante inferior derecho
+(larga duración + temperatura moderada) pueden ser igualmente
+peligrosos para poblaciones sin aclimatación. El EHF captura este
+matiz a través del componente EHI_acc (aclimatación), penalizando
+eventos que ocurren tras un periodo anormalmente frío.
+
+## Plot 4: Tendencia anual (trend)
+
+El gráfico de tendencia muestra el número de eventos detectados por
+año para cada método, permitiendo identificar si la frecuencia de
+olas de calor está aumentando a lo largo del periodo analizado — una
+de las principales previsiones de los escenarios de cambio climático
+para Brasil.
+
+```{r plot-trend-all, eval=FALSE}
+# Tendência anual — todos os métodos
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "trend",
+  interactive = TRUE,
+  lang        = "pt"
+)
+```
+
+```{r plot-trend-subset, eval=FALSE}
+# Tendência apenas para WHO e INMET (comparação de sensibilidade)
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "trend",
+  method      = c("WHO", "INMET"),
+  interactive = FALSE,
+  lang        = "pt",
+  save_plot   = "tendencia_ondas_calor.png"
+)
+```
+
+**Interpretación:** Si la tendencia de frecuencia es creciente, esto es
+consistente con el calentamiento regional. Compare los patrones entre
+métodos: el método INMET tiende a ser más restrictivo en regiones ya
+cálidas (pues exige +5°C sobre la media histórica), mientras que los
+métodos percentílicos capturan aumentos relativos incluso en regiones
+donde las temperaturas absolutas son elevadas durante todo el año.
+
+## Guardando gráficos
+
+```{r save-plots, eval=FALSE}
+# Gráfico interativo → arquivo HTML autossuficiente
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "timeline",
+  interactive = TRUE,
+  lang        = "pt",
+  save_plot   = "ondas_calor_timeline.html"
+)
+
+# Gráfico estático → PNG de alta resolução (300 dpi)
+sus_climate_plot_heatwaves(
+  hw_result   = hw_all,
+  type        = "trend",
+  interactive = FALSE,
+  lang        = "pt",
+  save_plot   = "ondas_calor_tendencia.png"   # ggsave com dpi=300
+)
+```
+
+------------------------------------------------------------------------
+
+# Análisis avanzado de los resultados
+
+## Integrando eventos al calendario epidemiológico
+
+El componente `$daily` con la columna `hw_any` puede cruzarse
+directamente con datos de mortalidad y morbilidad del SUS para
+calcular el exceso de defunciones e ingresos hospitalarios durante
+olas de calor:
+
+```{r integracao-sus, eval=FALSE}
+# Exemplo conceitual: cruzamento com dados de mortalidade SIM
+# (após completar o pipeline de importação dos dados SIM)
+
+# 1. Preparar a série diária de mortalidade cardiovascular
+# df_sim_diario <- sus_data_aggregate(df_sim, by = "day") |>
+#   filter(cid_grupo == "I" | cid_grupo == "J")  # Cardiovascular + Respiratório
+
+# 2. Adicionar flag de onda de calor
+# df_analise <- df_sim_diario |>
+#   left_join(
+#     hw_all$daily |> select(date_day, hw_any, hw_inmet, tmax),
+#     by = c("date" = "date_day")
+#   )
+
+# 3. Comparar mortalidade em dias com/sem onda de calor
+# df_analise |>
+#   group_by(hw_any) |>
+#   summarise(
+#     n_dias       = n(),
+#     obitos_medio = mean(n_obitos, na.rm = TRUE),
+#     sd           = sd(n_obitos, na.rm = TRUE)
+#   )
+```
+
+## Exportando eventos para análisis externo
+
+```{r export, eval=FALSE}
+# Exportar tabela de eventos para CSV
+write.csv(
+  hw_all$events,
+  file      = "eventos_ondas_calor_A304_2010_2023.csv",
+  row.names = FALSE,
+  fileEncoding = "UTF-8"
+)
+
+# Exportar resumo anual
+write.csv(
+  hw_all$summary,
+  file      = "resumo_anual_ondas_calor_A304.csv",
+  row.names = FALSE,
+  fileEncoding = "UTF-8"
+)
+```
+
+## Análisis de concordancia entre métodos
+
+```{r concordancia, eval=FALSE}
+# Proporção de dias classificados como onda de calor por N métodos simultaneamente
+hw_all$daily |>
+  mutate(
+    n_methods = rowSums(
+      across(c(hw_who, hw_wmo, hw_inmet, hw_ehf, hw_utci, hw_wbgt, hw_hi)),
+      na.rm = TRUE
+    )
+  ) |>
+  count(n_methods) |>
+  mutate(pct = round(n / sum(n) * 100, 1))
+```
+
+El análisis de concordancia responde a una pregunta central de la
+epidemiología ambiental: **¿en cuántos de los días clasificados como
+ola de calor hay consenso entre los métodos?** Una alta concordancia
+aumenta la confianza en los resultados; una baja concordancia sugiere
+que el impacto en salud puede variar significativamente según el
+criterio adoptado.
+
+------------------------------------------------------------------------
+
+# Referencias
+
+**Conceptos generales y marco de percentiles**
+
+-   Perkins, S.E. (2015). A review on the scientific understanding of
+    heatwaves — their measurement, driving mechanisms, and changes at
+    the global scale. *Atmospheric Research*, 164–165, 242–267.
+    <https://doi.org/10.1016/j.atmosres.2015.05.009>
+-   Perkins, S.E. & Alexander, L.V. (2013). On the measurement of heat
+    waves. *Journal of Climate*, 26(13), 4500–4517.
+-   Fischer, E.M. & Schär, C. (2010). Consistent geographical patterns
+    of changes in high-impact European heatwaves. *Nature Geoscience*,
+    3, 398–403.
+
+**Métodos WHO y WMO**
+
+-   WMO & WHO (2015). *Heatwaves and Health: Guidance on Warning-System
+    Development*. Organización Meteorológica Mundial, Ginebra.
+-   WMO (2021). *Guidelines on the Definition and Monitoring of Extreme
+    Weather and Climate Events*. Organización Meteorológica Mundial.
+
+**Método INMET**
+
+-   INMET — Instituto Nacional de Meteorología (2009). *Normais
+    Climatológicas do Brasil 1961–1990*. Brasília: MAPA/INMET.
+-   MCTI/Gov.br (2025). Relatórios de ondas de calor no Brasil (online).
+
+**EHF (Excess Heat Factor)**
+
+-   Nairn, J.R. & Fawcett, R.J.B. (2015). The Excess Heat Factor: A
+    metric for heatwave intensity and its use in classifying heatwave
+    severity. *International Journal of Environmental Research and
+    Public Health*, 12(1), 227–253.
+    <https://doi.org/10.3390/ijerph120100227>
+
+**UTCI (Universal Thermal Climate Index)**
+
+-   Broede, P., Fiala, D., Blazejczyk, K., Holmer, I., Jendritzky, G.,
+    Kampmann, B., Tinz, B. & Havenith, G. (2012). Deriving the
+    operational procedure for the Universal Thermal Climate Index
+    (UTCI). *International Journal of Biometeorology*, 56(3), 481–494.
+    <https://doi.org/10.1007/s00484-011-0454-1>
+
+**WBGT (Wet Bulb Globe Temperature)**
+
+-   Liljegren, J.C., Carhart, R.A., Lawday, P., Tschopp, S. & Sharp, R.
+    (2008). Modeling the wet bulb globe temperature using standard
+    meteorological measurements. *Journal of Occupational and
+    Environmental Hygiene*, 5(10), 645–655.
+-   ISO 7243:2017. *Ergonomics of the thermal environment — Assessment
+    of heat stress using the WBGT index*. Organización Internacional de
+    Normalización.
+
+**HI (Heat Index)**
+
+-   Steadman, R.G. (1979). The assessment of sultriness. Part I: A
+    temperature-humidity index based on human physiology and clothing
+    science. *Journal of Applied Meteorology*, 18(7), 861–873.
+-   Steadman, R.G. (1984). A universal scale of apparent temperature.
+    *Journal of Applied Meteorology and Climatology*, 23(12), 1674–1687.
+
+**Contexto SUS y salud pública brasileña**
+
+-   Fiocruz (2025). Excess cardiovascular mortality associated with
+    extreme heatwaves in Southeast Brazil, 2014–2023. *Cadernos de Saúde
+    Pública*.
+-   Observatório do Clima (2024). Mortalidade excessiva durante ondas de
+    calor em áreas urbanas brasileiras (2000–2018).
+
+------------------------------------------------------------------------
+
+# Información de la sesión
+
+```{r session-info, eval=FALSE}
+sessionInfo()
+```
+
+------------------------------------------------------------------------
+
+::: {style="text-align: center; margin-top: 3rem; padding-top: 2rem; border-top: 2px solid #e1e1e1;"}
+**climasus4r** · Análisis integrado salud–clima–ambiente en Brasil
+
+¿Encontró un problema o tiene sugerencias para este tutorial?
+
+<a href="https://github.com/MaxAnjos/climasus4r/issues" class="github-feedback-btn" target="_blank">
+🐛 Reportar en GitHub </a>
+:::

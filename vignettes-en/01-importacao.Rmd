@@ -1,0 +1,406 @@
+---
+title: "Tutorial 1: Importing Data from DATASUS"
+author: "climasus4r Team"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* -- Variaveis de Cores Modernas -- */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; color: var(--text-main); background-color: #fff; line-height: 1.6; }
+h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--dark-green); }
+h1.title { font-size: 2.8em; border-bottom: 4px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 1.5rem; }
+h2 { margin-top: 2rem; border-left: 4px solid var(--primary-color); padding-left: 1rem; }
+pre.r, pre.sourceCode { background-color: var(--code-bg); border: 1px solid #e1e1e1; border-left: 5px solid var(--primary-color) !important; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1rem; }
+.callout { padding: 1.2em 1.5em; margin: 1.5em 0; border-radius: 8px; border-left: 6px solid; background-color: var(--bg-light); }
+.callout-note { background-color: #f0f7ff; border-color: #007bff; }
+.callout-tip { background-color: #e8f5e9; border-color: #1D9E75; }
+.callout-warning { background-color: #fff3e0; border-color: #ff9800; }
+.workflow-container { background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #dce8e1; overflow-x: auto; }
+.workflow-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; font-family: 'Inter', monospace; font-size: 0.8rem; }
+.workflow-step { background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap; }
+.workflow-arrow { color: var(--primary-color); font-weight: bold; font-size: 1.2rem; }
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+.feature-card { background: white; border-radius: 12px; padding: 1.5rem; border: 1px solid #e1e1e1; transition: transform 0.2s ease, box-shadow 0.2s ease; text-align: center; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+.feature-card h3 { margin-top: 0; color: var(--primary-color); font-size: 1.1rem; }
+table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e1e1; }
+th { background-color: var(--bg-light); font-weight: 600; color: var(--dark-green); }
+.github-feedback-btn { display: inline-flex; align-items: center; gap: 8px; background-color: #24292e; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-family: sans-serif; transition: background-color 0.2s; margin-top: 1rem; }
+.github-feedback-btn:hover { background-color: #2c3e50; color: white; text-decoration: none; }
+@media (max-width: 768px) { body { font-size: 16px; } h1.title { font-size: 2rem; } .workflow-steps { flex-direction: column; align-items: center; } }
+```
+
+
+```{r setup, include=FALSE}
+# ATENÇÃO — estratégia de pré-renderização.
+# Este tutorial NÃO executa downloads durante a renderização. Todas as figuras e
+# tabelas foram geradas UMA vez pelo script scripts/tutorial_01_importacao.R e
+# são apenas carregadas aqui (PNG via include_graphics; RDS via readRDS).
+# Por isso, os chunks de ensino abaixo usam eval = FALSE: o código é mostrado,
+# mas não é executado no momento do knit.
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+
+# Helpers para exibir artefatos de forma robusta: se o arquivo ainda não foi
+# gerado (script de geração não executado), mostram uma nota em vez de quebrar
+# o knit. Assim a vignette renderiza a qualquer momento.
+fig_ou_nota <- function(path, nota) {
+  if (file.exists(path)) knitr::include_graphics(path)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+tbl_ou_nota <- function(path, nota, caption = NULL) {
+  if (file.exists(path)) knitr::kable(readRDS(path), caption = caption)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+.nota_gerar <- "Artefato indisponível — rode `Rscript scripts/tutorial_01_importacao.R` (a partir da raiz do pacote) para gerá-lo."
+```
+
+# Objective
+
+By the end of this tutorial you will be able to **import microdata from the
+DATASUS Health Information Systems** using a single function —
+`sus_data_import()` — and to control its main features: the choice of
+**system** (SIM, SIH, SINAN, SINASC, CNES, SIA) and its subsystems, the
+**spatial scope** (by state, by a predefined region, or by municipality), the
+difference between **annual and monthly** systems, the choice of processing
+**backend**, and — essential for reproducible, large-volume work — **smart
+caching** and **parallel processing**.
+
+Import is the **first stage** of the `climasus4r` pipeline. Everything that
+comes afterward (standardization, filtering, variable creation, aggregation,
+spatial join, socioeconomic linkage, climate integration, and modeling) starts
+from the raw base built here.
+
+# Scientific context
+
+Climate-health research in Brazil relies on the **Health Information Systems
+(SIS)** maintained by the Ministry of Health and made available through
+DATASUS. Each system records one type of event, with national coverage and
+municipal granularity:
+
+- **SIM** — Mortality Information System (death certificates);
+- **SIH** — Hospital Information System (hospitalizations/AIH);
+- **SINAN** — Notifiable Diseases Information System (notifiable diseases,
+  such as dengue, zika, and chikungunya);
+- **SINASC** — Live Birth Information System;
+- **CNES** — National Registry of Health Establishments;
+- **SIA** — Outpatient Information System.
+
+Programmatic access to these `.dbc` files is mediated by the `microdatasus`
+package (Saldanha, Bastos & Barcellos, 2019). `climasus4r` wraps this access in
+`sus_data_import()`, adding **caching** (so the same data is not re-downloaded
+on every run), **parallelism** (to speed up downloads across many
+states/years), and multilingual messages. Importing reproducibly — recording
+the system, year, and spatial scope — is what makes a study auditable and
+replicable.
+
+> **Guiding case.** Throughout this tutorial series we investigate
+> **temperature and health outcomes in older adults (60+) in the São Paulo
+> Metropolitan Region, 2014–2019**. In this first tutorial we assemble the
+> **multi-system raw base**: deaths (SIM-DO), hospitalizations (SIH-RD), and,
+> as a secondary case on climate × arboviruses, dengue (SINAN-DENGUE). The
+> objects imported here are saved and will serve as input for Tutorial 2
+> (Encoding and Standardization).
+
+# Data used
+
+| System | `system =` | Periodicity | Role in the case |
+|---------|------------|---------------|---------------|
+| SIM-DO (deaths) | `"SIM-DO"` | Annual | Primary outcome (mortality) |
+| SIH-RD (hospitalizations) | `"SIH-RD"` | Monthly (requires `month`) | Hospital morbidity |
+| SINAN-DENGUE | `"SINAN-DENGUE"` | Annual | Secondary case (climate × dengue) |
+
+Spatial scope: the state of **São Paulo** (`uf = "SP"`), 2014–2019. All data
+are **public and real**, obtained from DATASUS via `microdatasus`.
+
+# Complete pipeline
+
+The blocks below reproduce what the `scripts/tutorial_01_importacao.R` script
+runs. Start by loading the package:
+
+```{r carregar}
+library(climasus4r)
+```
+
+## Importing an annual system (SIM-DO)
+
+SIM is **annual**: the `month` argument is ignored. We request all six years at
+once and leave caching and parallelism turned on.
+
+```{r import-sim}
+obitos <- sus_data_import(
+  uf        = "SP",
+  year      = 2014:2019,
+  system    = "SIM-DO",
+  backend   = "arrow",   # "arrow" (lazy, padrão) ou "tibble" (em memória)
+  use_cache = TRUE,        # reaproveita downloads anteriores
+  parallel  = TRUE,        # baixa anos em paralelo
+  workers   = 4,
+  lang      = "pt"
+)
+```
+
+**View the data**
+```{r}
+dplyr::glimpse(obitos)
+```
+
+
+## Importing a monthly system (SIH-RD)
+
+SIH is **monthly**: the `month` argument is **mandatory**. Here we request
+only the winter months (June to August), when respiratory mortality in older
+adults tends to be higher.
+
+```{r import-sih}
+internacoes <- sus_data_import(
+  uf        = "SP",
+  year      = 2014:2019,
+  month     = 6:8,         # obrigatório para SIH, CNES e SIA
+  system    = "SIH-RD",
+  use_cache = TRUE,
+  parallel  = TRUE,
+  workers   = 4,
+  lang      = "pt"
+)
+```
+
+**View the data**
+```{r}
+dplyr::glimpse(internacoes)
+```
+
+
+## Importing notifications (SINAN-DENGUE)
+
+```{r import-sinan}
+dengue <- sus_data_import(
+  uf        = "SP",
+  year      = 2014:2019,
+  system    = "SINAN-DENGUE",
+  use_cache = TRUE,
+  lang      = "pt"
+)
+```
+
+
+**View the data**
+```{r}
+dplyr::glimpse(dengue)
+```
+
+
+## Spatial scope: by region or by municipality
+
+Instead of listing states, you can use a **predefined group** in `region`
+(macro-regions, biomes, or river basins) — useful for regional studies:
+
+```{r import-region}
+# Toda a macrorregião Sudeste (ES, MG, RJ, SP) de uma vez:
+obitos_sudeste <- sus_data_import(
+  region = "sudeste",
+  year   = 2019,
+  system = "SIM-DO",
+  lang   = "pt"
+)
+```
+
+
+**View the data**
+```{r}
+dplyr::glimpse(obitos_sudeste)
+```
+
+
+Or restrict to a single **municipality** by IBGE code (or by name in `city`).
+The filter is resolved to the IBGE code **before** the download:
+
+```{r import-muni}
+# Apenas o município de São Paulo (código IBGE 3550308):
+obitos_muni_sp <- sus_data_import(
+  uf                = "SP",
+  year              = 2014:2019,
+  system            = "SIM-DO",
+  municipality_code = "3550308",
+  lang              = "pt"
+)
+```
+
+
+**View the data**
+```{r}
+dplyr::glimpse(obitos_muni_sp)
+```
+
+## (Optional) Re-reading already exported data
+
+After exporting the base (with `sus_data_export()`), you can read it back in
+future sessions without downloading it again, using `sus_data_read()` — which
+automatically detects the format:
+
+```{r read, eval = FALSE}
+obitos <- sus_data_read("output/sim_sp_2014_2019.parquet")
+```
+
+At the end of this stage we have `obitos`, `internacoes`, and `dengue` — the
+**multi-system raw base** that will feed the next tutorials.
+
+# Function features
+
+## `sus_data_import()`
+
+The single entry point for the import stage. It wraps
+`microdatasus::fetch_datasus` (Saldanha, Bastos & Barcellos, 2019) with caching
+and parallelism.
+
+| Argument | Essential? | Description |
+|-----------|------------|-----------|
+| `uf` / `region` | yes (one of them) | State(s) (`"SP"`, `c("SP","RJ")`, `"all"`) **or** a predefined group (`"sudeste"`, `"amazonia_legal"`, …) |
+| `year` | yes | 4-digit year(s) (e.g., `2014:2019`) |
+| `system` | yes | System/subsystem (see systems table below) |
+| `month` | monthly only | Month(s) 1–12; **mandatory** for SIH, CNES, and SIA; ignored for SIM, SINAN, and SINASC |
+| `backend` | optional | `"arrow"` (lazy, default, very fast) or `"tibble"` (in memory) |
+| `city` / `municipality_code` | optional | Restricts to municipalities (name or 6/7-digit IBGE code) |
+| `use_cache` | recommended | `TRUE` reuses downloads; `cache_dir` sets the folder |
+| `force_redownload` | optional | `TRUE` ignores the cache and re-downloads everything |
+| `parallel` / `workers` | optional | Parallelizes state/year combinations; respects the user's `future::plan()` |
+| `lang` / `verbose` | optional | Language (`"pt"`, `"en"`, `"es"`) and message level |
+
+**Return:** a `tibble`/`data.frame` (or an Arrow object, if `backend = "arrow"`)
+with the system's original variables, plus `source_system` and
+`download_timestamp`, dates as `Date` objects, and UTF-8 text.
+
+**Smart caching.** Calls are identified by a **SHA-256** key of the parameters
+(state, year, month, system). Results are stored in `cache_dir`
+(`~/.climasus4r_cache/data` by default) as compressed RDS and are reused
+automatically. The cache expires after ~30 days for **dynamic** systems (CNES,
+SIA, SIH) and ~365 days for **static** ones (SIM, SINAN, SINASC).
+
+## `sus_data_read()`
+
+Re-reads already exported files without going back to the source.
+Auto-detects the format.
+
+| Argument | Description |
+|-----------|-----------|
+| `path` | Path to a file, a vector of files, or a folder |
+| `format` | `NULL` (auto-detects) or `"parquet"`, `"csv"`, `"dbc"`, `"rds"`, `"shapefile"`, … |
+| `parallel` / `workers` | Parallel reading of many files |
+| `read_metadata` | Recovers companion metadata as attributes |
+
+**Return:** the table read (or an `sf` object, for spatial data); batch reads
+are combined with `dplyr::bind_rows()`.
+
+# Supported systems and subsystems
+
+```{r tab-sistemas, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/import_sistemas.rds", .nota_gerar,
+            caption = "Table 1. DATASUS systems accessible via sus_data_import().")
+```
+
+`region` shortcuts (download several states at once):
+
+```{r tab-regioes, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/import_regioes.rds", .nota_gerar,
+            caption = "Table 2. Examples of predefined groups accepted in region.")
+```
+
+Typical structure of SIM-DO right after import (underlying cause in
+`CAUSABAS`, age coded in `IDADE`, municipality of residence in `CODMUNRES`):
+
+```{r tab-estrutura, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/import_estrutura_sim.rds", .nota_gerar,
+            caption = "Table 3. Sample of key columns from the imported SIM-DO.")
+```
+
+# Performance: caching and parallelism
+
+Two features of `sus_data_import()` make importing reproducible and fast. The
+**relative gain** (speedup) is the ratio between the time without the feature
+and the time with it:
+
+$$
+\text{speedup} = \frac{t_{\text{sem recurso}}}{t_{\text{com recurso}}}
+$$
+
+Speedup values above 1 indicate acceleration. The figures below show **real
+measurements** taken by the generation script.
+
+```{r fig-cache, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/import_bench_cache.png",
+            "Figura 1 indisponível: o benchmark de cache requer acesso ao DATASUS. Reexecute o script de geração com internet.")
+```
+
+**Figure 1.** Cache benchmark. The first call downloads the data from the
+network; the second reads from the local cache, typically orders of magnitude
+faster — without any change to the analysis code.
+
+```{r fig-parallel, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/import_bench_parallel.png",
+            "Figura 2 indisponível: o benchmark de paralelismo requer acesso ao DATASUS. Reexecute o script de geração com internet.")
+```
+
+**Figure 2.** Parallelism benchmark. Importing the six years with
+`workers = 4` is faster than doing so in series (`workers = 1`). The gain
+depends on the number of available cores; `sus_data_import()` warns if
+`workers` exceeds the machine's cores.
+
+# Illustrated results
+
+```{r fig-registros, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/import_registros_por_sistema.png", .nota_gerar)
+```
+
+**Figure 3.** Number of records imported per system for São Paulo, 2014–2019
+(SIH-RD was restricted to winter, June–August, to keep the example light). The
+very different order of magnitude across systems helps in sizing memory and
+download time.
+
+```{r fig-serie, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/import_serie_obitos_sp.png", .nota_gerar)
+```
+
+**Figure 4.** Monthly series of deaths (all causes) from SIM-DO in São Paulo,
+2014–2019. Winter seasonality is already visible in the raw base and will be
+the starting point for the subsets (older adults, respiratory causes) in the
+next tutorials.
+
+# References
+
+- Saldanha, R. de F., Bastos, R. R., & Barcellos, C. (2019). Microdatasus: pacote
+  para download e pré-processamento de microdados do Departamento de Informática do
+  SUS (DATASUS). *Cadernos de Saúde Pública*, 35(9), e00032419.
+- Ministério da Saúde (Brasil). DATASUS — Departamento de Informática do SUS.
+  Available at: <http://datasus.saude.gov.br>.
+
+---
+
+# Navigation
+
+- [Back to tutorial hub](tutorials.html)
+- **Next:** [Tutorial 2 — Encoding and Standardization](01-importacao.html)

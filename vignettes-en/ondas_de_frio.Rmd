@@ -1,0 +1,1191 @@
+---
+title: "Detection and Visualization of Cold Waves"
+subtitle: "INMET Pipeline → Gap-filling → Indicators → Cold Waves | `sus_climate_compute_coldwaves()` and `sus_climate_plot_coldwaves()`"
+author:
+  - name: "Dr. Max Anjos"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* ── Variáveis de Cores Modernas ────────────────── */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 18px;
+  color: var(--text-main);
+  background-color: #fff;
+  line-height: 1.6;
+}
+
+/* ── Títulos com Inter-spacing ─────────────────── */
+h1, h2, h3, h4 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  color: var(--dark-green);
+}
+
+h1.title {
+  font-size: 2.8em;
+  border-bottom: 4px solid var(--primary-color);
+  padding-bottom: 10px;
+  margin-bottom: 1.5rem;
+}
+
+h2 {
+  margin-top: 2rem;
+  border-left: 4px solid var(--primary-color);
+  padding-left: 1rem;
+}
+
+/* ── Code Blocks Estilizados ────────────────────── */
+pre.r, pre.sourceCode {
+  background-color: var(--code-bg);
+  border: 1px solid #e1e1e1;
+  border-left: 5px solid var(--primary-color) !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  padding: 1rem;
+}
+
+/* ── Custom Callouts (Estilo Quarto) ────────────── */
+.callout {
+  padding: 1.2em 1.5em;
+  margin: 1.5em 0;
+  border-radius: 8px;
+  border-left: 6px solid;
+  background-color: var(--bg-light);
+}
+
+.callout-note {
+  background-color: #f0f7ff;
+  border-color: #007bff;
+}
+
+.callout-tip {
+  background-color: #e8f5e9;
+  border-color: #1D9E75;
+}
+
+.callout-warning {
+  background-color: #fff3e0;
+  border-color: #ff9800;
+}
+
+.callout-info {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+}
+
+/* ── Workflow container ─────────────────────────── */
+.workflow-container {
+  background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  border: 1px solid #dce8e1;
+  overflow-x: auto;
+}
+
+.workflow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'Inter', monospace;
+  font-size: 0.8rem;
+}
+
+.workflow-step {
+  background: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.workflow-arrow {
+  color: var(--primary-color);
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+/* ── Feature cards ───────────────────────────────── */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.feature-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e1e1e1;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-align: center;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.feature-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+  margin-top: 0;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
+
+.feature-card p {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  margin-bottom: 0;
+}
+
+/* ── Table styling ───────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+th {
+  background-color: var(--bg-light);
+  font-weight: 600;
+  color: var(--dark-green);
+}
+
+tr:hover {
+  background-color: var(--bg-light);
+}
+
+/* ── Figure styling ─────────────────────────────── */
+.figure {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.figure img {
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  max-width: 100%;
+  height: auto;
+}
+
+.figure .caption {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* ── Botão GitHub aprimorado ───────────────────── */
+.github-feedback-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #24292e;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-family: sans-serif;
+  transition: background-color 0.2s;
+  margin-top: 1rem;
+}
+
+.github-feedback-btn:hover {
+  background-color: #2c3e50;
+  color: white;
+  text-decoration: none;
+}
+
+/* ── Responsive ─────────────────────────────────── */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+
+  h1.title {
+    font-size: 2rem;
+  }
+
+  .workflow-steps {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .workflow-arrow {
+    transform: rotate(90deg);
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  th, td {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-card,
+  .github-feedback-btn {
+    transition: none;
+  }
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo      = TRUE,
+  eval      = FALSE,
+  warning   = FALSE,
+  message   = FALSE,
+  comment   = "#>",
+  fig.align = "center",
+  out.width = "100%",
+  fig.retina = 2
+)
+```
+
+---
+
+# Introduction
+
+Cold waves are extreme climatic events frequently underestimated on Brazil's public health agenda. Although Brazil is known for its warm climate, the South and Southeast regions experience periodic episodes of intense cold associated with the penetration of Atlantic polar air masses, causing excess cardiovascular and respiratory mortality — particularly among the elderly, children, and outdoor workers (Gasparrini et al., 2015; Huynen et al., 2001). Global studies estimate that the risk attributable to cold exceeds that of heat in many regions, including subtropical zones (Gasparrini et al., 2015).
+
+In Rio Grande do Sul, polar cold fronts can reduce temperature by 10–15 °C in less than 24 hours during the austral winter (June–August). In Porto Alegre, episodes with minimum temperatures below 5 °C frequently last 5 to 10 consecutive days, imposing an additional burden on the respiratory and cardiovascular systems of vulnerable populations. The absence of cold-wave surveillance systems comparable to those for heat waves contributes to this risk remaining underdiagnosed in SUS analyses.
+
+`climasus4r` implements seven internationally recognized methodologies for cold-wave detection, following the same pipeline structure already available for heat waves. This tutorial demonstrates the complete pipeline from INMET data download to interactive visualization of the results, using the Porto Alegre station (A801) as a case study.
+
+<div class="callout callout-note">
+**Note on reproducibility:** The entire pipeline is deterministic — given the same INMET data period and the same parameters, results are identical across runs. Code blocks marked with `eval = FALSE` require an internet connection for the download step (INMET) and may take a few minutes depending on the requested period.
+</div>
+
+## What is a cold wave?
+
+Like heat waves, cold waves are defined by two components:
+
+1. **Temperature threshold** — the temperature (or thermal comfort index) must fall below a certain critical value, typically defined as a low percentile of the historical distribution (P10, P5) or as a fixed negative deviation from the climatological mean. While heat waves use the **upper tail** (P90), cold waves use the **lower tail** (P10).
+2. **Minimum duration** — the extreme condition must persist for at least N consecutive days (commonly 3 or 5 days), distinguishing sustained events from isolated temperature drops.
+
+The absence of a universal definition reflects regional variability in climate and physiological tolerance thresholds. The INMET criterion for cold, for example, uses an absolute deviation of −5 °C from the historical **minimum temperature** (Tmin − 5 °C), rather than the maximum temperature used in the heat-wave criterion.
+
+<div class="callout callout-tip">
+**Why compare methods?** In subtropical regions such as Rio Grande do Sul, the INMET method — calibrated for national climatic conditions using minimum temperature — tends to detect events that generic percentiles may not capture in atypically cold years. The ECF (Excess Cold Factor, the cold analogue of the EHF) is the only method that accounts for the acclimatization factor: the same minimum temperature is physiologically more stressful when it occurs after a relatively warm period, because the body has not had time to adapt to the cold. Comparing the seven methods is good sensitivity-analysis practice.
+</div>
+
+## Pipeline overview
+
+<div class="workflow-container">
+<div class="workflow-steps">
+  <span class="workflow-step">1. sus_climate_inmet()</span>
+  <span class="workflow-arrow">→</span>
+  <span class="workflow-step">2. sus_climate_fill_inmet()</span>
+  <span class="workflow-arrow">→</span>
+  <span class="workflow-step">3. sus_climate_compute_indicators()</span>
+  <span class="workflow-arrow">→</span>
+  <span class="workflow-step">4. sus_climate_compute_coldwaves()</span>
+  <span class="workflow-arrow">→</span>
+  <span class="workflow-step">5. sus_climate_plot_coldwaves()</span>
+</div>
+</div>
+
+Each step receives the output of the previous one and adds information. The function `sus_climate_compute_coldwaves()` expects **hourly** data with standardized temperature and thermal comfort index columns — exactly what `sus_climate_compute_indicators()` produces.
+
+---
+
+# Environment setup
+
+```{r instalacao, eval=FALSE}
+# Instalar climasus4r (GitHub) se necessário
+# install.packages("remotes")
+# remotes::install_github("MaxAnjos/climasus4r")
+
+library(climasus4r)
+library(dplyr)
+```
+
+<div class="callout callout-warning">
+**Optional dependencies:** The visualization functions require `ggplot2`, `ggsci`, and `plotly`. For interactive plots, also install `htmlwidgets`. The climate indicators step requires `slider` (sliding windows) and `jsonlite`.
+
+```r
+install.packages(c("ggplot2", "ggsci", "plotly", "htmlwidgets", "slider", "jsonlite"))
+```
+</div>
+
+---
+
+# Step 1 — Acquiring climate data (INMET)
+
+## The INMET station network
+
+The National Institute of Meteorology (INMET) operates Brazil's largest automatic weather station network, with coverage in every state. Data are made available in CSV format at hourly resolution and include air temperature (dry bulb, maximum, minimum), relative humidity, wind speed and direction, atmospheric pressure, and precipitation.
+
+The function `sus_climate_inmet()` automates the download, parsing, and standardization of these files into an analysis-ready format.
+
+## Main parameters
+
+```{r inmet-args, eval=FALSE}
+# Estrutura da chamada completa
+df_inmet <- sus_climate_inmet(
+  years        = 2020:2023,   # Vetor de anos
+  uf           = "",        # UF (sigla) para filtrar estações
+  station_code = NULL,        # Código(s) específico(s) de estação (opcional)
+  use_cache    = TRUE,        # Reutilizar arquivos já baixados
+  cache_dir    = "~/.climasus4r_cache/climate",
+  parallel     = FALSE,       # TRUE habilita download paralelo via furrr/future
+  workers      = NULL,        # NULL = detectar automaticamente via parallelly
+  lang         = "pt",
+  verbose      = TRUE
+)
+```
+
+| Parameter | Type | Description |
+|-----------|------|-----------|
+| `years` | integer or vector | Years to download (e.g., `2020:2023`) |
+| `uf` | character | State abbreviation to filter stations (e.g., `"RS"`, `"SC"`) |
+| `station_code` | character | Specific INMET station code(s) (e.g., `"A801"`) |
+| `use_cache` | logical | If `TRUE`, reuses files already downloaded in `cache_dir` |
+| `parallel` | logical | Enables parallel download via `furrr`/`future` (requires multiple cores) |
+| `workers` | integer or `NULL` | Number of workers; `NULL` auto-detects via `parallelly` |
+
+## Example: Porto Alegre (RS) station
+
+In this tutorial, we use data from the automatic Porto Alegre station (INMET code A801), in Rio Grande do Sul — the state with the largest historical record of cold waves in Brazil. Porto Alegre, at a latitude of approximately −30°S, is subject to regular penetration of Atlantic polar air masses during the austral winter, making it a natural laboratory for the study of extreme cold events.
+
+```{r download-inmet, eval=FALSE}
+# Download de dados horários (2020–2023)
+# A primeira execução pode levar alguns minutos; execuções subsequentes usam cache.
+df_inmet <- sus_climate_inmet(
+  years        = 2020:2023,
+  uf = "RS",   # Porto Alegre - RS
+  use_cache    = TRUE,
+  parallel     = FALSE,    # Use TRUE com workers = NULL em máquinas multicore
+  lang         = "pt",
+  verbose      = TRUE
+)
+
+# Inspecionar estrutura
+glimpse(df_inmet)
+```
+
+The output is a `data.frame` at hourly resolution with columns standardized by `climasus4r`:
+
+```{r estrutura-inmet, eval=TRUE, echo=FALSE}
+# Colunas típicas do output de sus_climate_inmet()
+cat(
+  "Rows: ~35,064  (4 anos x 365 dias x 24 horas)\n",
+  "Columns: ~20\n\n",
+  "$ date               <POSIXct>  2020-01-01 00:00:00, 2020-01-01 01:00:00 ...\n",
+  "$ station_code       <chr>      'A801', 'A801', ...\n",
+  "$ station_name       <chr>      'PORTO ALEGRE', 'PORTO ALEGRE', ...\n",
+  "$ federal_unit       <chr>      'RS', 'RS', ...\n",
+  "$ region             <chr>      'Sul', 'Sul', ...\n",
+  "$ latitude           <dbl>      -30.05, -30.05, ...\n",
+  "$ longitude          <dbl>      -51.17, -51.17, ...\n",
+  "$ tair_dry_bulb_c    <dbl>      14.2, 13.8, ...\n",
+  "$ tair_max_c         <dbl>      16.1, 15.4, ...\n",
+  "$ tair_min_c         <dbl>      12.5, 12.1, ...\n",
+  "$ rh_pct             <dbl>      78.0, 80.0, ...\n",
+  "$ wind_speed_ms      <dbl>      2.1, 1.8, ...\n",
+  "$ precip_mm          <dbl>      0.0, 0.0, ...\n"
+)
+```
+
+<div class="callout callout-info">
+**Data source:** The raw data are the CSV files made publicly available by INMET at `https://portal.inmet.gov.br/dadoshistoricos`. `climasus4r` automatically parses each annual file, applies quality control, and standardizes the column names. No interpolation or modification of values is performed at this stage.
+</div>
+
+---
+
+# Step 2 — Gap-filling
+
+## The problem of gaps in hourly series
+
+INMET automatic stations frequently show gaps caused by transmission failures, equipment maintenance, or extreme weather events. The presence of missing values (`NA`) in temperature columns can prevent the calculation of thermal comfort indices and compromise the percentile estimates used in cold-wave detection.
+
+The function `sus_climate_fill_inmet()` implements intelligent gap-filling based on regression models trained with correlated meteorological covariates (air temperature, relative humidity, wind speed, hour of day, seasonality). Filling is performed variable by variable and respects a maximum gap threshold (`gap_percentage`): if the proportion of missing values in a given series exceeds this threshold, the station is flagged as low quality and no filling is applied.
+
+## Main parameters
+
+```{r fill-args, eval=FALSE}
+df_filled <- sus_climate_fill_inmet(
+  df               = df_inmet,
+  target_var       = "tair_dry_bulb_c",  # Variável a preencher
+  datetime_col     = NULL,     # Detectado automaticamente
+  station_col      = NULL,     # Detectado automaticamente
+  quality_threshold = 0.4,    # Máximo de NAs para aceitar a série (40%)
+  run_evaluation   = FALSE,   # Se TRUE: avalia métricas de ajuste
+  gap_percentage   = 0.2,     # Intervalo máximo de gap contínuo a preencher (20%)
+  keep_features    = FALSE,   # Manter covariáveis auxiliares no output
+  parallel         = TRUE,
+  workers          = NULL,    # NULL = detectar automaticamente
+  verbose          = TRUE,
+  lang             = "pt"
+)
+```
+
+## Filling the complete dataset
+
+In practice, we apply the filling to each relevant temperature and humidity variable before calculating the thermal comfort indicators:
+
+```{r fill-pipeline, eval=FALSE}
+# Preencher temperatura do ar (bulbo seco)
+df_filled <- sus_climate_fill_inmet(
+  df         = df_inmet,
+  target_var = "tair_dry_bulb_c",
+  lang       = "pt",
+  verbose    = TRUE
+)
+
+# Preencher temperatura máxima e mínima
+df_filled <- sus_climate_fill_inmet(df_filled, target_var = "tair_max_c",  lang = "pt")
+df_filled <- sus_climate_fill_inmet(df_filled, target_var = "tair_min_c",  lang = "pt")
+
+# Preencher umidade relativa (necessária para UTCI, WBGT, HI)
+df_filled <- sus_climate_fill_inmet(df_filled, target_var = "rh_pct",       lang = "pt")
+
+# Verificar proporção de NAs remanescentes
+df_filled |>
+  summarise(
+    n_total    = n(),
+    na_tmax    = mean(is.na(tair_max_c)),
+    na_tmin    = mean(is.na(tair_min_c)),
+    na_tair    = mean(is.na(tair_dry_bulb_c)),
+    na_rh      = mean(is.na(rh_pct))
+  )
+```
+
+<div class="callout callout-warning">
+**Best practice:** Always apply `sus_climate_fill_inmet()` before `sus_climate_compute_coldwaves()`. The detection function issues a warning (`cli_warn`) if it finds `NA`s in the temperature columns, but it does **not** fill them automatically — that decision belongs to the analyst, since different imputation strategies can influence the results.
+</div>
+
+---
+
+# Step 3 — Computing climate indicators
+
+## Why go beyond air temperature?
+
+Air temperature (dry bulb) is the most widely available meteorological variable, but it is not the best proxy for human thermal stress under cold conditions. The human body responds to a cold environment resulting from the combination of temperature, humidity, wind speed (wind-chill factor), and radiation. Thermal comfort indices integrate these factors and allow a more realistic estimate of the physiological perception of cold.
+
+The function `sus_climate_compute_indicators()` calculates the main indices used in the cold-wave detection methodologies implemented in `climasus4r`. For cold waves, the interest lies in the **daily minimum values** of these indices:
+
+<div class="feature-grid">
+  <div class="feature-card">
+    <div class="feature-icon">🌬️</div>
+    <h3>UTCI</h3>
+    <p><strong>Universal Thermal Climate Index.</strong> Reference biometeorological model of ISO 15743. Integrates temperature, humidity, wind, and radiation into an equivalent physiological temperature (°C). In extreme cold, UTCI below −13 °C indicates strong cold stress.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">❄️</div>
+    <h3>WBGT</h3>
+    <p><strong>Wet Bulb Globe Temperature.</strong> Operational index widely used in occupational health. Under cold regimes, low WBGT values indicate risk of hypothermia and frostbite injuries in outdoor workers.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🧊</div>
+    <h3>HI</h3>
+    <p><strong>Heat Index.</strong> Although conceived for heat, low values of the daily minimum HI can be used as an indicator of poor thermal comfort under cold and high-humidity conditions.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🌿</div>
+    <h3>PET</h3>
+    <p><strong>Physiological Equivalent Temperature.</strong> Temperature of a reference environment with the same heat exchanges as the body. At negative values, it indicates intense physiological discomfort from cold.</p>
+  </div>
+</div>
+
+## Function call
+
+```{r compute-indicators, eval=FALSE}
+df_indicators <- sus_climate_compute_indicators(
+  df                   = df_filled,
+  indicators           = "all",      # Calcular todos os indicadores disponíveis
+  region               = "auto",     # Detectar região automaticamente por metadados
+  apply_validity_mask  = TRUE,       # Mascarar valores fora dos limites físicos
+  verify_physics       = TRUE,       # Verificar consistência física (Tmin <= Tmean <= Tmax)
+  keep_source_vars     = TRUE,       # Manter variáveis originais no output
+  verbose              = TRUE,
+  lang                 = "pt"
+)
+
+# Verificar colunas adicionadas
+names(df_indicators) |> grep("utci|wbgt|hi_c|pet", x = _, value = TRUE)
+```
+
+After this step, the `data.frame` contains the additional columns needed for cold-wave detection by the UTCI, WBGT, and HI methods:
+
+| New column | Index | Unit |
+|-------------|--------|---------|
+| `utci_c` | UTCI | °C |
+| `wbgt_c` | WBGT | °C |
+| `hi_c` | Heat Index | °C |
+| `pet_c` | PET | °C |
+| `utci_c_flag_extreme` | Hours with UTCI > 38 °C | logical |
+| `wbgt_c_flag_extreme` | Hours with WBGT > 32 °C | logical |
+| `hi_c_flag_extreme` | Hours with HI > 51 °C | logical |
+
+<div class="callout callout-info">
+**UTCI cold-range categories:** The ISO 15743 standard defines cold stress categories by UTCI: no thermal stress (≥ 9 °C), slight cold stress (0–9 °C), moderate cold stress (−13 to 0 °C), strong cold stress (−27 to −13 °C), and very strong cold stress (< −27 °C). In cold-wave detection, the UTCI method in `climasus4r` uses the **daily minimum UTCI** — the lowest hourly UTCI value recorded that day — compared against the historical P10 of that same indicator.
+</div>
+
+---
+
+# Step 4 — Cold-wave detection
+
+## The `sus_climate_compute_coldwaves()` function
+
+This is the central function of `climasus4r`'s cold-detection module. It receives hourly data (the output of `sus_climate_compute_indicators()`), aggregates them to daily scale, calculates historical percentile thresholds by season of the year (using a sliding window of ±15 days around each day of the year), applies each selected detection methodology, and returns a structured list with three components.
+
+### Full signature
+
+```{r cw-signature, eval=FALSE}
+cw_result <- sus_climate_compute_coldwaves(
+  df             = df_indicators,   # Output de sus_climate_compute_indicators()
+  method         = c("WHO", "WMO", "INMET", "EHF", "UTCI", "WBGT", "HI"),
+  baseline_start = "2020-01-01",    # Início do período de referência
+  baseline_end   = "2022-12-31",    # Fim do período de referência
+  percentile     = 10,              # Percentil para limiares (P10 para cauda fria)
+  min_duration   = NULL,            # NULL = usar defaults por método
+  lang           = "pt",
+  verbose        = TRUE
+)
+```
+
+<div class="callout callout-info">
+**Note on the `method = "EHF"` argument:** The identifier `"EHF"` is kept for consistency with the heat-wave API, but internally the function applies the **Excess Cold Factor (ECF)** algorithm — the cold analogue of the EHF. The ECF was proposed by Nairn & Fawcett (2015) and adapted here to detect extreme cold events based on daily mean temperature and an acclimatization factor.
+</div>
+
+## Implemented methodologies
+
+Table 1 presents the seven implemented methodologies, including the base variable, threshold criterion, and default minimum duration.
+
+**Table 1 — Cold-wave detection methodologies implemented in `sus_climate_compute_coldwaves()`**
+
+| Method | Base variable | Threshold criterion | Minimum duration | Reference |
+|--------|--------------|-------------------|----------------|------------|
+| **WHO** | Daily Tmin | Tmin < P10(Tmin) | 3 days | WMO & WHO (2015) |
+| **WMO** | Daily Tmin **and** Tmax | Tmin < P10(Tmin) **AND** Tmax < P10(Tmax) | 5 days | Perkins & Alexander (2013) |
+| **INMET** | Daily Tmin | Tmin < historical mean − 5 °C | 5 days | INMET (2009) |
+| **ECF** | Daily Tmean | ECF > 0 (composite formula; see below) | 3 days | Nairn & Fawcett (2015)* |
+| **UTCI** | Daily UTCImin | UTCImin < P10(UTCImin) | 3 days | ISO 15743 |
+| **WBGT** | Daily WBGTmin | WBGTmin < P10(WBGTmin) | 3 days | Liljegren et al. (2008) |
+| **HI** | Daily HImin | HImin < P10(HImin) | 3 days | Steadman (1979) |
+
+*Adaptation for cold: ECF (Excess Cold Factor) instead of EHF (Excess Heat Factor).
+
+<div class="callout callout-info">
+**Seasonal smoothing of percentiles:** For all percentile-based methods, `climasus4r` uses a sliding window of ±15 days around each day of the year (calculated over the reference period), rather than a fixed percentile calculated over the entire series. This approach, recommended by Fischer & Schär (2010), removes seasonal bias and ensures that the same relative extremity level is detected at any time of year. For cold waves, the percentile is calculated on the **lower tail** of the distribution (P10), as opposed to the P90 used for heat waves.
+</div>
+
+### Fundamentals of the Excess Cold Factor (ECF)
+
+The ECF is the cold analogue of the EHF (Nairn & Fawcett, 2015). It combines two components that capture, respectively, the absolute magnitude of the cold and the population's acclimatization factor:
+
+$$\text{ECF} = \text{ECI}_{sig} \times \max(1, \text{ECI}_{acc})$$
+
+Where:
+
+- **ECI_sig** (cold significance index): $P_5(\bar{T}_{mean}) - \bar{T}_3$, measures how much the mean temperature of the last 3 days is **below** the climatological 5th percentile of the mean temperature. Positive values indicate physiologically relevant cold.
+- **ECI_acc** (acclimatization index): $\bar{T}_{30} - \bar{T}_3$, measures how much the mean temperature of the last 3 days is below the average of the preceding 30 days. Positive when the recent period is colder than the previous month — i.e., the body was acclimatized to warmth and was suddenly exposed to cold, amplifying the physiological stress.
+
+The multiplier $\max(1, \text{ECI}_{acc})$ ensures that cold events occurring after a relatively warm period receive greater weight — exactly the reverse of the EHF's logic, where sudden warming amplifies heat risk.
+
+Days with ECF > 0 are classified as cold-wave days. Event intensity is classified into three categories based on the 85th percentile (ECF85) of all positive ECF values observed at the station:
+
+- **Low Intensity (LICW):** 0 < ECF_peak < ECF85
+- **Severe (SCW):** ECF85 ≤ ECF_peak < 3 × ECF85
+- **Extreme (ECW):** ECF_peak ≥ 3 × ECF85
+
+### The INMET method: calibration for cold in Brazil
+
+The INMET cold method defines a cold wave when the daily minimum temperature falls at least **5 °C below the climatological mean of the minimum temperature** for 5 or more consecutive days (INMET, 2009). Unlike the heat-wave criterion (which uses maximum temperature), the cold criterion uses the **minimum temperature** — the variable most sensitive to the penetration of polar air masses.
+
+The climatological mean of Tmin is calculated over the user-defined reference period, using the same ±15-day sliding window used for the percentiles. This criterion is particularly well suited to southern Brazil, where absolute Tmin values are already low and vulnerability to cold-related mortality is more associated with the deviation from the local norm than with the absolute value.
+
+## Running the detection
+
+### Example 1: air-temperature-based methods
+
+```{r cw-temperature-methods, eval=FALSE}
+# Métodos que requerem apenas temperatura do ar (Tmax, Tmin, Tmean)
+cw_temp <- sus_climate_compute_coldwaves(
+  df             = df_indicators,
+  method         = c("WHO", "WMO", "INMET", "EHF"),
+  baseline_start = "2020-01-01",
+  baseline_end   = "2022-12-31",
+  percentile     = 10,
+  lang           = "pt",
+  verbose        = TRUE
+)
+```
+
+### Example 2: all methods (including comfort indices)
+
+```{r cw-all-methods, eval=FALSE}
+# Todos os métodos — requer colunas utci_c, wbgt_c, hi_c
+cw_all <- sus_climate_compute_coldwaves(
+  df             = df_indicators,
+  method         = "all",          # Equivale a c("WHO","WMO","INMET","EHF","UTCI","WBGT","HI")
+  baseline_start = "2020-01-01",
+  baseline_end   = "2022-12-31",
+  percentile     = 10,
+  lang           = "pt",
+  verbose        = TRUE
+)
+```
+
+### Example 3: conservative criterion
+
+```{r cw-custom-params, eval=FALSE}
+# Critério mais conservador: P5 e mínimo de 5 dias para todos os métodos
+cw_strict <- sus_climate_compute_coldwaves(
+  df             = df_indicators,
+  method         = c("WHO", "INMET"),
+  baseline_start = "2020-01-01",
+  baseline_end   = "2022-12-31",
+  percentile     = 5,        # Limiar mais restritivo → menos eventos, mais intensos
+  min_duration   = 5,        # Substitui os defaults por método
+  lang           = "pt",
+  verbose        = TRUE
+)
+```
+
+<div class="callout callout-tip">
+**Sensitivity analysis:** It is recommended to run the detection with different combinations of percentile (P5, P10, P15) and minimum duration (3, 5, 7 days) and compare the number of detected events. This allows the robustness of epidemiological results to be assessed against methodological choices.
+</div>
+
+<div class="callout callout-warning">
+**Short baseline in this tutorial:** This tutorial uses only 4 years of data (2020–2023) to speed up the download. `climasus4r` issues a warning when the baseline has fewer than 20 years, which is expected here. For real research, it is recommended to use at least 1981–2010 or 1991–2020 as the climatological reference period.
+</div>
+
+## Output structure
+
+The function returns a named list with three components — the same structure as the output of `sus_climate_compute_heatwaves()`, but with terminology adapted for cold:
+
+```{r cw-output-structure, eval=FALSE}
+# Inspecionar o output
+names(cw_all)
+#> [1] "events"  "daily"   "summary"
+```
+
+### `$events` — events table
+
+A `data.frame` with one row per detected cold-wave event. Each row represents a continuous episode of days with the cold-wave condition active for a given method and station.
+
+```{r cw-events, eval=FALSE}
+# Primeiros eventos detectados
+head(cw_all$events)
+```
+
+| Column | Type | Description |
+|--------|------|-----------|
+| `event_id` | character | Unique identifier: `<station>_<method>_<N>` |
+| `station_code` | character | INMET station code |
+| `method` | character | Detection method (WHO, WMO, etc.) |
+| `start_date` | Date | Event start date |
+| `end_date` | Date | Event end date |
+| `duration_days` | integer | Duration in consecutive days |
+| `temp_mean` | double | Mean temperature over the period (method's variable) |
+| `temp_peak` | double | **Coldest temperature** of the period (minimum) |
+| `anomaly_mean` | double | Mean anomaly (threshold − temperature; positive = colder than the threshold) |
+| `anomaly_cumulative` | double | Cumulative anomaly over the event |
+| `severity_index` | double | Severity index: duration × mean anomaly |
+| `ecf_peak` | double | ECF peak (EHF/ECF method only; NA for others) |
+| `ecf_mean` | double | Mean ECF during the event (EHF/ECF only) |
+| `intensity_class` | character | Classification: LICW, SCW, ECW (EHF/ECF only) |
+| `region` | character | Geographic region of the station |
+| `federal_unit` | character | State (UF) of the station |
+
+<div class="callout callout-warning">
+**Important differences from the heat-wave output:**
+
+| Field | Heat Waves | Cold Waves |
+|-------|----------------|----------------|
+| `temp_peak` | **Warmest** temperature of the event | **Coldest** temperature of the event |
+| `anomaly_mean` | `temp − threshold` (positive = warmer) | `threshold − temp` (positive = colder) |
+| Daily flags | `hw_who`, `hw_any`, … | `cw_who`, `cw_any`, … |
+| ECF-specific | `ehf_peak`, `ehf_mean` | `ecf_peak`, `ecf_mean` |
+| Annual summary | `total_days_hw` | `total_days_cw` |
+| Intensity classes | LIHW, SHW, EHW | LICW, SCW, ECW |
+</div>
+
+```{r cw-events-filter, eval=FALSE}
+# Filtrar os 10 eventos mais severos pelo índice de severidade
+cw_all$events |>
+  arrange(desc(severity_index)) |>
+  select(event_id, method, start_date, end_date, duration_days,
+         temp_peak, anomaly_mean, severity_index) |>
+  head(10)
+```
+
+```{r cw-events-count, eval=FALSE}
+# Contar eventos por método
+cw_all$events |>
+  count(method, name = "n_eventos") |>
+  arrange(desc(n_eventos))
+```
+
+### `$daily` — daily series with flags
+
+The daily `data.frame` contains one row per station per day, with aggregated variables and logical (`TRUE`/`FALSE`) columns indicating whether that day belongs to a cold wave according to each method:
+
+```{r cw-daily, eval=FALSE}
+# Inspecionar colunas de flags
+cw_all$daily |>
+  select(station_code, date_day, tmin, tmean, starts_with("cw_")) |>
+  head(10)
+```
+
+The `cw_any` column is `TRUE` if **any** method detected a cold wave on that day — useful for exposure analyses without commitment to a single criterion.
+
+```{r cw-daily-any, eval=FALSE}
+# Dias com onda de frio ativa por pelo menos um método
+cw_all$daily |>
+  filter(cw_any == TRUE) |>
+  select(date_day, tmin, tmean, cw_who, cw_inmet, cw_ehf, cw_utci) |>
+  head(20)
+```
+
+```{r cw-daily-concordancia, eval=FALSE}
+# Concordância entre métodos: proporção de dias classificados por cada um
+cw_all$daily |>
+  summarise(
+    pct_who   = mean(cw_who,   na.rm = TRUE) * 100,
+    pct_wmo   = mean(cw_wmo,   na.rm = TRUE) * 100,
+    pct_inmet = mean(cw_inmet, na.rm = TRUE) * 100,
+    pct_ehf   = mean(cw_ehf,   na.rm = TRUE) * 100,
+    pct_utci  = mean(cw_utci,  na.rm = TRUE) * 100,
+    pct_wbgt  = mean(cw_wbgt,  na.rm = TRUE) * 100,
+    pct_hi    = mean(cw_hi,    na.rm = TRUE) * 100,
+    pct_any   = mean(cw_any,   na.rm = TRUE) * 100
+  )
+```
+
+### `$summary` — annual summary
+
+The annual summary aggregates statistics by station, method, and year, and is the natural entry point for time-trend analyses:
+
+```{r cw-summary, eval=FALSE}
+# Resumo anual
+cw_all$summary |>
+  filter(method == "INMET") |>
+  select(year, station_code, n_events, total_days_cw,
+         mean_duration, max_duration, mean_anomaly, severity_total) |>
+  arrange(desc(year))
+```
+
+| Column | Description |
+|--------|-------------|
+| `year` | Year |
+| `station_code` | Station code |
+| `method` | Detection method |
+| `n_events` | Number of events in the year |
+| `total_days_cw` | Total cold-wave days in the year |
+| `mean_duration` | Mean duration of events (days) |
+| `max_duration` | Duration of the longest event (days) |
+| `mean_intensity` | Mean temperature during events |
+| `max_intensity` | Peak (coldest) temperature during events |
+| `mean_anomaly` | Mean anomaly during events |
+| `severity_total` | Sum of the events' severity indices in the year |
+
+---
+
+# Step 5 — Visualizing cold waves
+
+## The `sus_climate_plot_coldwaves()` function
+
+Visualization transforms the structured output of `sus_climate_compute_coldwaves()` into interpretative plots with a cold color palette (blue and violet tones). The function offers four types of visualization, each addressing a different analytical question:
+
+<div class="feature-grid">
+  <div class="feature-card">
+    <div class="feature-icon">📅</div>
+    <h3>timeline</h3>
+    <p>Gantt-style diagram showing the timing, duration, and intensity of each event. Ideal for identifying prolonged cold episodes in the austral winter and comparing methods.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🗓️</div>
+    <h3>calendar</h3>
+    <p>Calendar heatmap showing the daily occurrence of cold waves across the months. Reveals seasonal concentration (austral winter) and interannual patterns associated with La Niña.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">❄️</div>
+    <h3>intensity</h3>
+    <p>Duration × peak minimum temperature scatter plot, with the Y axis inverted (colder = higher). Distinguishes long-lasting events from events with extremely low temperatures.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">📈</div>
+    <h3>trend</h3>
+    <p>Grouped bars showing the number of events per year and method. Allows identification of interannual variability and possible trends in cold-wave frequency.</p>
+  </div>
+</div>
+
+### Full signature
+
+```{r plot-signature, eval=FALSE}
+p <- sus_climate_plot_coldwaves(
+  cw_result     = cw_all,          # Output de sus_climate_compute_coldwaves()
+  type          = "timeline",      # "timeline" | "calendar" | "intensity" | "trend"
+  station_code  = NULL,            # Filtrar por estação específica
+  method        = NULL,            # Filtrar por método (ex.: "INMET", "EHF")
+  year          = NULL,            # Filtrar por ano (útil para "calendar")
+  interactive   = TRUE,            # TRUE = plotly; FALSE = ggplot2 estático
+  color_palette = "npg",           # Paleta ggsci: "npg", "lancet", "jama", etc.
+  lang          = "pt",            # "pt" | "en" | "es"
+  save_plot     = NULL             # Caminho para salvar (HTML ou PNG)
+)
+```
+
+| Parameter | Options | Effect |
+|-----------|--------|--------|
+| `type` | `"timeline"`, `"calendar"`, `"intensity"`, `"trend"` | Plot type |
+| `interactive` | `TRUE` (plotly), `FALSE` (ggplot2) | Interactivity |
+| `color_palette` | any palette from the `ggsci` package | Color scheme (applied over a base blue palette) |
+| `lang` | `"pt"`, `"en"`, `"es"` | Label language |
+| `save_plot` | `.html` or `.png` path | Save the plot to disk |
+
+## Plot 1: Timeline
+
+The timeline plot presents each event as a horizontal segment (Gantt-style), with thickness proportional to duration and color indicating the ECF intensity class (for the EHF/ECF method; for other methods, events are shown in a uniform blue).
+
+```{r plot-timeline, eval=FALSE}
+# Linha do tempo de todos os eventos — todos os métodos
+sus_climate_plot_coldwaves(
+  cw_result   = cw_all,
+  type        = "timeline",
+  interactive = TRUE,
+  lang        = "pt"
+)
+```
+
+```{r plot-timeline-inmet, eval=FALSE}
+# Filtrar apenas eventos pelo método INMET
+sus_climate_plot_coldwaves(
+  cw_result   = cw_all,
+  type        = "timeline",
+  method      = "INMET",
+  interactive = TRUE,
+  lang        = "pt"
+)
+```
+
+```{r plot-timeline-static, eval=FALSE}
+# Versão estática para publicação
+p_timeline <- sus_climate_plot_coldwaves(
+  cw_result     = cw_all,
+  type          = "timeline",
+  method        = c("WHO", "INMET", "EHF"),
+  interactive   = FALSE,        # ggplot2 puro
+  color_palette = "lancet",     # Paleta Lancet (jornais biomédicos)
+  lang          = "pt",
+  save_plot     = "timeline_ondas_frio.png"  # Salvar em PNG
+)
+print(p_timeline)
+```
+
+**Interpretation:** Longer segments indicate longer-lasting events; the thickness visually reinforces the duration. Note the concentration of events in June–August (austral winter). The WMO method (dual threshold: Tmin **and** Tmax < P10) tends to generate fewer, longer-lasting events than the WHO method (Tmin only), since it requires both day and night to be exceptionally cold.
+
+```{r fig-timeline, echo=FALSE, out.width="100%", fig.cap="**Figure 1.** Cold-wave timeline in Porto Alegre (A801), 2020–2023 — all methods."}
+knitr::include_graphics("figuras/cw_timeline_A801.png")
+```
+
+## Plot 2: Calendar
+
+The calendar shows each day of the year in colored cells — blue for cold-wave days, gray for normal days. It is the most intuitive plot for communicating the seasonality of events to a non-technical audience.
+
+```{r plot-calendar-year, eval=FALSE}
+# Calendário para um ano específico — método WHO
+sus_climate_plot_coldwaves(
+  cw_result   = cw_all,
+  type        = "calendar",
+  method      = "WHO",
+  year        = 2021,
+  interactive = TRUE,
+  lang        = "pt"
+)
+```
+
+```{r plot-calendar-any, eval=FALSE}
+# Calendário com cw_any (qualquer método) — todos os anos
+sus_climate_plot_coldwaves(
+  cw_result   = cw_all,
+  type        = "calendar",
+  method      = NULL,          # NULL → usa cw_any (qualquer método)
+  interactive = FALSE,
+  lang        = "pt"
+)
+```
+
+**Interpretation:** Note the concentration of cold-wave days in June, July, and August in southern Brazil. Years with La Niña events (which tend to intensify cold fronts in RS) show calendars with more consecutive blue blocks. These periods deserve special attention in respiratory and cardiovascular mortality analyses in the SUS.
+
+```{r fig-calendar, echo=FALSE, out.width="100%", fig.cap="**Figure 2.** Cold-wave calendar in Porto Alegre (A801), 2020–2023 — `cw_any` (any method)."}
+knitr::include_graphics("figuras/cw_calendar_any_A801.png")
+```
+
+## Plot 3: Intensity vs. duration
+
+This scatter plot positions each event on the duration × peak minimum temperature plane. The **Y axis is inverted** (`scale_y_reverse()`), so that lower (colder, more extreme) temperatures appear at the top of the plot — a convention that makes interpretation intuitive: the higher and further right, the greater the epidemiological risk.
+
+```{r plot-intensity-ecf, eval=FALSE}
+# Intensidade ECF (com classificação LICW / SCW / ECW)
+sus_climate_plot_coldwaves(
+  cw_result   = cw_all,
+  type        = "intensity",
+  method      = "EHF",         # "EHF" aciona o algoritmo ECF
+  interactive = TRUE,
+  lang        = "pt"
+)
+```
+
+```{r plot-intensity-all, eval=FALSE}
+# Todos os métodos juntos (sem classificação de intensidade ECF)
+sus_climate_plot_coldwaves(
+  cw_result   = cw_all,
+  type        = "intensity",
+  method      = NULL,
+  interactive = FALSE,
+  lang        = "pt"
+)
+```
+
+**Interpretation:** Events in the upper-right quadrant (long duration + very low temperature) are the most dangerous from a public health standpoint. The ECF captures the nuance of acclimatization: an event with a Tmin of 5 °C after a well-established winter period is less stressful than the same temperature occurring immediately after warm days — exactly what the ECI_acc component measures.
+
+```{r fig-intensity, echo=FALSE, out.width="100%", fig.cap="**Figure 3.** Intensity vs. duration of cold waves in Porto Alegre (A801), 2020–2023 — all methods."}
+knitr::include_graphics("figuras/cw_intensity_all_A801.png")
+```
+
+## Plot 4: Annual trend
+
+The trend plot shows the number of events detected per year for each method, allowing an assessment of interannual variability and possible trends in cold-wave frequency over the analyzed period.
+
+```{r plot-trend-all, eval=FALSE}
+# Tendência anual — todos os métodos
+sus_climate_plot_coldwaves(
+  cw_result   = cw_all,
+  type        = "trend",
+  interactive = TRUE,
+  lang        = "pt"
+)
+```
+
+```{r plot-trend-subset, eval=FALSE}
+# Tendência apenas para WHO e INMET (comparação de sensibilidade)
+sus_climate_plot_coldwaves(
+  cw_result   = cw_all,
+  type        = "trend",
+  method      = c("WHO", "INMET"),
+  interactive = FALSE,
+  lang        = "pt",
+  save_plot   = "tendencia_ondas_frio.png"
+)
+```
+
+**Interpretation:** Interannual variability of cold waves is large and strongly influenced by ENSO (El Niño–Southern Oscillation): La Niña tends to increase the frequency and intensity of cold fronts in southern Brazil. Compare the patterns between methods: the INMET method tends to be more restrictive (requiring a −5 °C deviation from historical Tmin), while the percentile-based methods capture the relativity of the event with respect to the local historical record.
+
+```{r fig-trend, echo=FALSE, out.width="100%", fig.cap="**Figure 4.** Annual cold-wave trend in Porto Alegre (A801), 2020–2023 — all methods."}
+knitr::include_graphics("figuras/cw_trend_A801.png")
+```
+
+## Saving plots
+
+```{r save-plots, eval=FALSE}
+# Gráfico interativo → arquivo HTML autossuficiente
+sus_climate_plot_coldwaves(
+  cw_result   = cw_all,
+  type        = "timeline",
+  interactive = TRUE,
+  lang        = "pt",
+  save_plot   = "ondas_frio_timeline.html"
+)
+
+# Gráfico estático → PNG de alta resolução (300 dpi)
+sus_climate_plot_coldwaves(
+  cw_result   = cw_all,
+  type        = "trend",
+  interactive = FALSE,
+  lang        = "pt",
+  save_plot   = "ondas_frio_tendencia.png"   # ggsave com dpi=300
+)
+```
+
+---
+
+# Advanced analysis of the results
+
+## Integrating events with the epidemiological calendar
+
+The `$daily` component with the `cw_any` column can be directly linked with SUS mortality and morbidity data to calculate excess deaths and hospital admissions during cold waves:
+
+```{r integracao-sus, eval=FALSE}
+# Exemplo conceitual: cruzamento com dados de mortalidade SIM
+# (após completar o pipeline de importação dos dados SIM)
+
+# 1. Preparar a série diária de mortalidade respiratória em idosos
+# df_sim_diario <- sus_data_aggregate(df_sim, by = "day") |>
+#   filter(
+#     cid_grupo %in% c("J"),   # Doenças respiratórias (CIDs J00-J99)
+#     idade >= 65               # Idosos - grupo mais vulnerável ao frio
+#   )
+
+# 2. Adicionar flag de onda de frio
+# df_analise <- df_sim_diario |>
+#   left_join(
+#     cw_all$daily |> select(date_day, cw_any, cw_inmet, tmin),
+#     by = c("date" = "date_day")
+#   )
+
+# 3. Comparar mortalidade em dias com/sem onda de frio
+# df_analise |>
+#   group_by(cw_any) |>
+#   summarise(
+#     n_dias       = n(),
+#     obitos_medio = mean(n_obitos, na.rm = TRUE),
+#     sd           = sd(n_obitos, na.rm = TRUE)
+#   )
+```
+
+## Exporting events for external analysis
+
+```{r export, eval=FALSE}
+# Exportar tabela de eventos para CSV
+write.csv(
+  cw_all$events,
+  file         = "eventos_ondas_frio_A801_2020_2023.csv",
+  row.names    = FALSE,
+  fileEncoding = "UTF-8"
+)
+
+# Exportar resumo anual
+write.csv(
+  cw_all$summary,
+  file         = "resumo_anual_ondas_frio_A801.csv",
+  row.names    = FALSE,
+  fileEncoding = "UTF-8"
+)
+```
+
+## Concordance analysis between methods
+
+```{r concordancia, eval=FALSE}
+# Proporção de dias classificados como onda de frio por N métodos simultaneamente
+cw_all$daily |>
+  mutate(
+    n_methods = rowSums(
+      across(c(cw_who, cw_wmo, cw_inmet, cw_ehf, cw_utci, cw_wbgt, cw_hi)),
+      na.rm = TRUE
+    )
+  ) |>
+  count(n_methods) |>
+  mutate(pct = round(n / sum(n) * 100, 1))
+```
+
+Concordance analysis addresses a central question in environmental epidemiology: **on how many of the days classified as cold waves is there consensus among the methods?** High concordance increases confidence in the results; low concordance suggests that the health impact may vary significantly depending on the criterion adopted.
+
+---
+
+# References
+
+**Cold-related mortality — global epidemiology**
+
+- Gasparrini, A., Guo, Y., Hashizume, M., Lavigne, E., Zanobetti, A., Schwartz, J., … & Armstrong, B. (2015). Mortality risk attributable to high and low ambient temperature: a multicountry observational study. *The Lancet*, 386(9991), 369–375. https://doi.org/10.1016/S0140-6736(14)62114-0
+- Huynen, M.M.T.E., Martens, P., Schram, D., Weijenberg, M.P. & Kunst, A.E. (2001). The impact of heat waves and cold spells on mortality rates in the Dutch population. *Environmental Health Perspectives*, 109(5), 463–470.
+- Basu, R. & Samet, J.M. (2002). Relation between elevated ambient temperature and mortality: a review of the epidemiologic evidence. *Epidemiologic Reviews*, 24(2), 190–202.
+
+**Brazil and southern-region context**
+
+- Braga, A.L.F., Zanobetti, A. & Schwartz, J. (2001). The time course of weather-related deaths. *Epidemiology*, 12(6), 662–667.
+- Vasconcelos, J., Freire, E., Morais, J., Machado, J.R. & Santana, P. (2013). The health impacts of poor housing conditions and thermal discomfort. *Procedia Environmental Sciences*, 19, 107–112.
+
+**General concepts and percentile framework**
+
+- Perkins, S.E. & Alexander, L.V. (2013). On the measurement of heat waves. *Journal of Climate*, 26(13), 4500–4517.
+- Fischer, E.M. & Schär, C. (2010). Consistent geographical patterns of changes in high-impact European heatwaves. *Nature Geoscience*, 3, 398–403.
+
+**WHO and WMO methods (adapted for cold)**
+
+- WMO & WHO (2015). *Heatwaves and Health: Guidance on Warning-System Development*. World Meteorological Organization, Geneva.
+- WMO (2021). *Guidelines on the Definition and Monitoring of Extreme Weather and Climate Events*. World Meteorological Organization.
+
+**INMET method**
+
+- INMET — Instituto Nacional de Meteorologia (2009). *Normais Climatológicas do Brasil 1961–1990*. Brasília: MAPA/INMET.
+
+**ECF (Excess Cold Factor)**
+
+- Nairn, J.R. & Fawcett, R.J.B. (2015). The Excess Heat Factor: A metric for heatwave intensity and its use in classifying heatwave severity. *International Journal of Environmental Research and Public Health*, 12(1), 227–253. https://doi.org/10.3390/ijerph120100227
+
+**UTCI (Universal Thermal Climate Index) — cold regime**
+
+- Broede, P., Fiala, D., Blazejczyk, K., Holmer, I., Jendritzky, G., Kampmann, B., Tinz, B. & Havenith, G. (2012). Deriving the operational procedure for the Universal Thermal Climate Index (UTCI). *International Journal of Biometeorology*, 56(3), 481–494. https://doi.org/10.1007/s00484-011-0454-1
+- ISO 15743:2008. *Ergonomics of the thermal environment — Cold workplaces: Risk assessment and management*. International Organization for Standardization.
+
+**WBGT (Wet Bulb Globe Temperature)**
+
+- Liljegren, J.C., Carhart, R.A., Lawday, P., Tschopp, S. & Sharp, R. (2008). Modeling the wet bulb globe temperature using standard meteorological measurements. *Journal of Occupational and Environmental Hygiene*, 5(10), 645–655.
+
+**HI (Heat Index)**
+
+- Steadman, R.G. (1979). The assessment of sultriness. Part I: A temperature-humidity index based on human physiology and clothing science. *Journal of Applied Meteorology*, 18(7), 861–873.
+- Steadman, R.G. (1984). A universal scale of apparent temperature. *Journal of Applied Meteorology and Climatology*, 23(12), 1674–1687.
+
+---
+
+# Session information
+
+```{r session-info, eval=FALSE}
+sessionInfo()
+```
+
+---
+
+<div style="text-align: center; margin-top: 3rem; padding-top: 2rem; border-top: 2px solid #e1e1e1;">
+
+**climasus4r** · Integrated health–climate–environment analysis in Brazil
+
+Found a problem or have suggestions for this tutorial?
+
+<a href="https://github.com/MaxAnjos/climasus4r/issues" class="github-feedback-btn" target="_blank">
+  &#x1F41B; Report on GitHub
+</a>
+
+</div>

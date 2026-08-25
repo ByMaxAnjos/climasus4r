@@ -1,0 +1,805 @@
+---
+title: "Modelado 07: Modelos Bayesianos Espaciales y Espacio-Temporales"
+author: "Equipo climasus4r"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* -- Variaveis de Cores Modernas -- */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; color: var(--text-main); background-color: #fff; line-height: 1.6; }
+h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--dark-green); }
+h1.title { font-size: 2.8em; border-bottom: 4px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 1.5rem; }
+h2 { margin-top: 2rem; border-left: 4px solid var(--primary-color); padding-left: 1rem; }
+pre.r, pre.sourceCode { background-color: var(--code-bg); border: 1px solid #e1e1e1; border-left: 5px solid var(--primary-color) !important; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1rem; }
+.callout { padding: 1.2em 1.5em; margin: 1.5em 0; border-radius: 8px; border-left: 6px solid; background-color: var(--bg-light); }
+.callout-note { background-color: #f0f7ff; border-color: #007bff; }
+.callout-tip { background-color: #e8f5e9; border-color: #1D9E75; }
+.callout-warning { background-color: #fff3e0; border-color: #ff9800; }
+.workflow-container { background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #dce8e1; overflow-x: auto; }
+.workflow-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; font-family: 'Inter', monospace; font-size: 0.8rem; }
+.workflow-step { background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap; }
+.workflow-arrow { color: var(--primary-color); font-weight: bold; font-size: 1.2rem; }
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+.feature-card { background: white; border-radius: 12px; padding: 1.5rem; border: 1px solid #e1e1e1; transition: transform 0.2s ease, box-shadow 0.2s ease; text-align: center; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+.feature-card h3 { margin-top: 0; color: var(--primary-color); font-size: 1.1rem; }
+table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e1e1; }
+th { background-color: var(--bg-light); font-weight: 600; color: var(--dark-green); }
+.github-feedback-btn { display: inline-flex; align-items: center; gap: 8px; background-color: #24292e; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-family: sans-serif; transition: background-color 0.2s; margin-top: 1rem; }
+.github-feedback-btn:hover { background-color: #2c3e50; color: white; text-decoration: none; }
+@media (max-width: 768px) { body { font-size: 16px; } h1.title { font-size: 2rem; } .workflow-steps { flex-direction: column; align-items: center; } }
+```
+
+
+```{r setup, include=FALSE}
+# ATENÇÃO — estratégia de pré-renderização.
+# Este tutorial NÃO executa modelos durante a renderização. Todas as figuras e
+# tabelas foram geradas UMA vez pelo script scripts/modelagem_07_bayes.R e
+# são apenas carregadas aqui (PNG via include_graphics; RDS via readRDS).
+# Por isso, os chunks de ensino abaixo usam eval = FALSE: o código é mostrado,
+# mas não é executado no momento do knit.
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+
+# Helpers para exibir artefatos de forma robusta: se o arquivo ainda não foi
+# gerado (script de geração não executado), mostram uma nota em vez de quebrar
+# o knit. Assim a vignette renderiza a qualquer momento.
+fig_ou_nota <- function(path, nota) {
+  if (file.exists(path)) knitr::include_graphics(path)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+tbl_ou_nota <- function(path, nota, caption = NULL) {
+  if (file.exists(path)) knitr::kable(readRDS(path), caption = caption)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+.nota_gerar <- "Artefato indisponível — rode `Rscript scripts/modelagem_07_bayes.R` (a partir da raiz do pacote) para gerá-lo."
+```
+
+<!-- Revisión bajo el sombrero de estadístico bayesiano espacio-temporal -->
+
+---
+
+# Objetivo
+
+Al final de este tutorial usted será capaz de:
+
+1. Ajustar un modelo **BYM (Besag-York-Mollié)** transversal con `sus_mod_spatial_bayes()` para obtener riesgos relativos suavizados por municipio;
+2. Visualizar el **mapa de riesgo relativo**, el **mapa de incertidumbre** y el **forest plot de efectos fijos** con `sus_mod_plot_spatial_bayes()`;
+3. Construir y ajustar un **modelo espacio-temporal jerárquico** (BYM2 + RW2 + interacción tipo I de Knorr-Held) con `sus_mod_spacetime_bayes()`;
+4. Explorar la descomposición espacio-temporal — efecto espacial estructurado, tendencia temporal e interacción — con `sus_mod_plot_spacetime()`;
+5. Calcular **probabilidades de excedencia** $P(RR > t \mid \text{datos})$ para diferentes umbrales de riesgo con `sus_mod_spacetime_exceedance()`;
+6. Generar **predicciones aproximadas** para períodos futuros mediante extrapolación del predictor lineal con `sus_mod_spacetime_predict()`.
+
+Este tutorial cubre la **etapa de modelado Bayesiano** del pipeline climasus4r — que sucede a los modelos espaciales clásicos (Tutorial 06) y antecede al análisis de vulnerabilidad y FODA (Tutorial 08).
+
+---
+
+# Contexto científico
+
+## ¿Por qué modelos Bayesianos en epidemiología espacial?
+
+La epidemiología de pequeñas áreas — en la que el desenlace se cuenta en municipios, sectores censales o regiones administrativas — enfrenta tres desafíos estructurales que los modelos clásicos no resuelven adecuadamente:
+
+- **Inestabilidad de estimaciones en áreas de pequeña población**: los municipios con pocos habitantes presentan tasas brutas extremadamente variables, no porque el riesgo sea alto, sino por fluctuación aleatoria (Lawson, 2018).
+- **Dependencia espacial**: los municipios vecinos comparten exposiciones ambientales, patrones socioeconómicos y acceso a servicios. Ignorar esta estructura produce residuos correlacionados e inferencias equivocadas (Besag, York & Mollié, 1991).
+- **Dimensión temporal**: en estudios multianuales, el riesgo evoluciona en el tiempo de forma suave. Modelar esta evolución explícitamente produce estimaciones más precisas y permite detectar tendencias y estacionalidades (Knorr-Held, 2000).
+
+Los modelos Bayesianos jerárquicos resuelven el primer problema con **suavizado por préstamo de fuerza** (*borrowing strength*): los municipios de pequeña población tienen su riesgo estimado también a partir de la distribución a priori y de los vecinos. El segundo se aborda mediante **efectos aleatorios con estructura CAR** (*Conditional Autoregressive*). El tercero, mediante **procesos de paseo aleatorio** en el tiempo.
+
+## El modelo BYM
+
+El modelo de Besag, York y Mollié (1991) — BYM — descompone el riesgo de cada área $i$ como:
+
+$$
+\log(\theta_i) = \alpha + \mathbf{x}_i^\top\boldsymbol{\beta} + u_i + v_i
+$$
+
+donde:
+
+- $\alpha$ es el intercepto (nivel medio de log-riesgo);
+- $\mathbf{x}_i^\top\boldsymbol{\beta}$ es la contribución de los efectos fijos (covariables climáticas y ambientales);
+- $u_i$ es el **efecto aleatorio espacialmente estructurado** — sigue una distribución CAR intrínseca (ICAR), que garantiza que las áreas vecinas tengan valores próximos;
+- $v_i \sim N(0, \tau_v^{-1})$ es el **efecto aleatorio no estructurado** — captura heterogeneidad residual independiente de la posición geográfica.
+
+La tasa esperada de desenlace en el área $i$ es $\mu_i = E_i\,\theta_i$, donde $E_i$ son los conteos esperados (offset).
+
+## El modelo BYM2 (Riebler et al., 2016)
+
+El modelo BYM2 reparametriza el BYM original con un único parámetro de precisión $\tau$ y un parámetro de mezcla $\phi \in [0,1]$:
+
+$$
+u_i = \frac{1}{\sqrt{\tau}}\left(\sqrt{\phi}\,v_i^* + \sqrt{1-\phi}\,w_i\right)
+$$
+
+donde $v_i^*$ es el componente ICAR escalado y $w_i \sim N(0,1)$. El parámetro $\phi$ cuantifica la **proporción de varianza atribuible a la estructura espacial**. Se utilizan a prioris de complejidad penalizada (*penalised complexity*, PC): $P(\phi > 0.5) = 0.5$ y $P(1/\sqrt{\tau} > 1) = 0.01$.
+
+## El modelo espacio-temporal de Knorr-Held (2000)
+
+Para datos de panel (área $\times$ tiempo), el predictor lineal se convierte en:
+
+$$
+\eta_{it} = \alpha + \mathbf{x}_{it}^\top\boldsymbol{\beta} + \phi_i + \psi_t + \delta_{it} + \log(E_{it})
+$$
+
+donde:
+
+- $\phi_i$ es el efecto aleatorio espacial (BYM2);
+- $\psi_t$ es el efecto temporal estructurado (paseo aleatorio de segundo orden, RW2);
+- $\delta_{it}$ es la interacción espacio-tiempo (tipo I: IID; tipo IV: estructurado en ambas dimensiones);
+- $E_{it}$ son los conteos esperados (offset).
+
+Knorr-Held (2000) propone cuatro tipos de interacción: IID (tipo I), estructurado en el tiempo (tipo II), estructurado en el espacio (tipo III) y estructurado en ambas dimensiones (tipo IV).
+
+## Excedencia Bayesiana
+
+La probabilidad de excedencia es la probabilidad posterior de que el riesgo relativo en un área $i$ supere un umbral $\tau$:
+
+$$
+P(RR_i > \tau \mid \mathbf{y})
+$$
+
+Esta es una herramienta fundamental para la vigilancia epidemiológica: en lugar de reportar solo el RR medio — que puede ser alto pero incierto — traduce la incertidumbre posterior en una decisión probabilística. Cuando las muestras de la posterior no están directamente disponibles, se usa la aproximación lognormal de Richardson et al. (2004):
+
+$$
+P(RR_i > \tau \mid \mathbf{y}) \approx \Phi\!\left(\frac{\log(\overline{RR}_i) - \log(\tau)}{\hat{\sigma}_{\log,i}}\right)
+$$
+
+donde $\hat{\sigma}_{\log,i} = [\log(RR_{i,\text{sup}}) - \log(RR_{i,\text{inf}})] / (2 \times 1.96)$ es la desviación estándar estimada del log-RR a partir del intervalo de credibilidad del 95% (Richardson et al., 2004).
+
+---
+
+# Datos utilizados
+
+| Objeto | Origen | Rol |
+|--------|--------|-----|
+| `caso_espacial.rds` | Pipeline anterior (Tutorial 06) | SF de municipios de la RMSP con `code_muni`, `n_obitos`, `pop`, `temp_med` |
+| `mod_weights.rds` | Tutorial 06 | Objeto `climasus_weights` (pesos Queen de la RMSP) |
+| `caso_serie.rds` | Tutorial 05 (opcional) | Serie diaria de defunciones — agrupada por municipio × año |
+
+Caso conductor: **temperatura y mortalidad respiratoria en ancianos (J00–J99) en la RM de São Paulo, 2014–2019**, 39 municipios.
+
+---
+
+# Pipeline completo
+
+## Cargar paquete y datos
+
+```{r carregar}
+library(climasus4r)
+
+# Carregar sf de municípios (caso_espacial.rds) e pesos (mod_weights.rds)
+rmsp_sf     <- readRDS("vignettes-pt/dados/caso_espacial.rds")
+mod_weights <- readRDS("vignettes-pt/dados/mod_weights.rds")
+
+# Dados tabulares sem geometria para sus_mod_spatial_bayes
+df_cross <- sf::st_drop_geometry(rmsp_sf)
+```
+
+## Modelo BYM transversal
+
+```{r bym-cross}
+fit_bym <- sus_mod_spatial_bayes(
+  df         = df_cross,
+  outcome    = "n_obitos",       # coluna de contagens
+  W          = mod_weights,      # climasus_weights (Tutorial 06)
+  covariates = "temp_med",       # temperatura média como covariável fixa
+  offset     = "expected",       # contagens esperadas (log-offset)
+  family     = "poisson",
+  model      = "bym",            # BYM via CARBayes/MCMC
+  n_iter     = 10000L,
+  burnin     = 2000L,
+  thin       = 10L,
+  prior_tau2 = c(1, 0.01),       # prior IG(1, 0.01) para tau^2 (fracamente informativo)
+  seed       = 42L,
+  lang       = "pt"
+)
+
+print(fit_bym)
+```
+
+## Visualizaciones del modelo BYM
+
+```{r plot-bym-rr}
+# Mapa de Risco Relativo suavizado
+sus_mod_plot_spatial_bayes(
+  x              = fit_bym,
+  municipalities = rmsp_sf,
+  type           = "rr",          # choropleth do RR posterior
+  lang           = "pt"
+)
+```
+
+```{r plot-bym-unc}
+# Mapa de incerteza (largura do IC95%)
+sus_mod_plot_spatial_bayes(
+  x              = fit_bym,
+  municipalities = rmsp_sf,
+  type           = "uncertainty", # IC95% superior - IC95% inferior
+  lang           = "pt"
+)
+```
+
+```{r plot-bym-coef}
+# Forest plot de efeitos fixos
+sus_mod_plot_spatial_bayes(
+  x    = fit_bym,
+  type = "coef",                  # estimativas e IC95% dos betas
+  lang = "pt"
+)
+```
+
+```{r plot-bym-ambos}
+# Painel combinado RR + incerteza (requer patchwork)
+sus_mod_plot_spatial_bayes(
+  x              = fit_bym,
+  municipalities = rmsp_sf,
+  type           = "both",
+  lang           = "pt"
+)
+```
+
+## Construir panel espacio-temporal (municipio × año)
+
+```{r painel-st}
+# Agregar série diária por código de município e ano
+painel_st <- readRDS("vignettes-pt/dados/caso_serie.rds") |>
+  dplyr::mutate(ano = as.integer(format(as.Date(date), "%Y"))) |>
+  dplyr::group_by(code_muni, ano) |>
+  dplyr::summarise(
+    n_obitos = sum(n_obitos, na.rm = TRUE),
+    .groups  = "drop"
+  ) |>
+  dplyr::left_join(
+    sf::st_drop_geometry(rmsp_sf[, c("code_muni", "pop", "temp_med", "expected")]),
+    by = "code_muni"
+  )
+```
+
+## Modelo espacio-temporal BYM2 + RW2 (INLA)
+
+```{r st-bayes}
+# Requer o pacote INLA (não está no CRAN)
+# install.packages("INLA",
+#   repos = c(INLA = "https://inla.r-inla-download.org/R/stable"))
+
+fit_st <- sus_mod_spacetime_bayes(
+  df               = painel_st,
+  outcome          = "n_obitos",
+  W                = mod_weights,
+  time_col         = "ano",        # coluna de tempo (inteiro ou Date)
+  time_unit        = "year",       # agregação anual
+  covariates       = "temp_med",   # efeito fixo: temperatura média
+  offset           = "expected",   # contagens esperadas (log-offset)
+  family           = "poisson",
+  spatial_model    = "bym2",       # BYM2 com priores PC (Riebler et al. 2016)
+  temporal_model   = "rw2",        # passeio aleatório de 2ª ordem
+  interaction_type = "I",          # interação IID (Knorr-Held tipo I)
+  pc_prior_u       = 0.5,          # P(sigma > 0.5) = 0.01
+  pc_prior_alpha   = 0.01,
+  compute_waic     = TRUE,
+  n_samples        = 1000L,
+  seed             = 42L,
+  lang             = "pt"
+)
+
+print(fit_st)
+
+# Salvar para reuso nos tutoriais seguintes
+saveRDS(fit_st, "vignettes-pt/dados/mod_spacetime_fit.rds")
+```
+
+## Visualizaciones del modelo espacio-temporal
+
+```{r plot-st-temporal}
+# Tendência temporal do RR (média sobre municípios)
+sus_mod_plot_spacetime(
+  x    = fit_st,
+  type = "temporal",   # linha com RR médio + IC95% ao longo do tempo
+  lang = "pt"
+)
+```
+
+```{r plot-st-rr-map}
+# Mapa coroplético de RR (média temporal por município)
+sus_mod_plot_spacetime(
+  x              = fit_st,
+  type           = "rr_map",   # choropleth do RR médio espaço-temporal
+  municipalities = rmsp_sf,
+  lang           = "pt"
+)
+```
+
+```{r plot-st-interaction}
+# Heatmap de interação espaço-tempo (município × período)
+sus_mod_plot_spacetime(
+  x    = fit_st,
+  type = "interaction",  # gamma_{it}: efeito diferencial por célula
+  lang = "pt"
+)
+```
+
+```{r plot-st-coef}
+# Forest plot de efeitos fixos (modelo espaço-temporal)
+sus_mod_plot_spacetime(
+  x    = fit_st,
+  type = "coef",
+  lang = "pt"
+)
+```
+
+## Probabilidades de excedencia
+
+```{r excedencia}
+exc_resultado <- sus_mod_spacetime_exceedance(
+  fit        = fit_st,
+  thresholds = c(1.0, 1.5, 2.0),   # limiares de RR para P(RR > t)
+  lang       = "pt",
+  verbose    = TRUE
+)
+
+print(exc_resultado)
+exc_resultado$n_exceed   # contagem de células com P(RR > t) > 0.80
+```
+
+```{r excedencia-annual}
+# Agregar excedências por ano (útil para vigilância)
+exc_anual <- sus_mod_spacetime_exceedance(
+  fit            = fit_st,
+  thresholds     = c(1.0, 1.5, 2.0),
+  aggregate_time = "year",    # média anual antes de calcular P(RR > t)
+  municipalities = rmsp_sf,   # juntar geometria para mapeamento direto
+  lang           = "pt"
+)
+```
+
+## Predicción espacio-temporal aproximada
+
+```{r predicao}
+# Previsão para 2 períodos à frente (horizonte = 2 anos)
+pred_futuro <- sus_mod_spacetime_predict(
+  fit        = fit_st,
+  newdata    = NULL,       # NULL => constrói grid automático
+  horizon    = 2L,         # 2 períodos além do último observado
+  include_ci = TRUE,       # IC95% via propagação de variância
+  lang       = "pt"
+)
+
+print(pred_futuro)
+head(pred_futuro$predictions)
+```
+
+```{r predicao-contrafactual}
+# Cenário contrafactual: +2 °C de temperatura
+pred_counter <- sus_mod_spacetime_predict(
+  fit            = fit_st,
+  newdata        = painel_st,   # grade observada
+  covariates_new = list(temp_med = painel_st$temp_med + 2),  # override
+  include_ci     = TRUE,
+  lang           = "pt"
+)
+```
+
+---
+
+# Características de las funciones
+
+## `sus_mod_spatial_bayes()` — Modelo Bayesiano Espacial Transversal
+
+Ajusta un modelo Bayesiano jerárquico para el mapeo de enfermedades en municipios (u otras unidades de área), usando a prioris CAR vía **CARBayes** (MCMC) o **INLA** (aproximación de Laplace anidada).
+
+**Firma:**
+
+```r
+sus_mod_spatial_bayes(
+  df, outcome, W,
+  covariates  = NULL,
+  offset      = NULL,
+  family      = c("poisson", "binomial", "gaussian"),
+  model       = c("bym", "leroux", "independent", "bym2"),
+  n_iter      = 10000L,
+  burnin      = 2000L,
+  thin        = 10L,
+  prior_tau2  = c(1, 0.01),
+  seed        = 42L,
+  lang        = "pt",
+  verbose     = TRUE
+)
+```
+
+**Parámetro `model`:**
+
+| Valor | Motor | Descripción |
+|-------|--------|-----------|
+| `"bym"` (predeterminado) | CARBayes/MCMC | Besag-York-Mollié: ICAR + IID |
+| `"leroux"` | CARBayes/MCMC | CAR con parámetro de mezcla $\rho$ |
+| `"independent"` | CARBayes/MCMC | Efectos aleatorios IID (sin estructura espacial) |
+| `"bym2"` | INLA (requiere instalación separada) | BYM2 reparametrizado con a prioris PC |
+
+**Devuelve:** objeto de clase `climasus_spatial_bayes` con slots:
+- `$fixed`: efectos fijos (media, DE, IC95% posterior)
+- `$random`: efectos aleatorios por municipio (`phi_mean`, `phi_sd`)
+- `$rr`: riesgo relativo por municipio (`rr_mean`, `rr_lower95`, `rr_upper95`)
+- `$fitted`: valores ajustados (escala de respuesta)
+- `$dic`: DIC (o vector con DIC y WAIC para BYM2)
+- `$model`, `$family`, `$n_iter_effective`, `$call`
+
+---
+
+## `sus_mod_plot_spatial_bayes()` — Visualizaciones del Modelo Espacial Bayesiano
+
+Produce mapas y gráficos a partir de un objeto `climasus_spatial_bayes`.
+
+**Firma:**
+
+```r
+sus_mod_plot_spatial_bayes(
+  x,
+  municipalities = NULL,
+  type           = c("rr", "uncertainty", "coef", "both"),
+  title          = NULL,
+  base_size      = 12,
+  lang           = "pt",
+  ...
+)
+```
+
+**Parámetro `type`:**
+
+| Valor | Descripción | Requiere `municipalities` |
+|-------|-----------|------------------------|
+| `"rr"` (predeterminado) | Choropleth del RR posterior medio; los municipios con IC95% enteramente por encima de 1 reciben borde negro | Sí |
+| `"uncertainty"` | Choropleth del ancho del IC95% (paleta plasma) | Sí |
+| `"coef"` | Forest plot de los efectos fijos con IC95% | No |
+| `"both"` | Panel RR + incertidumbre lado a lado (usa `patchwork` si está disponible) | Sí |
+
+**Devuelve:** objeto `ggplot` (o `patchwork` para `"both"`).
+
+---
+
+## `sus_mod_spacetime_bayes()` — Modelo Bayesiano Espacio-Temporal (INLA)
+
+Ajusta un modelo jerárquico espacio-temporal completo usando INLA. Requiere el paquete **INLA** (no está en CRAN; vea las instrucciones de instalación más abajo).
+
+**Firma:**
+
+```r
+sus_mod_spacetime_bayes(
+  df,
+  outcome,
+  W,
+  time_col          = "date",
+  time_unit         = c("year", "month", "week", "auto"),
+  covariates        = NULL,
+  offset            = NULL,
+  family            = c("poisson", "nbinomial", "binomial", "gaussian"),
+  spatial_model     = c("bym2", "bym", "besag", "iid"),
+  temporal_model    = c("rw1", "rw2", "ar1", "iid_time"),
+  interaction_type  = c("none", "I", "II", "III", "IV"),
+  pc_prior_u        = 0.5,
+  pc_prior_alpha    = 0.01,
+  compute_waic      = TRUE,
+  compute_cpo       = FALSE,
+  exceedance_threshold = 1.0,
+  n_samples         = 1000L,
+  seed              = 42L,
+  lang              = "pt",
+  verbose           = TRUE
+)
+```
+
+**Parámetros principales:**
+
+| Parámetro | Valores posibles | Rol |
+|-----------|-------------------|-------|
+| `spatial_model` | `"bym2"` (predeterminado), `"bym"`, `"besag"`, `"iid"` | Estructura del efecto espacial |
+| `temporal_model` | `"rw1"`, `"rw2"` (predeterminado), `"ar1"`, `"iid_time"` | Estructura del efecto temporal |
+| `interaction_type` | `"none"`, `"I"` a `"IV"` | Tipo de interacción Knorr-Held (2000) |
+| `time_unit` | `"year"`, `"month"`, `"week"`, `"auto"` | Granularidad temporal |
+
+**Devuelve:** objeto de clase `climasus_spacetime_bayes` con slots:
+- `$fixed`: efectos fijos (mean, sd, lower95, upper95, mode)
+- `$rr`: RR por célula (code_muni × time_idx) con `p_exceed`
+- `$spatial_re`: efecto espacial por municipio (`phi_mean`, `phi_sd`)
+- `$temporal_re`: efecto temporal por período (`psi_mean`, `psi_sd`)
+- `$interaction_re`: interacción por célula (`gamma_mean`, `gamma_sd`) o `NULL`
+- `$waic`, `$dic`: criterios de ajuste
+- `$model_spec`, `$call`, `$n_areas`, `$n_times`
+
+---
+
+## `sus_mod_plot_spacetime()` — Visualizaciones del Modelo Espacio-Temporal
+
+Produce cinco tipos de gráfico a partir de objetos `climasus_spacetime_bayes` o `climasus_spacetime_exceedance`.
+
+**Firma:**
+
+```r
+sus_mod_plot_spacetime(
+  x,
+  type           = c("rr_map", "temporal", "interaction", "exceedance", "coef"),
+  municipalities = NULL,
+  threshold      = 1.0,
+  lang           = "pt",
+  ...
+)
+```
+
+**Parámetro `type`:**
+
+| Valor | Descripción | Requiere `municipalities` | Requiere `climasus_spacetime_exceedance` |
+|-------|-----------|------------------------|---------------------------------------|
+| `"rr_map"` | Choropleth del RR medio (promedio sobre períodos, o por período vía `time_idx`) | Sí | No |
+| `"temporal"` | Serie temporal del RR medio sobre municipios + IC95% | No | No |
+| `"interaction"` | Heatmap $\gamma_{it}$ (municipio × período) | No | No |
+| `"exceedance"` | Choropleth de $P(RR > t)$ | Sí | Sí (`climasus_spacetime_exceedance`) |
+| `"coef"` | Forest plot de los efectos fijos | No | No |
+
+---
+
+## `sus_mod_spacetime_exceedance()` — Probabilidades de Excedencia
+
+Calcula $P(RR > t \mid \text{datos})$ para cada célula municipio × período.
+
+**Firma:**
+
+```r
+sus_mod_spacetime_exceedance(
+  fit,
+  thresholds     = c(1.0, 1.5, 2.0),
+  aggregate_time = NULL,
+  municipalities = NULL,
+  lang           = "pt",
+  verbose        = TRUE
+)
+```
+
+**Parámetros principales:**
+
+| Parámetro | Rol |
+|-----------|-------|
+| `thresholds` | Vector de umbrales $t$ para $P(RR > t)$; genera columnas `p_gt_1_0`, `p_gt_1_5`, etc. |
+| `aggregate_time` | `"year"` o `"month"` para agregar temporalmente antes del cálculo; `NULL` = sin agregación |
+| `municipalities` | Objeto `sf` para la unión espacial directa del resultado |
+
+**Devuelve:** objeto de clase `climasus_spacetime_exceedance` con:
+- `$exceedance`: data.frame con `code_muni`, `time_idx` (o `time_period`), `rr_mean`, columnas `p_gt_*`
+- `$thresholds`: vector de umbrales usados
+- `$n_exceed`: data.frame con el conteo de células donde $P(RR > t) > 0.80$
+
+---
+
+## `sus_mod_spacetime_predict()` — Predicción Espacio-Temporal Aproximada
+
+Genera predicciones aproximadas vía predictor lineal para períodos futuros o escenarios contrafactuales.
+
+**Firma:**
+
+```r
+sus_mod_spacetime_predict(
+  fit,
+  newdata        = NULL,
+  horizon        = 0L,
+  covariates_new = NULL,
+  include_ci     = TRUE,
+  return_samples = FALSE,
+  lang           = "pt",
+  verbose        = TRUE
+)
+```
+
+**Parámetros principales:**
+
+| Parámetro | Rol |
+|-----------|-------|
+| `horizon` | Períodos hacia adelante cuando `newdata = NULL`; extrapolación vía RW1/RW2 |
+| `newdata` | Data.frame con `code_muni` + `time_idx` + covariables para predicción in-sample o escenario contrafactual |
+| `covariates_new` | Lista nombrada de sobrescrituras de covariables (p. ej. `list(temp_med = temp + 2)`) para análisis de escenario |
+| `include_ci` | Si `TRUE`, calcula el IC95% vía propagación de varianza de las posteriores |
+
+**Devuelve:** objeto de clase `climasus_spacetime_pred` con:
+- `$predictions`: data.frame con `code_muni`, `time_idx`, `pred_mean`, `pred_lower95`, `pred_upper95`
+- `$n_predicted`, `$horizon`, `$call`
+
+> **Nota importante:** esta función usa un **predictor lineal aproximado**. Para distribuciones predictivas posteriores exactas, reajuste `sus_mod_spacetime_bayes()` con el conjunto de datos completo incluyendo los períodos futuros.
+
+---
+
+# Resultados ilustrados
+
+## Figura 1 — Mapa de Riesgo Relativo BYM (transversal)
+
+```{r fig1, eval=TRUE, echo=FALSE, out.width="100%", fig.cap="**Figura 1.** Mapa coroplético del riesgo relativo suavizado por el modelo BYM (Besag-York-Mollié). Escala divergente centrada en RR = 1.0 (azul marino = riesgo por debajo de la media; rojo = por encima). Los municipios con IC95% enteramente por encima de 1 presentan borde negro (riesgo significativamente elevado). Fuente: climasus4r / sus_mod_spatial_bayes()."}
+fig_ou_nota(
+  "figuras/modbayes_rr_bym.png",
+  .nota_gerar
+)
+```
+
+## Figura 2 — Incertidumbre Posterior (ancho del IC95%)
+
+```{r fig2, eval=TRUE, echo=FALSE, out.width="100%", fig.cap="**Figura 2.** Mapa de incertidumbre: ancho del intervalo de credibilidad del 95% para el riesgo relativo por municipio. Los municipios con alta incertidumbre (paleta plasma oscura) generalmente presentan población pequeña o datos escasos. Fuente: climasus4r / sus_mod_plot_spatial_bayes(type='uncertainty')."}
+fig_ou_nota(
+  "figuras/modbayes_incerteza_bym.png",
+  .nota_gerar
+)
+```
+
+## Figura 3 — Forest Plot de Coeficientes Fijos (BYM)
+
+```{r fig3, eval=TRUE, echo=FALSE, out.width="80%", fig.cap="**Figura 3.** Forest plot de los efectos fijos del modelo BYM: media posterior (punto) e intervalo de credibilidad del 95% (línea horizontal). La línea discontinua vertical en cero es la referencia de ausencia de efecto. Fuente: climasus4r / sus_mod_plot_spatial_bayes(type='coef')."}
+fig_ou_nota(
+  "figuras/modbayes_coef_bym.png",
+  .nota_gerar
+)
+```
+
+```{r tbl1, eval=TRUE, echo=FALSE}
+tbl_ou_nota(
+  "dados/modbayes_resumo_fixos.rds",
+  .nota_gerar,
+  caption = "Tabla 1. Efectos fijos del modelo BYM (media, DE e IC95% posterior)."
+)
+```
+
+## Figura 4 — Tendencia Temporal del RR (Modelo Espacio-Temporal)
+
+```{r fig4, eval=TRUE, echo=FALSE, out.width="100%", fig.cap="**Figura 4.** Tendencia temporal del riesgo relativo medio (sobre todos los municipios de la RMSP), con intervalo de credibilidad del 95%. El efecto temporal se estima mediante un paseo aleatorio de segundo orden (RW2), capturando aceleración y desaceleración suaves de la tendencia. Fuente: climasus4r / sus_mod_plot_spacetime(type='temporal')."}
+fig_ou_nota(
+  "figuras/modst_temporal.png",
+  .nota_gerar
+)
+```
+
+## Figura 5 — Mapa de RR Espacio-Temporal (Media del Período)
+
+```{r fig5, eval=TRUE, echo=FALSE, out.width="100%", fig.cap="**Figura 5.** Mapa coroplético del riesgo relativo medio sobre todo el período de estudio (2014-2019), estimado por el modelo espacio-temporal BYM2 + RW2. El suavizado bayesiano es doble: espacial (BYM2) y temporal (RW2). Fuente: climasus4r / sus_mod_plot_spacetime(type='rr_map')."}
+fig_ou_nota(
+  "figuras/modst_rr_map.png",
+  .nota_gerar
+)
+```
+
+## Figura 6 — Probabilidad de Excedencia $P(RR > 1{,}5)$
+
+```{r fig6, eval=TRUE, echo=FALSE, out.width="100%", fig.cap="**Figura 6.** Mapa de la probabilidad posterior de excedencia P(RR > 1,5), promedio temporal por municipio. Valores cercanos a 1 indican alta certeza de riesgo por encima del 50% de lo esperado. La aproximación lognormal se usa cuando solo están disponibles la media y el IC95% posterior (Richardson et al., 2004). Fuente: climasus4r / sus_mod_spacetime_exceedance()."}
+fig_ou_nota(
+  "figuras/modbayes_excedencia.png",
+  .nota_gerar
+)
+```
+
+```{r tbl2, eval=TRUE, echo=FALSE}
+tbl_ou_nota(
+  "dados/modbayes_n_excedencia.rds",
+  .nota_gerar,
+  caption = "Tabla 2. Número de células municipio × período con P(RR > t) > 0,80, para cada umbral t."
+)
+```
+
+## Figura 7 — Predicción Aproximada (Horizonte = 2 Períodos)
+
+```{r fig7, eval=TRUE, echo=FALSE, out.width="100%", fig.cap="**Figura 7.** Predicción del conteo medio de defunciones respiratorias para los dos períodos siguientes al período de estudio, usando sus_mod_spacetime_predict(horizon = 2). Puntos naranjas: períodos predichos; franja verde: IC95% por propagación de varianza. Aviso: predictor lineal aproximado — para distribuciones predictivas exactas, reajuste el modelo con los datos completos. Fuente: climasus4r / sus_mod_spacetime_predict()."}
+fig_ou_nota(
+  "figuras/modbayes_predicao.png",
+  .nota_gerar
+)
+```
+
+---
+
+# Notas de implementación y buenas prácticas
+
+## Instalación de INLA
+
+El paquete **INLA** no está en CRAN. Para instalarlo:
+
+```{r inla-install, eval=FALSE}
+install.packages(
+  "INLA",
+  repos = c(INLA = "https://inla.r-inla-download.org/R/stable",
+            getOption("repos"))
+)
+```
+
+## Proteger llamadas a paquetes `Suggests`
+
+Cualquier llamada a **INLA**, **CARBayes**, **spdep** o **sf** debe estar protegida:
+
+```{r protect-suggests, eval=FALSE}
+if (!requireNamespace("INLA", quietly = TRUE)) {
+  stop("INLA necessário: instale com install.packages('INLA', ...)")
+}
+```
+
+## Elección del modelo espacial
+
+| Situación | Modelo recomendado |
+|----------|-------------------|
+| Análisis exploratorio rápido, sin INLA | `model = "bym"` (CARBayes) |
+| A prioris bien calibrados, escalabilidad | `model = "bym2"` (INLA) |
+| Sospecha de dependencia débil | `model = "leroux"` |
+| Solo heterogeneidad no estructurada | `model = "independent"` |
+
+## Elección del modelo temporal
+
+| Situación | Modelo recomendado |
+|----------|-------------------|
+| Tendencia suave (recomendado para salud) | `temporal_model = "rw2"` |
+| Tendencia más local, año a año | `temporal_model = "rw1"` |
+| Autocorrelación de corto plazo | `temporal_model = "ar1"` |
+
+## Diagnóstico del MCMC (CARBayes)
+
+Verifique:
+- `fit_bym$n_iter_effective`: número de muestras después del thinning (debe ser ≥ 400)
+- `fit_bym$dic`: compare modelos por el DIC menor (diferencia > 5 = evidencia sustancial)
+
+## Diagnóstico de INLA
+
+Verifique:
+- `fit_st$waic`: WAIC menor = mejor ajuste (con la misma estructura de datos)
+- `fit_st$dic`: complementario al WAIC
+- Razón `p_eff / observaciones` muy alta sugiere sobreajuste
+
+---
+
+# Referencias
+
+Anselin, L. (1988). *Spatial Econometrics: Methods and Models*. Kluwer Academic Publishers.
+
+Besag, J., York, J., & Mollié, A. (1991). Bayesian image restoration, with two applications in spatial statistics. *Annals of the Institute of Statistical Mathematics*, 43(1), 1–20.
+
+Blangiardo, M., & Cameletti, M. (2015). *Spatial and Spatio-temporal Bayesian Models with R-INLA*. Wiley.
+
+Gelman, A., Carlin, J. B., Stern, H. S., Dunson, D. B., Vehtari, A., & Rubin, D. B. (2013). *Bayesian Data Analysis* (3rd ed.). CRC Press.
+
+Held, L., & Schrödle, B. (2010). Posterior and cross-validatory predictive checks: a comparison of MCMC and INLA. In *Statistical Modelling and Regression Structures* (pp. 91–110). Physica-Verlag.
+
+Knorr-Held, L. (2000). Bayesian modelling of inseparable space-time variation in disease risk. *Statistics in Medicine*, 19(17–18), 2555–2567.
+
+Lawson, A. B. (2018). *Bayesian Disease Mapping: Hierarchical Modeling in Spatial Epidemiology* (3rd ed.). CRC Press.
+
+Lee, D. (2013). CARBayes: an R package for Bayesian spatial modelling with conditional autoregressive priors. *Journal of Statistical Software*, 55(13), 1–24.
+
+Leroux, B. G., Lei, X., & Breslow, N. (2000). Estimation of disease rates in small areas: a new mixed model for spatial dependence. In *Statistical Models in Epidemiology, the Environment, and Clinical Trials* (pp. 179–191). Springer.
+
+Richardson, S., Thomson, A., Best, N., & Elliott, P. (2004). Interpreting posterior relative risk estimates in disease-mapping studies. *Environmental Health Perspectives*, 112(9), 1016–1025.
+
+Riebler, A., Sørbye, S. H., Simpson, D., & Rue, H. (2016). An intuitive Bayesian spatial model for disease mapping that accounts for scaling. *Statistical Methods in Medical Research*, 25(4), 1145–1165.
+
+Rue, H., Martino, S., & Chopin, N. (2009). Approximate Bayesian inference for latent Gaussian models by using integrated nested Laplace approximations. *Journal of the Royal Statistical Society: Series B*, 71(2), 319–392.
+
+---
+
+# Navegación
+
+| Anterior | Esta página | Siguiente |
+|----------|-------------|---------|
+| [Modelos Espaciales](mod-06-espacial.html) | **Modelos Bayesianos** | [Vulnerabilidad y FODA](mod-08-vulnerabilidade-swot.html) |
+
+[Volver al Hub de Tutoriales](tutorials.html)

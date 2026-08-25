@@ -1,0 +1,602 @@
+---
+title: "Modelado 05: Machine Learning (Gradient Boosting / XGBoost)"
+author: "Equipo climasus4r"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* -- Variaveis de Cores Modernas -- */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; color: var(--text-main); background-color: #fff; line-height: 1.6; }
+h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--dark-green); }
+h1.title { font-size: 2.8em; border-bottom: 4px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 1.5rem; }
+h2 { margin-top: 2rem; border-left: 4px solid var(--primary-color); padding-left: 1rem; }
+pre.r, pre.sourceCode { background-color: var(--code-bg); border: 1px solid #e1e1e1; border-left: 5px solid var(--primary-color) !important; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1rem; }
+.callout { padding: 1.2em 1.5em; margin: 1.5em 0; border-radius: 8px; border-left: 6px solid; background-color: var(--bg-light); }
+.callout-note { background-color: #f0f7ff; border-color: #007bff; }
+.callout-tip { background-color: #e8f5e9; border-color: #1D9E75; }
+.callout-warning { background-color: #fff3e0; border-color: #ff9800; }
+.workflow-container { background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #dce8e1; overflow-x: auto; }
+.workflow-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; font-family: 'Inter', monospace; font-size: 0.8rem; }
+.workflow-step { background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap; }
+.workflow-arrow { color: var(--primary-color); font-weight: bold; font-size: 1.2rem; }
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+.feature-card { background: white; border-radius: 12px; padding: 1.5rem; border: 1px solid #e1e1e1; transition: transform 0.2s ease, box-shadow 0.2s ease; text-align: center; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+.feature-card h3 { margin-top: 0; color: var(--primary-color); font-size: 1.1rem; }
+table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e1e1; }
+th { background-color: var(--bg-light); font-weight: 600; color: var(--dark-green); }
+.github-feedback-btn { display: inline-flex; align-items: center; gap: 8px; background-color: #24292e; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-family: sans-serif; transition: background-color 0.2s; margin-top: 1rem; }
+.github-feedback-btn:hover { background-color: #2c3e50; color: white; text-decoration: none; }
+@media (max-width: 768px) { body { font-size: 16px; } h1.title { font-size: 2rem; } .workflow-steps { flex-direction: column; align-items: center; } }
+```
+
+
+```{r setup, include=FALSE}
+# ATENCIÓN — estrategia de pre-renderizado.
+# Este tutorial NO ajusta modelos durante el renderizado. Todas las figuras y
+# tablas fueron generadas UNA vez por el script scripts/modelagem_05_ml.R y
+# aquí solo se cargan (PNG vía include_graphics; RDS vía readRDS).
+# Por ello, los chunks didácticos de abajo usan eval = FALSE: el código se
+# muestra, pero no se ejecuta en el momento del knit.
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+
+# Helpers para mostrar artefactos de forma robusta: si el archivo aún no fue
+# generado (el script de generación no se ejecutó), muestran una nota en vez
+# de romper el knit. Así la viñeta se renderiza en cualquier momento.
+fig_ou_nota <- function(path, nota) {
+  if (file.exists(path)) knitr::include_graphics(path)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+tbl_ou_nota <- function(path, nota, caption = NULL) {
+  if (file.exists(path)) knitr::kable(readRDS(path), caption = caption)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+.nota_gerar <- "Artefacto no disponible — ejecute `Rscript scripts/modelagem_05_ml.R` (desde la raíz del paquete) para generarlo."
+```
+
+# Objetivo
+
+Al final de este tutorial usted será capaz de **entrenar un modelo de Machine
+Learning basado en Gradient Boosting (XGBoost)** para predecir recuentos
+diarios de desenlaces de salud a partir de features climáticas, de calendario
+y socioespaciales — usando `sus_mod_ml()` —, y de **visualizar los
+resultados** (importancia de variables, ajuste CV, curva de convergencia) con
+`sus_mod_plot_ml()`.
+
+El `sus_mod_ml()` **complementa**, sin sustituir, la familia DLNM/metaanálisis
+de `climasus4r`: el DLNM estima la **relación causal** no lineal y rezagada
+entre temperatura y salud; el XGBoost se enfoca en la **precisión predictiva**
+en un espacio de features más amplio, simultáneo (clima + calendario +
+socioeconómico) y sin supuestos paramétricos sobre la forma funcional.
+
+# Contexto científico
+
+## Gradient Boosting para datos de recuento en salud
+
+El **Gradient Boosting** (Friedman, 2001) es una técnica de aprendizaje
+automático que construye modelos aditivos de forma iterativa: cada nuevo
+árbol de decisión corrige los errores de los anteriores, minimizando una
+función de pérdida. El **XGBoost** (Chen & Guestrin, 2016) es la
+implementación regularizada más utilizada en la práctica, con paralelismo
+eficiente y control de sobreajuste mediante regularización L1/L2 y
+submuestreo.
+
+Para desenlaces de **recuento** (defunciones, hospitalizaciones, casos), el
+objetivo `"count:poisson"` minimiza la **desviancia de Poisson**, equivalente
+a un modelo log-lineal:
+
+$$
+\ell(\theta) = -\sum_{i=1}^{n} \left[ y_i \log(\hat{y}_i) - \hat{y}_i \right]
+$$
+
+donde $\hat{y}_i = \exp\!\left(\sum_{k=1}^{K} f_k(\mathbf{x}_i)\right)$ es la
+predicción del ensamble de $K$ árboles y $f_k$ es el $k$-ésimo árbol con pesos
+regularizados. La predicción final está en la escala de **recuentos**
+(lambda de Poisson).
+
+El número óptimo de árboles ($K^*$) se determina mediante **validación
+cruzada con early stopping**: el entrenamiento se detiene cuando la métrica
+de validación no mejora durante `early_stopping` rondas consecutivas,
+previniendo el sobreajuste. Sea $\mathcal{L}^{(t)}_\text{cv}$ la métrica en el
+fold de validación en la ronda $t$:
+
+$$
+K^* = \arg\min_{t \in \{1,\ldots,T\}} \mathcal{L}^{(t)}_\text{cv}
+\quad \text{con parada si } \mathcal{L}^{(t+r)}_\text{cv} \geq
+\mathcal{L}^{(t)}_\text{cv} \;\forall\, r \leq \texttt{early\_stopping}
+$$
+
+## Validación cruzada agrupada por municipio
+
+Los datos de salud ambiental tienen estructura de **panel** (municipios
+$\times$ días). Si las observaciones de un mismo municipio aparecen tanto en
+el entrenamiento como en la validación, el modelo aprende el efecto fijo del
+municipio — y la métrica de CV sobreestima la capacidad de generalización
+para **nuevos** municipios. El `sus_mod_ml()` resuelve esto con **validación
+cruzada agrupada** (`id_col`): cada grupo (municipio) queda íntegramente en un
+único fold, garantizando que el modelo se valide en municipios que no vio
+durante el entrenamiento. El resultado son **predicciones fuera de la
+muestra** (OOF — Out-of-Fold) verdaderamente generalizables.
+
+## Importancia de variables: Gain
+
+XGBoost calcula tres métricas de importancia por feature:
+
+| Métrica | Interpretación |
+|---------|---------------|
+| **Gain** | Reducción media de la pérdida por división que usa esta variable. Principal métrica de relevancia predictiva. |
+| **Cover** | Número medio de observaciones afectadas por divisiones de esta variable. Indica alcance. |
+| **Frequency** | Proporción de todas las divisiones que usan esta variable. Indica frecuencia de uso. |
+
+> **Caso conductor.** Investigamos la **temperatura y los desenlaces de salud
+> en personas mayores (60+) en la Región Metropolitana de São Paulo,
+> 2014–2019** (respiratorias J00–J99). En este tutorial entrenamos un
+> XGBoost para **predecir el recuento diario de defunciones** a partir de
+> features climáticas (temperatura media, humedad, presión) y de calendario
+> (día de la semana, mes, tendencia). La validación cruzada está agrupada
+> por municipio para evitar fuga de información entre entrenamiento y
+> validación.
+
+# Datos utilizados
+
+| Entrada | Archivo | Papel |
+|---------|---------|-------|
+| Serie diaria de salud | `dados/caso_serie.rds` | Desenlace (`n_obitos`) e identificador de municipio |
+| Datos climáticos (estación INMET) | `dados/caso_clima_estacao.rds` | Features climáticas (`tair_c`, `rh_pct`, `pressao_hpa`) por municipio y día |
+| Datos socioeconómicos | `dados/caso_socio.rds` | Features adicionales (IDHM, Gini) por municipio |
+
+Si algún archivo de entrada está ausente, el script genera automáticamente
+una serie **sintética mínima realista** (12 municipios, 6 años, señal
+temperatura–salud en curva V) con aviso explícito, para que el pipeline se
+complete incluso sin la cadena completa.
+
+**Features construidas por el script:**
+
+| Feature | Tipo | Descripción |
+|---------|------|-----------|
+| `tair_c` | Climática | Temperatura media del aire (°C) |
+| `rh_pct` | Climática | Humedad relativa (%) |
+| `pressao_hpa` | Climática | Presión atmosférica (hPa) |
+| `tair_c_sq` | Climática (derivada) | Temperatura al cuadrado (efecto no lineal) |
+| `tair_c_7d` | Climática (rezago) | Media móvil de 7 días de la temperatura |
+| `tair_c_14d` | Climática (rezago) | Media móvil de 14 días de la temperatura |
+| `dia_do_ano` | Calendario | Día juliano (1–365) |
+| `dia_semana` | Calendario | Día de la semana (1=lun, 7=dom) |
+| `mes` | Calendario | Mes (1–12) |
+| `ano` | Calendario | Año (2014–2019) |
+| `tendencia` | Calendario | Días desde el inicio del período |
+| `inverno` | Binario estacional | 1 si junio–agosto, 0 en caso contrario |
+| `verao` | Binario estacional | 1 si diciembre–febrero, 0 en caso contrario |
+| `fim_semana` | Binario | 1 si sábado o domingo |
+
+# Pipeline completo
+
+Los bloques de abajo reproducen lo que ejecuta el script
+`scripts/modelagem_05_ml.R`. Comience cargando el paquete:
+
+```{r carregar}
+library(climasus4r)
+```
+
+## Cargar los datos de entrada
+
+Los archivos se leen con guarda `file.exists()`, garantizando que el pipeline
+se complete incluso sin la cadena anterior. Las rutas son **relativas a la
+raíz del paquete** (pues el script se ejecuta desde allí vía
+`Rscript scripts/modelagem_05_ml.R`).
+
+```{r carregar-dados}
+# Caminhos relativos à raiz do pacote (como o script roda)
+path_serie  <- file.path("vignettes-pt", "dados", "caso_serie.rds")
+path_clima  <- file.path("vignettes-pt", "dados", "caso_clima_estacao.rds")
+path_socio  <- file.path("vignettes-pt", "dados", "caso_socio.rds")
+
+caso_serie <- if (file.exists(path_serie)) readRDS(path_serie)  else NULL
+caso_clima <- if (file.exists(path_clima)) readRDS(path_clima)  else NULL
+caso_socio <- if (file.exists(path_socio)) readRDS(path_socio)  else NULL
+
+# Se caso_serie ou caso_clima ausentes, o script gera dados sintéticos
+# realistas (12 municípios × 6 anos) com sinal temperatura-saúde em curva-V.
+```
+
+## Preparar el data.frame de features
+
+`sus_mod_ml()` acepta cualquier `data.frame` (incluido `climasus_df`). Aquí
+construimos las features climáticas y de calendario, y opcionalmente
+vinculamos features socioeconómicas por municipio.
+
+```{r preparar-features}
+# Engenharia de features de calendário
+df_model <- caso_serie |>
+  dplyr::mutate(
+    dia_do_ano   = as.integer(format(date, "%j")),
+    dia_semana   = as.integer(format(date, "%u")),
+    mes          = as.integer(format(date, "%m")),
+    ano          = as.integer(format(date, "%Y")),
+    tendencia    = as.integer(date - min(date)),
+    inverno      = as.integer(mes %in% 6:8),
+    verao        = as.integer(mes %in% c(12, 1, 2)),  # 12:2 geraria 12,11,...,2
+    fim_semana   = as.integer(dia_semana >= 6),
+    tair_c_sq    = tair_c^2,
+    tair_c_7d    = as.numeric(stats::filter(tair_c, rep(1/7,  7), sides = 1)),
+    tair_c_14d   = as.numeric(stats::filter(tair_c, rep(1/14, 14), sides = 1))
+  ) |>
+  dplyr::filter(!is.na(tair_c_14d)) |>
+  dplyr::select(-date)               # remove coluna Date (não numérica)
+
+# Opcional: vincular features socioeconômicas
+if (!is.null(caso_socio)) {
+  df_model <- dplyr::left_join(df_model, caso_socio,
+                               by = "municipio",
+                               relationship = "many-to-one")
+}
+```
+
+## Ajustar el modelo XGBoost con `sus_mod_ml()`
+
+```{r ajustar-ml}
+ml_fit <- sus_mod_ml(
+  df               = df_model,
+  outcome_col      = "n_obitos",
+  feature_cols     = NULL,          # auto: todas as numéricas exceto outcome e id
+  id_col           = "municipio",   # CV agrupada por município (evita vazamento)
+  objective        = "count:poisson",
+  nrounds          = 500L,
+  max_depth        = 6L,
+  eta              = 0.05,
+  subsample        = 0.8,
+  colsample_bytree = 0.8,
+  min_child_weight = 1,
+  nfold            = 5L,
+  early_stopping   = 50L,
+  seed             = 42L,
+  lang             = "pt",
+  verbose          = TRUE
+)
+
+# Inspecionar o objeto retornado
+print(ml_fit)          # resumo de performance e top features
+tidy(ml_fit)           # tibble de predições (observed / fitted / cv_predicted / residual)
+```
+
+## Predicción en datos nuevos con `predict()`
+
+El método `predict.climasus_ml()` aplica el modelo entrenado a un
+`data.frame` nuevo. Las columnas deben ser las mismas del entrenamiento
+(`ml_fit$meta$feature_cols`).
+
+```{r prever-novos}
+# Cenário: onda de calor (tair_c = 34 °C) num dia de semana de janeiro
+novo_dado <- data.frame(
+  tair_c       = 34,    tair_c_sq   = 34^2,
+  tair_c_7d    = 32,    tair_c_14d  = 30,
+  rh_pct       = 45,    pressao_hpa = 918,
+  dia_do_ano   = 15,    dia_semana  = 2,
+  mes          = 1,     ano         = 2019,
+  tendencia    = 1840,  inverno     = 0,
+  verao        = 1,     fim_semana  = 0
+)
+
+obitos_previstos <- predict(ml_fit, newdata = novo_dado)
+cat("Óbitos previstos (onda de calor):", round(obitos_previstos, 1), "\n")
+```
+
+## Visualizaciones con `sus_mod_plot_ml()`
+
+```{r plot-importance}
+# Importância das variáveis (Gain) — top 15
+sus_mod_plot_ml(
+  x           = ml_fit,
+  type        = "importance",
+  output_type = "plot",
+  n_top       = 15L,
+  lang        = "pt"
+)
+```
+
+```{r plot-fit}
+# Observado vs. predito CV (out-of-fold) — diagnóstico de ajuste
+sus_mod_plot_ml(
+  x           = ml_fit,
+  type        = "fit",
+  output_type = "plot",
+  lang        = "pt"
+)
+```
+
+```{r plot-cv-log}
+# Curva de aprendizado: métrica de treinamento e de validação por rodada
+sus_mod_plot_ml(
+  x           = ml_fit,
+  type        = "cv_log",
+  output_type = "plot",
+  lang        = "pt"
+)
+```
+
+```{r plot-tabela}
+# output_type = "all" retorna lista com $plot, $table e $data
+out_imp <- sus_mod_plot_ml(ml_fit, type = "importance", output_type = "all")
+out_imp$table   # tibble: Feature, Gain, Cover, Frequency
+```
+
+# Características de las funciones
+
+## `sus_mod_ml()` — Ajuste del modelo XGBoost
+
+Entrena un modelo XGBoost de Gradient Boosting para predecir un desenlace de
+salud (recuento, tasa o binario) a partir de features numéricas. Incorpora
+validación cruzada agrupada con early stopping para determinar el número
+óptimo de árboles y devuelve predicciones out-of-fold para diagnóstico
+imparcial.
+
+**Argumentos principales:**
+
+| Argumento | Predeterminado | Descripción |
+|-----------|--------|-----------|
+| `df` | — | `data.frame` o `climasus_df` con outcome y features |
+| `outcome_col` | — | Nombre de la columna objetivo (debe ser numérica) |
+| `feature_cols` | `NULL` | Columnas predictoras; `NULL` = todas las numéricas excepto outcome e id |
+| `id_col` | `NULL` | Columna de agrupamiento para CV sin fuga entre grupos (ej.: municipio) |
+| `objective` | `"count:poisson"` | Función de pérdida: `"count:poisson"`, `"reg:squarederror"`, `"binary:logistic"` |
+| `nrounds` | `500L` | Número máximo de árboles (rondas de boosting) |
+| `max_depth` | `6L` | Profundidad máxima de los árboles |
+| `eta` | `0.05` | Tasa de aprendizaje (shrinkage); menor = más conservador, requiere más rondas |
+| `subsample` | `0.8` | Fracción de filas muestreadas por árbol (regularización) |
+| `colsample_bytree` | `0.8` | Fracción de columnas muestreadas por árbol |
+| `min_child_weight` | `1` | Peso mínimo por hoja; aumentar previene el sobreajuste en patrones raros |
+| `nfold` | `5L` | Número de folds de CV |
+| `early_stopping` | `50L` | Detener si la métrica CV no mejora durante N rondas consecutivas |
+| `seed` | `42L` | Semilla aleatoria para reproducibilidad |
+| `lang` | `"pt"` | Idioma de los mensajes: `"pt"`, `"en"`, `"es"` |
+
+**Retorno — objeto `climasus_ml` (lista con nombres):**
+
+| Componente | Contenido |
+|------------|----------|
+| `$predictions` | Tibble: `observed`, `fitted`, `cv_predicted`, `residual`, (e `id_col` si se proporcionó) |
+| `$importance` | Tibble ordenado por `Gain`: `Feature`, `Gain`, `Cover`, `Frequency` |
+| `$performance` | Lista: `RMSE_train`, `MAE_train`, `R2_train`, `RMSE_cv`, `MAE_cv`, `R2_cv`, `Pearson_cv`, `best_nrounds` |
+| `$model` | Objeto `xgb.Booster` final entrenado en el conjunto completo con `best_nrounds` |
+| `$cv_log` | `data.frame` del `xgb.cv()` con métrica por ronda (entrenamiento y validación) |
+| `$meta` | Lista con todos los parámetros de la llamada (trazabilidad) |
+
+**Métodos S3 disponibles:** `print()`, `summary()`, `tidy()` (predicciones),
+`predict()` (datos nuevos).
+
+**Dependencia:** requiere el paquete `xgboost` (Suggests). Si está ausente,
+la función lanza un error informativo con la instrucción de instalación.
+
+## `sus_mod_plot_ml()` — Visualizaciones del modelo ML
+
+Produce tres tipos de gráfico diagnóstico a partir de un objeto
+`climasus_ml`.
+
+**Argumentos:**
+
+| Argumento | Predeterminado | Descripción |
+|-----------|--------|-----------|
+| `x` | — | Objeto `climasus_ml` de `sus_mod_ml()` |
+| `type` | `"importance"` | Tipo de gráfico: ver tabla abajo |
+| `output_type` | `"plot"` | `"plot"` → ggplot2; `"table"` → tibble; `"all"` → lista `$plot/$table/$data` |
+| `n_top` | `20L` | Número máximo de features en el gráfico de importancia |
+| `interactive` | `FALSE` | `TRUE` convierte a widget `plotly` interactivo |
+| `base_size` | `12` | Tamaño base de la fuente ggplot2 |
+| `save_plot` | `NULL` | Ruta para guardar el gráfico (PNG/HTML) |
+| `lang` | `"pt"` | Idioma de las etiquetas: `"pt"`, `"en"`, `"es"` |
+
+**Tipos de gráfico (`type`):**
+
+| `type` | Qué muestra | Componente de `$` usado |
+|--------|-------------|-------------------------|
+| `"importance"` | Barras horizontales por feature, ordenadas por Gain (mayor = más predictivo) | `$importance` |
+| `"fit"` | Dispersión observado × predicho CV (OOF), con línea de identidad y anotaciones de R² y RMSE | `$predictions` |
+| `"cv_log"` | Curva de métrica de entrenamiento y de validación cruzada por ronda, con marcador en la mejor ronda | `$cv_log` |
+| `"prediction"` | Serie temporal de los valores predichos (OOF) superpuestos a los observados a lo largo del tiempo | `$predictions` |
+| `"residuals"` | Distribución y patrón temporal de los residuos (observado − predicho); detecta heterocedasticidad y patrones estacionales remanentes | `$predictions` |
+
+**Retorno:** `ggplot` (predeterminado), tibble de los datos graficados
+(`output_type = "table"`), o lista con nombres con ambos
+(`output_type = "all"`).
+
+# Fórmulas y fundamentos matemáticos
+
+## Objetivo XGBoost count:poisson
+
+El ensamble de $K$ árboles $\{f_k\}$ se ajusta minimizando la desviancia de
+Poisson regularizada:
+
+$$
+\mathcal{L}(\{f_k\}) = \sum_{i=1}^{n}
+\underbrace{\left[-y_i \log \hat{y}_i + \hat{y}_i\right]}_{\text{desviância Poisson}}
++ \sum_{k=1}^{K} \underbrace{\Omega(f_k)}_{\text{regularização L1/L2}}
+$$
+
+donde $\hat{y}_i = \exp\!\bigl(\sum_{k=1}^K f_k(\mathbf{x}_i)\bigr)$ y
+$\Omega(f) = \gamma T + \tfrac{1}{2}\lambda \|\mathbf{w}\|^2 + \alpha \|\mathbf{w}\|_1$
+penaliza la complejidad ($T$ = número de hojas, $\mathbf{w}$ = pesos).
+
+## Algoritmo de boosting (paso $t$)
+
+En la ronda $t$, se agrega el árbol $f_t$ que minimiza la aproximación
+cuadrática de segundo orden de la pérdida:
+
+$$
+\tilde{\mathcal{L}}^{(t)} = \sum_{i=1}^{n}
+\left[g_i f_t(\mathbf{x}_i) + \tfrac{1}{2} h_i f_t(\mathbf{x}_i)^2\right]
++ \Omega(f_t)
+$$
+
+siendo $g_i = \partial_{\hat{y}} \ell(y_i, \hat{y}_i^{(t-1)})$ y
+$h_i = \partial^2_{\hat{y}} \ell(y_i, \hat{y}_i^{(t-1)})$ el gradiente y la
+Hessiana de la pérdida.
+
+## Métricas de evaluación
+
+$$
+\text{RMSE} = \sqrt{\frac{1}{n}\sum_{i=1}^n (y_i - \hat{y}_i)^2}
+\qquad
+\text{MAE} = \frac{1}{n}\sum_{i=1}^n |y_i - \hat{y}_i|
+\qquad
+R^2 = 1 - \frac{\sum (y_i - \hat{y}_i)^2}{\sum (y_i - \bar{y})^2}
+$$
+
+Las métricas de CV (sufijo `_cv`) se calculan sobre las **predicciones
+out-of-fold**: cada observación es predicha por el modelo que **no la vio**
+en el entrenamiento, proporcionando una estimación no sesgada del error de
+generalización.
+
+# Resultados ilustrados
+
+```{r fig-importance, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/modml_importance.png", .nota_gerar)
+```
+
+**Figura 1.** Importancia de las variables (Gain) — top 15 features. El Gain
+mide la reducción media de la pérdida de Poisson por división que utiliza
+cada variable. Las features de temperatura (incluidas medias móviles y
+transformaciones no lineales) y de calendario (estacionalidad, tendencia)
+suelen liderar. El gráfico es producido por
+`sus_mod_plot_ml(type = "importance")`.
+
+```{r fig-fit, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/modml_fit.png", .nota_gerar)
+```
+
+**Figura 2.** Observado versus predicho fuera de la muestra (CV
+out-of-fold). Cada punto es un día × municipio; la línea discontinua es la
+identidad perfecta (predicho = observado). Las anotaciones de R² y RMSE se
+calculan sobre las predicciones OOF — imparciales, pues cada observación fue
+predicha por un modelo que no la usó en el entrenamiento. Producido por
+`sus_mod_plot_ml(type = "fit")`.
+
+```{r fig-cv-log, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/modml_cv_log.png", .nota_gerar)
+```
+
+**Figura 3.** Curva de convergencia de la validación cruzada. La línea de
+entrenamiento (gris) decrece monotónicamente; la línea de validación (azul)
+alcanza el mínimo en la mejor ronda (línea vertical discontinua), tras lo
+cual el early stopping interrumpe el entrenamiento. La diferencia entre las
+curvas cuantifica el sobreajuste. Producido por
+`sus_mod_plot_ml(type = "cv_log")`.
+
+```{r fig-features-ts, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/modml_features_ts.png", .nota_gerar)
+```
+
+**Figura 4.** Serie temporal de la feature más importante y de las
+defunciones diarias (ambas estandarizadas en z-score) para el año 2017. La
+covariación visual ilustra por qué la variable climática lidera la
+importancia predictiva: cuando la temperatura baja (invierno paulista), las
+defunciones respiratorias aumentan.
+
+```{r fig-performance, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/modml_performance.png", .nota_gerar)
+```
+
+**Figura 5.** Comparación de las métricas de desempeño entre el conjunto de
+entrenamiento (in-sample) y la validación cruzada OOF. La diferencia entre
+entrenamiento y CV indica la magnitud del sobreajuste; cuanto menor la
+diferencia, mejor la capacidad de generalización del modelo.
+
+## Tablas de resultados
+
+```{r tbl-desempenho, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/modml_resumo.rds", .nota_gerar,
+            caption = "Tabla 1. Métricas de desempeño del modelo XGBoost (entrenamiento vs. validación cruzada OOF).")
+```
+
+```{r tbl-importancia, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/modml_importance_tbl.rds", .nota_gerar,
+            caption = "Tabla 2. Importancia de las variables (top 15 por Gain). Gain: reducción media de la pérdida por división. Cover: cobertura media (obs). Frequency: proporción de divisiones.")
+```
+
+# Buenas prácticas y limitaciones
+
+**Lo que XGBoost captura bien:**
+
+- Relaciones no lineales complejas entre features y desenlace (sin necesidad
+  de especificar la forma funcional)
+- Interacciones de alto orden (ej.: efecto del calor amplificado los fines de
+  semana)
+- Gran número de features simultáneas sin selección previa manual
+
+**Lo que XGBoost no hace (diferencia crítica respecto al DLNM):**
+
+- **No modela rezago distribuido:** el efecto de la temperatura del día
+  $t-k$ debe incluirse como feature explícita (ej.: `tair_c_7d`,
+  `tair_c_14d`). El DLNM modela el rezago de forma continua.
+- **No proporciona intervalos de confianza** para las predicciones
+  individuales por defecto. Para cuantificar la incertidumbre, use
+  simulación bootstrap o conformal prediction.
+- **No es interpretable como riesgo relativo** directamente: los valores
+  predichos son recuentos (lambda de Poisson), no RR. Para estimaciones
+  causales de RR, use `sus_mod_dlnm()`.
+
+**Fuga de datos temporal:** en series temporales, una validación cruzada
+aleatoria puede violar el orden temporal (entrenar con el futuro para
+predecir el pasado). Para estudios con dependencia temporal fuerte,
+considere CV por bloques temporales (time-series split). El `id_col` de
+`sus_mod_ml()` controla la fuga *espacial* (por municipio), no la temporal.
+
+# Referencias
+
+- Chen, T., & Guestrin, C. (2016). XGBoost: A Scalable Tree Boosting System.
+  *Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge
+  Discovery and Data Mining*, 785–794. <https://doi.org/10.1145/2939672.2939785>
+- Friedman, J. H. (2001). Greedy function approximation: A gradient boosting
+  machine. *Annals of Statistics*, 29(5), 1189–1232.
+- Hastie, T., Tibshirani, R., & Friedman, J. (2009). *The Elements of Statistical
+  Learning* (2nd ed.). Springer. Cap. 10 (Boosting and Additive Trees).
+- Gasparrini, A., Armstrong, B., & Kenward, M. G. (2010). Distributed lag
+  non-linear models. *Statistics in Medicine*, 29(21), 2224–2234.
+- Bhaskaran, K., Gasparrini, A., Hajat, S., Smeeth, L., & Armstrong, B. (2013).
+  Time series regression studies in environmental epidemiology. *International
+  Journal of Epidemiology*, 42(4), 1187–1195.
+- Ministério da Saúde (Brasil). DATASUS — Departamento de Informática do SUS.
+  Disponible en: <http://datasus.saude.gov.br>.
+
+---
+
+# Navegación
+
+- [Volver al hub de tutoriales](tutorials.html)
+- **Anterior:** [Modelado 04 — Metaanálisis multi-ciudad](mod-04-multicidade.html)
+- **Siguiente:** [Modelado 06 — Análisis Espacial](mod-06-espacial.html)
+
+> **Cómo reproducir las figuras.** Ejecute una única vez, desde la raíz del
+> paquete:
+> `Rscript scripts/modelagem_05_ml.R`
+>
+> El script guarda las figuras en `vignettes-pt/figuras/` (prefijo
+> `modml_`), las tablas en `vignettes-pt/dados/` y el objeto ajustado
+> (`mod_ml_fit.rds`) que tutoriales posteriores pueden reutilizar.
+> El paquete `xgboost` debe estar instalado:
+> `install.packages("xgboost")`

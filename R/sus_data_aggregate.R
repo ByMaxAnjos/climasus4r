@@ -538,7 +538,7 @@ sus_data_aggregate <- function(df,
   system_priority <- list(
 
     # SIM (mortalidade)
-    "SIM" = c("ocorrencia", "residencia", "estabelecimento", "generico"),
+    "SIM" = c("residencia", "ocorrencia", "estabelecimento", "generico"),
 
     # SIH (internacao)
     "SIH" = c("residencia", "estabelecimento", "ocorrencia", "generico"),
@@ -1912,7 +1912,7 @@ resolve_geo_col <- function(col_names, system) {
   )
 
   system_priority <- list(
-    SIM    = c("ocorrencia", "residencia", "estabelecimento", "generico"),
+    SIM    = c("residencia", "ocorrencia", "estabelecimento", "generico"),
     SIH    = c("residencia", "estabelecimento", "ocorrencia", "generico"),
     SINAN  = c("residencia", "ocorrencia", "estabelecimento", "generico"),
     SIA    = c("residencia", "estabelecimento", "generico"),

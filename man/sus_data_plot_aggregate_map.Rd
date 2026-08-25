@@ -109,7 +109,10 @@ Default \code{"~/.climasus4r_cache/spatial"}.}
 A \code{ggplot2} object (class \code{"gg"} / \code{"ggplot"}), a \code{plotly}
 object when \code{interactive = TRUE}, or an \code{sf} object when
 \code{return_sf = TRUE}.  The function does \strong{not} modify \code{df} or advance
-the pipeline \code{stage}.
+the pipeline \code{stage}.  When a plain \code{ggplot2} object is returned, it
+also carries the underlying \code{sf} data as a \code{"climasus_sf"} attribute
+(\code{attr(p, "climasus_sf")}) for callers that want to export it without
+a second \code{return_sf = TRUE} call.
 }
 \description{
 Renders a bubble or choropleth map showing the spatial distribution of

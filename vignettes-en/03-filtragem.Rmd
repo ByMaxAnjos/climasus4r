@@ -1,0 +1,413 @@
+---
+title: "Tutorial 3: Filtering by Disease (ICD-10) and Demographics"
+author: "climasus4r Team"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* -- Variaveis de Cores Modernas -- */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; color: var(--text-main); background-color: #fff; line-height: 1.6; }
+h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--dark-green); }
+h1.title { font-size: 2.8em; border-bottom: 4px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 1.5rem; }
+h2 { margin-top: 2rem; border-left: 4px solid var(--primary-color); padding-left: 1rem; }
+pre.r, pre.sourceCode { background-color: var(--code-bg); border: 1px solid #e1e1e1; border-left: 5px solid var(--primary-color) !important; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1rem; }
+.callout { padding: 1.2em 1.5em; margin: 1.5em 0; border-radius: 8px; border-left: 6px solid; background-color: var(--bg-light); }
+.callout-note { background-color: #f0f7ff; border-color: #007bff; }
+.callout-tip { background-color: #e8f5e9; border-color: #1D9E75; }
+.callout-warning { background-color: #fff3e0; border-color: #ff9800; }
+.workflow-container { background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #dce8e1; overflow-x: auto; }
+.workflow-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; font-family: 'Inter', monospace; font-size: 0.8rem; }
+.workflow-step { background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap; }
+.workflow-arrow { color: var(--primary-color); font-weight: bold; font-size: 1.2rem; }
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+.feature-card { background: white; border-radius: 12px; padding: 1.5rem; border: 1px solid #e1e1e1; transition: transform 0.2s ease, box-shadow 0.2s ease; text-align: center; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+.feature-card h3 { margin-top: 0; color: var(--primary-color); font-size: 1.1rem; }
+table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e1e1; }
+th { background-color: var(--bg-light); font-weight: 600; color: var(--dark-green); }
+.github-feedback-btn { display: inline-flex; align-items: center; gap: 8px; background-color: #24292e; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-family: sans-serif; transition: background-color 0.2s; margin-top: 1rem; }
+.github-feedback-btn:hover { background-color: #2c3e50; color: white; text-decoration: none; }
+@media (max-width: 768px) { body { font-size: 16px; } h1.title { font-size: 2rem; } .workflow-steps { flex-direction: column; align-items: center; } }
+```
+
+
+```{r setup, include=FALSE}
+# ATENÇÃO — estratégia de pré-renderização.
+# Este tutorial NÃO executa análise durante a renderização. Todas as figuras e
+# tabelas foram geradas UMA vez pelo script scripts/tutorial_03_filtragem.R e
+# são apenas carregadas aqui (PNG via include_graphics; RDS via readRDS).
+# Por isso, os chunks de ensino abaixo usam eval = FALSE: o código é mostrado,
+# mas não é executado no momento do knit.
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+
+# Helpers para exibir artefatos de forma robusta: se o arquivo ainda não foi
+# gerado (script de geração não executado), mostram uma nota em vez de quebrar
+# o knit. Assim a vignette renderiza a qualquer momento.
+fig_ou_nota <- function(path, nota) {
+  if (file.exists(path)) knitr::include_graphics(path)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+tbl_ou_nota <- function(path, nota, caption = NULL) {
+  if (file.exists(path)) knitr::kable(readRDS(path), caption = caption)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+.nota_gerar <- "Artefato indisponível — rode `Rscript scripts/tutorial_03_filtragem.R` (a partir da raiz do pacote) para gerá-lo."
+```
+
+# Objective
+
+By the end of this tutorial you will be able to **subset already-standardized
+health microdata** along two complementary axes:
+
+1. **By disease (ICD-10)** — with `sus_data_filter_cid()`, selecting specific
+   codes, ranges, entire chapters, or one of the package's **50+ predefined
+   disease groups**;
+2. **By demographic characteristics** — with `sus_data_filter_demographics()`,
+   restricting by sex, race/color, **age group**, education, region, or
+   municipality.
+
+You will also get to know `sus_data_cid_select()`, an **interactive explorer**
+that helps you discover disease-group names without needing to memorize
+ICD-10 codes.
+
+Filtering is the **third stage** of the pipeline (`import → clean → stand →
+**filter_cid → filter_demo** → derive → aggregate → …`). It requires that the
+data have already been standardized (stage `stand`); functions therefore abort
+with a guiding message if they receive data at an earlier stage.
+
+# Scientific context
+
+**Climate and health** studies rarely analyze all deaths or hospitalizations
+at once: interest centers on **climate-sensitive outcomes** in **vulnerable
+subpopulations**. The literature is consistent in showing that thermal
+extremes disproportionately affect **respiratory** causes (ICD-10 chapter J,
+J00–J99) and **cardiovascular** causes (chapter I, I00–I99), especially among
+**older adults** (Gasparrini et al., 2015; Bhaskaran et al., 2013).
+
+The **International Classification of Diseases, 10th revision (ICD-10)**
+organizes causes into chapters identified by an initial letter and into
+three- to four-character codes (WHO, 2016). `climasus4r` translates this
+structure into a flexible filtering syntax — single code, range
+(`"J00-J99"`), chapter (`"J"`), or named group (`"respiratory"`) — and
+automatically detects the appropriate cause-of-death column for each DATASUS
+system (`CAUSABAS`/`causa_basica` in SIM, `DIAG_PRINC`/`diagnostico_principal`
+in SIH).
+
+Subsetting **before** aggregating is also good reproducibility practice: the
+`climasus_df` object records in its history exactly which codes and
+demographic criteria were applied, making the study auditable.
+
+> **Driving case study.** We investigate **temperature and health outcomes in
+> older adults (60+) in the São Paulo Metropolitan Region, 2014–2019**. In
+> this tutorial, starting from the standardized base from Tutorial 2, we
+> subset the **respiratory causes (J00–J99)** and **cardiovascular causes
+> (I00–I99)** and restrict to the **older population (60 years or more)**
+> residing in the RMSP (São Paulo Metropolitan Region). The filtered object
+> feeds into Tutorial 4 (Variable Creation and Aggregation).
+
+# Data used
+
+Input: `vignettes-pt/dados/caso_padronizado.rds` — the **standardized** SIM-DO
+base produced in Tutorial 2 (canonical columns such as `causa_basica`,
+`age_years`, `sex`, `residence_municipality_code`). The script loads this
+`.rds` file with a `file.exists()` guard; if it does not yet exist (Tutorial 2
+not run), it falls back to a **minimal synthetic example** solely to produce
+the didactic artifacts.
+
+| Subset | Criterion | Function |
+|---------|----------|--------|
+| Respiratory causes | ICD-10 J00–J99 (`disease_group = "respiratory"`) | `sus_data_filter_cid()` |
+| Cardiovascular causes | ICD-10 I00–I99 (`icd_codes = "I00-I99"`) | `sus_data_filter_cid()` |
+| Older adults | `age_range = c(60, Inf)` | `sus_data_filter_demographics()` |
+| RMSP | `municipality_code = <IBGE codes>` | `sus_data_filter_demographics()` |
+
+# Full pipeline
+
+The blocks below reproduce what the `scripts/tutorial_03_filtragem.R` script
+executes. Start by loading the package and the standardized base from the
+previous tutorial:
+
+```{r carregar}
+library(climasus4r)
+
+# Saída do Tutorial 2 (Encoding & Padronização):
+caso_padronizado <- readRDS("vignettes-pt/dados/caso_padronizado.rds")
+obitos_std <- caso_padronizado$obitos   # SIM-DO padronizado (estágio "stand")
+```
+
+## Explore disease groups
+
+`sus_data_cid_select()` helps you discover **which groups exist** and which
+are **climate-sensitive**, without opening the source code. In interactive
+mode (`output = "browser"`) it opens an HTML interface; in `"console"` mode it
+invisibly returns a `data.frame` with the groups:
+
+```{r cid-select}
+# Interface interativa no navegador (padrão):
+sus_data_cid_select(lang = "pt")
+
+# Apenas os grupos sensíveis ao clima:
+sus_data_cid_select(lang = "pt", filter_climate = TRUE)
+
+# Sem abrir o navegador — devolve o data.frame de grupos:
+grupos <- sus_data_cid_select(lang = "pt", output = "console", verbose = FALSE)
+```
+
+## Filter by ICD-10
+
+There are two equivalent ways to subset the respiratory and cardiovascular
+causes: by **named group** (more readable) or by **code range** (more
+explicit). The cause-of-death column (`causa_basica`, in SIM-DO) is
+**automatically detected** from the `climasus_df` metadata.
+
+```{r filter-cid}
+# (a) Respiratório (J00-J99) por grupo de doença:
+resp <- sus_data_filter_cid(
+  df            = obitos_std,
+  disease_group = "respiratory",   # equivale a icd_codes = "J00-J99"
+  match_type    = "starts_with",   # "J18" casa "J18", "J18.0", "J18.9"
+  backend       = "tibble",        # "arrow" (lazy) ou "tibble" (em memória)
+  lang          = "pt"
+)
+
+# (b) Cardiovascular (I00-I99) por intervalo de códigos:
+cardio <- sus_data_filter_cid(
+  df         = obitos_std,
+  icd_codes  = "I00-I99",          # equivale a disease_group = "cardiovascular"
+  match_type = "starts_with",
+  backend    = "tibble",
+  lang       = "pt"
+)
+```
+
+## Filter by demographics (older adults 60+ in the RMSP)
+
+We chain the demographic subset on top of the respiratory subset. The
+argument `age_range = c(60, Inf)` requires the `age_years` column; the
+spatial subset uses **IBGE codes** for the municipalities of the São Paulo
+Metropolitan Region:
+
+```{r filter-demo}
+# Municípios da RMSP (códigos IBGE de 7 dígitos):
+RMSP <- c("3550308", "3548708", "3509502", "3548500",
+          "3547809", "3530607", "3534401", "3505708")
+
+resp_idosos <- sus_data_filter_demographics(
+  df                = resp,
+  age_range         = c(60, Inf),   # idosos: 60 anos ou mais
+  municipality_code = RMSP,         # recorte espacial: RMSP
+  drop_ignored      = FALSE,        # TRUE removeria sexo/raça "Ignorado"/NA
+  backend           = "tibble",
+  use_cache         = TRUE,
+  lang              = "pt"
+)
+
+cardio_idosos <- sus_data_filter_demographics(
+  df                = cardio,
+  age_range         = c(60, Inf),
+  municipality_code = RMSP,
+  backend           = "tibble",
+  lang              = "pt"
+)
+```
+
+You can also filter by **city name** (tolerant of accents and typos), by
+**sex/race/education**, or by predefined **region**:
+
+```{r filter-demo-extra}
+# Por nome de cidade (em vez de código) e por sexo:
+mulheres_sp <- sus_data_filter_demographics(
+  df   = resp,
+  sex  = "Feminino",
+  city = "Sao Paulo",   # aceita acento; faz correspondência aproximada
+  lang = "pt"
+)
+
+# Por macrorregião (atalho que resolve para um conjunto de UFs):
+sudeste <- sus_data_filter_demographics(resp, region = "sudeste", lang = "pt")
+```
+
+At the end of this step we have `resp_idosos` and `cardio_idosos` — the
+**subsets of interest** that will be saved and will feed into Tutorial 4.
+
+# Function features
+
+## `sus_data_filter_cid()`
+
+Filters by ICD-10. Requires `icd_codes` **or** `disease_group` (if both are
+supplied, `disease_group` takes precedence). The cause-of-death column is
+automatically detected by the system (`SIM → causa_basica`,
+`SIH → diagnostico_principal`).
+
+| Argument | Essential? | Description |
+|-----------|------------|-----------|
+| `df` | yes | `climasus_df` at stage `stand` or later |
+| `icd_codes` | one of the two | Code(s)/range(s): `"J18.9"`, `c("I21","I22")`, `"J00-J99"` |
+| `disease_group` | one of the two | Named group: `"respiratory"`, `"cardiovascular"`, `"dengue"`, … |
+| `icd_column` | optional | Cause column; `NULL` = autodetection |
+| `match_type` | optional | `"starts_with"` (default), `"exact"`, `"range"` |
+| `backend` | optional | `"arrow"` (lazy, default) or `"tibble"` (in memory) |
+| `lang` / `verbose` | optional | Language (`"pt"`/`"en"`/`"es"`) and messages |
+
+**Returns:** a filtered `climasus_df` (stage `filter_cid`), preserving all
+original columns and recording in its history the codes/groups applied.
+
+## `sus_data_filter_demographics()`
+
+Filters by demographic and geographic characteristics. All criteria are
+optional; if none are supplied, the data are returned unchanged. Combinations
+are applied in sequence (intersection across criteria); `city` and
+`municipality_code` are combined by **union**.
+
+| Argument | Description |
+|-----------|-----------|
+| `df` | `climasus_df` at stage `stand` or later |
+| `sex` | `"Masculino"`/`"Feminino"` (accepts pt/en/es) |
+| `race` | IBGE categories: `"Branca"`, `"Preta"`, `"Parda"`, … |
+| `age_range` | Vector `c(min, max)`; use `Inf` for no upper limit. Requires `age_years` |
+| `education` | Education levels |
+| `region` | Predefined group of states/UFs (`"sudeste"`, `"semi_arido"`, …) |
+| `city` | Municipality name(s) (tolerant of accents/typos) |
+| `municipality_code` | 6- or 7-digit IBGE code(s) |
+| `drop_ignored` | `TRUE` removes `NA`/"Ignored" codes from demographic variables |
+| `backend`, `use_cache`, `cache_dir` | Backend and spatial cache (relevant with `city`) |
+| `lang` / `verbose` | Language and messages |
+
+**Returns:** a filtered `climasus_df` (stage `filter_demo`). Internally,
+municipality codes are expanded to cover **both** formats (DATASUS's 6 digits
+and IBGE's 7 digits), so the filter works regardless of the format stored.
+
+## `sus_data_cid_select()`
+
+Disease-group explorer. **Does not alter the data** — it only helps discover
+group names to use in `sus_data_filter_cid()`.
+
+| Argument | Description |
+|-----------|-----------|
+| `lang` | `"pt"` (default), `"en"`, `"es"` |
+| `output` | `"browser"` (interactive HTML, default) or `"console"` (summary in R) |
+| `filter_climate` | `TRUE` shows only climate-sensitive groups |
+| `verbose` | Informational messages |
+
+**Returns:** invisibly, a `data.frame` with `name`, `icd_codes`,
+`climate_factors`, `description`, `category`, and `climate_sensitive`.
+
+# ICD-10 code syntax
+
+The `icd_codes` syntax is expanded internally by `process_icd_codes()`. A
+**range** `"J00-J99"` is expanded into the sequence of prefixes
+$J00, J01, \dots, J99$. Formally, for a range of the same letter $L$ between
+numbers $a$ and $b$:
+
+$$
+\mathrm{expand}(L\,a\text{–}L\,b) = \{\, L\,n : n \in \{a, a+1, \dots, b\} \,\}
+$$
+
+The `match_type` parameter defines how each code is compared against the
+cause column:
+
+- **`"exact"`** — exact equality (`"I10"` matches only `"I10"`);
+- **`"starts_with"`** (default) — prefix (`"I10"` matches `"I10"`, `"I10.0"`,
+  `"I10.9"`), which reflects the ICD-10 hierarchy;
+- **`"range"`** — matching by any prefix of the expanded range.
+
+The fraction of records retained at each filter is simply
+
+$$
+\text{retido (\%)} = 100 \times \frac{n_{\text{filtrado}}}{n_{\text{original}}}\,.
+$$
+
+# Illustrated results
+
+```{r tab-grupos, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/filt_grupos_doenca.rds", .nota_gerar,
+            caption = "Table 1. ICD-10 disease groups of interest in the driving case study (output of sus_data_cid_select).")
+```
+
+```{r tab-resumo, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/filt_resumo.rds", .nota_gerar,
+            caption = "Table 2. Filtering funnel: records retained at each step.")
+```
+
+```{r fig-funil, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/filt_funil_cid.png", .nota_gerar)
+```
+
+**Figure 1.** Filtering funnel. Each bar shows how many records remain after
+the standardized base, the ICD-10 subset (respiratory, J00–J99), and the
+demographic subset (older adults 60+ residing in the RMSP). The narrowing
+illustrates how the analysis object is progressively restricted to the
+study's scope.
+
+```{r fig-comp, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/filt_resp_vs_cardio.png", .nota_gerar)
+```
+
+**Figure 2.** Deaths in older adults (60+) in the RMSP by major cause group,
+after the combined filtering (ICD-10 + demographics). The comparison between
+the respiratory (J) and cardiovascular (I) chapters is the starting point for
+the climate-sensitivity analysis in the next tutorials.
+
+```{r fig-piramide, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/filt_piramide_idade.png", .nota_gerar)
+```
+
+**Figure 3.** Age distribution of respiratory deaths. The filter
+`age_range = c(60, Inf)` retains only the 60–79 and 80+ age groups, making
+explicit the effect of the demographic subset on the population analyzed.
+
+```{r fig-serie, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/filt_serie_idosos.png", .nota_gerar)
+```
+
+**Figure 4.** Monthly series of respiratory deaths in older adults (60+) in
+the RMSP, 2014–2019, after filtering. The winter seasonality — expected for
+respiratory causes — already appears in the subsetted object and will be
+compared against temperature in the climate and modeling stages.
+
+# References
+
+- Bhaskaran, K., Gasparrini, A., Hajat, S., Smeeth, L., & Armstrong, B. (2013).
+  Time series regression studies in environmental epidemiology.
+  *International Journal of Epidemiology*, 42(4), 1187–1195.
+- Gasparrini, A., Guo, Y., Hashizume, M., et al. (2015). Mortality risk
+  attributable to high and low ambient temperature: a multicountry observational
+  study. *The Lancet*, 386(9991), 369–375.
+- Organização Mundial da Saúde. (2016). *CID-10: Classificação Estatística
+  Internacional de Doenças e Problemas Relacionados à Saúde*, 10ª revisão.
+- Ministério da Saúde (Brasil). DATASUS — CID-10. Available at:
+  <http://datasus.saude.gov.br/cid10>.
+
+---
+
+# Navigation
+
+- [Back to tutorial hub](tutorials.html)
+- **Previous:** [Tutorial 2 — Encoding and Standardization](02-encoding-padronizacao.html)
+- **Next:** [Tutorial 4 — Variable Creation and Aggregation](04-variaveis-agregacao.html)

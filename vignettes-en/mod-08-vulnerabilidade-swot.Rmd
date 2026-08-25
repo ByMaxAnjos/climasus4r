@@ -1,0 +1,733 @@
+---
+title: "Modeling 08: Vulnerability Index and SWOT Synthesis"
+author: "climasus4r Team"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* -- Variaveis de Cores Modernas -- */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; color: var(--text-main); background-color: #fff; line-height: 1.6; }
+h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--dark-green); }
+h1.title { font-size: 2.8em; border-bottom: 4px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 1.5rem; }
+h2 { margin-top: 2rem; border-left: 4px solid var(--primary-color); padding-left: 1rem; }
+pre.r, pre.sourceCode { background-color: var(--code-bg); border: 1px solid #e1e1e1; border-left: 5px solid var(--primary-color) !important; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1rem; }
+.callout { padding: 1.2em 1.5em; margin: 1.5em 0; border-radius: 8px; border-left: 6px solid; background-color: var(--bg-light); }
+.callout-note { background-color: #f0f7ff; border-color: #007bff; }
+.callout-tip { background-color: #e8f5e9; border-color: #1D9E75; }
+.callout-warning { background-color: #fff3e0; border-color: #ff9800; }
+.workflow-container { background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #dce8e1; overflow-x: auto; }
+.workflow-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; font-family: 'Inter', monospace; font-size: 0.8rem; }
+.workflow-step { background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap; }
+.workflow-arrow { color: var(--primary-color); font-weight: bold; font-size: 1.2rem; }
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+.feature-card { background: white; border-radius: 12px; padding: 1.5rem; border: 1px solid #e1e1e1; transition: transform 0.2s ease, box-shadow 0.2s ease; text-align: center; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+.feature-card h3 { margin-top: 0; color: var(--primary-color); font-size: 1.1rem; }
+table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e1e1; }
+th { background-color: var(--bg-light); font-weight: 600; color: var(--dark-green); }
+.github-feedback-btn { display: inline-flex; align-items: center; gap: 8px; background-color: #24292e; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-family: sans-serif; transition: background-color 0.2s; margin-top: 1rem; }
+.github-feedback-btn:hover { background-color: #2c3e50; color: white; text-decoration: none; }
+@media (max-width: 768px) { body { font-size: 16px; } h1.title { font-size: 2rem; } .workflow-steps { flex-direction: column; align-items: center; } }
+```
+
+
+```{r setup, include=FALSE}
+# ATENÇÃO — estratégia de pré-renderização.
+# Este tutorial NÃO executa modelagem durante a renderização. Todas as figuras e
+# tabelas foram geradas UMA vez pelo script scripts/modelagem_08_vulnerabilidade_swot.R e
+# são apenas carregadas aqui (PNG via include_graphics; RDS via readRDS).
+# Por isso, os chunks de ensino abaixo usam eval = FALSE: o código é mostrado,
+# mas não é executado no momento do knit.
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+
+# Helpers robustos: se o arquivo não foi gerado, mostram uma nota em vez de
+# quebrar o knit. Assim a vignette renderiza a qualquer momento.
+fig_ou_nota <- function(path, nota) {
+  if (file.exists(path)) knitr::include_graphics(path)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+tbl_ou_nota <- function(path, nota, caption = NULL) {
+  if (file.exists(path)) knitr::kable(readRDS(path), caption = caption)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+.nota_gerar <- "Artefato indisponível — rode `Rscript scripts/modelagem_08_vulnerabilidade_swot.R` (a partir da raiz do pacote) para gerá-lo."
+
+# Caminhos base (relativos à raiz do pacote, de onde o script é executado)
+.fig <- function(n) file.path("figuras", paste0(n, ".png"))
+.tbl <- function(n) file.path("dados",   paste0(n, ".rds"))
+```
+
+# Objective
+
+By the end of this tutorial you will be able to:
+
+1. **Compose a Composite Vulnerability Index (CVI)** following the IPCC AR6 three-pillar
+   structure — climate Exposure, population Sensitivity, and Adaptive Capacity — from
+   health-climate, socioeconomic, and health infrastructure indicators, using
+   `sus_mod_vulnerability_index()`;
+2. **Interpret the vulnerability ranking** across municipalities and measure territorial
+   inequality with the Gini Coefficient and the Lorenz curve;
+3. **Synthesize the results into a SWOT analysis** (Strengths, Weaknesses, Opportunities
+   and Threats) oriented toward health-climate public policy, using `sus_mod_swot()`;
+4. **Visualize and communicate** the results with the paired plotting functions
+   `sus_mod_plot_vulnerability()` (ranking, pillars, Lorenz) and `sus_mod_plot_swot()`
+   (radar, 2×2 matrix, bars).
+
+This is the **eighth module in the Modeling series** of `climasus4r`. The main inputs
+are the `climasus_af` object from Module M2 (`mod_af.rds`) and the `climasus_dlnm`
+object from Module M1 (`mod_dlnm_fit.rds`). The main output is the `climasus_vi` object
+saved as `mod_vi.rds` for reuse in final reports and risk communication.
+
+---
+
+# Scientific background
+
+## Climate vulnerability according to the IPCC
+
+The **IPCC's Fifth Assessment Report** (AR5, 2014) established the three-pillar
+framework that defines vulnerability — later refined in AR6 (2022) — as a function of
+three interdependent components:
+
+- **Exposure**: the degree to which a system or population is affected by climate
+  stressors (extreme temperature, heat waves, days above the 90th percentile of
+  heat);
+- **Sensitivity**: the level of response of a system to the stressor, conditioned by
+  intrinsic factors such as the proportion of elderly people, prevalence of chronic
+  disease, and the dose-response relationship estimated by DLNM models;
+- **Adaptive Capacity**: the set of institutional, economic, and infrastructural
+  resources that allow a system to modulate its impacts (human development index,
+  treated water coverage, density of primary health care units).
+
+The composite index formula, originally proposed by Turner et al. (2003) and adopted
+in the social vulnerability literature (Cutter, Boruff & Shirley, 2003; Benmarhnia et
+al., 2015), inverts the Adaptive Capacity pillar before combination, since higher
+capacity means lower vulnerability:
+
+$$
+VI_i = \frac{w_E \cdot E_i + w_S \cdot S_i + w_{AC} \cdot (1 - AC_i)}{w_E + w_S + w_{AC}}
+$$
+
+where $E_i$, $S_i$, and $AC_i$ are the weighted averages of the normalized indicators
+(min-max or z-score) of municipality $i$ for each pillar, and $w_E$, $w_S$, $w_{AC}$
+are the inter-pillar weights. Missing indicators are handled through automatic
+reweighting.
+
+## Min-max and z-score normalization
+
+**Min-max normalization** projects each indicator $x_{ij}$ onto the interval $[0, 1]$:
+
+$$
+\tilde{x}_{ij} = \frac{x_{ij} - \min_j(x_{ij})}{\max_j(x_{ij}) - \min_j(x_{ij})}
+$$
+
+**Z-score normalization** standardizes by mean and standard deviation, preserving the
+original distribution — useful when indicators have very heterogeneous scales, but it
+requires a back-transformation for direct interpretation.
+
+## Territorial inequality and the Lorenz Curve
+
+The **Lorenz Curve** is the classic instrument for visualizing the concentration of
+any resource or burden across an ordered population. In the context of climate risk,
+the curve accumulates the proportion of total CVI (y-axis) against the proportion of
+municipalities (x-axis), from least to most vulnerable. The larger the area between
+the curve and the diagonal of perfect equality, the higher the **Gini Coefficient** —
+which ranges from 0 (perfect equality) to 1 (all risk concentrated in a single
+municipality).
+
+Climate risk concentration analyses have been applied at multi-city scale by
+Gasparrini et al. (2017) and in national socio-environmental vulnerability studies in
+Brazil by Confalonieri et al. (2009) and Marengo et al. (2022).
+
+## SWOT analysis oriented toward health-climate policy
+
+The SWOT framework (Andrews, 1971), widely used in strategic planning, has been
+adapted to climate-health risk management. In this approach:
+
+- **Strengths (S)** represent existing protective factors — high adaptive capacity,
+  low total attributable fraction;
+- **Weaknesses (W)** reflect current vulnerabilities — high population sensitivity,
+  high heat- and cold-attributable fractions;
+- **Opportunities (O)** identify windows for intervention — municipalities with a
+  relatively low vulnerability index and moderate current exposure have room to
+  advance prevention before reaching critical levels;
+- **Threats (T)** signal emerging or already present risks — high climate exposure,
+  high relative heat risk (DLNM), high attributable number.
+
+---
+
+# Data used
+
+| Object | Source | Content |
+|--------|--------|----------|
+| `caso_espacial.rds` | Tutorial T5 | sf geometries of the RMSP municipalities |
+| `caso_socio.rds` | Tutorial T6 | Socioeconomic indicators per municipality (HDI, % elderly, etc.) |
+| `mod_dlnm_fit.rds` | Module M1 | `climasus_dlnm` object fitted for the RMSP |
+| `mod_af.rds` | Module M2 | `climasus_af` object with total/heat/cold AF% |
+
+Whenever any of these four files is missing (execution outside the full chain), the
+pre-rendering script synthesizes realistic data with a warning — the Rmd renders
+normally, displaying illustrative results.
+
+---
+
+# Complete pipeline
+
+```{r carregar}
+library(climasus4r)
+library(dplyr)
+```
+
+## Load chained inputs
+
+```{r carregar-entradas}
+# Objeto climasus_af do Módulo M2
+mod_af <- if (file.exists("vignettes-pt/dados/mod_af.rds")) {
+  readRDS("vignettes-pt/dados/mod_af.rds")
+} else {
+  NULL  # fallback: SWOT rodará sem AF
+}
+
+# Objeto climasus_dlnm do Módulo M1
+mod_dlnm <- if (file.exists("vignettes-pt/dados/mod_dlnm_fit.rds")) {
+  readRDS("vignettes-pt/dados/mod_dlnm_fit.rds")
+} else {
+  NULL  # fallback: sem extração DLNM automática
+}
+
+# Indicadores socioeconômicos
+caso_socio <- if (file.exists("vignettes-pt/dados/caso_socio.rds")) {
+  readRDS("vignettes-pt/dados/caso_socio.rds")
+} else {
+  # Mínimo realista para o script funcionar sem a cadeia completa
+  data.frame(
+    city          = c("Sao Paulo", "Guarulhos", "Santo Andre", "Osasco", "Maua"),
+    pct_idosos    = c(16.2, 12.4, 14.8, 13.1, 11.9),
+    pct_doenca_cr = c(28.1, 24.3, 26.7, 22.8, 20.5),
+    hdi           = c(0.845, 0.763, 0.815, 0.776, 0.742),
+    pct_agua      = c(97.2, 88.4, 94.1, 90.3, 85.7),
+    densidade_ubs = c(6.8, 3.2, 5.1, 4.0, 2.9)
+  )
+}
+```
+
+## Build the three IPCC pillars
+
+Each pillar is supplied as a `data.frame` with a municipal identifier column
+(`city_col = "city"`) and numeric indicator columns. Indicators missing for a given
+municipality are filled with `NA` and excluded from the pillar's weighted average,
+without forcing complete exclusion.
+
+```{r pilares}
+# ----- Pilar E: Exposição Climática ------------------------------------------
+# Fonte: sus_climate_aggregate() (temperatura maxima media, dias de calor P90,
+#        contagem de ondas de calor por ano)
+exposure_df <- data.frame(
+  city           = caso_socio$city,
+  tmax_media     = c(29.8, 31.2, 28.9, 30.1, 31.8),  # grau Celsius
+  dias_calor_p90 = c(52,   68,   45,   58,   72),     # dias/ano
+  ondas_calor    = c(4,    8,    3,    6,    9)        # eventos/ano
+)
+
+# ----- Pilar S: Sensibilidade Populacional -----------------------------------
+# Fonte: caso_socio.rds + extração automática de climasus_dlnm (argumento fits)
+sensitivity_df <- caso_socio[, c("city", "pct_idosos", "pct_doenca_cr")]
+
+# ----- Pilar AC: Capacidade Adaptativa ---------------------------------------
+# Fonte: caso_socio.rds (HDI, cobertura hídrica, densidade UBS)
+adaptive_capacity_df <- caso_socio[, c("city", "hdi", "pct_agua", "densidade_ubs")]
+```
+
+## Fit the Composite Vulnerability Index
+
+`sus_mod_vulnerability_index()` accepts a `fits` argument (a named list of
+`climasus_dlnm` objects) for automatic extraction of the metrics `dlnm_hot_rr`,
+`dlnm_cold_rr`, and `dlnm_sensitivity_index`, which are automatically merged into the
+sensitivity pillar.
+
+```{r vulnerability-index}
+# Opcional: lista nomeada de climasus_dlnm (um por cidade)
+# fits_dlnm <- list(sao_paulo = mod_dlnm)  # ajuste por municipio
+
+vi_fit <- sus_mod_vulnerability_index(
+  exposure_df          = exposure_df,
+  sensitivity_df       = sensitivity_df,
+  adaptive_capacity_df = adaptive_capacity_df,
+  fits                 = NULL,                # ou: fits_dlnm (lista climasus_dlnm)
+  city_col             = "city",
+  normalize            = "minmax",            # "minmax" ou "zscore"
+  weights              = c(tmax_media = 2,    # dobrar peso da Tmax
+                           pct_idosos = 2),   # dobrar peso da proporção de idosos
+  pillar_weights       = c(exposure         = 1.5,
+                           sensitivity      = 1.0,
+                           adaptive_capacity = 1.0),
+  hot_percentile       = 0.99,
+  cold_percentile      = 0.01,
+  lang                 = "pt",
+  verbose              = TRUE
+)
+
+# Inspecionar o resultado
+print(vi_fit)
+```
+
+The `climasus_vi` object contains:
+
+| Element | Type | Content |
+|----------|------|----------|
+| `$vi_table` | tibble | CVI, pillar scores, rank, and percentile per city |
+| `$pillar_scores` | tibble (long) | Raw scores for the three pillars per city |
+| `$normalized_indicators` | tibble | Normalized indicators (prefixes `exp_`, `sen_`, `ac_`) |
+| `$raw_indicators` | tibble | Original indicators without normalization |
+| `$weights` | list | Intra-pillar and inter-pillar weights effectively used |
+| `$gini_coefficient` | numeric | Gini of the CVI (0 = perfect equality) |
+| `$meta` | list | Call parameters, counts, timing |
+
+## Fit the SWOT Analysis
+
+`sus_mod_swot()` aggregates climasus objects from multiple modules into normalized
+(0–100) and categorized SWOT quadrants. The argument `breaks = c(25, 50, 75)` produces
+four categories (Low / Medium / High / Very High) — the default `c(33, 66)` produces
+three categories.
+
+```{r swot}
+swot_fit <- sus_mod_swot(
+  vulnerability = vi_fit,
+  af            = mod_af,    # climasus_af do Módulo M2 (ou NULL)
+  burden        = NULL,      # climasus_burden do Módulo M2 (opcional)
+  dlnm          = mod_dlnm,  # climasus_dlnm do Módulo M1 (broadcast)
+  sensitivity   = NULL,      # climasus_sensitivity do Módulo M7 (opcional)
+  score_type    = "both",    # "numeric", "categorical" ou "both"
+  breaks        = c(25, 50, 75),
+  labels        = c("Baixo", "Médio", "Alto", "Muito Alto"),  # 4 cats para 3 breaks
+  city_col      = "city",
+  lang          = "pt",
+  verbose       = TRUE
+)
+
+# Visualizar tabela de escores
+swot_fit$scores
+```
+
+---
+
+# Function characteristics
+
+## `sus_mod_vulnerability_index()` — IPCC Vulnerability Index
+
+**Full signature:**
+
+```{r assinatura-vi}
+sus_mod_vulnerability_index(
+  exposure_df          = NULL,
+  sensitivity_df       = NULL,
+  adaptive_capacity_df = NULL,
+  fits                 = NULL,
+  city_col             = "city",
+  normalize            = "minmax",
+  weights              = NULL,
+  pillar_weights       = c(exposure = 1, sensitivity = 1, adaptive_capacity = 1),
+  hot_percentile       = 0.99,
+  cold_percentile      = 0.01,
+  lang                 = "pt",
+  verbose              = TRUE
+)
+```
+
+**Key parameters:**
+
+| Argument | Type | Description |
+|-----------|------|-----------|
+| `exposure_df` | `data.frame` | Indicators for the Exposure pillar (higher = more exposed) |
+| `sensitivity_df` | `data.frame` | Indicators for the Sensitivity pillar (higher = more sensitive) |
+| `adaptive_capacity_df` | `data.frame` | Indicators for the Adaptive Capacity pillar (higher = more adapted) |
+| `fits` | named list of `climasus_dlnm` | Automatic extraction of heat/cold RR and sensitivity index |
+| `city_col` | `character` | Name of the municipal identifier column (default `"city"`) |
+| `normalize` | `"minmax"` or `"zscore"` | Indicator normalization method |
+| `weights` | named vector | Intra-pillar weights by column name; unlisted columns get weight 1 |
+| `pillar_weights` | named vector `c(exposure, sensitivity, adaptive_capacity)` | Inter-pillar weights; missing pillars automatically get weight 0 |
+| `hot_percentile` / `cold_percentile` | numeric | Quantiles for RR extraction from the DLNM fits |
+
+**Return — `climasus_vi` object:**
+
+- `$vi_table`: tibble ordered by `vi_rank` (rank 1 = most vulnerable), with columns
+  `vi_score` ∈ [0, 1], `exposure_score`, `sensitivity_score`,
+  `adaptive_capacity_score`, `vi_rank`, `vi_percentile`.
+- `$pillar_scores`: long tibble with `city`, `pillar`, `score` (raw score before the
+  AC inversion).
+- `$normalized_indicators` / `$raw_indicators`: wide tibbles with prefixes `exp_`,
+  `sen_`, `ac_`.
+- `$weights`: list with the intra-pillar and inter-pillar weights effectively used.
+- `$gini_coefficient`: Gini of the CVI distribution.
+- `$meta`: list of parameters, counts, and timestamp.
+
+**Available S3 methods:** `print()`, `summary()`, `tidy()` (returns a flat tibble),
+`coef()` (returns a named vector city → vi_score).
+
+---
+
+## `sus_mod_plot_vulnerability()` — CVI Visualizations
+
+**Full signature:**
+
+```{r assinatura-plot-vi}
+sus_mod_plot_vulnerability(
+  x,
+  type        = c("ranking", "pillars", "lorenz"),
+  output_type = c("plot", "table", "all"),
+  interactive = FALSE,
+  base_size   = 12L,
+  save_plot   = NULL,
+  lang        = c("pt", "en", "es"),
+  verbose     = FALSE
+)
+```
+
+**Plot types (`type=`):**
+
+| `type` | Description | Data returned in `"table"` |
+|--------|-----------|----------------------------|
+| `"ranking"` | Horizontal lollipop: CVI per city, most vulnerable at the top | `$vi_table` |
+| `"pillars"` | Horizontal stacked bars: contribution of E / S / AC per city | `$pillar_scores` |
+| `"lorenz"` | Lorenz curve of CVI inequality with the Gini annotated | `$vi_table` |
+
+**Return:** `ggplot` (`output_type = "plot"`), tibble (`"table"`), or a named list
+`$plot`, `$table`, `$data` (`"all"`). With `interactive = TRUE`, returns a `plotly`
+widget (requires the `plotly` package).
+
+---
+
+## `sus_mod_swot()` — Climate-Health SWOT Synthesis
+
+**Full signature:**
+
+```{r assinatura-swot}
+sus_mod_swot(
+  vulnerability = NULL,
+  af            = NULL,
+  burden        = NULL,
+  dlnm          = NULL,
+  sensitivity   = NULL,
+  score_type    = c("both", "numeric", "categorical"),
+  breaks        = c(33, 66),
+  labels        = NULL,
+  city_col      = "city",
+  lang          = c("pt", "en", "es"),
+  verbose       = TRUE
+)
+```
+
+**Indicators per quadrant:**
+
+| Quadrant | Source | Extracted indicators |
+|-----------|-------|-----------------------|
+| **S** Strengths | `climasus_vi` | `adaptive_capacity_score` (high capacity = strength) |
+| **S** Strengths | `climasus_af` | 100 − total AF% (low burden = strength) |
+| **S** Strengths | `climasus_burden` | Inverted burden rank |
+| **W** Weaknesses | `climasus_vi` | `sensitivity_score` (high sensitivity = weakness) |
+| **W** Weaknesses | `climasus_af` | Heat AF%; cold AF% |
+| **W** Weaknesses | `climasus_sensitivity` | RR inequality across strata |
+| **O** Opportunities | `climasus_vi` | 100 − CVI percentile (low percentile = window); current exposure inverted |
+| **T** Threats | `climasus_vi` | `exposure_score`; `vi_score` |
+| **T** Threats | `climasus_dlnm` | Heat RR at P95 (scaled 0–100) |
+| **T** Threats | `climasus_burden` | Normalized attributable number |
+| **T** Threats | `climasus_sensitivity` | Maximum RR across strata |
+
+**Return — `climasus_swot` object:**
+
+- `$scores`: tibble with one row per entity; columns `entity`, `S_score`,
+  `W_score`, `O_score`, `T_score` (0–100) and, when `score_type %in% c("categorical","both")`,
+  `S_cat`, `W_cat`, `O_cat`, `T_cat`; counts `n_S`, `n_W`, `n_O`, `n_T`.
+- `$indicators`: long tibble with one row per (entity × quadrant × indicator):
+  `entity`, `quadrant`, `ind_code`, `indicator`, `raw_value`, `norm_score`,
+  `direction` (`"positive"` or `"negative"`).
+- `$meta`: list with `n_entities`, `n_indicators`, `inputs_used`, `score_type`,
+  `breaks`, `labels`, `lang`, `call_time`.
+
+**S3 methods:** `print()`, `summary()`, `tidy()` (returns `$scores`).
+
+---
+
+## `sus_mod_plot_swot()` — SWOT Visualizations
+
+**Full signature:**
+
+```{r assinatura-plot-swot}
+sus_mod_plot_swot(
+  x,
+  type        = c("radar", "matrix", "bar"),
+  output_type = c("plot", "table", "all"),
+  interactive = FALSE,
+  entities    = NULL,
+  top_n       = 3L,
+  base_size   = 12L,
+  save_plot   = NULL,
+  lang        = c("pt", "en", "es"),
+  verbose     = FALSE
+)
+```
+
+**Plot types (`type=`):**
+
+| `type` | Description | Recommended use |
+|--------|-----------|-----------------|
+| `"radar"` | Spider/radar chart of the four SWOT scores (0–100) per entity, with overlapping polygons for multi-city comparison | Comparing profiles across municipalities |
+| `"matrix"` | Classic 2×2 chart: numeric score, category, and bullet points of the leading indicators per quadrant. Shows only one entity (the first in the `entities` selection) | Risk communication for a single municipality |
+| `"bar"` | Grouped horizontal bars of the four SWOT scores per entity | Quick comparison across all municipalities |
+
+**Argument `top_n`** (only for `type = "matrix"`): maximum number of indicator bullets
+displayed per quadrant (default 3).
+
+**Return:** `ggplot` or `plotly` (`output_type = "plot"`), tibble (`"table"`), or a
+list `$plot`, `$table` (`"all"`).
+
+---
+
+# Reference formulas
+
+## Composite Vulnerability Index (IPCC)
+
+The central formula combines the three pillars with the Adaptive Capacity inversion:
+
+$$
+VI_i = \frac{w_E \cdot E_i + w_S \cdot S_i + w_{AC} \cdot (1 - AC_i)}{w_E + w_S + w_{AC}}
+$$
+
+where each pillar $P_i$ is the weighted average of the normalized indicators:
+
+$$
+P_i = \frac{\sum_j \omega_j \tilde{x}_{ij}}{\sum_j \omega_j}
+$$
+
+Missing indicators are excluded and the remaining weights are renormalized, partially
+preserving municipalities with incomplete data.
+
+## Min-max normalization
+
+$$
+\tilde{x}_{ij} = \frac{x_{ij} - \min_j(x_{ij})}{\max_j(x_{ij}) - \min_j(x_{ij})}
+$$
+
+When $\max_j - \min_j \approx 0$ (constant variable), the value is fixed at 0.5
+(implemented in `.vi_minmax_col()`).
+
+## Gini Coefficient
+
+Given the vector $\mathbf{v}$ of $VI_i$ scores sorted in ascending order:
+
+$$
+G = \frac{2 \sum_{i=1}^{n} i \cdot v_i}{n \sum_{i=1}^{n} v_i} - \frac{n+1}{n}
+$$
+
+The Gini is reported in `$gini_coefficient` and annotated on the `type = "ranking"`
+and `type = "lorenz"` plots.
+
+---
+
+# Illustrated results
+
+## Vulnerability ranking
+
+The lollipop chart orders municipalities from most (top) to least vulnerable, with
+the CVI score on the horizontal axis. The Gini Coefficient in the subtitle quantifies
+the territorial inequality of vulnerability.
+
+```{r fig-ranking, echo=FALSE, eval=TRUE}
+fig_ou_nota(.fig("modvi_ranking"),
+            paste("Ranking de vulnerabilidade —", .nota_gerar))
+```
+
+**Figure 1.** Climate-health vulnerability ranking of the RMSP municipalities.
+Min-max scores on the x-axis; the municipality at the top = most vulnerable (highest
+CVI). Gini indicates the concentration of risk across municipalities.
+
+---
+
+## Decomposition of the IPCC pillars
+
+The stacked bars allow identification of which pillar dominates the vulnerability of
+each municipality: Exposure (red), Sensitivity (blue), or Adaptive Capacity (green).
+Municipalities with balanced pillars indicate multifactorial risk.
+
+```{r fig-pillars, echo=FALSE, eval=TRUE}
+fig_ou_nota(.fig("modvi_pillars"),
+            paste("Decomposição dos pilares IPCC —", .nota_gerar))
+```
+
+**Figure 2.** Decomposition of the three IPCC pillar scores by municipality, ordered
+by total CVI (most vulnerable at the top).
+
+---
+
+## Lorenz curve of vulnerability
+
+The Lorenz curve accumulates the proportion of total CVI (y-axis) as a function of
+the proportion of municipalities (x-axis), from least to most vulnerable. The farther
+from the diagonal (perfect equality), the greater the concentration of risk in a few
+municipalities.
+
+```{r fig-lorenz, echo=FALSE, eval=TRUE}
+fig_ou_nota(.fig("modvi_lorenz"),
+            paste("Curva de Lorenz da vulnerabilidade —", .nota_gerar))
+```
+
+**Figure 3.** Lorenz curve of the Composite Vulnerability Index in the RMSP. The
+shaded area between the curve and the diagonal of perfect equality (dashed) is
+proportional to the Gini Coefficient annotated on the plot.
+
+---
+
+## Vulnerability score table
+
+```{r tbl-vi, echo=FALSE, eval=TRUE}
+tbl_ou_nota(.tbl("modvi_vi_table"),
+            paste("Tabela de escores —", .nota_gerar),
+            caption = "Table 1. Vulnerability scores by municipality (top 10, decreasing order of vulnerability).")
+```
+
+---
+
+## SWOT profile — Radar
+
+The radar chart shows the four SWOT scores (0–100) for all municipalities
+simultaneously. Larger polygons (especially in W and T) signal greater fragility;
+wide polygons in S and O indicate protective assets and intervention opportunities.
+
+```{r fig-radar, echo=FALSE, eval=TRUE}
+fig_ou_nota(.fig("modswot_radar"),
+            paste("Radar SWOT —", .nota_gerar))
+```
+
+**Figure 4.** SWOT profile by municipality in the RMSP. Axes: Strengths (top),
+Opportunities (right), Threats (bottom), Weaknesses (left). Scale 0–100.
+
+---
+
+## SWOT 2×2 chart — Most vulnerable municipality
+
+The classic 2×2 chart displays, for the municipality with the highest CVI, the
+numeric score and category of each quadrant, together with the leading indicators
+(with normalized score) that contributed the most to each quadrant.
+
+```{r fig-matrix, echo=FALSE, eval=TRUE}
+fig_ou_nota(.fig("modswot_matrix"),
+            paste("Matriz SWOT —", .nota_gerar))
+```
+
+**Figure 5.** SWOT 2×2 chart for the most vulnerable municipality in the RMSP. An
+ideal format for risk communication to municipal managers.
+
+---
+
+## SWOT scores — Comparative bars
+
+```{r fig-bar, echo=FALSE, eval=TRUE}
+fig_ou_nota(.fig("modswot_bar"),
+            paste("Barras SWOT —", .nota_gerar))
+```
+
+**Figure 6.** Grouped SWOT scores by municipality. Allows simultaneous comparison of
+Strengths, Weaknesses, Opportunities, and Threats across all municipalities in the
+RMSP.
+
+---
+
+## SWOT score table
+
+```{r tbl-swot, echo=FALSE, eval=TRUE}
+tbl_ou_nota(.tbl("modswot_scores"),
+            paste("Tabela SWOT —", .nota_gerar),
+            caption = "Table 2. SWOT scores and categories by municipality in the RMSP.")
+```
+
+---
+
+# References
+
+Andrews, K. (1971). *The Concept of Corporate Strategy*. Dow Jones-Irwin.
+
+Benmarhnia, T., Deguen, S., Kaufman, J. S., & Smargiassi, A. (2015).
+Vulnerability to heat-related mortality: a systematic review, meta-analysis,
+and meta-regression analysis. *Epidemiology*, 26(6), 781–793.
+<https://doi.org/10.1097/EDE.0000000000000375>
+
+Confalonieri, U., Marinho, D., Dias, H., & Malheiros, T. (2009).
+O índice de vulnerabilidade aos riscos climáticos do Brasil.
+*Parcerias Estratégicas*, 27, 161–172.
+
+Cutter, S. L., Boruff, B. J., & Shirley, W. L. (2003).
+Social vulnerability to environmental hazards.
+*Social Science & Medicine*, 56(11), 2301–2322.
+<https://doi.org/10.1016/S0277-9536(02)00605-X>
+
+Gasparrini, A., & Armstrong, B. (2013).
+Attributable risk from distributed lag models.
+*BMC Medical Research Methodology*, 13, 3.
+<https://doi.org/10.1186/1471-2288-13-3>
+
+Gasparrini, A., et al. (2017).
+Projections of temperature-related excess mortality under climate change scenarios.
+*The Lancet Planetary Health*, 1(9), e360–e367.
+<https://doi.org/10.1016/S2542-5196(17)30156-0>
+
+IPCC. (2014). *Fifth Assessment Report — Working Group II: Impacts, Adaptation and
+Vulnerability*. Part A: Global and Sectoral Aspects. Chapter 19: Emergent Risks
+and Key Vulnerabilities. Cambridge University Press.
+<https://doi.org/10.1017/CBO9781107415379>
+
+IPCC. (2022). *Sixth Assessment Report — Working Group II: Impacts, Adaptation and
+Vulnerability*. Chapter 16: Key Risks across Sectors and Regions.
+Cambridge University Press.
+<https://doi.org/10.1017/9781009325844>
+
+Marengo, J. A., et al. (2022).
+Vulnerability to climate change in Brazil: current status and future scenarios.
+*International Journal of Climate Change Strategies and Management*, 14(2), 133–149.
+
+Turner, B. L., et al. (2003).
+A framework for vulnerability analysis in sustainability science.
+*PNAS*, 100(14), 8074–8079.
+<https://doi.org/10.1073/pnas.1231335100>
+
+---
+
+# Navigation
+
+> **End of the Modeling section.** This is the final module in the Modeling series
+> of `climasus4r`. The results produced here (`mod_vi.rds`) can be loaded into final
+> reports and risk communication for managers and decision-makers.
+
+| | |
+|---:|:---|
+| Previous module | [Modeling 07: Spatial and Spatio-Temporal Bayes](mod-07-bayes.html) |
+| Tutorial hub | [Tutorial Index](tutorials.html) |
+
+> **How to reproduce the figures.** Run once, from the package root:
+> `Rscript scripts/modelagem_08_vulnerabilidade_swot.R`. The script saves the figures
+> in `vignettes-pt/figuras/` (prefixes `modvi_` and `modswot_`), the tables in
+> `vignettes-pt/dados/`, and the chained vulnerability object (`mod_vi.rds`).

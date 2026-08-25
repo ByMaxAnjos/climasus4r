@@ -1,0 +1,630 @@
+---
+title: "Modelado 1: DLNM — Modelo de Rezago Distribuido No Lineal"
+author: "Equipo climasus4r"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* -- Variaveis de Cores Modernas -- */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; color: var(--text-main); background-color: #fff; line-height: 1.6; }
+h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--dark-green); }
+h1.title { font-size: 2.8em; border-bottom: 4px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 1.5rem; }
+h2 { margin-top: 2rem; border-left: 4px solid var(--primary-color); padding-left: 1rem; }
+pre.r, pre.sourceCode { background-color: var(--code-bg); border: 1px solid #e1e1e1; border-left: 5px solid var(--primary-color) !important; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1rem; }
+.callout { padding: 1.2em 1.5em; margin: 1.5em 0; border-radius: 8px; border-left: 6px solid; background-color: var(--bg-light); }
+.callout-note { background-color: #f0f7ff; border-color: #007bff; }
+.callout-tip { background-color: #e8f5e9; border-color: #1D9E75; }
+.callout-warning { background-color: #fff3e0; border-color: #ff9800; }
+.workflow-container { background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #dce8e1; overflow-x: auto; }
+.workflow-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; font-family: 'Inter', monospace; font-size: 0.8rem; }
+.workflow-step { background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap; }
+.workflow-arrow { color: var(--primary-color); font-weight: bold; font-size: 1.2rem; }
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+.feature-card { background: white; border-radius: 12px; padding: 1.5rem; border: 1px solid #e1e1e1; transition: transform 0.2s ease, box-shadow 0.2s ease; text-align: center; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+.feature-card h3 { margin-top: 0; color: var(--primary-color); font-size: 1.1rem; }
+table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e1e1; }
+th { background-color: var(--bg-light); font-weight: 600; color: var(--dark-green); }
+.github-feedback-btn { display: inline-flex; align-items: center; gap: 8px; background-color: #24292e; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-family: sans-serif; transition: background-color 0.2s; margin-top: 1rem; }
+.github-feedback-btn:hover { background-color: #2c3e50; color: white; text-decoration: none; }
+@media (max-width: 768px) { body { font-size: 16px; } h1.title { font-size: 2rem; } .workflow-steps { flex-direction: column; align-items: center; } }
+```
+
+
+```{r setup, include=FALSE}
+# ATENÇÃO — estratégia de pré-renderização.
+# Este tutorial NÃO ajusta modelos durante a renderização. Todas as figuras e
+# tabelas foram geradas UMA vez pelo script scripts/modelagem_01_dlnm.R e
+# são apenas carregadas aqui (PNG via include_graphics; RDS via readRDS).
+# Por isso, os chunks de ensino abaixo usam eval = FALSE: o código é mostrado,
+# mas não é executado no momento do knit.
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+
+# Helpers para exibir artefatos de forma robusta: se o arquivo ainda não foi
+# gerado (script de geração não executado), mostram uma nota em vez de quebrar
+# o knit. Assim a vignette renderiza a qualquer momento.
+fig_ou_nota <- function(path, nota) {
+  if (file.exists(path)) knitr::include_graphics(path)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+tbl_ou_nota <- function(path, nota, caption = NULL) {
+  if (file.exists(path)) knitr::kable(readRDS(path), caption = caption)
+  else knitr::asis_output(paste0("> *", nota, "*"))
+}
+.nota_gerar <- "Artefacto indisponible — ejecute `Rscript scripts/modelagem_01_dlnm.R` (desde la raíz del paquete) para generarlo."
+```
+
+# Objetivo
+
+Al final de este tutorial usted será capaz de **ajustar un DLNM
+(Distributed Lag Non-linear Model)** para cuantificar la relación entre
+temperatura y mortalidad diaria, interpretar la **curva
+exposición-respuesta acumulativa**, la **curva rezago-respuesta** y la
+**superficie bidimensional** exposición × rezago, y conocer todas las
+visualizaciones disponibles en `sus_mod_plot_dlnm()`.
+
+El DLNM es la **piedra angular del sombrero bioestadístico** de
+`climasus4r`. Conecta la serie diaria de salud (producida en los
+Tutoriales 1–4) con la exposición climática alineada (Tutoriales 7–8) y
+produce estimaciones de riesgo relativo listas para la cuantificación de
+carga atribuible (Tutorial de Modelado 2), metaanálisis multiciudad
+(Tutorial de Modelado 5) y análisis de vulnerabilidad (Tutorial de
+Modelado 9).
+
+# Contexto científico
+
+La epidemiología ambiental moderna reconoce que la asociación entre
+temperatura y mortalidad es **no lineal** y **rezagada en el tiempo**.
+El calor extremo mata en los primeros 1–2 días (efecto agudo); el frío
+mata a lo largo de 1 a 3 semanas (efecto tardío y acumulativo). Modelar
+solo la temperatura del mismo día subestima sistemáticamente el riesgo
+del frío y puede enmascarar el pico de mortalidad en el invierno
+subtropical.
+
+**Gasparrini, Armstrong & Kenward (2010)** propusieron el DLNM para
+resolver este problema con una *cross-basis*: el producto externo de
+dos bases de splines — una en la dimensión de la **exposición** (capta
+la forma en U/J: el riesgo sube en el frío y en el calor) y otra en la
+dimensión del **rezago** (capta cómo se distribuye el efecto en los
+días siguientes). La implementación en R es el paquete `dlnm`
+(**Gasparrini, 2011**), sobre el cual `climasus4r` construye
+`sus_mod_dlnm()`.
+
+El ajuste sigue las buenas prácticas de regresión de series temporales
+en epidemiología ambiental sistematizadas por **Bhaskaran et al.
+(2013)**: modelo log-lineal quasi-Poisson, control de tendencia de
+largo plazo y estacionalidad mediante spline natural del tiempo, y
+riesgo relativo centrado en la mediana de la exposición como valor de
+referencia (**Armstrong, 2006**).
+
+Las fórmulas detalladas de la *crossbasis* y del RR acumulativo se
+presentan en la sección **Fórmulas** más abajo.
+
+> **Caso conductor.** Investigamos la **temperatura y los desenlaces de
+> salud en personas mayores (60+) en la Región Metropolitana de São
+> Paulo, 2014–2019** (enfermedades respiratorias J00–J99). Combinamos
+> la **serie diaria de defunciones** (`dados/caso_serie.rds`, Tutorial
+> 4) con la **temperatura de la estación INMET A701**
+> (`dados/caso_clima_estacao.rds`, Tutorial 7), construimos la
+> estructura de rezagos distribuidos y ajustamos el DLNM quasi-Poisson
+> para estimar la curva exposición-respuesta y el rezago de pico.
+
+# Fórmulas
+
+El DLNM modela el número esperado de eventos $Y_t$ en la fecha $t$ como:
+
+$$
+\log\{E(Y_t)\} = \alpha
+  + \sum_{\ell=0}^{L} s(x_{t-\ell},\, \ell;\,\boldsymbol{\beta})
+  + \mathrm{ns}(t)
+  + \gamma\,\mathrm{DOW}_t
+$$
+
+donde $s(x_{t-\ell}, \ell;\,\boldsymbol{\beta})$ es la función
+*cross-basis* — producto externo de una base de spline sobre la
+**exposición** $x_{t-\ell}$ (temperatura en el rezago $\ell$) y de una
+base de spline sobre el **rezago** $\ell \in \{0, \ldots, L\}$, con
+vector de coeficientes $\boldsymbol{\beta}$; $\mathrm{ns}(t)$ es un
+spline natural del tiempo para controlar la estacionalidad y la
+tendencia de largo plazo; y $\gamma\,\mathrm{DOW}_t$ controla el efecto
+del día de la semana.
+
+El **efecto acumulativo** de la exposición $x$ en relación con el valor
+de referencia $x_0$ (mediana de rezago-0) es:
+
+$$
+RR_{\text{cum}}(x) = \exp\!\left\{
+  \sum_{\ell=0}^{L} \bigl[s(x,\, \ell;\,\boldsymbol{\hat\beta})
+    - s(x_0,\, \ell;\,\boldsymbol{\hat\beta})\bigr]
+\right\}
+$$
+
+**Parámetros clave implementados por `sus_mod_dlnm()`:**
+
+| Parámetro | Notación | Controlado por |
+|-----------|---------|---------------|
+| Base de la exposición | $s(\cdot; \boldsymbol{\beta})$ sobre $x$ | `argvar` |
+| Base del rezago | $s(\cdot; \boldsymbol{\beta})$ sobre $\ell$ | `arglag` |
+| Ventana de rezago | $L$ | `lag_max` |
+| gl estacionalidad | gl de $\mathrm{ns}(t)$ | `dof_per_year` |
+| Valor de referencia | $x_0$ | `ref_value` |
+
+# Datos utilizados
+
+| Entrada | Origen | Contenido | Papel |
+|---------|--------|----------|-------|
+| `dados/caso_serie.rds` | Tutorial 4 | Serie diaria de defunciones (mayores 60+) | Desenlace `n_obitos` |
+| `dados/caso_clima_estacao.rds` | Tutorial 7 | Temperatura diaria de la estación A701 | Exposición `tair_dry_bulb_c` |
+
+Las dos series se unen por **fecha**. La exposición se expande entonces
+en 22 columnas de **rezago distribuido**
+(`tair_dry_bulb_c_lag0`, …, `tair_dry_bulb_c_lag21`), estructura que en
+un flujo real es producida por
+`sus_climate_aggregate(temporal_strategy = "distributed_lag", lag_days = 21)`.
+El script protege cada etapa con `file.exists()` y, si faltan las
+entradas, genera una **serie sintética mínima realista** (con señal de
+temperatura-mortalidad en V) para que el código funcione incluso sin el
+pipeline completo.
+
+# Pipeline completo
+
+Los bloques a continuación reproducen exactamente lo que ejecuta
+`scripts/modelagem_01_dlnm.R`.
+
+```{r carregar}
+library(climasus4r)
+```
+
+## Bloque 0 — Cargar las entradas encadenadas
+
+```{r bloco0-carregar}
+# Caminhos das entradas encadeadas
+path_saude <- file.path("vignettes-pt", "dados", "caso_serie.rds")
+path_clima <- file.path("vignettes-pt", "dados", "caso_clima_estacao.rds")
+
+# Série diária de saúde
+saude_diaria <- NULL
+if (file.exists(path_saude)) {
+  caso_serie   <- readRDS(path_saude)
+  saude_df     <- dplyr::as_tibble(caso_serie)
+  saude_diaria <- saude_df |>
+    dplyr::summarise(n_obitos = sum(n_obitos, na.rm = TRUE), .by = date) |>
+    dplyr::arrange(date)
+}
+
+# Série diária de temperatura
+clima_diario <- NULL
+if (file.exists(path_clima)) {
+  caso_clima   <- readRDS(path_clima)
+  clima_diario <- caso_clima$clima_diario |>
+    dplyr::transmute(date = as.Date(date), tair_dry_bulb_c) |>
+    dplyr::arrange(date)
+}
+
+# Fallback sintético realista (série em V, 6 anos)
+if (is.null(clima_diario) || is.null(saude_diaria)) {
+  # ... veja scripts/modelagem_01_dlnm.R para a implementação completa
+}
+
+# Juntar por data
+serie <- dplyr::inner_join(saude_diaria, clima_diario, by = "date") |>
+  dplyr::arrange(date) |>
+  tidyr::drop_na(n_obitos, tair_dry_bulb_c)
+```
+
+## Bloque 1 — Construir la estructura de rezagos distribuidos
+
+En el flujo completo de `climasus4r`, las columnas `_lagN` se producen
+con `sus_climate_aggregate(temporal_strategy = "distributed_lag", lag_days = 21)`.
+Aquí, con la serie ya alineada por fecha, generamos los rezagos
+directamente:
+
+```{r bloco1-lags}
+VAR_TEMP <- "tair_dry_bulb_c"
+LAG_MAX  <- 21L
+
+df_lags <- serie
+for (k in 0:LAG_MAX) {
+  df_lags[[paste0(VAR_TEMP, "_lag", k)]] <- dplyr::lag(serie$tair_dry_bulb_c, n = k)
+}
+
+# Seleciona apenas: date, desfecho, colunas de lag
+df_lags <- df_lags |>
+  dplyr::select(
+    date, n_obitos,
+    dplyr::all_of(paste0(VAR_TEMP, "_lag", 0:LAG_MAX))
+  )
+
+# Promove a climasus_df com stage = "climate", type = "distributed_lag"
+df_dl <- dplyr::as_tibble(df_lags)
+attr(df_dl, "sus_meta") <- list(
+  system  = "SIM",
+  stage   = "climate",
+  type    = "distributed_lag",
+  backend = "tibble",
+  history = "[derivado] serie diaria -> lags distribuidos tair_dry_bulb_c"
+)
+class(df_dl) <- c("climasus_df", class(df_dl))
+```
+
+## Bloque 2 — `sus_mod_dlnm()`: ajuste del DLNM quasi-Poisson
+
+```{r bloco2-dlnm}
+fit <- sus_mod_dlnm(
+  df           = df_dl,
+  outcome_col  = "n_obitos",
+  climate_col  = "tair_dry_bulb_c",
+  lag_max      = 21L,
+  covariates   = NULL,                       # confundidores adicionais (opcional)
+  argvar       = list(fun = "ns", df = 4),   # spline natural, 4 gl exposição
+  arglag       = list(fun = "ns", df = 3),   # spline natural, 3 gl lag
+  family       = "quasipoisson",             # robusto à superdispersão
+  ns_df        = NULL,                       # calculado automaticamente via dof_per_year
+  dof_per_year = 4L,                         # gl/ano para sazonalidade (use 6 para Brasil subtropical)
+  ref_value    = NULL,                       # mediana de lag-0 = valor de referencia
+  pred_at      = c(0.25, 0.50, 0.75, 0.90, 0.95, 0.99),
+  alpha        = 0.05,
+  lang         = "pt",
+  verbose      = TRUE
+)
+
+# Inspecionar o resultado
+print(fit)
+fit$exposure_response   # RR cumulativo nos percentis pred_at
+fit$lag_response        # RR por lag no percentil 75
+fit$diagnostics         # razão de dispersão, Ljung-Box, AIC
+```
+
+## Bloque 3 — `sus_mod_plot_dlnm()`: todas las visualizaciones
+
+```{r bloco3-plots}
+# overall: curva exposição-resposta cumulativa (painel principal + histograma)
+sus_mod_plot_dlnm(fit, type = "overall", lang = "pt")
+
+# lag: curva lag-resposta no percentil 75 (RR específico e cumulativo)
+sus_mod_plot_dlnm(fit, type = "lag", lang = "pt")
+
+# surface: superfície 3-D bidimensional exposição × lag
+# (interactive = FALSE usa contorno estático como fallback)
+sus_mod_plot_dlnm(fit, type = "surface", interactive = FALSE, lang = "pt")
+
+# contour: mapa de contorno 2-D log(RR) para publicação
+sus_mod_plot_dlnm(fit, type = "contour", lang = "pt")
+
+# slice: curvas de resposta por lag específico (valores > lag_max são descartados)
+sus_mod_plot_dlnm(fit, type = "slice",
+                  lags_at = c(0L, 3L, 7L, 14L, 21L), lang = "pt")
+
+# distribution: histograma/densidade da exposição com percentis-chave
+sus_mod_plot_dlnm(fit, type = "distribution", lang = "pt")
+
+# series: série temporal desfecho (barras) + exposição lag-0 (eixo dual)
+sus_mod_plot_dlnm(fit, type = "series", lang = "pt")
+
+# output_type = "all": retorna lista nomeada $plot, $table, $data
+out <- sus_mod_plot_dlnm(fit, type = "overall",
+                         output_type = "all", lang = "pt")
+out$table   # lista de 3 gt_tbl: especificação, curva RR, diagnósticos
+out$data    # lista: $exposure_response, $lag_response, $data_daily, $diagnostics
+```
+
+## Bloque 4 — Guardar el ajuste para reutilización (M2 y M8)
+
+```{r bloco4-salvar}
+# O objeto climasus_dlnm é salvo para alimentar
+# Tutorial M2 (fração atribuível) e M8 (meta-análise multi-cidade).
+# save_tbl() (definida em scripts/_setup_tutoriais.R) persiste em
+# vignettes-pt/dados/mod_dlnm_fit.rds; o script também copia para
+# dados/mod_dlnm_fit.rds (raiz do pacote) para encadeamento com M2 e M8.
+save_tbl(fit, "mod_dlnm_fit")
+saveRDS(fit, file.path("dados", "mod_dlnm_fit.rds"))
+```
+
+# Características de las funciones
+
+## `sus_mod_dlnm()`
+
+Ajusta un DLNM a partir de un `climasus_df` en la etapa `"climate"` /
+tipo `"distributed_lag"`, producido por
+`sus_climate_aggregate(temporal_strategy = "distributed_lag")`.
+Construye la *crossbasis*, ajusta un GLM y precomputa la `crosspred`
+en una grilla de 100 puntos entre el percentil 1 y el 99 de la
+exposición.
+
+| Argumento | Predeterminado | Descripción |
+|-----------|--------|-----------|
+| `df` | — | `climasus_df` con `date`, desenlace y columnas `{var}_lagN` |
+| `outcome_col` | `"n_obitos"` | Nombre de la columna de conteo diario del desenlace |
+| `climate_col` | `NULL` | Base del nombre de la exposición (sin `_lagN`); autodetecta por prioridad si `NULL` |
+| `lag_max` | `NULL` | Rezago máximo; autodetecta el mayor `N` en las columnas `_lagN` |
+| `covariates` | `NULL` | Confundidores adicionales a incluir linealmente en el GLM |
+| `argvar` | `list(fun="ns", df=4)` | Base de la dimensión de exposición de la *crossbasis* |
+| `arglag` | `list(fun="ns", df=3)` | Base de la dimensión de rezago de la *crossbasis* |
+| `family` | `"quasipoisson"` | Familia GLM; `"negbin"` se redirige a `"quasipoisson"` |
+| `ns_df` | `NULL` | gl para el spline temporal; `NULL` usa `dof_per_year × n_años` |
+| `dof_per_year` | `4L` | gl por año para estacionalidad (recomendado 6 en Brasil subtropical) |
+| `ref_value` | `NULL` | Valor de referencia (RR = 1); `NULL` usa la mediana de rezago-0 |
+| `pred_at` | `c(.25,.5,.75,.9,.95,.99)` | Cuantiles a reportar en la tabla `$exposure_response` |
+| `alpha` | `0.05` | Nivel del IC (predeterminado: 95% IC) |
+| `lang` | `"pt"` | Idioma de los mensajes: `"pt"`, `"en"`, `"es"` |
+
+**Retorno — objeto `climasus_dlnm` (lista S3):**
+
+| Componente | Contenido |
+|------------|----------|
+| `$model` | Objeto `glm` ajustado (compatible con `dlnm::crosspred()`) |
+| `$crossbasis` | Objeto `dlnm::crossbasis` (base exposición × rezago) |
+| `$pred` | Objeto `dlnm::crosspred` — `allRRfit/low/high` (efecto general) y `matRRfit/low/high` (específico por rezago) |
+| `$exposure_response` | Tibble: `pct`, `exposure`, `rr`, `lo`, `hi` en los percentiles `pred_at` |
+| `$lag_response` | Tibble: `lag`, `rr`, `lo`, `hi`, `rr_cum` — RR por rezago en el P75 |
+| `$models` | Tibble resumen de 1 fila: `variable`, `n`, `family`, `lag_max`, `rr`, `lo`, `hi`, `lag_peak`, `disp_ratio`, `aic_poisson` |
+| `$data_daily` | Tibble agregada por fecha (desenlace sumado; clima en promedio) usada en el ajuste |
+| `$diagnostics` | Lista: `disp_ratio`, `disp_category`, `autocorr_pval`, `has_autocorr`, `aic_poisson`, `deviance`, `df_residual` |
+| `$meta` | Lista con todos los parámetros del ajuste + historial `sus_meta` |
+
+**Selección de la base (`argvar` / `arglag`):**
+
+| `argvar` | Cuándo usar |
+|----------|-------------|
+| `list(fun="ns", df=3)` | No linealidad suave; conservador |
+| `list(fun="ns", df=4)` | Curva en U/J (calor + frío, **predeterminado**) |
+| `list(fun="ns", df=5)` | Dosis-respuesta compleja; N grandes |
+| `list(fun="lin")` | Prueba de hipótesis lineal |
+
+| `arglag` | Cuándo usar |
+|----------|-------------|
+| `list(fun="ns", df=3)` | Decaimiento suave; mortalidad por temperatura (**predeterminado**) |
+| `list(fun="ns", df=4)` | Rezago bimodal; efecto del frío |
+| `list(fun="poly", df=2)` | Conservador; muestras pequeñas |
+
+**Control de estacionalidad (`dof_per_year`):**
+
+- `4` gl/año: series de 1–2 años; estacionalidad anual
+- `6` gl/año: Brasil subtropical; estacionalidad más pronunciada
+- `8` gl/año: arbovirosis; variación sub-estacional
+
+**Métodos S3 disponibles:** `print()`, `summary()`, `coef()`, `tidy()`
+(devuelve un tibble de una fila compatible con `dplyr::bind_rows()`).
+
+---
+
+## `sus_mod_plot_dlnm()`
+
+Produce visualizaciones científicas y tablas estadísticas a partir de
+un objeto `climasus_dlnm`. Implementa los siete tipos de visualización
+estándar en epidemiología de DLNM.
+
+| Argumento | Predeterminado | Descripción |
+|-----------|--------|-----------|
+| `fit` | — | Objeto `climasus_dlnm` de `sus_mod_dlnm()` |
+| `type` | `"overall"` | Tipo de visualización (ver tabla abajo) |
+| `output_type` | `"plot"` | `"plot"` → ggplot2/plotly; `"table"` → gt; `"all"` → lista `$plot, $table, $data` |
+| `exposure_at` | `NULL` | Exposición focal para el gráfico `"lag"` (predeterminado: P75) |
+| `lags_at` | `c(0,3,7,14,21)` | Rezagos mostrados en el tipo `"slice"` (recortados en `lag_max`) |
+| `pred_at` | `c(.05,.10,.25,.50,.75,.90,.95,.99)` | Cuantiles en la tabla estadística |
+| `interactive` | `FALSE` | `TRUE` → `plotly::ggplotly()` / superficie 3-D plotly |
+| `color_palette` | `"npg"` | Paleta `ggsci` (otras: `"lancet"`, `"jama"`, `"nejm"`) |
+| `lang` | `"pt"` | Idioma de las etiquetas: `"pt"`, `"en"`, `"es"` |
+
+### Tipos de visualización (`type =`)
+
+| `type` | Qué muestra | Referencia |
+|--------|-------------|------------|
+| `"overall"` | Curva exposición-respuesta acumulativa (RR + IC 95%) con histograma de la exposición en el panel inferior | Gasparrini et al. (2010) |
+| `"lag"` | RR específico por rezago y acumulativo en un nivel de exposición dado (predeterminado P75) | Gasparrini et al. (2010) |
+| `"surface"` | Superficie 3-D bidimensional exposición × rezago (`interactive = TRUE` → plotly 3-D; estático → contorno) | Gasparrini (2011) |
+| `"contour"` | Mapa de contorno 2-D (log(RR), escala divergente) para publicación | Gasparrini et al. (2014) |
+| `"slice"` | Curvas de respuesta para rezagos específicos superpuestas (perfiles dosis-respuesta por tiempo de rezago) | Armstrong (2006) |
+| `"distribution"` | Histograma + densidad kernel de la exposición con marcadores en los percentiles clave | Bhaskaran et al. (2013) |
+| `"series"` | Serie temporal diaria del desenlace (barras) y exposición (línea, eje dual) | Bhaskaran et al. (2013) |
+
+**Retorno (`output_type`):**
+
+- `"plot"` → objeto `ggplot` o `plotly`
+- `"table"` → lista de `gt_tbl` (o tibble si `gt` no está disponible) con
+  3 secciones: (1) especificación del modelo, (2) curva RR en los
+  percentiles, (3) diagnósticos del modelo
+- `"all"` → lista nombrada `$plot`, `$table`, `$data` (que contiene
+  `$exposure_response`, `$lag_response`, `$data_daily`, `$diagnostics`)
+
+# Resultados ilustrados
+
+## Serie temporal: desenlace y exposición
+
+```{r fig-series, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/moddlnm_series.png", .nota_gerar)
+```
+
+**Figura 1.** Serie temporal diaria de defunciones de personas mayores
+(barras verdes) y temperatura media (línea naranja, eje secundario
+escalado), RMSP 2014–2019. El patrón estacional es visible: los picos
+de mortalidad coinciden con el invierno subtropical (junio–agosto),
+cuando las temperaturas mínimas diarias caen por debajo del umbral de
+confort térmico. La exposición al calor extremo (verano austral,
+diciembre–febrero) produce un efecto más agudo.
+
+## Distribución de la temperatura
+
+```{r fig-dist, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/moddlnm_distribution.png", .nota_gerar)
+```
+
+**Figura 2.** Distribución de la temperatura diaria (rezago 0) con
+percentiles clave marcados (P10, P25, P50 — referencia, P75, P90,
+P99). La mediana es el valor de referencia (RR = 1) del DLNM. La franja
+P25–P75 representa las condiciones térmicas "habituales"; los valores
+por encima del P90 y por debajo del P10 definen los umbrales de calor y
+frío extremos.
+
+## Curva exposición-respuesta acumulativa (`type = "overall"`)
+
+```{r fig-overall, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/moddlnm_overall.png", .nota_gerar)
+```
+
+**Figura 3.** Curva exposición-respuesta acumulativa (RR e IC 95% por
+el método delta). El patrón en V es característico de la asociación
+temperatura-mortalidad en el Brasil subtropical: riesgo elevado en el
+frío moderado (efecto tardío y acumulado) y, en menor magnitud, en el
+calor extremo (efecto agudo). La línea discontinua horizontal marca RR
+= 1; la línea punteada vertical marca la mediana de la exposición
+(valor de referencia). Los puntos coloreados indican los cuantiles
+reportados en la Tabla 1.
+
+## Curva rezago-respuesta (`type = "lag"`)
+
+```{r fig-lag, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/moddlnm_lag.png", .nota_gerar)
+```
+
+**Figura 4.** Curva rezago-respuesta para el percentil 75 de la
+exposición. La línea sólida muestra el RR específico por rezago (efecto
+en cada día aislado); la línea discontinua muestra el RR acumulativo
+hasta ese rezago. El **rezago de pico** — día en que el efecto
+específico por rezago es máximo — se reporta en los diagnósticos del
+modelo.
+
+## Mapa de contorno (`type = "contour"`)
+
+```{r fig-contour, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/moddlnm_contour.png", .nota_gerar)
+```
+
+**Figura 5.** Mapa de contorno del log(RR) en función de la temperatura
+(eje y) y del día de rezago (eje x). Los colores cálidos
+(naranja/rojo) indican exceso de riesgo; los colores fríos (verde)
+indican riesgo reducido en relación con la mediana. El mapa evidencia
+simultáneamente la **forma** (no linealidad respecto a la temperatura) y
+la **distribución temporal** (cómo se prolonga el efecto a lo largo de
+los rezagos). Las isolíneas blancas marcan los niveles ±0,1 y ±0,2 de
+log(RR).
+
+## Curvas por rezago específico (`type = "slice"`)
+
+```{r fig-slice, eval=TRUE, echo=FALSE}
+fig_ou_nota("figuras/moddlnm_slice.png", .nota_gerar)
+```
+
+**Figura 6.** Curvas de exposición-respuesta para rezagos seleccionados
+(0, 3, 7, 14 y 21 días). Cada curva muestra cómo cambia el perfil
+dosis-respuesta a lo largo del tiempo. El efecto del calor extremo es
+más pronunciado en el rezago 0–3 (respuesta aguda); el efecto del frío
+moderado persiste hasta el rezago 14–21 (respuesta tardía y
+distribuida).
+
+## Resumen estadístico del modelo
+
+```{r tbl-resumo, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/moddlnm_resumo.rds", .nota_gerar,
+            caption = "Tabla 1. Especificación y diagnósticos del DLNM ajustado.")
+```
+
+```{r tbl-expo, eval=TRUE, echo=FALSE}
+tbl_ou_nota("dados/moddlnm_expo_resp.rds", .nota_gerar,
+            caption = "Tabla 2. Curva exposición-respuesta: RR acumulativo en los percentiles de temperatura.")
+```
+
+**Tabla 2.** Riesgo Relativo acumulativo (IC 95%) para cada percentil de
+la distribución de temperatura, en relación con la mediana (RR = 1).
+Valores por encima de 1,00 indican exceso de riesgo; valores por debajo
+de 1,00 indican protección relativa. Percentiles por encima del P90 y
+por debajo del P10 indican exposiciones extremas.
+
+# Interpretación y buenas prácticas
+
+**Razón de dispersión ($\hat\phi$).** El quasi-Poisson se recomienda
+cuando $\hat\phi > 1{,}5$ (Armstrong, 2006). La razón de dispersión se
+reporta en `fit$diagnostics$disp_ratio`; la categoría `"adequate"`
+indica $\hat\phi < 1{,}5$.
+
+**Autocorrelación residual.** La prueba de Ljung-Box (10 rezagos de los
+residuos de devianza) detecta autocorrelación remanente tras el control
+de estacionalidad. Si es positiva (`has_autocorr = TRUE`), aumente
+`dof_per_year` o agregue `covariates = "dow"` (día de la semana)
+(Bhaskaran et al., 2013).
+
+**Grados de libertad del spline temporal.** La regla general es
+`dof_per_year = 4` para 1–2 años de datos y `dof_per_year = 6` para el
+Brasil subtropical (estacionalidad más acentuada). Para arbovirosis con
+picos sub-estacionales, `dof_per_year = 8`. Visualice el residuo
+estacional con `fit$data_daily` para verificar el ajuste.
+
+**Valor de referencia.** El predeterminado es la mediana de la
+exposición de rezago-0. En estudios comparativos multiciudad, use un
+valor fijo común (`ref_value = 20.0`) para garantizar la
+comparabilidad en las curvas exposición-respuesta.
+
+**Encadenamiento.** El objeto `mod_dlnm_fit.rds` (componente
+`climasus_dlnm`) es la **entrada** de los tutoriales:
+
+- **M2 (Fracción Atribuible):** `sus_mod_af(fit = fit, ...)`
+- **M5 (Metaanálisis):** `sus_mod_pool(fits = list(rmsp = fit, ...), ...)`
+- **M8 (Bayes Espacio-Tiempo):** modelo con offset basado en el RR estimado
+
+# Referencias
+
+- Armstrong, B. (2006). Models for the relationship between ambient
+  temperature and daily deaths. *Epidemiology*, 17(6), 624–631.
+  <https://doi.org/10.1097/01.ede.0000239732.50999.58>
+
+- Bhaskaran, K., Gasparrini, A., Hajat, S., Smeeth, L., & Armstrong, B.
+  (2013). Time series regression studies in environmental epidemiology.
+  *International Journal of Epidemiology*, 42(4), 1187–1195.
+  <https://doi.org/10.1093/ije/dyt092>
+
+- Gasparrini, A., Armstrong, B., & Kenward, M. G. (2010). Distributed
+  lag non-linear models. *Statistics in Medicine*, 29(21), 2224–2234.
+  <https://doi.org/10.1002/sim.3940>
+
+- Gasparrini, A. (2011). Distributed lag linear and non-linear models in
+  R: the package dlnm. *Journal of Statistical Software*, 43(8), 1–20.
+  <https://doi.org/10.18637/jss.v043.i08>
+
+- Gasparrini, A., Armstrong, B., & Kenward, M. G. (2014). Reducing and
+  meta-analysing estimates from distributed lag non-linear models.
+  *BMC Medical Research Methodology*, 14, 70.
+  <https://doi.org/10.1186/1471-2288-14-70>
+
+- Saldanha, R. F., Bastos, R. R., & Barcellos, C. (2019). Microdatasus:
+  pacote para download e pré-processamento de microdados do DATASUS.
+  *Cadernos de Saúde Pública*, 35(9), e00032419.
+
+---
+
+# Navegación
+
+- [Volver al hub de tutoriales](tutorials.html)
+- **Siguiente:** [Modelado 2 — Fracción y Número Atribuible](mod-02-atribuivel.html)
+
+> **Cómo reproducir las figuras.** Ejecute una única vez, desde la raíz
+> del paquete:
+> `Rscript scripts/modelagem_01_dlnm.R`
+> El script guarda las figuras en `vignettes-pt/figuras/` (prefijo
+> `moddlnm_`), las tablas en `vignettes-pt/dados/` y el objeto ajustado
+> `mod_dlnm_fit.rds` (entrada para M2 y M8).

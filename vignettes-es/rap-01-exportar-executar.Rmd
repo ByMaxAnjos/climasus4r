@@ -1,0 +1,932 @@
+---
+title: "Exportar y Ejecutar Pipelines Reproducibles"
+subtitle: "Serializar, leer, inspeccionar y reejecutar analisis con `sus_rap_export()`, `sus_rap_read()`, `sus_rap_run()` y `sus_rap_update()`"
+author:
+  - name: "Dr. Max Anjos"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* -- Variaveis de Cores Modernas -- */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; color: var(--text-main); background-color: #fff; line-height: 1.6; }
+h1, h2, h3, h4 { font-family: 'Inter', sans-serif; font-weight: 700; color: var(--dark-green); }
+h1.title { font-size: 2.8em; border-bottom: 4px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 1.5rem; }
+h2 { margin-top: 2rem; border-left: 4px solid var(--primary-color); padding-left: 1rem; }
+pre.r, pre.sourceCode { background-color: var(--code-bg); border: 1px solid #e1e1e1; border-left: 5px solid var(--primary-color) !important; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1rem; }
+.callout { padding: 1.2em 1.5em; margin: 1.5em 0; border-radius: 8px; border-left: 6px solid; background-color: var(--bg-light); }
+.callout-note { background-color: #f0f7ff; border-color: #007bff; }
+.callout-tip { background-color: #e8f5e9; border-color: #1D9E75; }
+.callout-warning { background-color: #fff3e0; border-color: #ff9800; }
+.workflow-container { background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #dce8e1; overflow-x: auto; }
+.workflow-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; font-family: 'Inter', monospace; font-size: 0.8rem; }
+.workflow-step { background: var(--primary-color); color: white; padding: 0.5rem 1rem; border-radius: 20px; white-space: nowrap; }
+.workflow-arrow { color: var(--primary-color); font-weight: bold; font-size: 1.2rem; }
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+.feature-card { background: white; border-radius: 12px; padding: 1.5rem; border: 1px solid #e1e1e1; transition: transform 0.2s ease, box-shadow 0.2s ease; text-align: center; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+.feature-icon { font-size: 2rem; margin-bottom: 1rem; }
+.feature-card h3 { margin-top: 0; color: var(--primary-color); font-size: 1.1rem; }
+table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e1e1; }
+th { background-color: var(--bg-light); font-weight: 600; color: var(--dark-green); }
+.github-feedback-btn { display: inline-flex; align-items: center; gap: 8px; background-color: #24292e; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-family: sans-serif; transition: background-color 0.2s; margin-top: 1rem; }
+.github-feedback-btn:hover { background-color: #2c3e50; color: white; text-decoration: none; }
+@media (max-width: 768px) { body { font-size: 16px; } h1.title { font-size: 2rem; } .workflow-steps { flex-direction: column; align-items: center; } }
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo      = TRUE,
+  eval      = FALSE,
+  warning   = FALSE,
+  message   = FALSE,
+  comment   = "#>",
+  fig.align = "center",
+  out.width = "90%",
+  fig.retina = 2
+)
+```
+
+# Introduccion — Que es un RAP?
+
+## El problema de la reproducibilidad en epidemiologia ambiental
+
+La investigacion en salud publica y epidemiologia ambiental en Brasil enfrenta
+un desafio creciente: como garantizar que un analisis realizado hoy — sobre
+mortalidad por enfermedades respiratorias en Sao Paulo en el invierno de 2022 —
+pueda ser reproducido, actualizado y auditado por otro investigador dentro
+de tres anos? Con distintas versiones de paquetes, bases de datos actualizadas,
+nuevos municipios a incluir?
+
+Los **Pipelines Analiticos Reproducibles** (*Reproducible Analytical
+Pipelines* — RAPs) son la respuesta de la ciencia de datos gubernamental y
+academica a este problema. El concepto fue formalizado por el **UK Government
+Data Science** (2022) para garantizar que los analisis publicados por agencias
+publicas sean auditables, actualizables y ejecutables por cualquier
+colaborador con acceso al entorno correcto.
+
+En `climasus4r`, el modulo RAP serializa todo el pipeline de analisis —
+desde la importacion de los datos del DATASUS hasta la agregacion temporal — en un
+archivo de texto portatil (`.R`, `.Rmd` o `.qmd`), con metadatos de
+trazabilidad embebidos. Esto significa que usted puede:
+
+- **Archivar** el analisis junto al articulo como material suplementario
+- **Reejecutar** el mismo pipeline para nuevas unidades federativas o
+  periodos con un unico comando
+- **Comparar** dos versiones del pipeline para identificar divergencias
+- **Actualizar** parametros sin reabrir y editar el archivo manualmente
+
+```{=html}
+<div class="feature-grid">
+
+<div class="feature-card">
+<div class="feature-icon">📦</div>
+<h3>Portabilidad</h3>
+<p>El pipeline exportado es un archivo de texto estandar de R. Cualquier colaborador con <code>climasus4r</code> instalado puede reejecutarlo.</p>
+</div>
+
+<div class="feature-card">
+<div class="feature-icon">🔍</div>
+<h3>Trazabilidad</h3>
+<p>Metadatos automaticos registran la version de R, los paquetes, la fecha/hora y la plataforma en el momento de la exportacion.</p>
+</div>
+
+<div class="feature-card">
+<div class="feature-icon">🔄</div>
+<h3>Actualizabilidad</h3>
+<p>Parametros como UF, periodo y sistema DATASUS pueden ser sobrescritos sin editar el archivo exportado.</p>
+</div>
+
+<div class="feature-card">
+<div class="feature-icon">📊</div>
+<h3>Comparabilidad</h3>
+<p>Dos versiones del pipeline pueden compararse lado a lado para identificar que cambio entre revisiones.</p>
+</div>
+
+</div>
+```
+
+## La clase `rap_object`
+
+`sus_rap_export()` retorna un objeto de la clase S3 `rap_object`, que es
+una lista con nombre con siete campos:
+
+| Campo | Tipo | Descripcion |
+|-------|------|-----------|
+| `metadata` | lista | Version de R, paquetes, timestamp, plataforma, semilla aleatoria |
+| `params` | lista | Parametros detectados en el pipeline (uf, years, system, etc.) |
+| `steps` | lista | Cada etapa del pipeline con su funcion y argumentos |
+| `structure` | lista | Formato, tipo de salida, numero total de etapas |
+| `source` | character | Ruta del archivo exportado en disco |
+| `format` | character | Formato de la exportacion (`"script"`, `"rmarkdown"`, etc.) |
+| `raw` | character | Lineas del archivo exportado (para inspeccion directa) |
+
+```{=html}
+<div class="callout callout-note">
+**Nota:** El `rap_object` hereda de `list`, lo que significa que usted puede
+acceder a cualquier campo con `$` o `[[`. Por ejemplo, `rap$params$uf`
+retorna la unidad federativa registrada en el momento de la exportacion.
+</div>
+```
+
+# Prerrequisitos
+
+## Paquetes necesarios
+
+```{r prereqs-install}
+# Instalacion de climasus4r (si aun no esta instalado)
+# install.packages("remotes")
+# remotes::install_github("ByMaxAnjos/climasus4r")
+
+library(climasus4r)
+library(dplyr)     # para manipulacion de datos
+library(magrittr)  # para el operador %>%
+```
+
+## Construyendo el pipeline de ejemplo
+
+En este tutorial usaremos como caso conductor un analisis de **mortalidad
+por enfermedades respiratorias en el estado de Sao Paulo, 2020-2022**, importado
+del SIM-DO (Sistema de Informaciones sobre Mortalidad). El pipeline se
+define con `quote()`, que captura la expresion sin evaluarla:
+
+```{r pipeline-definicao}
+pipeline <- quote(
+  sus_data_import(uf = "SP", years = 2020:2022, system = "SIM-DO") |>
+    sus_data_clean_encoding() |>
+    sus_data_standardize() |>
+    sus_data_filter_cid(cid_group = "respiratory") |>
+    sus_data_aggregate(by = "month", lang = "pt")
+)
+```
+
+```{=html}
+<div class="callout callout-tip">
+**Consejo:** El uso de `quote()` es esencial. Crea un objeto de lenguaje
+(`call`) que `sus_rap_export()` puede inspeccionar, parametrizar y
+serializar. Si usted pasa el resultado de un pipeline ya ejecutado,
+el modulo RAP no podra reconstruir los pasos de forma auditable.
+</div>
+```
+
+## Verificando la estructura del pipeline
+
+```{r pipeline-verificacao}
+# El objeto 'pipeline' es un objeto de lenguaje del tipo 'call'
+class(pipeline)
+#> [1] "call"
+
+# Visualizando el arbol de llamadas
+lobstr::ast(!!pipeline)
+#> o-`|>`
+#> +-o-`|>`
+#> | +-o-`|>`
+#> | | +-o-`|>`
+#> | | | +-sus_data_import(uf = "SP", years = 2020:2022, system = "SIM-DO")
+#> | | | \-sus_data_clean_encoding()
+#> | | \-sus_data_standardize()
+#> | \-sus_data_filter_cid(cid_group = "respiratory")
+#> \-sus_data_aggregate(by = "month", lang = "pt")
+```
+
+# `sus_rap_export()` — Serializar el Pipeline
+
+## Firma completa
+
+```{r export-assinatura}
+sus_rap_export(
+  pipeline             = NULL,
+  file_path            = NULL,
+  format               = c("script", "rmarkdown", "quarto", "function"),
+  include_metadata     = TRUE,
+  include_validation   = TRUE,
+  include_documentation = c("standard", "minimal", "comprehensive"),
+  output_type          = c("analysis", "dashboard", "report"),
+  lang                 = "pt",
+  overwrite            = FALSE
+)
+```
+
+## Exportar como script R (formato estandar)
+
+El formato `"script"` genera un archivo `.R` autocontenido, con encabezado de
+metadatos, bloque de parametros, bloque de validacion y el pipeline en si.
+Es el formato recomendado para archivado y reejecucion via linea de comandos.
+
+```{r export-script}
+rap <- sus_rap_export(
+  pipeline              = pipeline,
+  file_path             = "analise_respiratoria_sp.R",
+  format                = "script",
+  include_metadata      = TRUE,
+  include_validation    = TRUE,
+  include_documentation = "standard",
+  lang                  = "pt"
+)
+#> v Pipeline exportado para 'analise_respiratoria_sp.R'
+#> i Formato      : script
+#> i Etapas       : 5
+#> i Parametros   : uf, years, system, cid_group, by, lang
+#> i Metadados    : R 4.4.1 | climasus4r 0.1.0 | 2026-06-18 09:32:14
+```
+
+### Estructura del archivo generado
+
+El archivo `analise_respiratoria_sp.R` exportado tiene la siguiente estructura:
+
+```{r export-script-conteudo}
+# ============================================================
+# RAP gerado por climasus4r::sus_rap_export()
+# Timestamp : 2026-06-18 09:32:14 BRT
+# R version : 4.4.1 (2024-06-14)
+# climasus4r: 0.1.0
+# Plataforma: aarch64-apple-darwin20
+# ============================================================
+
+# -- PARAMETROS (edite aqui para reutilizar o pipeline) ------
+params <- list(
+  uf        = "SP",
+  years     = 2020:2022,
+  system    = "SIM-DO",
+  cid_group = "respiratory",
+  by        = "month",
+  lang      = "pt"
+)
+
+# -- VALIDACAO -----------------------------------------------
+stopifnot(
+  is.character(params$uf),
+  all(params$years >= 1979),
+  params$system %in% c("SIM-DO", "SIH", "SINAN", "SIA", "CNES", "SINASC")
+)
+
+# -- PIPELINE ------------------------------------------------
+resultado <- sus_data_import(
+    uf = params$uf, years = params$years, system = params$system
+  ) |>
+  sus_data_clean_encoding() |>
+  sus_data_standardize() |>
+  sus_data_filter_cid(cid_group = params$cid_group) |>
+  sus_data_aggregate(by = params$by, lang = params$lang)
+```
+
+## Estructura del `rap_object` retornado
+
+```{r export-str}
+str(rap)
+#> List of 7
+#>  $ metadata : list [r_version, packages, timestamp, platform, seed]
+#>  $ params   : list [uf, years, system, cid_group, by, lang]
+#>  $ steps    : list [5 pipeline steps]
+#>  $ structure: list [type, input_params, output_params, total_steps]
+#>  $ source   : chr "analise_respiratoria_sp.R"
+#>  $ format   : chr "script"
+#>  $ raw      : chr [linhas do arquivo exportado]
+#>  - attr(*, "class")= chr [1:2] "rap_object" "list"
+
+# Accediendo a campos individuales
+rap$params$uf
+#> [1] "SP"
+
+rap$metadata$r_version
+#> [1] "R version 4.4.1 (2024-06-14)"
+
+rap$structure$total_steps
+#> [1] 5
+```
+
+## Exportar como R Markdown
+
+Para publicacion de informes reproducibles con narrativa, use
+`format = "rmarkdown"`. El archivo `.Rmd` generado incluye encabezado YAML,
+bloques de configuracion y el pipeline dentro de chunks ejecutables.
+
+```{r export-rmarkdown}
+rap_rmd <- sus_rap_export(
+  pipeline              = pipeline,
+  file_path             = "relatorio_respiratorio_sp.Rmd",
+  format                = "rmarkdown",
+  include_metadata      = TRUE,
+  include_validation    = TRUE,
+  include_documentation = "comprehensive",
+  output_type           = "report",
+  lang                  = "pt"
+)
+#> v Pipeline exportado para 'relatorio_respiratorio_sp.Rmd'
+#> i Formato      : rmarkdown
+#> i Etapas       : 5
+#> i output_type  : report
+#> i Documentacao : comprehensive
+```
+
+## Exportar como Quarto
+
+El formato `"quarto"` genera un archivo `.qmd` compatible con el sistema
+Quarto, ideal para documentos tecnicos modernos con soporte para Python,
+Julia y ejecucion multiple de engines.
+
+```{r export-quarto}
+rap_qmd <- sus_rap_export(
+  pipeline   = pipeline,
+  file_path  = "analise_respiratoria_sp.qmd",
+  format     = "quarto",
+  output_type = "dashboard",
+  lang       = "pt"
+)
+#> v Pipeline exportado para 'analise_respiratoria_sp.qmd'
+#> i Formato: quarto | output_type: dashboard
+```
+
+## Exportar como funcion encapsulada
+
+El formato `"function"` es el mas adecuado para integracion en paquetes o
+scripts de automatizacion. El pipeline se encapsula en una funcion R con
+todos los parametros como argumentos formales, lista para ser importada
+o reutilizada programaticamente.
+
+```{r export-function}
+rap_fn <- sus_rap_export(
+  pipeline   = pipeline,
+  file_path  = "run_analise_respiratoria.R",
+  format     = "function",
+  lang       = "pt"
+)
+#> v Pipeline exportado para 'run_analise_respiratoria.R'
+#> i Formato: function
+#> i Funcao gerada: run_pipeline(uf, years, system, cid_group, by, lang)
+```
+
+El archivo generado contiene una funcion como esta:
+
+```{r export-function-conteudo}
+run_pipeline <- function(
+    uf        = "SP",
+    years     = 2020:2022,
+    system    = "SIM-DO",
+    cid_group = "respiratory",
+    by        = "month",
+    lang      = "pt"
+) {
+  sus_data_import(uf = uf, years = years, system = system) |>
+    sus_data_clean_encoding() |>
+    sus_data_standardize() |>
+    sus_data_filter_cid(cid_group = cid_group) |>
+    sus_data_aggregate(by = by, lang = lang)
+}
+```
+
+## Niveles de documentacion (`include_documentation`)
+
+El parametro `include_documentation` controla la cantidad de comentarios
+generados en el archivo exportado:
+
+| Nivel | Descripcion |
+|-------|-----------|
+| `"minimal"` | Solo el encabezado esencial y el bloque de parametros |
+| `"standard"` | Encabezado, parametros, validacion y comentarios de etapa |
+| `"comprehensive"` | Todo lo anterior + descripcion de cada funcion, tipos esperados y enlaces a la documentacion |
+
+```{r export-documentacao-minimal}
+# Exportacion minima -- solo lo esencial
+rap_min <- sus_rap_export(
+  pipeline              = pipeline,
+  file_path             = "analise_minima.R",
+  include_documentation = "minimal",
+  lang                  = "pt"
+)
+```
+
+```{r export-documentacao-comprehensive}
+# Exportacion exhaustiva -- maxima trazabilidad
+rap_full <- sus_rap_export(
+  pipeline              = pipeline,
+  file_path             = "analise_completa.R",
+  include_documentation = "comprehensive",
+  lang                  = "pt"
+)
+```
+
+```{=html}
+<div class="callout callout-warning">
+**Atencion:** El parametro `overwrite = FALSE` es el predeterminado. Si el archivo ya
+existe en disco, `sus_rap_export()` aborta con un error explicativo.
+Use `overwrite = TRUE` para sobrescribir explicitamente, o especifique
+una nueva ruta.
+</div>
+```
+
+# `sus_rap_read()` — Leer de Vuelta
+
+Una vez exportado, el archivo `.R` (o `.Rmd`/`.qmd`) puede leerse de
+vuelta a un `rap_object` en cualquier sesion de R, aunque el pipeline
+original ya no exista en memoria.
+
+## Firma
+
+```{r read-assinatura}
+sus_rap_read(file_path, lang = "pt", validate = TRUE)
+```
+
+## Leyendo el archivo exportado
+
+```{r read-exemplo}
+rap2 <- sus_rap_read("analise_respiratoria_sp.R", lang = "pt")
+#> v Arquivo lido: 'analise_respiratoria_sp.R'
+#> v Metadados validados
+#> i R version  : 4.4.1 (exportado em 2026-06-18 09:32:14)
+#> i climasus4r : 0.1.0
+#> i Etapas     : 5
+#> i Parametros : uf = "SP" | years = 2020:2022 | system = "SIM-DO"
+```
+
+## Imprimiendo el `rap_object`
+
+El metodo `print.rap_object()` muestra un resumen formateado del pipeline:
+
+```{r read-print}
+print(rap2)
+#> -- RAP: analise_respiratoria_sp.R -----------------------
+#> Formato   : script
+#> Exportado : 2026-06-18 09:32:14 BRT
+#> R version : 4.4.1 | climasus4r 0.1.0
+#> Plataforma: aarch64-apple-darwin20
+#>
+#> -- Parametros ------------------------------------------
+#> uf        : "SP"
+#> years     : 2020 2021 2022
+#> system    : "SIM-DO"
+#> cid_group : "respiratory"
+#> by        : "month"
+#> lang      : "pt"
+#>
+#> -- Pipeline (5 etapas) ----------------------------------
+#> [1] sus_data_import()
+#> [2] sus_data_clean_encoding()
+#> [3] sus_data_standardize()
+#> [4] sus_data_filter_cid()
+#> [5] sus_data_aggregate()
+#> ---------------------------------------------------------
+```
+
+```{=html}
+<div class="callout callout-note">
+**Nota:** El argumento `validate = TRUE` (predeterminado) verifica si el archivo
+leido contiene los campos obligatorios de metadatos (`timestamp`,
+`r_version`, `climasus4r`) y emite una advertencia en caso de que el archivo haya sido
+editado manualmente y tenga metadatos incompletos. Use
+`validate = FALSE` para suprimir esa verificacion.
+</div>
+```
+
+# `sus_rap_inspect()` — Inspeccionar y Comparar
+
+## Firma
+
+```{r inspect-assinatura}
+sus_rap_inspect(rap, rap2 = NULL, verbose = TRUE, lang = "pt")
+```
+
+## 5.1 Inspeccion de un unico RAP
+
+Con un unico `rap_object`, `sus_rap_inspect()` muestra un resumen
+detallado del pipeline: etapas, parametros, metadatos y, con
+`verbose = TRUE`, el codigo raw del archivo exportado.
+
+```{r inspect-simples}
+sus_rap_inspect(rap2, verbose = TRUE)
+#> == Inspecao: analise_respiratoria_sp.R ==================
+#>
+#> METADADOS
+#>   Timestamp : 2026-06-18 09:32:14 BRT
+#>   R version : 4.4.1
+#>   climasus4r: 0.1.0
+#>   Plataforma: aarch64-apple-darwin20
+#>   Semente   : nao definida
+#>
+#> ESTRUTURA
+#>   Formato      : script
+#>   Total etapas : 5
+#>   Output type  : analysis
+#>   Documentacao : standard
+#>
+#> PARAMETROS
+#>   uf        = "SP"
+#>   years     = 2020:2022
+#>   system    = "SIM-DO"
+#>   cid_group = "respiratory"
+#>   by        = "month"
+#>   lang      = "pt"
+#>
+#> PIPELINE
+#>   [1] sus_data_import(uf, years, system)
+#>   [2] sus_data_clean_encoding()
+#>   [3] sus_data_standardize()
+#>   [4] sus_data_filter_cid(cid_group)
+#>   [5] sus_data_aggregate(by, lang)
+#>
+#> CODIGO (raw)
+#>   [ver arquivo: analise_respiratoria_sp.R]
+#> =========================================================
+```
+
+## 5.2 Comparacion entre dos RAPs (diff)
+
+Al pasar dos `rap_object`s, `sus_rap_inspect()` realiza un diff
+estructurado, identificando:
+
+- Parametros que cambiaron de valor
+- Etapas agregadas o eliminadas
+- Divergencias en los metadatos (version de paquete, plataforma)
+
+El escenario a continuacion compara el pipeline de Sao Paulo con una version
+equivalente exportada para Rio de Janeiro:
+
+```{r inspect-diff-criacao}
+# Primero, exportamos el pipeline para el RJ
+pipeline_rj <- quote(
+  sus_data_import(uf = "RJ", years = 2020:2022, system = "SIM-DO") |>
+    sus_data_clean_encoding() |>
+    sus_data_standardize() |>
+    sus_data_filter_cid(cid_group = "respiratory") |>
+    sus_data_aggregate(by = "month", lang = "pt")
+)
+
+sus_rap_export(
+  pipeline  = pipeline_rj,
+  file_path = "analise_respiratoria_rj.R",
+  lang      = "pt"
+)
+
+rap_rj <- sus_rap_read("analise_respiratoria_rj.R")
+```
+
+```{r inspect-diff}
+sus_rap_inspect(rap2, rap_rj)
+#> == Diff: [1] analise_respiratoria_sp.R vs [2] analise_respiratoria_rj.R ==
+#>
+#> PARAMETROS ALTERADOS
+#>   uf        : "SP"  -->  "RJ"
+#>
+#> PARAMETROS IDENTICOS
+#>   years, system, cid_group, by, lang
+#>
+#> ETAPAS
+#>   Identicas : 5/5  (nenhuma etapa adicionada ou removida)
+#>
+#> METADADOS
+#>   Timestamps : diferentes (2026-06-18 09:32:14  vs  2026-06-18 09:45:07)
+#>   R version  : identicas (4.4.1)
+#>   climasus4r : identicas (0.1.0)
+#>
+#> CONCLUSAO: pipelines equivalentes com parametro 'uf' distinto.
+#> =========================================================
+```
+
+```{=html}
+<div class="callout callout-tip">
+**Consejo:** El diff es especialmente util en revisiones por pares. Si un
+colaborador modifica el pipeline y lo reexporta, usted puede comparar
+el RAP original con el nuevo para entender exactamente que fue alterado,
+sin necesidad de leer el codigo linea por linea.
+</div>
+```
+
+# `sus_rap_run()` — Reejecutar con Nuevos Parametros
+
+## Firma
+
+```{r run-assinatura}
+sus_rap_run(rap, ..., envir = parent.frame(), dry_run = FALSE, lang = "pt")
+```
+
+Los argumentos pasados via `...` sobrescriben los parametros del RAP
+**solo en la ejecucion actual** — el archivo en disco no se modifica.
+Para modificar permanentemente el archivo, use `sus_rap_update()` (seccion 7).
+
+## 6.1 Simulacion con `dry_run = TRUE`
+
+Antes de ejecutar el pipeline con nuevos parametros, se recomienda verificar
+el codigo que se ejecutaria usando `dry_run = TRUE`. No se abre ninguna conexion
+al DATASUS, no se descarga ningun dato.
+
+```{r run-dry}
+sus_rap_run(rap2, uf = "RJ", years = 2021:2023, dry_run = TRUE)
+#> -- [dry_run] Codigo que seria executado ------------------
+#>
+#> sus_data_import(uf = "RJ", years = 2021:2023, system = "SIM-DO") |>
+#>   sus_data_clean_encoding() |>
+#>   sus_data_standardize() |>
+#>   sus_data_filter_cid(cid_group = "respiratory") |>
+#>   sus_data_aggregate(by = "month", lang = "pt")
+#>
+#> Parametros substituidos: uf = "RJ" | years = 2021:2023
+#> Parametros mantidos    : system, cid_group, by, lang
+#> ----------------------------------------------------------
+#> i Nenhum dado foi baixado (dry_run = TRUE)
+```
+
+## 6.2 Ejecucion efectiva
+
+Confirmado el codigo, elimine `dry_run = TRUE` para ejecutar el pipeline:
+
+```{r run-efetivo}
+resultado_rj <- sus_rap_run(
+  rap2,
+  uf    = "RJ",
+  years = 2021:2023,
+  lang  = "pt"
+)
+#> -- Executando RAP: analise_respiratoria_sp.R -------------
+#> i Parametros substituidos: uf = "RJ" | years = 2021:2023
+#> v [1/5] sus_data_import()     ... 148.392 registros importados
+#> v [2/5] sus_data_clean_encoding() ... concluido
+#> v [3/5] sus_data_standardize() ... concluido
+#> v [4/5] sus_data_filter_cid()  ... 42.817 registros (cid_group = "respiratory")
+#> v [5/5] sus_data_aggregate()   ... 36 linhas (mensal, 2021-2023)
+#> -- Pipeline concluido em 4.2 segundos --------------------
+
+class(resultado_rj)
+#> [1] "climasus_df" "tbl_df"      "tbl"         "data.frame"
+```
+
+## 6.3 Sobrescribiendo multiples parametros
+
+Usted puede sobrescribir tantos parametros como quiera en una unica llamada:
+
+```{r run-multiplos-params}
+resultado_mg_anual <- sus_rap_run(
+  rap2,
+  uf    = "MG",
+  years = 2019:2023,
+  by    = "year",
+  lang  = "en"
+)
+#> -- Executando RAP: analise_respiratoria_sp.R -------------
+#> i Parametros substituidos: uf = "MG" | years = 2019:2023 | by = "year"
+#> v Pipeline concluido em 6.1 segundos
+```
+
+## 6.4 Control del entorno de ejecucion
+
+El argumento `envir` define en que entorno se evalua el pipeline.
+El predeterminado `parent.frame()` es adecuado para uso interactivo. Para
+ejecuciones automatizadas en scripts o funciones, pase `envir = new.env()`
+para aislar el pipeline:
+
+```{r run-envir}
+env_isolado <- new.env(parent = baseenv())
+resultado_iso <- sus_rap_run(
+  rap2,
+  uf   = "CE",
+  envir = env_isolado
+)
+```
+
+```{=html}
+<div class="callout callout-warning">
+**Atencion:** `sus_rap_run()` requiere conexion a internet para descargar
+datos del DATASUS via `microdatasus`. Asegurese de que el entorno
+de ejecucion tenga acceso al servidor del Datasus antes de llamar a la funcion.
+</div>
+```
+
+# `sus_rap_update()` — Actualizar Parametros en el Archivo
+
+## Firma
+
+```{r update-assinatura}
+sus_rap_update(rap, ..., backup = TRUE, lang = "pt")
+```
+
+Mientras que `sus_rap_run()` sustituye parametros solo para la ejecucion
+actual (sin tocar el archivo), `sus_rap_update()` **edita permanentemente**
+el bloque de parametros en el archivo en disco. Esto es util cuando usted quiere
+que la version "oficial" del pipeline refleje un cambio permanente de alcance.
+
+## Actualizando la UF y el periodo
+
+```{r update-uf-years}
+sus_rap_update(
+  rap2,
+  uf    = c("RJ", "MG"),
+  years = 2021:2023,
+  lang  = "pt"
+)
+#> i Backup criado: analise_respiratoria_sp.R.bak (2026-06-18 10:02:31)
+#> v Parametros atualizados em 'analise_respiratoria_sp.R':
+#>   uf    : "SP"          -->  c("RJ", "MG")
+#>   years : 2020:2022     -->  2021:2023
+#> i Parametros nao alterados: system, cid_group, by, lang
+```
+
+## El bloque de parametros antes y despues
+
+**Antes** de la actualizacion:
+
+```{r update-antes}
+# -- PARAMETROS (edite aqui para reutilizar o pipeline) ------
+params <- list(
+  uf        = "SP",
+  years     = 2020:2022,
+  system    = "SIM-DO",
+  cid_group = "respiratory",
+  by        = "month",
+  lang      = "pt"
+)
+```
+
+**Despues** de la actualizacion:
+
+```{r update-depois}
+# -- PARAMETROS (edite aqui para reutilizar o pipeline) ------
+# Atualizado por sus_rap_update() em 2026-06-18 10:02:31
+params <- list(
+  uf        = c("RJ", "MG"),
+  years     = 2021:2023,
+  system    = "SIM-DO",
+  cid_group = "respiratory",
+  by        = "month",
+  lang      = "pt"
+)
+```
+
+## Backup automatico
+
+Por defecto, `backup = TRUE` crea una copia del archivo original antes de
+cualquier modificacion, con el sufijo `.bak` y timestamp. Esto garantiza que
+usted nunca pierda la version anterior del pipeline:
+
+```{r update-backup}
+# El backup se crea automaticamente:
+# analise_respiratoria_sp.R.bak.2026-06-18_10-02-31
+
+# Para restaurar manualmente:
+file.copy(
+  "analise_respiratoria_sp.R.bak.2026-06-18_10-02-31",
+  "analise_respiratoria_sp.R",
+  overwrite = TRUE
+)
+```
+
+```{=html}
+<div class="callout callout-tip">
+**Consejo de versionado:** Para proyectos en Git, combine
+`sus_rap_update()` con commits regulares. El historial del archivo
+exportado es el mecanismo de trazabilidad mas robusto disponible,
+especialmente para auditorias externas.
+</div>
+```
+
+## Recargando el RAP actualizado
+
+Despues de la actualizacion, vuelva a leer el archivo para tener un `rap_object` con los
+parametros nuevos reflejados en memoria:
+
+```{r update-recarregar}
+rap2_atualizado <- sus_rap_read("analise_respiratoria_sp.R")
+
+# Confirme la actualizacion
+rap2_atualizado$params$uf
+#> [1] "RJ" "MG"
+
+rap2_atualizado$params$years
+#> [1] 2021 2022 2023
+```
+
+# Flujo Completo
+
+El ciclo de vida completo de un RAP en `climasus4r` pasa por seis etapas.
+El diagrama a continuacion ilustra la secuencia tipica de uso:
+
+```{=html}
+<div class="workflow-container">
+  <div class="workflow-steps">
+    <span class="workflow-step">quote(pipeline)</span>
+    <span class="workflow-arrow">&#x2192;</span>
+    <span class="workflow-step">sus_rap_export()</span>
+    <span class="workflow-arrow">&#x2192;</span>
+    <span class="workflow-step">sus_rap_read()</span>
+    <span class="workflow-arrow">&#x2192;</span>
+    <span class="workflow-step">sus_rap_inspect()</span>
+    <span class="workflow-arrow">&#x2192;</span>
+    <span class="workflow-step">sus_rap_run()</span>
+    <span class="workflow-arrow">&#x2192;</span>
+    <span class="workflow-step">sus_rap_update()</span>
+  </div>
+</div>
+```
+
+## Script completo de referencia
+
+El codigo a continuacion reune todas las etapas en un unico script de referencia:
+
+```{r fluxo-completo}
+library(climasus4r)
+
+# 1. Definir el pipeline con quote()
+pipeline <- quote(
+  sus_data_import(uf = "SP", years = 2020:2022, system = "SIM-DO") |>
+    sus_data_clean_encoding() |>
+    sus_data_standardize() |>
+    sus_data_filter_cid(cid_group = "respiratory") |>
+    sus_data_aggregate(by = "month", lang = "pt")
+)
+
+# 2. Exportar a disco
+rap <- sus_rap_export(
+  pipeline              = pipeline,
+  file_path             = "analise_respiratoria_sp.R",
+  format                = "script",
+  include_documentation = "standard",
+  lang                  = "pt"
+)
+
+# 3. Volver a leer de disco (simula un colaborador recibiendo el archivo)
+rap2 <- sus_rap_read("analise_respiratoria_sp.R")
+
+# 4. Inspeccionar
+sus_rap_inspect(rap2, verbose = TRUE)
+
+# 5. Simular la ejecucion con nuevos parametros (sin descargar datos)
+sus_rap_run(rap2, uf = "RJ", years = 2021:2023, dry_run = TRUE)
+
+# 6. Ejecutar de verdad
+resultado <- sus_rap_run(rap2, uf = "RJ", years = 2021:2023)
+
+# 7. Actualizar parametros en el archivo para un alcance ampliado
+sus_rap_update(rap2, uf = c("RJ", "MG"), years = 2021:2023)
+```
+
+## Tabla de referencia rapida
+
+| Funcion | Entrada | Salida | Modifica el disco? |
+|--------|---------|-------|-----------------|
+| `sus_rap_export()` | `quote(pipeline)` | `rap_object` | Si (crea archivo) |
+| `sus_rap_read()` | ruta del archivo | `rap_object` | No |
+| `sus_rap_inspect()` | 1 o 2 `rap_object` | salida en consola | No |
+| `sus_rap_run()` | `rap_object` | `climasus_df` | No |
+| `sus_rap_update()` | `rap_object` + params | `rap_object` (invisible) | Si (edita archivo) |
+
+# Referencias
+
+- Wilson G, Bryan J, Cranston K, Kitzes J, Nederbragt L, Teal TK (2017).
+  Good enough practices in scientific computing.
+  *PLOS Computational Biology*, 13(6), e1005510.
+  <https://doi.org/10.1371/journal.pcbi.1005510>
+
+- Marwick B, Boettiger C, Mullen L (2018).
+  Packaging data analytical work reproducibly using R (and friends).
+  *The American Statistician*, 72(1), 80-88.
+  <https://doi.org/10.1080/00031305.2017.1375986>
+
+- UK Government Data Science (2022).
+  *Reproducible Analytical Pipelines (RAP) Strategy*.
+  Cabinet Office, His Majesty's Government.
+  <https://analysisfunction.civilservice.gov.uk/support/reproducible-analytical-pipelines/>
+
+- Anjos M (2026). *climasus4r: Analisis integrado salud-clima-ambiente
+  en Brasil*. R package version 0.1.0.
+  <https://github.com/ByMaxAnjos/climasus4r>
+
+---
+
+**Navegacion:**
+[Anterior: Tutoriales Tematicos](tutorials.html) | [Siguiente: RAP 2 - Pipelines con targets](rap-02-targets.html)
+
+```{=html}
+<div style="text-align: center; margin-top: 3rem; padding-top: 2rem; border-top: 2px solid #e1e1e1;">
+
+<p><strong>climasus4r</strong> · Analisis integrado salud-clima-ambiente en Brasil</p>
+
+<p>Encontro un problema o tiene sugerencias para este tutorial?</p>
+
+<a href="https://github.com/ByMaxAnjos/climasus4r/issues" class="github-feedback-btn" target="_blank">
+  &#x1F41B; Reportar en GitHub
+</a>
+
+</div>
+```

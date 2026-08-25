@@ -1,0 +1,492 @@
+---
+title: "Estudio de Caso 1: Mortalidad Respiratoria Pediátrica y Temperatura en el Sudeste"
+subtitle: "Pipeline completo SIM-DO + INMET | SP, RJ, MG | 2018–2022"
+author:
+  - name: "Dr. Max Anjos"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* ── Variáveis de Cores Modernas ────────────────── */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+  --pipeline-purple: #9b59b6;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 18px;
+  color: var(--text-main);
+  background-color: #fff;
+  line-height: 1.6;
+}
+
+/* ── Títulos com Inter-spacing ─────────────────── */
+h1, h2, h3, h4 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  color: var(--dark-green);
+}
+
+h1.title {
+  font-size: 2.8em;
+  border-bottom: 4px solid var(--primary-color);
+  padding-bottom: 10px;
+  margin-bottom: 1.5rem;
+}
+
+h2 {
+  margin-top: 2rem;
+  border-left: 4px solid var(--primary-color);
+  padding-left: 1rem;
+}
+
+/* ── Code Blocks Estilizados ────────────────────── */
+pre.r, pre.sourceCode {
+  background-color: var(--code-bg);
+  border: 1px solid #e1e1e1;
+  border-left: 5px solid var(--primary-color) !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  padding: 1rem;
+}
+
+/* ── Custom Callouts (Estilo Quarto) ────────────── */
+.callout {
+  padding: 1.2em 1.5em;
+  margin: 1.5em 0;
+  border-radius: 8px;
+  border-left: 6px solid;
+  background-color: var(--bg-light);
+}
+
+.callout-note {
+  background-color: #f0f7ff;
+  border-color: #007bff;
+}
+
+.callout-tip {
+  background-color: #e8f5e9;
+  border-color: #1D9E75;
+}
+
+.callout-warning {
+  background-color: #fff3e0;
+  border-color: #ff9800;
+}
+
+.callout-info {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+}
+
+.callout-important {
+  background-color: #fef2e8;
+  border-color: #ff6b6b;
+}
+
+/* ── Pipeline cards ───────────────────────────────── */
+.pipeline-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.pipeline-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e1e1e1;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.pipeline-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.pipeline-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.pipeline-card h3 {
+  margin-top: 0;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
+
+.pipeline-card p {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  margin-bottom: 0;
+}
+
+.pipeline-badge {
+  display: inline-block;
+  background-color: var(--primary-color);
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-top: 0.5rem;
+}
+
+/* ── Table styling ───────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+th {
+  background-color: var(--bg-light);
+  font-weight: 600;
+  color: var(--dark-green);
+}
+
+tr:hover {
+  background-color: var(--bg-light);
+}
+
+/* ── Workflow container ─────────────────────────── */
+.workflow-container {
+  background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  overflow-x: auto;
+}
+
+.workflow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'Inter', monospace;
+  font-size: 0.8rem;
+}
+
+.workflow-step {
+  background: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.workflow-arrow {
+  color: var(--primary-color);
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+/* ── Comparison container ───────────────────────── */
+.comparison-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.comparison-box {
+  background: var(--bg-light);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.comparison-box pre {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+/* ── Botão GitHub aprimorado ───────────────────── */
+.github-feedback-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #24292e;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-family: sans-serif;
+  transition: background-color 0.2s;
+  margin-top: 1rem;
+}
+
+.github-feedback-btn:hover {
+  background-color: #2c3e50;
+  color: white;
+  text-decoration: none;
+}
+
+/* ── Responsive ─────────────────────────────────── */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+
+  h1.title {
+    font-size: 2rem;
+  }
+
+  .workflow-steps {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .workflow-arrow {
+    transform: rotate(90deg);
+  }
+
+  .pipeline-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .comparison-container {
+    grid-template-columns: 1fr;
+  }
+
+  th, td {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pipeline-card,
+  .github-feedback-btn {
+    transition: none;
+  }
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  eval    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  comment = "#>",
+  fig.align = "center",
+  out.width = "80%",
+  fig.retina = 2
+)
+```
+
+# Objetivo
+
+Este estudio de caso investiga la asociación entre la temperatura mínima y la mortalidad por infecciones respiratorias agudas (IRA) en niños menores de 5 años en los tres estados más poblados del Sudeste brasileño — São Paulo (SP), Río de Janeiro (RJ) y Minas Gerais (MG) — en el período de 2018 a 2022. Al final del pipeline, tendremos una base semanal integrada de defunciones pediátricas y temperatura lista para su uso en modelos de distribución de rezago no lineal (DLNM) o análisis de mortalidad atribuible.
+
+# Contexto Científico
+
+Las infecciones respiratorias agudas (IRA) constituyen la principal causa de mortalidad en niños menores de 5 años en el mundo y en Brasil (Liu et al., 2016). En regiones de clima subtropical y tropical húmedo, como el Sudeste brasileño, el comportamiento estacional de estas muertes está modulado por la temperatura del aire: la caída de la temperatura mínima aumenta la replicación de virus respiratorios (virus sincitial respiratorio, influenza A/B) y reduce la respuesta inmune de las mucosas, elevando la susceptibilidad en lactantes y preescolares (Eccles, 2002; Nunes et al., 2013).
+
+El Sudeste concentra aproximadamente el 42% de la población brasileña y presenta una heterogeneidad climática expresiva: el litoral fluminense es cálido y húmedo durante todo el año, mientras que el Altiplano Paulista y el sur de Minas registran amplitudes térmicas significativas entre los meses de invierno (junio–agosto) y verano (diciembre–febrero). Esta variación regional exige análisis estratificados por Unidad Federativa (UF), enfoque que `climasus4r` facilita con el argumento `group_by = "uf"`.
+
+La integración temporal entre defunciones y clima utiliza la estrategia de *rezago* discreto (7 días), fundamentada en la literatura epidemiológica que demuestra que el efecto del frío sobre la mortalidad respiratoria pediátrica alcanza su pico entre 3 y 10 días después de la exposición (Gasparrini et al., 2015). La base resultante es adecuada para modelado DLNM de respuesta-exposición no lineal con distribución de rezago.
+
+# Datos Utilizados
+
+| Fuente | Sistema | Variables | UFs | Período |
+|-------|---------|-----------|-----|---------|
+| DATASUS | SIM-DO | Defunción por CID-10 grupo J (J00–J99) | SP, RJ, MG | 2018–2022 |
+| INMET | Estaciones automáticas | Temperatura mínima (tair_min_c), temperatura máxima (tair_max_c), precipitación (prec_mm) | SP, RJ, MG | 2018–2022 |
+
+```{=html}
+<div class="callout callout-note">
+  <strong>Nota sobre el SIM-DO:</strong> El Sistema de Informaciones sobre Mortalidad (SIM) proporciona microdatos de defunciones con fecha, municipio de residencia, causa básica (CID-10), sexo y edad. La resolución temporal es diaria, lo que permite la agregación en cualquier ventana temporal (día, semana epidemiológica, mes, año).
+</div>
+```
+
+# Pipeline Completo
+
+```{r pipeline-ec01, eval=FALSE}
+library(climasus4r)
+
+# --- 1. Importacao e preparacao dos dados de saude ---
+df_saude <- sus_data_import(
+  uf     = c("SP", "RJ", "MG"),
+  year   = 2018:2022,
+  system = "SIM-DO",
+  lang   = "pt"
+) |>
+  sus_data_clean_encoding(lang = "pt") |>
+  sus_data_standardize(lang = "pt") |>
+  sus_data_filter_cid(disease_group = "respiratory", lang = "pt") |>
+  sus_data_create_variables(
+    create_age_groups    = TRUE,
+    age_breaks           = c(0, 1, 2, 5, Inf),
+    age_labels           = c("< 1 ano", "1 ano", "2-4 anos", "5+ anos"),
+    create_calendar_vars = TRUE,
+    lang                 = "pt"
+  ) |>
+  sus_data_filter_demographics(
+    age_range = c(0, 5),
+    lang      = "pt"
+  ) |>
+  sus_data_aggregate(
+    time_unit = "week",
+    group_by  = c("uf", "age_group"),
+    lang      = "pt"
+  )
+
+# --- 2. Dados climaticos INMET ---
+df_clima <- sus_climate_inmet(
+  uf       = c("SP", "RJ", "MG"),
+  year     = 2018:2022,
+  variable = c("tair_min_c", "tair_max_c", "prec_mm"),
+  lang     = "pt"
+) |>
+  sus_climate_fill_inmet(method = "random_forest", lang = "pt")
+
+# --- 3. Integracao saude + clima ---
+df_final <- sus_climate_aggregate(
+  df_health  = df_saude,
+  df_climate = df_clima,
+  strategy   = "discrete_lag",
+  lag_days   = 7,
+  group_by   = "uf",
+  lang       = "pt"
+)
+```
+
+# Explicación Paso a Paso
+
+## `sus_data_import()` — Importación de los microdatos SIM-DO
+
+La función `sus_data_import()` descarga los microdatos directamente del FTP del DATASUS mediante el paquete `microdatasus` (Saldanha et al., 2019). Los argumentos principales son `uf` (vector de siglas de UF), `year` (vector de años) y `system` (identificador del sistema DATASUS). Para el SIM-DO, cada archivo anual por UF puede tener entre 50 mil y 500 mil registros; la importación de 5 años para 3 UFs suma aproximadamente 1,5 a 3 millones de filas antes del filtrado. El argumento `parallel = TRUE` (por defecto) utiliza el plan `future` activo para paralelizar la descarga.
+
+## `sus_data_clean_encoding()` — Normalización de encoding
+
+Los archivos DBC del DATASUS están codificados en Latin-1 (ISO-8859-1). La función `sus_data_clean_encoding()` convierte todos los campos de texto a UTF-8 y elimina caracteres de control y saltos de línea incrustados en campos de texto libre. Este paso es obligatorio antes de cualquier manipulación de cadenas con `stringr` o `stringi`.
+
+## `sus_data_standardize()` — Estandarización de nombres de columnas
+
+Distintos sistemas del DATASUS usan nomenclaturas diferentes para las mismas variables (por ejemplo, `DTOBITO` en el SIM frente a `DT_NOTIFIC` en el SINAN). La función `sus_data_standardize()` renombra las columnas a un vocabulario controlado y uniforme: `date` (fecha del evento), `code_muni` (código IBGE del municipio de residencia), `age_years` (edad en años), `sex` (sexo), `cid10` (causa básica). Después de este paso, el pipeline es idéntico independientemente del sistema importado.
+
+## `sus_data_filter_cid()` — Filtrado por grupo de enfermedad
+
+El argumento `disease_group = "respiratory"` selecciona las defunciones cuya causa básica pertenece al Capítulo X de la CID-10: J00–J99 (Enfermedades del Aparato Respiratorio). Esto incluye neumonías (J12–J18), bronquiolitis (J21), bronquitis agudas (J20), gripe (J09–J11) y síndrome respiratorio agudo grave. El mapeo completo de los grupos de enfermedad está documentado en `?sus_data_filter_cid`.
+
+## `sus_data_create_variables()` — Creación de variables derivadas
+
+Con `create_age_groups = TRUE` y los cortes `c(0, 1, 2, 5, Inf)`, la función crea la columna `age_group` con las categorías `"< 1 ano"`, `"1 ano"`, `"2-4 anos"` y `"5+ anos"`. Con `create_calendar_vars = TRUE`, se añaden columnas de calendario: `year`, `month`, `epiweek` (semana epidemiológica CDC), `season` (estación del año) y `day_of_week`. Estas variables son esenciales tanto para la agregación como para el control de estacionalidad en los modelos.
+
+## `sus_data_filter_demographics()` — Filtrado demográfico
+
+`age_range = c(0, 5)` conserva solo los registros de niños con edad entre 0 y 4 años completos (excluyendo el límite superior), eliminando los registros de la categoría `"5+ anos"` creada en el paso anterior. La función también acepta filtros por `sex` (`"M"`, `"F"`, `"both"`) y por `code_muni`.
+
+## `sus_data_aggregate()` — Agregación temporal
+
+`time_unit = "week"` produce el conteo de defunciones por semana epidemiológica (definición CDC: la semana comienza el domingo). `group_by = c("uf", "age_group")` estratifica el conteo por UF y grupo de edad, generando una fila por combinación de semana × UF × grupo de edad. Las semanas con cero defunciones se incluyen automáticamente (conteo en cero), lo que es esencial para series temporales completas en modelos de series temporales.
+
+## `sus_climate_inmet()` — Descarga de los datos climáticos del INMET
+
+Descarga las observaciones horarias de las estaciones automáticas del INMET para las UFs y años especificados. Las variables solicitadas (`tair_min_c`, `tair_max_c`, `prec_mm`) se agregan al nivel diario antes de devolverse: `tair_min_c` = mínimo diario, `tair_max_c` = máximo diario, `prec_mm` = suma diaria. Los metadatos de las estaciones (ubicación, altitud, municipio) se unen automáticamente al conjunto de datos mediante el archivo `inst/data_4r/station_meta.parquet`.
+
+## `sus_climate_fill_inmet()` — Imputación de fallos
+
+Las estaciones automáticas del INMET tienen tasas de fallo que varían del 2% al 30% según la UF y el año. El argumento `method = "random_forest"` usa el algoritmo missForest (basado en random forests) para imputar valores ausentes a partir de las variables meteorológicas vecinas y de la autocorrelación temporal. Alternativas disponibles: `"linear_interp"` (interpolación lineal), `"spline"`, `"mean_station"` (media de la estación en el mismo período), `"spatial_kriging"` (krigeado espacial — requiere `sf` instalado).
+
+## `sus_climate_aggregate()` — Integración salud + clima con rezago
+
+`strategy = "discrete_lag"` con `lag_days = 7` desplaza las variables climáticas 7 días hacia atrás respecto al desenlace de salud. Esto significa que el valor de `tair_min_c` asociado a la semana epidemiológica W corresponde a la temperatura mínima registrada en la semana W-1. El argumento `group_by = "uf"` garantiza que el rezago se calcule por separado para cada UF (usando las estaciones INMET de esa UF).
+
+# Resultado Esperado
+
+Tras la ejecución del pipeline, `df_final` es un objeto `climasus_df` (subclase de tibble) con las siguientes columnas principales:
+
+| Columna | Tipo | Descripción |
+|--------|------|-----------|
+| `date_week` | Date | Primer día de la semana epidemiológica |
+| `epiweek` | integer | Número de la semana epidemiológica (1–53) |
+| `uf` | character | Sigla de la UF (SP, RJ, MG) |
+| `age_group` | factor | Grupo de edad pediátrico |
+| `n_deaths` | integer | Conteo de defunciones en la semana |
+| `tair_min_c_lag7` | double | Temperatura mínima (°C) con rezago de 7 días |
+| `tair_max_c_lag7` | double | Temperatura máxima (°C) con rezago de 7 días |
+| `prec_mm_lag7` | double | Precipitación (mm) con rezago de 7 días |
+
+```{=html}
+<div class="callout callout-tip">
+  <strong>Consejo:</strong> Inspeccione los metadatos del objeto con <code>sus_meta(df_final)</code> para verificar el historial de procesamiento, el sistema de origen, el backend y la etapa del pipeline registrados automáticamente.
+</div>
+```
+
+# Próximos Pasos
+
+Con la base `df_final` lista, los próximos pasos naturales son:
+
+- **Modelado DLNM**: ajuste de modelos de distribución de rezago no lineal para estimar la función de respuesta-exposición temperatura-mortalidad. Consulte el tutorial [Modelado DLNM](mod-01-dlnm.html).
+- **Análisis atribuible**: estimación del número y fracción de defunciones atribuibles al frío y al calor, con intervalos de incertidumbre mediante bootstrapping. Consulte el tutorial [Mortalidad Atribuible](mod-02-atribuivel.html).
+- **Visualización**: gráficos de series temporales, mapas de calor por semana epidemiológica y UF, y curvas de respuesta-exposición.
+
+# Referencias
+
+Liu, L., Oza, S., Hogan, D., et al. (2016). Global, regional, and national causes of under-5 mortality in 2000–15: an updated systematic analysis with implications for the Sustainable Development Goals. *Lancet*, 388(10063), 3027–3035.
+
+Nunes, A. M. B., Nascimento, L. F. C., & Aquino, R. (2013). Influência de fatores climáticos sobre a mortalidade infantil por doenças respiratórias na regiao Sul do Brasil. *Cadernos de Saude Publica*, 29(9), 1763–1772.
+
+Gasparrini, A., Guo, Y., Hashizume, M., et al. (2015). Mortality risk attributable to high and low ambient temperature: a multicountry observational study. *Lancet*, 386(9991), 369–375.
+
+Eccles, R. (2002). An explanation for the seasonality of acute upper respiratory tract viral infections. *Acta Otolaryngologica*, 122(2), 183–191.
+
+Brasil, Ministerio da Saude (2022). *SIM — Sistema de Informacoes sobre Mortalidade*. Brasilia: DATASUS. Disponible en: https://datasus.saude.gov.br/
+
+Saldanha, R. F., Bastos, R. R., & Barcellos, C. (2019). Microdatasus: pacote para download e pre-processamento de microdados do Departamento de Informatica do SUS (DATASUS). *Cadernos de Saude Publica*, 35(3), e00032419.
+
+---
+
+```{=html}
+<p><a href="tutorial_estudos_casos.html">&larr; Hub de Estudios de Caso</a> &nbsp;|&nbsp; <a href="ec-02-dengue-clima.html">Siguiente: Estudio 2 &rarr;</a></p>
+```
+
+---
+
+## ¿Tiene comentarios o sugerencias?
+
+¿Tiene alguna idea de mejora o encontró algún error? Haga clic en el botón de abajo para abrir un nuevo *issue* en GitHub y compartir sus sugerencias directamente con nosotros.
+
+```{=html}
+<a href='https://github.com/ByMaxAnjos/climasus4r/issues/new' class="github-feedback-btn">
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+  </svg>
+  Abrir issue en GitHub
+</a>
+```
