@@ -79,8 +79,10 @@ utils::globalVariables(c(
 #' @param theme_style Character.  Reserved for future theme variants.
 #'   Currently only `"publication"` (default) is implemented.
 #' @param base_size Numeric.  Base font size for `theme_void()`.  Default `11`.
-#' @param interactive Logical.  If `TRUE`, wraps the ggplot2 object with
-#'   `plotly::ggplotly()`.  Requires `plotly`.  Default `FALSE`.
+#' @param interactive Logical.  If `TRUE`, returns a `leaflet` widget (pan,
+#'   zoom, click-for-popup) built from the same municipality data instead of
+#'   the static ggplot2 map.  Requires `leaflet` and, at view time, an
+#'   internet connection to load the basemap tiles.  Default `FALSE`.
 #' @param return_sf Logical.  If `TRUE`, return the underlying `sf` object
 #'   used to build the map (municipality points for `map_type = "bubble"`,
 #'   polygons for `"choropleth"` / `"quantile_choropleth"`) instead of the
@@ -94,8 +96,8 @@ utils::globalVariables(c(
 #'   `"pt"` (default), `"en"`, `"es"`.
 #' @param verbose Logical.  Print progress messages.  Default `TRUE`.
 #'
-#' @return A `ggplot2` object (class `"gg"` / `"ggplot"`), a `plotly`
-#'   object when `interactive = TRUE`, or an `sf` object when
+#' @return A `ggplot2` object (class `"gg"` / `"ggplot"`), a `leaflet`
+#'   widget when `interactive = TRUE`, or an `sf` object when
 #'   `return_sf = TRUE`.  The function does **not** modify `df` or advance
 #'   the pipeline `stage`.  When a plain `ggplot2` object is returned, it
 #'   also carries the underlying `sf` data as a `"climasus_sf"` attribute
@@ -126,7 +128,7 @@ utils::globalVariables(c(
 #'   lang          = "en"
 #' )
 #'
-#' # Interactive plotly bubble map
+#' # Interactive leaflet bubble map
 #' sus_data_plot_aggregate_map(df_agg, interactive = TRUE, lang = "pt")
 #'
 #' # Get the map data as sf and export it as GeoPackage
@@ -953,10 +955,15 @@ sus_data_plot_aggregate_map <- function(
   # ---------------------------------------------------------------------------
   # 19.  Interactive wrapper
   # ---------------------------------------------------------------------------
+  # plotly::ggplotly() cannot convert coord_sf/geom_sf maps (or the point map's
+  # size + colour double legend) -- it always errors on this function's output.
+  # Build a leaflet widget straight from the sf data instead when available.
   if (interactive) {
-    rlang::check_installed("plotly",
+    if (!is.null(.spatial_out) && requireNamespace("leaflet", quietly = TRUE)) {
+      return(.map_leaflet_widget(.spatial_out, palette, log_scale, fill_lbl))
+    }
+    rlang::check_installed("leaflet",
       reason = "required when interactive = TRUE.")
-    return(plotly::ggplotly(p))
   }
 
   if (!is.null(.spatial_out)) attr(p, "climasus_sf") <- .spatial_out
@@ -1106,4 +1113,56 @@ sus_data_plot_aggregate_map <- function(
   grDevices::colorRampPalette(
     c("#F7FBFF", "#D0E1F2", "#8AB6D6", "#3B7EA1", "#0B3C5D")
   )(n)
+}
+
+#' Build a leaflet widget for the map's underlying sf data
+#'
+#' Used in place of `plotly::ggplotly()`, which cannot render `coord_sf`/
+#' `geom_sf` output. Colours either `fill_class` (quantile_choropleth,
+#' discrete) or `fill_var` (bubble/choropleth, continuous, `log1p`-scaled
+#' when `log_scale = TRUE`) with the same palette as the static plot.
+#' @keywords internal
+#' @noRd
+.map_leaflet_widget <- function(spatial, palette, log_scale, fill_lbl) {
+  is_point <- all(sf::st_geometry_type(spatial) %in% c("POINT", "MULTIPOINT"))
+
+  if ("fill_class" %in% names(spatial) && any(!is.na(spatial$fill_class))) {
+    values  <- spatial$fill_class
+    pal_fun <- leaflet::colorFactor(
+      .map_palette_colors(palette, n = nlevels(values)),
+      domain = values, na.color = "#cccccc"
+    )
+  } else {
+    values  <- spatial$fill_var
+    scaled  <- if (isTRUE(log_scale)) log1p(pmax(values, 0, na.rm = TRUE)) else values
+    pal_fun <- leaflet::colorNumeric(
+      .map_palette_colors(palette, n = 9L),
+      domain = scaled, na.color = "#cccccc"
+    )
+    values <- scaled
+  }
+
+  label <- if ("name" %in% names(spatial)) spatial$name else NULL
+  fill_val <- if ("fill_var" %in% names(spatial)) scales::comma(round(spatial$fill_var, 1)) else as.character(values)
+  popup <- paste0(
+    if (!is.null(label)) paste0("<strong>", label, "</strong><br/>") else "",
+    fill_lbl, ": ", fill_val
+  )
+
+  m <- leaflet::leaflet(spatial) |>
+    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron)
+
+  m <- if (is_point) {
+    m |> leaflet::addCircleMarkers(
+      radius = 6, stroke = FALSE, fillOpacity = 0.8,
+      color = pal_fun(values), popup = popup
+    )
+  } else {
+    m |> leaflet::addPolygons(
+      fillColor = pal_fun(values), fillOpacity = 0.75,
+      color = "#666666", weight = 0.5, popup = popup
+    )
+  }
+
+  m |> leaflet::addLegend(pal = pal_fun, values = values, title = fill_lbl, position = "bottomright")
 }

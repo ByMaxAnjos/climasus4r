@@ -1153,13 +1153,14 @@ get_spatial_data_with_cache <- function(
     cli::cli_alert_info(msg$downloading_data)
   }
 
-  spatial_df <- switch(
-    level,
-     "state" = geobr::read_state(
-      simplified   = TRUE,
-      cache        = FALSE,
-      showProgress = verbose
-    ),
+  spatial_df <- tryCatch(
+    switch(
+      level,
+       "state" = geobr::read_state(
+        simplified   = TRUE,
+        cache        = FALSE,
+        showProgress = verbose
+      ),
     "schools" = geobr::read_schools(
       cache = FALSE,
       showProgress = verbose
@@ -1219,6 +1220,14 @@ get_spatial_data_with_cache <- function(
       showProgress = verbose,
       cache = FALSE
     )
+    ),
+    error = function(e) {
+      cli::cli_abort(c(
+        "Failed to download {.val {level}} boundaries from {.pkg geobr}: {conditionMessage(e)}",
+        "i" = "This usually means no internet access, a blocked connection to GitHub/IPEA, or a corrupted geobr cache.",
+        "i" = "Try clearing the geobr cache directory (see {.fun geobr::list_geobr}) and re-running with a working internet connection."
+      ), call = NULL)
+    }
   )
 
   # Save to cache

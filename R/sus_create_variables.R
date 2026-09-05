@@ -1074,7 +1074,8 @@ sus_data_create_variables <- function(
                       inherits(df, "arrow_dplyr_query")
   is_duckdb_conn <- inherits(df, "duckdb_connection") ||
                     inherits(df, "tbl_duckdb_connection")
-  
+  climate_region_norm <- normalize_climate_region_internal(climate_region)
+
   if (!lang %in% c("en", "pt", "es")) {
     stop("lang must be one of: 'en', 'pt', 'es'")
   }

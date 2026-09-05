@@ -959,7 +959,7 @@ sus_data_plot_aggregate_ts <- function(
     group_col     = NULL,
     facet_col     = NULL,
     facet_ncol    = 3L,
-    plot_type     = c("epidemic", "seasonal", "heatmap", "trend"),
+    plot_type     = "epidemic",
     smooth_method = "loess",
     smooth_span   = 0.25,
     log_transform = FALSE,
@@ -1023,8 +1023,8 @@ sus_data_plot_aggregate_ts <- function(
   }
 
   # -- 6. Validate plot_type ----------------------------------------------------
-  plot_type    <- match.arg(plot_type, several.ok = TRUE)
   valid_types  <- c("epidemic", "seasonal", "heatmap", "trend")
+  plot_type    <- match.arg(plot_type, choices = valid_types, several.ok = TRUE)
   bad_types    <- setdiff(plot_type, valid_types)
   if (length(bad_types) > 0L) {
     cli::cli_abort(
