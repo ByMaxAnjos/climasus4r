@@ -33,6 +33,11 @@ utils::globalVariables(c(
     en = "Health Outcomes Time Series",
     es = "Serie Temporal: Resultados de Salud"
   ),
+  warn_short_period_seasonal = list(
+    pt = "[METODOLOGIA] Periodo de apenas {n_days} dias ({n_yrs} ano(s)). Decomposicao sazonal geralmente precisa de pelo menos 2 anos completos para captar o ciclo anual; interprete com cautela.",
+    en = "[METODOLOGIA] Only {n_days} days ({n_yrs} year(s)) of data. Seasonal decomposition usually needs at least 2 full years to capture the annual cycle; interpret with caution.",
+    es = "[METODOLOGIA] Solo {n_days} dias ({n_yrs} ano(s)) de datos. La descomposicion estacional generalmente necesita al menos 2 anos completos para captar el ciclo anual; interprete con cautela."
+  ),
   detecting_col = list(
     pt = "Detectando coluna de desfecho...",
     en = "Detecting outcome column...",
@@ -1161,6 +1166,14 @@ sus_data_plot_aggregate_ts <- function(
   auto_subtitle <- sprintf(.tsm("subtitle_fmt", lang), scales::comma(n_obs), value_col, min_dt, max_dt)
   plot_subtitle <- subtitle %||% auto_subtitle
   plot_caption  <- caption  %||% paste0(.tsm("caption", lang), " | climasus4r")
+
+  if ("seasonal" %in% plot_type) {
+    n_days <- tryCatch(as.numeric(diff(range(as.Date(df$date), na.rm = TRUE))), error = function(e) NA_real_)
+    if (!is.na(n_days) && n_days < 730) {
+      cli::cli_alert_warning(.tsm("warn_short_period_seasonal", lang,
+        n_days = round(n_days), n_yrs = round(n_days / 365.25, 1)))
+    }
+  }
 
   # -- 12. Dispatch to plot engines ---------------------------------------------
   plots <- lapply(plot_type, function(tp) {

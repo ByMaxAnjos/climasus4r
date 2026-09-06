@@ -488,6 +488,7 @@ sus_data_import <- function(uf = NULL,
     }
 
     collected_codes <- character(0L)
+    n_city_not_found <- 0L
 
     if (!is.null(city) && !is.null(muni_meta_import)) {
       meta_norm <- stringi::stri_trans_general(
@@ -501,10 +502,12 @@ sus_data_import <- function(uf = NULL,
             which(muni_meta_import$municipio == input)
           else
             which(substr(muni_meta_import$municipio, 1L, 6L) == input)
-          if (length(idx) > 0L)
+          if (length(idx) > 0L) {
             collected_codes <- c(collected_codes, muni_meta_import$municipio[idx])
-          else
+          } else {
             cli::cli_alert_warning("Codigo de municipio {.val {input}} nao encontrado.")
+            n_city_not_found <- n_city_not_found + 1L
+          }
           next
         }
 
@@ -526,6 +529,7 @@ sus_data_import <- function(uf = NULL,
             paste0("Municipio '", city_i, "' nao encontrado.")
           )
           cli::cli_alert_warning(msg_nf)
+          n_city_not_found <- n_city_not_found + 1L
 
           prefix_idx <- which(startsWith(meta_norm, input_norm))
           max_dist   <- max(1L, min(3L, floor(nchar(input_norm) * 0.25)))
@@ -552,6 +556,18 @@ sus_data_import <- function(uf = NULL,
           }
         }
       }
+    }
+
+    if (n_city_not_found > 0L) {
+      msg_agg <- switch(lang,
+        en = paste0("[METODOLOGIA] ", n_city_not_found, " of ", length(city),
+                    " requested municipalities were not found and were skipped."),
+        es = paste0("[METODOLOGIA] ", n_city_not_found, " de ", length(city),
+                    " municipios solicitados no fueron encontrados y se omitieron."),
+        paste0("[METODOLOGIA] ", n_city_not_found, " de ", length(city),
+              " municipios solicitados nao foram encontrados e foram ignorados.")
+      )
+      cli::cli_alert_warning(msg_agg)
     }
 
     if (!is.null(municipality_code))
@@ -1442,6 +1458,7 @@ if (!is.null(city) || !is.null(municipality_code)) {
     }
 
     collected_codes <- character(0L)
+    n_city_not_found <- 0L
 
     if (!is.null(city) && !is.null(muni_meta_import)) {
       meta_norm <- stringi::stri_trans_general(
@@ -1455,10 +1472,12 @@ if (!is.null(city) || !is.null(municipality_code)) {
             which(muni_meta_import$municipio == input)
           else
             which(substr(muni_meta_import$municipio, 1L, 6L) == input)
-          if (length(idx) > 0L)
+          if (length(idx) > 0L) {
             collected_codes <- c(collected_codes, muni_meta_import$municipio[idx])
-          else
+          } else {
             cli::cli_alert_warning("Codigo de municipio {.val {input}} nao encontrado.")
+            n_city_not_found <- n_city_not_found + 1L
+          }
           next
         }
 
@@ -1480,6 +1499,7 @@ if (!is.null(city) || !is.null(municipality_code)) {
             paste0("Municipio '", city_i, "' nao encontrado.")
           )
           cli::cli_alert_warning(msg_nf)
+          n_city_not_found <- n_city_not_found + 1L
 
           prefix_idx <- which(startsWith(meta_norm, input_norm))
           max_dist   <- max(1L, min(3L, floor(nchar(input_norm) * 0.25)))
@@ -1506,6 +1526,18 @@ if (!is.null(city) || !is.null(municipality_code)) {
           }
         }
       }
+    }
+
+    if (n_city_not_found > 0L) {
+      msg_agg <- switch(lang,
+        en = paste0("[METODOLOGIA] ", n_city_not_found, " of ", length(city),
+                    " requested municipalities were not found and were skipped."),
+        es = paste0("[METODOLOGIA] ", n_city_not_found, " de ", length(city),
+                    " municipios solicitados no fueron encontrados y se omitieron."),
+        paste0("[METODOLOGIA] ", n_city_not_found, " de ", length(city),
+              " municipios solicitados nao foram encontrados e foram ignorados.")
+      )
+      cli::cli_alert_warning(msg_agg)
     }
 
     if (!is.null(municipality_code))

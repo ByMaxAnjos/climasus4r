@@ -52,6 +52,12 @@ utils::globalVariables(c(
     es = "Construyendo matriz de adyacencia W ({n} x {n})..."
   ),
 
+  warn_few_areas = list(
+    pt = "[METODOLOGIA] Apenas {n_areas} \u00e1reas espaciais. Modelos de suaviza\u00e7\u00e3o espacial (CAR/BYM) tendem a ser inst\u00e1veis com poucas \u00e1reas (regra pr\u00e1tica comum: >=30); interprete com cautela.",
+    en = "[METODOLOGIA] Only {n_areas} spatial areas. Spatial smoothing models (CAR/BYM) tend to be unstable with few areas (common rule of thumb: >=30); interpret with caution.",
+    es = "[METODOLOGIA] Solo {n_areas} \u00e1reas espaciales. Los modelos de suavizado espacial (CAR/BYM) tienden a ser inestables con pocas \u00e1reas (regla pr\u00e1ctica com\u00fan: >=30); interprete con cautela."
+  ),
+
   step_formula = list(
     pt = "Montando f\u00f3rmula: {fml}",
     en = "Building formula: {fml}",
@@ -668,6 +674,9 @@ sus_mod_spatial_bayes <- function(
   # area index (1-based integer) required by INLA f() term
   df_sorted[["area_idx"]] <- seq_len(nrow(df_sorted))
   n_areas <- nrow(df_sorted)
+  if (n_areas < 30L) {
+    cli::cli_alert_warning(.brl("warn_few_areas", lang, n_areas = n_areas))
+  }
 
   # -- build formula -----------------------------------------------------------
   cov_part <- if (!is.null(covariates) && length(covariates) > 0L) {

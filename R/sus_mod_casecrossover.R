@@ -81,9 +81,9 @@ utils::globalVariables(c(
     es = "Idioma {.val {lang}} no soportado. Usando {.val pt}."
   ),
   warn_few_strata = list(
-    pt = "Apenas {n_strata} estrato(s). Recomenda-se >= 12 estratos para estimativas estaveis.",
-    en = "Only {n_strata} strata. At least 12 recommended for stable estimates.",
-    es = "Solo {n_strata} estratos. Se recomiendan >= 12 para estimaciones estables."
+    pt = "[METODOLOGIA] Apenas {n_strata} estrato(s). Recomenda-se >= 12 estratos para estimativas estaveis.",
+    en = "[METODOLOGIA] Only {n_strata} strata. At least 12 recommended for stable estimates.",
+    es = "[METODOLOGIA] Solo {n_strata} estratos. Se recomiendan >= 12 para estimaciones estables."
   ),
   warn_clogit_binary = list(
     pt = "method='clogit' trata o desfecho como binario (is_case = count > 0). Para dados de contagem, considere method='conditional_poisson'.",

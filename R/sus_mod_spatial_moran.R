@@ -33,6 +33,12 @@ utils::globalVariables(c(
     es = "Verificando entradas..."
   ),
 
+  warn_few_areas = list(
+    pt = "[METODOLOGIA] Apenas {n} áreas espaciais. Estatísticas de Moran tendem a ser instáveis com poucas áreas (regra prática comum: >=30); interprete com cautela.",
+    en = "[METODOLOGIA] Only {n} spatial areas. Moran statistics tend to be unstable with few areas (common rule of thumb: >=30); interpret with caution.",
+    es = "[METODOLOGIA] Solo {n} áreas espaciales. Las estadísticas de Moran tienden a ser inestables con pocas áreas (regla práctica común: >=30); interprete con cautela."
+  ),
+
   step_global = list(
     pt = "Calculando I de Moran global ({permutations} permuta\u00e7\u00f5es)...",
     en = "Computing global Moran's I ({permutations} permutations)...",
@@ -294,6 +300,9 @@ sus_mod_spatial_moran <- function(
   n_x <- length(x)
   if (n_x != n_w) {
     cli::cli_abort(.mrl("err_length_mismatch", lang, n_x = n_x, n_w = n_w))
+  }
+  if (n_w < 30L) {
+    cli::cli_alert_warning(.mrl("warn_few_areas", lang, n = n_w))
   }
 
   if (all(is.na(x))) {

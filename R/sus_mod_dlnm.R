@@ -105,9 +105,14 @@ utils::globalVariables(c(
     es = "Razon de dispersion = {phi}. Superdispersion detectada; {.val quasipoisson} es adecuado (Armstrong, 2006)."
   ),
   warn_short_series = list(
-    pt = "Serie curta ({n_days} dias / {n_yrs} ano(s)). Resultados podem ser pouco robustos com bases de alta complexidade.",
-    en = "Short series ({n_days} days / {n_yrs} year(s)). Results may not be robust with high-complexity bases.",
-    es = "Serie corta ({n_days} dias / {n_yrs} ano(s)). Los resultados pueden no ser robustos con bases de alta complejidad."
+    pt = "[METODOLOGIA] Serie curta ({n_days} dias / {n_yrs} ano(s)). Resultados podem ser pouco robustos com bases de alta complexidade.",
+    en = "[METODOLOGIA] Short series ({n_days} days / {n_yrs} year(s)). Results may not be robust with high-complexity bases.",
+    es = "[METODOLOGIA] Serie corta ({n_days} dias / {n_yrs} ano(s)). Los resultados pueden no ser robustos con bases de alta complejidad."
+  ),
+  warn_sparse_events = list(
+    pt = "[METODOLOGIA] Apenas {total_events} eventos no total. Curvas de exposicao-resposta com poucos eventos tendem a ser instaveis (regra pratica comum: >=100 eventos); interprete com cautela.",
+    en = "[METODOLOGIA] Only {total_events} total events. Exposure-response curves estimated from few events tend to be unstable (common rule of thumb: >=100 events); interpret with caution.",
+    es = "[METODOLOGIA] Solo {total_events} eventos en total. Las curvas de exposicion-respuesta con pocos eventos tienden a ser inestables (regla practica comun: >=100 eventos); interprete con cautela."
   ),
   warn_lang = list(
     pt = "Idioma {.val {lang}} nao suportado. Usando {.val pt}.",
@@ -498,6 +503,12 @@ sus_mod_dlnm <- function(
   n_yrs  <- round(n_days / 365.25, 1)
   if (n_days < 365L) {
     cli::cli_alert_warning(.mdll("warn_short_series", lang))
+  }
+
+  # Warn if the outcome is too sparse for a stable exposure-response curve
+  total_events <- sum(df_agg$y, na.rm = TRUE)
+  if (total_events < 100) {
+    cli::cli_alert_warning(.mdll("warn_sparse_events", lang))
   }
 
   # ── Step 3: Exposure matrix ────────────────────────────────────────────────
