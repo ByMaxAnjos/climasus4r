@@ -419,6 +419,10 @@ O projeto climasus4r é financiado pelo Ministério da Saúde, pela Fundação O
 
 ---
 
+## Como Contribuir
+
+Veja o guia de contribuição em [`vignettes-pt/contributing.Rmd`](vignettes-pt/contributing.Rmd) (também disponível em [inglês](vignettes-en/contributing.Rmd) e [espanhol](vignettes-es/contributing.Rmd)).
+
 ## Contato
 
 - **Mantenedor**: Max Anjos

@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "climasus4r: Integrated Analysis Toolkit for Health, Climate, and Environmental Data in Brazil"
+version: 1.0.0
+date-released: 2026-08-16
+license: MIT
+repository-code: "https://github.com/ByMaxAnjos/climasus4r"
+url: "https://bymaxanjos.r-universe.dev/climasus4r"
+authors:
+  - given-names: Max
+    family-names: Anjos
+    email: max.anjos@ufjf.br
+    orcid: "https://orcid.org/0000-0001-6394-1324"
+  - given-names: Thaua
+    family-names: Menezes
+    email: thaua.menezes@unesp.br
+    orcid: "https://orcid.org/0000-0002-3015-2270"
+  - given-names: Marlon
+    family-names: Faria
+    email: marlon.faria@usp.br
+    orcid: "https://orcid.org/0000-0002-9485-4079"

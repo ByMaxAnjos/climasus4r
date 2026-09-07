@@ -10,7 +10,7 @@ sus_data_plot_aggregate_ts(
   group_col = NULL,
   facet_col = NULL,
   facet_ncol = 3L,
-  plot_type = c("epidemic", "seasonal", "heatmap", "trend"),
+  plot_type = "epidemic",
   smooth_method = "loess",
   smooth_span = 0.25,
   log_transform = FALSE,

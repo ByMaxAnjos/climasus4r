@@ -85,8 +85,10 @@ Currently only \code{"publication"} (default) is implemented.}
 
 \item{base_size}{Numeric.  Base font size for \code{theme_void()}.  Default \code{11}.}
 
-\item{interactive}{Logical.  If \code{TRUE}, wraps the ggplot2 object with
-\code{plotly::ggplotly()}.  Requires \code{plotly}.  Default \code{FALSE}.}
+\item{interactive}{Logical.  If \code{TRUE}, returns a \code{leaflet} widget (pan,
+zoom, click-for-popup) built from the same municipality data instead of
+the static ggplot2 map.  Requires \code{leaflet} and, at view time, an
+internet connection to load the basemap tiles.  Default \code{FALSE}.}
 
 \item{return_sf}{Logical.  If \code{TRUE}, return the underlying \code{sf} object
 used to build the map (municipality points for \code{map_type = "bubble"},
@@ -106,8 +108,8 @@ Default \code{"~/.climasus4r_cache/spatial"}.}
 \item{verbose}{Logical.  Print progress messages.  Default \code{TRUE}.}
 }
 \value{
-A \code{ggplot2} object (class \code{"gg"} / \code{"ggplot"}), a \code{plotly}
-object when \code{interactive = TRUE}, or an \code{sf} object when
+A \code{ggplot2} object (class \code{"gg"} / \code{"ggplot"}), a \code{leaflet}
+widget when \code{interactive = TRUE}, or an \code{sf} object when
 \code{return_sf = TRUE}.  The function does \strong{not} modify \code{df} or advance
 the pipeline \code{stage}.  When a plain \code{ggplot2} object is returned, it
 also carries the underlying \code{sf} data as a \code{"climasus_sf"} attribute
@@ -150,7 +152,7 @@ sus_data_plot_aggregate_map(
   lang          = "en"
 )
 
-# Interactive plotly bubble map
+# Interactive leaflet bubble map
 sus_data_plot_aggregate_map(df_agg, interactive = TRUE, lang = "pt")
 
 # Get the map data as sf and export it as GeoPackage

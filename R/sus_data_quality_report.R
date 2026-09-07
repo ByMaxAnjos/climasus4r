@@ -156,6 +156,15 @@ sus_data_quality_report <- function(
   )
   report$score <- .qr_score(report)
 
+  # classed + a print method (below) so a caller that captures the return value
+  # and prints it later (e.g. climasuS+ Studio's generic object fallback) gets the
+  # same readable cli report as output_format = "console", instead of a raw list dump.
+  # history/lang aren't part of the documented $-accessible fields, so they ride as
+  # attributes rather than changing the list shape everyone already depends on.
+  class(report) <- c("climasus_quality_report", "list")
+  attr(report, "history") <- history
+  attr(report, "lang") <- lang
+
   # -- 5. Render output ------------------------------------------------------
   switch(
     output_format,
@@ -175,6 +184,17 @@ sus_data_quality_report <- function(
   )
 
   invisible(report)
+}
+
+#' Print a climasus4r data quality report
+#'
+#' @param x A `climasus_quality_report` object from [sus_data_quality_report()].
+#' @param ... Unused.
+#' @export
+#' @keywords internal
+print.climasus_quality_report <- function(x, ...) {
+  .qr_print_console(x, attr(x, "history") %||% character(0), attr(x, "lang") %||% "pt")
+  invisible(x)
 }
 
 
