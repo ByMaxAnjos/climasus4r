@@ -709,37 +709,34 @@ sus_mod_plot_dlnm <- function(
   title_txt <- .dlnml("surface_title", lang)
   sub_txt   <- .dlnml("surface_sub", lang)
 
-  if (interactive) {
-    rlang::check_installed("plotly", reason = "for 3-D surface plots")
-    # plotly surface: x=exposure, y=lag, z=matrix (rows=exposure, cols=lag)
-    return(
-      plotly::plot_ly(
-        x = exp_vec,
-        y = lag_seq,
-        z = rr_mat,
-        type       = "surface",
-        colorscale = list(
-          c(0, pal$cold),
-          c(0.5, pal$mid),
-          c(1, pal$hot)
-        ),
-        showscale  = TRUE
-      ) |>
-        plotly::layout(
-          title  = list(text = title_txt, font = list(size = 16)),
-          scene  = list(
-            xaxis = list(title = .dlnm_var_label(fit$meta$climate_col)),
-            yaxis = list(title = if (lang == "pt") "Lag (dias)" else "Lag (days)"),
-            zaxis = list(title = "RR")
-          ),
-          margin = list(t = 60, b = 30, l = 30, r = 30)
-        ) |>
-        plotly::config(displayModeBar = TRUE, displaylogo = FALSE)
-    )
-  }
-
-  # Static fallback: contour (identical to .plot_dlnm_contour)
-  .plot_dlnm_contour(fit, pal, 12L, FALSE, lang)
+  # A 3-D surface has no meaningful static equivalent (it used to silently swap in the 2-D
+  # contour chart when interactive=FALSE, which looks like "surface doesn't work" to a caller
+  # who never asked for a contour) — always build the real plotly surface; `interactive` only
+  # controls whether other `type`s in this function get wrapped for display, not this one.
+  rlang::check_installed("plotly", reason = "for 3-D surface plots")
+  # plotly surface: x=exposure, y=lag, z=matrix (rows=exposure, cols=lag)
+  plotly::plot_ly(
+    x = exp_vec,
+    y = lag_seq,
+    z = rr_mat,
+    type       = "surface",
+    colorscale = list(
+      c(0, pal$cold),
+      c(0.5, pal$mid),
+      c(1, pal$hot)
+    ),
+    showscale  = TRUE
+  ) |>
+    plotly::layout(
+      title  = list(text = title_txt, font = list(size = 16)),
+      scene  = list(
+        xaxis = list(title = .dlnm_var_label(fit$meta$climate_col)),
+        yaxis = list(title = if (lang == "pt") "Lag (dias)" else "Lag (days)"),
+        zaxis = list(title = "RR")
+      ),
+      margin = list(t = 60, b = 30, l = 30, r = 30)
+    ) |>
+    plotly::config(displayModeBar = TRUE, displaylogo = FALSE)
 }
 
 

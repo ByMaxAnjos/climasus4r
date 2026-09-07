@@ -370,8 +370,10 @@ sus_data_create_variables <- function(
       cli::cli_alert_success(msg_stage_ok[[lang]] %||% msg_stage_ok[["en"]])
     }
 
-    # Update metadata
-    df <- sus_meta(df, stage = "derive", type = "derive")
+    # Update metadata (preserve system — sus_data_aggregate's smart column naming, e.g.
+    # n_casos/n_obitos/n_internacoes, needs it downstream and silently falls back to "n"
+    # without it)
+    df <- sus_meta(df, system = sus_meta(df, "system"), stage = "derive", type = "derive")
   } else {
     # NOT climasus_df - ABORT execution
     msg_error <- list(
@@ -1546,9 +1548,12 @@ sus_data_create_variables <- function(
     )
     cli::cli_alert_success(msg)
   }
-  # Add climasus_df metadata if not lazy 
+  # Add climasus_df metadata if not lazy (preserve system — captured at the top of this
+  # function — so sus_data_aggregate's smart column naming, e.g. n_casos/n_obitos/
+  # n_internacoes, doesn't silently fall back to "n" downstream)
   df <- sus_meta(
     df,
+    system = system,
     stage = "derive",
     type = "derive",
     add_history = sprintf("[%s] Create variables (Arrow optimized)",
