@@ -1047,7 +1047,12 @@ get_spatial_munic_cache <- function(
 
   spatial_df <- switch(
     level,
+    # geobr >= 2.0.1 made `year` a required first argument with no default (it defaulted to
+    # 2010 in 1.9.1, which is what climasus4r was built against) — pin it explicitly so a
+    # fresh geobr install (e.g. CI runners with no version pin) doesn't abort with
+    # "argument \"year\" is missing, with no default"
     "munic" = geobr::read_municipality(
+      year = 2010,
       code_muni = "all",
       simplified = TRUE,
       showProgress = verbose
