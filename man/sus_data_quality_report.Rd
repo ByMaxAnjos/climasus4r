@@ -8,6 +8,8 @@ sus_data_quality_report(
   df,
   output_format = "console",
   output_file = NULL,
+  save_file = TRUE,
+  open_file = TRUE,
   check_icd = TRUE,
   check_dates = TRUE,
   top_n = 10,
@@ -25,6 +27,14 @@ suitable for Quarto / R Markdown documents.}
 
 \item{output_file}{Character. File path for \code{"markdown"} and \code{"html"}
 formats. Defaults to a timestamped filename in the working directory.}
+
+\item{save_file}{Logical. For \code{"markdown"} and \code{"html"} formats, whether to
+write the report to disk. Default \code{TRUE}. Set to \code{FALSE} to only compute
+and return the metrics (e.g. \verb{$score}) without creating a file.}
+
+\item{open_file}{Logical. When \code{output_format = "html"} and \code{save_file = TRUE}, automatically open the saved report in the system's default
+browser (via \code{\link[utils:browseURL]{utils::browseURL()}}). Default \code{TRUE}. Only triggers in
+interactive sessions.}
 
 \item{check_icd}{Logical. Include ICD-10 quality section. Default \code{TRUE}.}
 

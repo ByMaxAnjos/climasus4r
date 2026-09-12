@@ -1090,6 +1090,10 @@ sus_data_create_variables <- function(
   
   # Extract system from metadata if available
   system <- sus_meta(df, "system")
+  # Full incoming metadata, captured before any materialization below can
+  # reset it (age-code decoding must collect() then rebuild an Arrow table,
+  # which drops schema metadata) — restored after that reset so history isn't lost.
+  incoming_meta <- sus_meta(df)
   
   # Get column names
   if (is_arrow_dataset || is_duckdb_conn) {
@@ -1218,6 +1222,9 @@ sus_data_create_variables <- function(
           
           if (lazy) {
             df <- arrow::as_arrow_table(df_collected)
+            # as_arrow_table() builds a fresh schema with no metadata —
+            # restore the sus_meta captured at entry so upstream history isn't lost.
+            attr(df, "sus_meta") <- incoming_meta
           } else {
             df <- df_collected
           }
@@ -1556,8 +1563,7 @@ sus_data_create_variables <- function(
     system = system,
     stage = "derive",
     type = "derive",
-    add_history = sprintf("[%s] Create variables (Arrow optimized)",
-                          format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
+    add_history = "Create variables (Arrow optimized)")
   
   
   return(df)

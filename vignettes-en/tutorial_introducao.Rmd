@@ -1,0 +1,762 @@
+---
+title: "Getting Started with Climasus4r"
+author:
+  - name: "Max Anjos"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
+    code_download: true
+    self_contained: true
+    df_print: paged
+---
+
+```{css, echo=FALSE}
+/* ── Modern Color Variables ────────────────── */
+:root {
+  --primary-color: #1D9E75;
+  --dark-green: #0f3d2e;
+  --bg-light: #f8faf9;
+  --text-main: #1a1a1a;
+  --code-bg: #fdfdfd;
+  --warning-orange: #ff9800;
+  --info-blue: #2196f3;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 18px;
+  color: var(--text-main);
+  background-color: #fff;
+  line-height: 1.6;
+}
+
+/* ── Headings with Inter-spacing ─────────────────── */
+h1, h2, h3, h4 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  color: var(--dark-green);
+}
+
+h1.title {
+  font-size: 2.8em;
+  border-bottom: 4px solid var(--primary-color);
+  padding-bottom: 10px;
+  margin-bottom: 1.5rem;
+}
+
+h2 {
+  margin-top: 2rem;
+  border-left: 4px solid var(--primary-color);
+  padding-left: 1rem;
+}
+
+/* ── Styled Code Blocks ────────────────────── */
+pre.r, pre.sourceCode {
+  background-color: var(--code-bg);
+  border: 1px solid #e1e1e1;
+  border-left: 5px solid var(--primary-color) !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  padding: 1rem;
+}
+
+/* ── Custom Callouts (Quarto-style) ────────────── */
+.callout {
+  padding: 1.2em 1.5em;
+  margin: 1.5em 0;
+  border-radius: 8px;
+  border-left: 6px solid;
+  background-color: var(--bg-light);
+}
+
+.callout-note {
+  background-color: #f0f7ff;
+  border-color: #007bff;
+}
+
+.callout-tip {
+  background-color: #e8f5e9;
+  border-color: #1D9E75;
+}
+
+.callout-warning {
+  background-color: #fff3e0;
+  border-color: #ff9800;
+}
+
+.callout-info {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+}
+
+/* ── Workflow container ─────────────────────────── */
+.workflow-container {
+  background: linear-gradient(135deg, #f8faf7 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  border: 1px solid var(--fc-border);
+  overflow-x: auto;
+}
+
+.workflow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'Inter', monospace;
+  font-size: 0.8rem;
+}
+
+.workflow-step {
+  background: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.workflow-arrow {
+  color: var(--primary-color);
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+/* ── Feature cards ───────────────────────────────── */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.feature-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e1e1e1;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-align: center;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.feature-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+  margin-top: 0;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
+
+.feature-card p {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  margin-bottom: 0;
+}
+
+/* ── Table styling ───────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+th {
+  background-color: var(--bg-light);
+  font-weight: 600;
+  color: var(--dark-green);
+}
+
+tr:hover {
+  background-color: var(--bg-light);
+}
+
+/* ── Figure styling ─────────────────────────────── */
+.figure {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.figure img {
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  max-width: 100%;
+  height: auto;
+}
+
+.figure .caption {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* ── Enhanced GitHub button ───────────────────── */
+.github-feedback-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #24292e;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-family: sans-serif;
+  transition: background-color 0.2s;
+  margin-top: 1rem;
+}
+
+.github-feedback-btn:hover {
+  background-color: #2c3e50;
+  color: white;
+  text-decoration: none;
+}
+
+/* ── Responsive ─────────────────────────────────── */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+
+  h1.title {
+    font-size: 2rem;
+  }
+
+  .workflow-steps {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .workflow-arrow {
+    transform: rotate(90deg);
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  th, td {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-card,
+  .github-feedback-btn {
+    transition: none;
+  }
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  eval    = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  comment = "#>",
+  fig.align = "center",
+  out.width = "80%",
+  fig.retina = 2
+)
+```
+
+# Introduction
+
+::: callout-tip
+**Introductory Tutorial** — This tutorial provides a practical guide to getting started with the `climasus4r` package. The goal is to demonstrate the basic workflow, from installing the package to building time series from DATASUS health data, integrating health, climate, and environmental information.
+:::
+
+Brazil's Unified Health System (SUS) makes large public databases available, such as SIM, SIH, SINAN, CNES, and SINASC. However, these data usually require import, cleaning, standardization, and aggregation steps before they can be used in epidemiological analyses.
+
+The `climasus4r` package was developed to automate and standardize this process, enabling reproducible, fast, and scalable analyses in climate, environment, and public health studies.
+
+## 🎯 What you will learn
+
+<div class="feature-grid">
+<div class="feature-card">
+<div class="feature-icon">📦</div>
+<h3>Installation</h3>
+<p>Install the `climasus4r` package quickly and efficiently</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon">⚡</div>
+<h3>Optimized Import</h3>
+<p>Import DATASUS data with caching and parallel processing</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon">🧹</div>
+<h3>Cleaning and Standardization</h3>
+<p>Fix encoding issues and standardize variables</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon">🔍</div>
+<h3>Filtering</h3>
+<p>Filter by cause of death and demographic variables</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon">📊</div>
+<h3>Temporal Aggregation</h3>
+<p>Create daily, monthly, and annual time series</p>
+</div>
+<div class="feature-card">
+<div class="feature-icon">💾</div>
+<h3>Export and Import</h3>
+<p>Save and load data with complete metadata</p>
+</div>
+</div>
+
+---
+
+## 📋 The `climasus4r` Workflow
+
+Data analysis with `climasus4r` follows a logical, sequential pipeline, where the output of one function is the input to the next. This design, inspired by the `tidyverse`, makes the code more readable and easier to maintain.
+
+<div class="workflow-container">
+<div class="workflow-steps">
+<span class="workflow-step">sus_data_import()</span>
+<span class="workflow-arrow">→</span>
+<span class="workflow-step">sus_data_clean_encoding()</span>
+<span class="workflow-arrow">→</span>
+<span class="workflow-step">sus_data_standardize()</span>
+<span class="workflow-arrow">→</span>
+<span class="workflow-step">sus_data_create_variables()</span>
+<span class="workflow-arrow">→</span>
+<span class="workflow-step">sus_data_filter_cid()</span>
+<span class="workflow-arrow">→</span>
+<span class="workflow-step">sus_data_filter_demographics()</span>
+<span class="workflow-arrow">→</span>
+<span class="workflow-step">sus_data_aggregate()</span>
+</div>
+</div>
+
+Each function performs a specific processing step, such as importing, cleaning, standardizing, filtering, and aggregating the data. At the end of this pipeline, the data will be organized and ready for epidemiological analyses or for building time series.
+
+---
+
+## 1. Installation
+
+The `climasus4r` package is available on GitHub and can be installed in two ways. We recommend **Option 1** for most users.
+
+If you don't already have the `remotes` package installed, run the code below:
+
+```{r install-remotes, eval=FALSE}
+if (!require("remotes")) { install.packages("remotes")}
+```
+
+### Option 1: Installation via GitHub (Recommended)
+
+This is the fastest way to get the latest version:
+
+```{r install-github, eval=FALSE}
+# Install or update the package directly from GitHub
+remotes::install_github("ByMaxAnjos/climasus4r", upgrade = "never")
+```
+
+::: callout-warning
+**Updates:** `climasus4r` is under active development. To update, simply run the command above again. R will automatically overwrite the old version. After updating, it is recommended to restart the session (Menu: Session > Restart R).
+:::
+
+### Option 2: Installation from a Local File (.zip)
+
+This option is recommended for environments with unstable connections, network restrictions, or use in training sessions with multiple users.
+
+1. **Download the package**: Click [HERE](https://github.com/ByMaxAnjos/climasus4r/archive/refs/heads/master.zip) to download the .zip file
+2. **Extract the file**: Extract the contents to an easily accessible folder (e.g., Downloads or Desktop)
+3. **Install locally**:
+
+```{r install-local, eval=FALSE}
+# IMPORTANT: Change the path below to the location where you saved the package
+remotes::install_local(
+  "C:/Path/To/Your/Folder/climasus4r-master",
+  upgrade = "never"
+)
+```
+
+---
+
+## 2. Loading the Package
+
+After installation, load the package whenever you start a new R session:
+
+```{r load-package, eval=FALSE}
+library(climasus4r)
+```
+
+---
+
+## 3. Importing Data with `sus_data_import()`
+
+The first step of the workflow consists of importing the data. The `sus_data_import()` function automates the download and reading of DATASUS microdata.
+
+::: callout-tip
+DATASUS has several information systems. In this tutorial, we will use **SIM-DO** (mortality) as an example.
+:::
+
+### Basic Example
+
+Let's import mortality data for the states of Rondônia (`"RO"`) and Amazonas (`"AM"`) for the years 2016 to 2017:
+
+```{r import-basic, eval=FALSE}
+df_raw <- sus_data_import(
+  system = "SIM-DO",
+  year = 2016:2017,
+  uf = c("RO", "AM"),
+  lang = "en"
+)
+
+head(df_raw)
+```
+
+::: callout-note
+**What happened?** The `sus_data_import()` function automatically performed:
+1. **Download**: Downloaded the `.DBC` files from the DATASUS FTP server
+2. **Decompression**: Extracted the contents of the `.DBC` files
+3. **Reading**: Read all files into a single `data.frame`
+4. **Metadata**: Added information about the data's origin
+:::
+
+### Optimizing Import: Caching and Parallel Processing
+
+#### Using Cache to Avoid Re-downloads
+
+By default (`use_cache = TRUE`), the function saves a copy of the downloaded data. On the next run with the **same parameters**, the data will be read directly from the cache.
+
+```{r cache-custom, eval=FALSE}
+df_custom_cache <- sus_data_import(
+  system = "SIM-DO",
+  year = 2018,
+  uf = "RO",
+  use_cache = TRUE,
+  cache_dir = "~/.climasus4r_cache/data",
+  lang = "en"
+)
+```
+
+#### Speeding Things Up with Parallel Processing
+
+```{r import-parallel, eval=FALSE}
+# Download data from 3 states in parallel
+df_parallel <- sus_data_import(
+  system = "SIM-DO",
+  year = 2018:2020,
+  uf = c("RO", "PA", "MT"),
+  use_cache = TRUE,
+  parallel = TRUE,
+  workers = 3,
+  lang = "en"
+)
+```
+
+::: callout-tip
+**How many `workers` should you use?** A good starting point is the number of cores on your processor minus one (`parallel::detectCores() - 1`).
+:::
+
+---
+
+## 4. Cleaning Encoding with `sus_data_clean_encoding()`
+
+DATASUS data frequently comes with character encoding issues. The `sus_data_clean_encoding()` function fixes this by converting all text columns to UTF-8.
+
+```{r clean-encoding, eval=FALSE}
+# Fix character encoding
+df_clean <- sus_data_clean_encoding(df_raw, lang = "en")
+
+head(df_clean)
+```
+
+---
+
+## 5. Standardizing Data with `sus_data_standardize()`
+
+This step is crucial for analysis consistency. The function performs:
+
+- **Renames** columns to standardized names (e.g., `CAUSABAS` → `underlying_cause_of_death`)
+- **Converts** columns to the correct data types
+- **Creates** useful new variables such as age groups
+
+```{r standardize, eval=FALSE}
+df_std <- sus_data_standardize(df_clean, lang = "en")
+
+head(df_std)
+```
+
+::: callout-tip
+**`climasus_df` object:** From this point on, our `data.frame` has a special class that allows metadata to flow continuously between functions.
+:::
+
+---
+
+## 6. Creating Variables with `sus_data_create_variables()`
+
+Before filtering, we frequently want to create derived variables. The `sus_data_create_variables()` function allows you to create:
+
+- **Age groups**: Custom groups or the standard IBGE breakdown
+- **Calendar variables**: Day of the week, month, season
+- **Other variables**: Birth decade, etc.
+
+```{r create-vars, eval=FALSE}
+df_vars <- sus_data_create_variables(
+  df_std,
+  create_age_groups = TRUE,
+  create_calendar_vars = TRUE,
+  lang = "en"
+)
+
+head(df_vars)
+```
+
+**New columns created:**
+- `faixa_etaria_ibge`: 5-year age groups (IBGE standard)
+- `dia_da_semana`: Monday through Sunday
+- `mes_nome`: Month name
+- `estacao`: Season of the year
+- `semana_do_ano`: Week number
+
+---
+
+## 7. Filtering by Cause of Death with `sus_data_filter_cid()`
+
+Let's filter the data to select only deaths from **respiratory diseases** and **cardiovascular diseases**.
+
+```{r filter-cid, eval=FALSE}
+df_cid <- sus_data_filter_cid(
+  df_vars,
+  disease_group = c("respiratory", "cardiovascular"),
+  lang = "en"
+)
+
+head(df_cid)
+```
+
+### Exploring the Available Disease Groups
+
+```{r explore-cid, eval=FALSE}
+# Open the interactive exploration interface
+sus_data_cid_select(lang = "en")
+```
+
+**Commonly used disease groups:**
+- `respiratory` (respiratory diseases)
+- `cardiovascular` (cardiovascular diseases)
+- `neoplasms` (neoplasms/cancer)
+- `diabetes` (diabetes mellitus)
+- `infectious` (infectious diseases)
+
+---
+
+## 8. Filtering by Demographic Variables with `sus_data_filter_demographics()`
+
+Let's refine the filter for a specific demographic subgroup:
+
+- **Sex**: Female
+- **Age**: Between 20 and 59 years
+- **Race/Color**: Black or Brown
+
+```{r filter-demo, eval=FALSE}
+df_demo <- sus_data_filter_demographics(
+  df_cid,
+  sex = "Feminino",
+  age_range = c(20, 59),
+  race = c("Preta", "Parda"),
+  lang = "en"
+)
+
+head(df_demo)
+```
+
+::: callout-tip
+**Language:** When `lang = "pt"`, use the Portuguese values: `"Feminino"`, `"Masculino"`, `"Preta"`, `"Parda"`, etc. These category values come from the original DATASUS coding and are not translated even when `lang = "en"`.
+:::
+
+---
+
+## 9. Temporal Aggregation with `sus_data_aggregate()`
+
+Finally, let's aggregate the records to create time series.
+
+### Monthly Aggregation
+
+```{r aggregate-monthly, eval=FALSE}
+df_monthly <- sus_data_aggregate(
+  df_demo,
+  time_unit = "month",
+  lang = "en"
+)
+
+head(df_monthly)
+```
+
+### Daily Aggregation
+
+```{r aggregate-daily, eval=FALSE}
+df_daily <- sus_data_aggregate(
+  df_demo,
+  time_unit = "day",
+  lang = "en"
+)
+
+head(df_daily)
+```
+
+---
+
+## 10. Exporting Data with `sus_data_export()`
+
+### Supported Formats
+
+| Format | Extension | Recommended Use |
+|---------|----------|-----------------|
+| **RDS** | `.rds` | R's native format |
+| **Parquet** | `.parquet` | Large volumes, interoperability |
+| **CSV** | `.csv` | Universal, sharing |
+| **GeoParquet** | `.geoparquet` | Optimized spatial data |
+| **Shapefile** | `.shp` | Traditional GIS |
+
+### Export Examples
+
+```{r export-csv, eval=FALSE}
+# Export as CSV with metadata
+sus_data_export(
+  df_monthly,
+  file_path = "obitos_mensais_resumo_cardio.csv",
+  format = "csv",
+  include_metadata = TRUE,
+  lang = "en"
+)
+```
+
+```{r export-parquet, eval=FALSE}
+# Export as Parquet (more efficient)
+sus_data_export(
+  df_monthly,
+  file_path = "obitos_mensais_resumo_cardio.parquet",
+  format = "parquet",
+  include_metadata = TRUE,
+  lang = "en"
+)
+```
+
+### Export with Custom Metadata
+
+```{r export-metadata, eval=FALSE}
+sus_data_export(
+  df_monthly,
+  file_path = "analise_especifica.csv",
+  format = "csv",
+  include_metadata = TRUE,
+  metadata = list(
+    source_system = "SIM-DO",
+    states = c("RO", "AM"),
+    years = c(2016, 2017),
+    disease_groups = c("respiratory", "cardiovascular"),
+    author = "Your Name",
+    project = "Climate and Health Study"
+  ),
+  lang = "en"
+)
+```
+
+---
+
+## 11. Importing Data with `sus_data_read()`
+
+### Reading a Single File
+
+```{r read-single, eval=FALSE}
+df_lido <- sus_data_read(
+  path = "obitos_mensais_resumo_cardio.csv",
+  format = "csv",
+  read_metadata = TRUE,
+  lang = "en"
+)
+
+# Access the metadata
+sus_meta(df_lido, print_history = TRUE)
+```
+
+### Batch Reading (Multiple Files)
+
+```{r read-batch, eval=FALSE}
+# Read all CSV files from a folder
+df_diretorio <- sus_data_read(
+  path = "resultados_analises/",
+  format = "csv",
+  lang = "en"
+)
+```
+
+### Reading with Parallel Processing
+
+```{r read-parallel, eval=FALSE}
+df_paralelo <- sus_data_read(
+  path = "pasta_de_dados/",
+  format = "parquet",
+  parallel = TRUE,
+  workers = 4,
+  read_metadata = TRUE,
+  lang = "en"
+)
+```
+
+---
+
+## 🎉 Conclusion
+
+Congratulations! You have completed the basic `climasus4r` workflow. In a few steps, you were able to:
+
+- **Download and import** raw DATASUS data in an optimized way
+- **Clean, standardize, and enrich** the data with new variables
+- **Filter** by epidemiological and demographic criteria
+- **Create** time series ready for analysis
+- **Export and import** data with complete metadata
+
+### 📚 Next Steps
+
+1. Try other systems (`system = "SIH"` for hospitalizations)
+2. Test different states and years
+3. Explore different disease groups
+4. Combine with climate data for impact analyses
+5. See the full documentation: [github.com/ByMaxAnjos/climasus4r](https://github.com/ByMaxAnjos/climasus4r)
+
+---
+
+## 🌲 Have feedback or suggestions?
+
+Do you have an idea for improvement or did you find a bug? Click the button below to open a new *issue* on GitHub and share your suggestions directly with us.
+
+```{=html}
+<a href='https://github.com/ByMaxAnjos/climasus4r/issues/new' class="github-feedback-btn">
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+  </svg>
+  Open an issue on GitHub
+</a>
+```

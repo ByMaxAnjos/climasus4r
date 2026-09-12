@@ -29,6 +29,13 @@ utils::globalVariables(c(
 #'   suitable for Quarto / R Markdown documents.
 #' @param output_file Character. File path for `"markdown"` and `"html"`
 #'   formats. Defaults to a timestamped filename in the working directory.
+#' @param save_file Logical. For `"markdown"` and `"html"` formats, whether to
+#'   write the report to disk. Default `TRUE`. Set to `FALSE` to only compute
+#'   and return the metrics (e.g. `$score`) without creating a file.
+#' @param open_file Logical. When `output_format = "html"` and `save_file =
+#'   TRUE`, automatically open the saved report in the system's default
+#'   browser (via [utils::browseURL()]). Default `TRUE`. Only triggers in
+#'   interactive sessions.
 #' @param check_icd Logical. Include ICD-10 quality section. Default `TRUE`.
 #' @param check_dates Logical. Include date validation section. Default `TRUE`.
 #' @param top_n Integer. Rows shown in frequency tables. Default `10`.
@@ -78,6 +85,8 @@ sus_data_quality_report <- function(
     df,
     output_format = "console",
     output_file   = NULL,
+    save_file     = TRUE,
+    open_file     = TRUE,
     check_icd     = TRUE,
     check_dates   = TRUE,
     top_n         = 10,
@@ -115,10 +124,16 @@ sus_data_quality_report <- function(
     lang <- "pt"
   }
 
-  if (output_format %in% c("markdown", "html") && is.null(output_file)) {
-    ts  <- format(Sys.time(), "%Y%m%d_%H%M%S")
-    ext <- if (output_format == "html") ".html" else ".md"
-    output_file <- paste0("dq_report_", ts, ext)
+  if (output_format %in% c("markdown", "html") && save_file) {
+    if (is.null(output_file)) {
+      ts  <- format(Sys.time(), "%Y%m%d_%H%M%S")
+      ext <- if (output_format == "html") ".html" else ".md"
+      output_file <- paste0("dq_report_", ts, ext)
+    }
+    out_dir <- dirname(output_file)
+    if (!is.na(out_dir) && out_dir != "." && !dir.exists(out_dir)) {
+      dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+    }
   }
 
   # -- 3. Extract sus_meta ---------------------------------------------------
@@ -128,8 +143,6 @@ sus_data_quality_report <- function(
   } else {
     list()
   }
-
-  `%||%` <- function(x, y) if (is.null(x)) y else x
 
   stage   <- meta$stage   %||% "unknown"
   system  <- meta$system  %||% "unknown"
@@ -173,13 +186,16 @@ sus_data_quality_report <- function(
       rlang::check_installed("gt", reason = "for gt quality report output")
       return(.qr_render_gt(report, history, lang))
     },
-    markdown = {
+    markdown = if (save_file) {
       .qr_write_markdown(report, history, output_file, lang)
       if (verbose) cli::cli_alert_success(.qrl("saved_to", lang, output_file))
     },
-    html = {
+    html = if (save_file) {
       .qr_write_html(report, history, output_file, lang)
       if (verbose) cli::cli_alert_success(.qrl("saved_to", lang, output_file))
+      if (open_file && interactive()) {
+        utils::browseURL(normalizePath(output_file))
+      }
     }
   )
 
@@ -594,9 +610,6 @@ print.climasus_quality_report <- function(x, ...) {
   if (length(scores) == 0L) return(NA_real_)
   round(sum(scores * weights) / sum(weights), 1)
 }
-
-`%||%` <- function(x, y) if (is.null(x)) y else x
-
 
 # =============================================================================
 # INTERNAL: CONSOLE OUTPUT
@@ -1217,7 +1230,7 @@ footer{margin-top:40px;font-size:12px;color:#aaa;border-top:1px solid #eee;paddi
 
   html <- c(
     "<!DOCTYPE html>",
-    "<html lang='", lang, "'>",
+    paste0("<html lang='", lang, "'>"),
     "<head><meta charset='UTF-8'>",
     "<meta name='viewport' content='width=device-width, initial-scale=1'>",
     paste0("<title>", .qrl("report_title", lang), "</title>"),

@@ -27,7 +27,7 @@ Built on the solid [`microdatasus`](https://github.com/rfsaldanha/microdatasus) 
 
 **climasus4r** is currently under active development. The latest version can be installed directly from GitHub, ensuring access to the most up-to-date features. Before installation, you must have the remotes package, which allows the installation of packages hosted on GitHub.
 
-## Opção 1: Instalação via r-universe (Recomendado)
+## Option 1: Installation via r-universe (Recommended)
 
 ```r
 install.packages("climasus4r", repos = c(

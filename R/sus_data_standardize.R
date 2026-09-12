@@ -567,7 +567,11 @@ sus_data_standardize <- function(
   }
 
   names(df) <- make.unique(names(df), sep = "_")
-  
+  # Both as_arrow_table() above and names<- rebuild the Table with a fresh
+  # schema (no metadata) — restore the sus_meta captured at entry so
+  # upstream history isn't lost.
+  attr(df, "sus_meta") <- incoming_meta
+
    if (verbose) {
     cli::cli_alert_success(paste(
       messages$standardization_complete,

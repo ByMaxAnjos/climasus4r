@@ -445,9 +445,10 @@ sus_spatial_join <- function(
     # Convert to sf object
     result_sf <- result_sf %>% sf::st_as_sf()
 
-    # Remove rows with missing geometries
+    # Remove rows with missing geometries (works regardless of whether the
+    # sf geometry column is named "geom" or "geometry")
     result_sf <- result_sf %>%
-      dplyr::filter(!is.na(sf::st_dimension(.data$geom)))
+      dplyr::filter(!is.na(sf::st_dimension(sf::st_geometry(result_sf))))
   }
 
   if (level %in% c("cep", "health_facilities", "neighborhood")) {

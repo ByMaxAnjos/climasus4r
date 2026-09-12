@@ -34,9 +34,9 @@ utils::globalVariables(c(
   ),
 
   warn_few_areas = list(
-    pt = "[METODOLOGIA] Apenas {n} áreas espaciais. Estatísticas de Moran tendem a ser instáveis com poucas áreas (regra prática comum: >=30); interprete com cautela.",
+    pt = "[METODOLOGIA] Apenas {n} \u00e1reas espaciais. Estat\u00edsticas de Moran tendem a ser inst\u00e1veis com poucas \u00e1reas (regra pr\u00e1tica comum: >=30); interprete com cautela.",
     en = "[METODOLOGIA] Only {n} spatial areas. Moran statistics tend to be unstable with few areas (common rule of thumb: >=30); interpret with caution.",
-    es = "[METODOLOGIA] Solo {n} áreas espaciales. Las estadísticas de Moran tienden a ser inestables con pocas áreas (regla práctica común: >=30); interprete con cautela."
+    es = "[METODOLOGIA] Solo {n} \u00e1reas espaciales. Las estad\u00edsticas de Moran tienden a ser inestables con pocas \u00e1reas (regla pr\u00e1ctica com\u00fan: >=30); interprete con cautela."
   ),
 
   step_global = list(
