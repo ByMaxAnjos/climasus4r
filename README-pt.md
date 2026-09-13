@@ -51,23 +51,9 @@ remotes::install_github("ByMaxAnjos/climasus4r", upgrade = "never")
 
 ## 📦 Visão Geral das Funções
 
-| Categoria | Função | Descrição |
-| :--- | :--- | :--- |
-| **📥 Importação e Exportação** | `sus_data_import()` | Importa e pré-processa dados do DATASUS com cache inteligente. |
-| | `sus_data_read()` | Leitura otimizada de dados processados com suporte paralelo. |
-| | `sus_data_export()` | Exporta dados processados preservando metadados. |
-| **🧹 Limpeza e Padronização** | `sus_data_clean_encoding()` | Detecta e corrige problemas de codificação de caracteres. |
-| | `sus_data_standardize()` | Padroniza nomes de colunas e valores dos dados do SUS. |
-| | `sus_data_create_variables()` | Cria variáveis derivadas para análise epidemiológica. |
-| **🔍 Filtros e Seleção** | `sus_data_filter_cid()` | Filtra por códigos CID-10 ou grupos de doenças (multilíngue). |
-| | `sus_data_filter_demographics()` | Filtra dados por variáveis demográficas (idade, sexo, raça). |
-| **🗺️ Espacial e Censo** | `sus_spatial_join()` | Vincula dados do SUS às malhas geográficas brasileiras. |
-| | `sus_census_join()` | Enriquece dados de saúde com variáveis socioeconômicas do Censo. |
-| | `sus_data_aggregate()` | Agrega dados de saúde em séries temporais. |
-| **📊 Qualidade e Metadados** | `sus_data_quality_report()` | Gera relatórios detalhados sobre a qualidade dos dados. |
-| | `sus_data_cid_select()` | Lista os grupos de doenças disponíveis para filtro. |
-| | `sus_census_select()` | Explorador interativo de variáveis do Censo. |
-| **⚡ Cache** | `sus_cache_clear()` | Gerencia e limpa o armazenamento local de arquivos. |
+Mapa completo das **115 funções exportadas**, agrupadas pelas 9 etapas do pipeline.
+
+<img src="man/figures/overview_climasus4r.png" alt="Mapa de funções do climasus4r por etapa do pipeline" width="100%">
 
 
 ## Sistemas Suportados
