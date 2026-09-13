@@ -118,6 +118,7 @@ reference:
       - sus_grid_prodes
       - sus_grid_join
       - sus_grid_pollution_merra2
+      - sus_grid_plot
 
 
   - title: "Spatial Analysis & Cluster Detection"
