@@ -43,10 +43,6 @@ navbar:
     - text: "Español"
       href: ../es/index.html
 
-logo:
-  src: inst/figures/logo.png
-  alt: "climasus4r logo"
-
 home:
   title: "climasus4r - Kit de Ferramentas Integrado"
   description: "Pacote R para análise de dados de saúde, clima e ambiente no Brasil"

@@ -32,10 +32,6 @@ navbar:
       href: reference/index.html
     - text: "News"
       href: news/index.html
-  
-  logo:
-  src: inst/figures/logo.png
-  alt: "climasus4r logo"
 
   right:
     - icon: fa-robot

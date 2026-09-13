@@ -13,6 +13,9 @@
 # Package directories
 /man/*
 !/man/*.Rd
+!/man/figures/
+/man/figures/*
+!/man/figures/logo.png
 /vignettes/*.html
 /vignettes/*.pdf
 
