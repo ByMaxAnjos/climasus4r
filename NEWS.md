@@ -1,3 +1,10 @@
+# climasus4r 1.0.1
+
+* Pinned `geobr::read_municipality()`'s `year` argument in `get_spatial_munic_cache()` — geobr
+  >= 2.0.1 made it a required first argument with no default, which broke `sus_spatial_join()`
+  for the "munic" level (and everything downstream of it) with "argument \"year\" is missing,
+  with no default" on any fresh geobr install.
+
 # climasus4r 1.0.0
 
 First stable release. The package now covers the full health–climate–environment data pipeline
