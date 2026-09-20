@@ -1034,9 +1034,19 @@ sus_data_filter_demographics <- function(df,
   }
 
   #  climasus_df stage validation (data frames only)
-  if (inherits(df, "arrow_dplyr_query")) {
+  # ponytail: accept every Arrow class, not just arrow_dplyr_query -
+  # sus_data_standardize(backend = "arrow") returns a bare Table.
+  if (backend_type == "arrow") {
     required_stage <- "stand"
     current_stage <- sus_meta(df, "stage")
+    if (is.null(current_stage)) {
+      msg_error <- list(
+        en = "Input is not a climasus_df. Run sus_data_standardize() first.",
+        pt = "A entrada nao e um climasus_df. Execute sus_data_standardize() primeiro.",
+        es = "La entrada no es un climasus_df. Ejecute sus_data_standardize() primero."
+      )
+      cli::cli_abort(msg_error[[lang]] %||% msg_error[["en"]])
+    }
     if (
       !is.null(current_stage) &&
         !is_stage_at_least(current_stage, required_stage)
@@ -1066,13 +1076,6 @@ sus_data_filter_demographics <- function(df,
       )
       cli::cli_alert_success(msg_ok[[lang]] %||% msg_ok[["en"]])
     }
-  } else if (backend_type == "arrow") {
-    msg_error <- list(
-      en = "Input is not a climasus_df. Run sus_data_standardize() first.",
-      pt = "A entrada nao e um climasus_df. Execute sus_data_standardize() primeiro.",
-      es = "La entrada no es un climasus_df. Ejecute sus_data_standardize() primero."
-    )
-    cli::cli_abort(msg_error[[lang]] %||% msg_error[["en"]])
   }
 
   # System and Column names (lazy-safe: names() works for Arrow/DuckDB tbl)

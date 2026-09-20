@@ -211,8 +211,8 @@ sus_climate_inmet <- function(
     station_code = NULL,
     use_cache    = TRUE,
     cache_dir    = "~/.climasus4r_cache/climate",
-    parallel     = TRUE,
-    workers      = 4,
+    parallel     = FALSE,
+    workers      = 2,
     lang         = "pt",
     verbose      = TRUE) {
 

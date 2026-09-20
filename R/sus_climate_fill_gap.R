@@ -213,7 +213,7 @@
     run_evaluation = FALSE,
     gap_percentage = 0.2,
     keep_features = FALSE,
-    parallel = TRUE,
+    parallel = FALSE,
     workers = NULL,
     verbose = TRUE,
     lang = "pt"
