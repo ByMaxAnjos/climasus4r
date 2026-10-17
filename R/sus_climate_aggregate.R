@@ -1025,7 +1025,7 @@ sus_climate_aggregate <- function(
       dplyr::rename(date = time_group)
   } else if ("season_label" %in% names(aggregated_data)) {
     aggregated_data <- aggregated_data %>%
-      dplyr::rename(season = .data$season_label)
+      dplyr::rename(season = "season_label")
   }
 
   return(dplyr::as_tibble(aggregated_data))

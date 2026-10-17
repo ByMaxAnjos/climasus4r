@@ -618,7 +618,7 @@ sus_data_aggregate <- function(df,
   
   # Rename agg_date to date
   df_agg <- df_agg %>%
-    dplyr::rename(date = .data$agg_date)
+    dplyr::rename(date = "agg_date")
   
   # Complete dates if requested
   if (complete_dates) {

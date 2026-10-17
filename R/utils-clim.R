@@ -150,7 +150,7 @@ utils::globalVariables(c(
           # Try to parse, and if fails, return NA
           date = lubridate::ymd_hm(.data$datetime_str, quiet = TRUE)
         ) %>% 
-        dplyr::select(-dplyr::starts_with("v"), -hour, -.data$datetime_str)
+        dplyr::select(-dplyr::starts_with("v"), -hour, -"datetime_str")
       
       dt_result <- .apply_quality_control(dt, verbose = FALSE)
       
@@ -534,10 +534,10 @@ utils::globalVariables(c(
   # 7. Final name cleanup
   if ("time_group" %in% names(aggregated_data)) {
     aggregated_data <- aggregated_data %>%
-      dplyr::rename(date = .data$time_group)
+      dplyr::rename(date = "time_group")
   } else if ("season_label" %in% names(aggregated_data)) {
     aggregated_data <- aggregated_data %>%
-      dplyr::rename(season = .data$season_label)
+      dplyr::rename(season = "season_label")
   }
 
   return(dplyr::as_tibble(aggregated_data))
@@ -807,7 +807,7 @@ utils::globalVariables(c(
         )
         #distance_km = distance_m / 1000
       ) %>%
-      dplyr::select(.data$code_muni, .data$station_name, .data$distance_m)
+      dplyr::select("code_muni", "station_name", "distance_m")
     distance_map <- purrr::map2_df(
       seq_len(nrow(spatial_centroids)),
       sf::st_nearest_feature(spatial_centroids, stations),
@@ -829,7 +829,7 @@ utils::globalVariables(c(
       dplyr::mutate(
         distance_km = distance_m / 1000
       ) %>%
-      dplyr::select(.data$code_muni, .data$station_name, .data$distance_km)
+      dplyr::select("code_muni", "station_name", "distance_km")
         matched_data <- matched_data %>%
           dplyr::left_join(
             distance_map,
@@ -1036,7 +1036,7 @@ utils::globalVariables(c(
 
   result <- health_data %>%
     dplyr::left_join(
-      climate_data %>% dplyr::select(.data$date, .data$code_muni, dplyr::all_of(target_vars)),
+      climate_data %>% dplyr::select("date", "code_muni", dplyr::all_of(target_vars)),
       by = c("date", "code_muni")
       #suffix = c("_health", "_climate")
     )
@@ -1243,7 +1243,7 @@ utils::globalVariables(c(
       ) %>%
       dplyr::left_join(
         climate_data %>%
-          dplyr::select(.data$code_muni, .data$date, dplyr::all_of(target_vars)) %>%
+          dplyr::select("code_muni", "date", dplyr::all_of(target_vars)) %>%
           dplyr::rename(date_climate = date),
         by = c("code_muni", "date_climate")
       )
@@ -1280,7 +1280,7 @@ utils::globalVariables(c(
           ),
           .groups = 'drop'
         ) %>%
-        dplyr::select(-.data$value, -.data$n_obs, -.data$prop_obs, -.data$.win_start, -.data$.win_end) %>%
+        dplyr::select(-"value", -"n_obs", -"prop_obs", -".win_start", -".win_end") %>%
         dplyr::rename_with(~ paste0("win", window_size, "_", var, "_lag", lag), .cols = "value_final")
       
       result <- result %>%
@@ -1555,7 +1555,7 @@ utils::globalVariables(c(
     ) %>%
     
     # Remover colunas auxiliares se desejado
-    dplyr::select(-.data$year, -.data$season, -.data$season_year)
+    dplyr::select(-"year", -"season", -"season_year")
     
   return(result)
 }
