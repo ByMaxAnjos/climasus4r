@@ -77,3 +77,116 @@ test_that("sus_data_aggregate computes value_col statistics", {
   expect_equal(nrow(out), 3)
   expect_equal(out[[2]][1], mean(c(70, 3)))
 })
+
+# --- sus_data_clean_encoding ---------------------------------------------
+
+test_that("sus_data_clean_encoding repairs latin1 bytes and sets stage", {
+  bad <- "S\xe3o Paulo"
+  Encoding(bad) <- "bytes"
+  df <- data.frame(city = c(bad, "Natal"), n = 1:2, stringsAsFactors = FALSE)
+
+  out <- sus_data_clean_encoding(df, backend = "tibble", lang = "en",
+                                 verbose = FALSE)
+
+  expect_s3_class(out, "climasus_df")
+  expect_identical(out$city, c("São Paulo", "Natal"))
+  expect_true(all(stringi::stri_enc_isutf8(out$city)))
+  expect_identical(out$n, 1:2)
+  expect_identical(sus_meta(out, "stage"), "clean")
+})
+
+test_that("sus_data_clean_encoding leaves valid UTF-8 untouched", {
+  df <- data.frame(city = c("São Paulo", "Belém"),
+                   stringsAsFactors = FALSE)
+  out <- sus_data_clean_encoding(df, backend = "tibble", lang = "en",
+                                 verbose = FALSE)
+  expect_identical(out$city, df$city)
+})
+
+# --- sus_data_standardize ------------------------------------------------
+
+make_raw_sim <- function() {
+  raw <- data.frame(
+    CAUSABAS  = c("I219", "J189"),
+    DTOBITO   = c("01012020", "02012020"),
+    SEXO      = c("1", "2"),
+    CODMUNRES = "230440",
+    stringsAsFactors = FALSE
+  )
+  new_climasus_df(raw, meta = list(
+    system = "SIM-DO", stage = "clean", type = "clean", backend = "tibble"
+  ))
+}
+
+test_that("sus_data_standardize translates columns, parses dates and codes", {
+  out <- sus_data_standardize(make_raw_sim(), lang = "en", backend = "tibble",
+                              verbose = FALSE)
+
+  expect_s3_class(out, "climasus_df")
+  expect_true(all(c("underlying_cause", "death_date", "sex") %in% names(out)))
+  expect_s3_class(out$death_date, "Date")
+  expect_identical(out$death_date, as.Date(c("2020-01-01", "2020-01-02")))
+  expect_identical(as.character(out$sex), c("Male", "Female"))
+  expect_identical(sus_meta(out, "stage"), "stand")
+})
+
+test_that("sus_data_standardize output feeds sus_data_filter_cid", {
+  out <- make_raw_sim() |>
+    sus_data_standardize(lang = "en", backend = "tibble", verbose = FALSE) |>
+    sus_data_filter_cid(icd_codes = "I", backend = "tibble", lang = "en",
+                        verbose = FALSE)
+
+  expect_equal(nrow(out), 1)
+  expect_identical(out$underlying_cause, "I219")
+})
+
+# --- sus_data_create_variables -------------------------------------------
+
+make_demo <- function() {
+  df <- data.frame(
+    date_death = as.Date(c("2020-01-04", "2020-07-15")),
+    age_years  = c(3, 70),
+    sex        = c("Male", "Female"),
+    stringsAsFactors = FALSE
+  )
+  new_climasus_df(df, meta = list(
+    system = "SIM", stage = "filter_demo", type = "filter_demo",
+    backend = "tibble"
+  ))
+}
+
+test_that("sus_data_create_variables derives age groups", {
+  out <- sus_data_create_variables(make_demo(), create_climate_vars = FALSE,
+                                   backend = "tibble", lang = "en",
+                                   verbose = FALSE)
+
+  expect_s3_class(out$age_group, "factor")
+  expect_identical(as.character(out$age_group), c("0-4", "60+"))
+  expect_identical(sus_meta(out, "stage"), "derive")
+})
+
+test_that("sus_data_create_variables derives calendar variables", {
+  out <- sus_data_create_variables(make_demo(), create_climate_vars = FALSE,
+                                   backend = "tibble", lang = "en",
+                                   verbose = FALSE)
+
+  # 2020-01-04 is a Saturday; 2020-07-15 is a Wednesday
+  expect_equal(out$year, c(2020, 2020))
+  expect_equal(out$month, c(1, 7))
+  expect_equal(out$quarter, c(1L, 3L))
+  expect_equal(out$semester, c(1, 2))
+  expect_equal(out$day_of_year, c(4, 197))
+  expect_identical(out$is_weekend, c(TRUE, FALSE))
+  expect_identical(out$day_of_week_name, c("Saturday", "Wednesday"))
+})
+
+test_that("sus_data_create_variables honours custom age breaks", {
+  out <- sus_data_create_variables(make_demo(), age_breaks = c(0, 65, Inf),
+                                   age_labels = c("<65", "65+"),
+                                   create_calendar_vars = FALSE,
+                                   create_climate_vars = FALSE,
+                                   backend = "tibble", lang = "en",
+                                   verbose = FALSE)
+
+  expect_identical(as.character(out$age_group), c("<65", "65+"))
+})
