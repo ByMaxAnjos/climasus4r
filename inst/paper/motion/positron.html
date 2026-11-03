@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<!--
+  Template do motion climasus4r (visual da IDE Positron). Nao e animado em
+  tempo real: motion_positron.R chama render(t) quadro a quadro e captura a
+  tela com Chrome headless, entao todo estado e funcao pura de t (segundos).
+  Os dados (codigo, graficos, variaveis) vem de build/motion_data.js.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+    background: #1f1f1f; color: #cccccc;
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", sans-serif; font-size: 13px; }
+  .mono { font-family: "SF Mono", Menlo, Consolas, monospace; }
+
+  #titlebar { position: absolute; top: 0; left: 0; right: 0; height: 36px; background: #181818;
+    border-bottom: 1px solid #2b2b2b; display: flex; align-items: center; justify-content: center; }
+  #titlebar .dots { position: absolute; left: 14px; display: flex; gap: 8px; }
+  #titlebar .dots span { width: 12px; height: 12px; border-radius: 50%; display: block; }
+  #search { width: 520px; height: 24px; border: 1px solid #3c3c3c; border-radius: 6px; background: #222;
+    color: #9d9d9d; display: flex; align-items: center; justify-content: center; font-size: 12.5px; }
+  #interp { position: absolute; right: 16px; display: flex; align-items: center; gap: 6px; font-size: 12.5px;
+    padding: 3px 10px; border: 1px solid #3c3c3c; border-radius: 6px; color: #d0d0d0; }
+  #interp b { width: 16px; height: 16px; border-radius: 50%; background: #276dc3; color: #fff; font-size: 10px;
+    display: inline-flex; align-items: center; justify-content: center; }
+
+  #activity { position: absolute; top: 36px; bottom: 24px; left: 0; width: 48px; background: #181818;
+    border-right: 1px solid #2b2b2b; padding-top: 10px; }
+  #activity i { display: block; width: 24px; height: 24px; margin: 0 12px 22px; border: 2px solid #868686;
+    border-radius: 5px; opacity: .8; }
+  #activity i.on { border-color: #e7e7e7; }
+
+  #main { position: absolute; top: 36px; bottom: 24px; left: 48px; right: 0; display: flex; }
+  #left { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #2b2b2b; min-width: 0; }
+  #right { width: 800px; display: flex; flex-direction: column; background: #181818; }
+
+  .tabs { height: 36px; background: #181818; display: flex; border-bottom: 1px solid #2b2b2b; flex: none; }
+  .tab { padding: 0 16px; display: flex; align-items: center; gap: 8px; color: #9d9d9d; border-right: 1px solid #2b2b2b; }
+  .tab.on { background: #1f1f1f; color: #ffffff; border-top: 2px solid #0078d4; }
+  .tab .r { color: #276dc3; font-weight: 700; font-size: 12px; }
+
+  #editor { flex: 62; position: relative; overflow: hidden; background: #1f1f1f; }
+  #code { position: absolute; left: 0; right: 0; top: 8px; }
+  .ln { display: flex; height: 27px; line-height: 27px; font-size: 17px; white-space: pre; }
+  .ln.cur { background: #282828; }
+  .ln .no { width: 64px; text-align: right; padding-right: 22px; color: #6e7681; flex: none; }
+  .ln.cur .no { color: #cccccc; }
+  .ln.run { background: rgba(0, 120, 212, .18); }
+  .caret { display: inline-block; width: 2px; height: 21px; background: #aeafad; vertical-align: -4px; }
+
+  #console { flex: 38; display: flex; flex-direction: column; border-top: 1px solid #2b2b2b; min-height: 0; }
+  #conbody { flex: 1; position: relative; overflow: hidden; background: #1f1f1f; }
+  #conlines { position: absolute; left: 16px; right: 16px; bottom: 10px; font-size: 15px; line-height: 22px; white-space: pre; }
+  .p { color: #4daafc; }
+  .busy { color: #9d9d9d; }
+
+  .ptitle { height: 34px; display: flex; align-items: center; padding: 0 14px; gap: 18px;
+    text-transform: uppercase; font-size: 11.5px; letter-spacing: .4px; color: #9d9d9d; border-bottom: 1px solid #2b2b2b; flex: none; }
+  .ptitle .on { color: #e7e7e7; border-bottom: 1px solid #e7e7e7; padding-bottom: 6px; margin-top: 7px; }
+  #vars { flex: 30; overflow: hidden; border-bottom: 1px solid #2b2b2b; display: flex; flex-direction: column; min-height: 0; }
+  #varlist { padding: 6px 0; }
+  .var { display: flex; height: 26px; align-items: center; padding: 0 16px; font-size: 14px; }
+  .var .n { width: 210px; color: #e7e7e7; }
+  .var .d { color: #9d9d9d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .var.new { background: rgba(0, 120, 212, .22); }
+  #plots { flex: 70; display: flex; flex-direction: column; min-height: 0; }
+  #plotarea { flex: 1; position: relative; background: #1f1f1f; }
+  #plotarea img, #surface { position: absolute; inset: 12px; width: calc(100% - 24px); height: calc(100% - 24px);
+    object-fit: contain; background: #fff; display: none; border-radius: 2px; }
+  #plotarea .empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #6e7681; }
+
+  #status { position: absolute; bottom: 0; left: 0; right: 0; height: 24px; background: #181818;
+    border-top: 1px solid #2b2b2b; display: flex; align-items: center; padding: 0 12px; gap: 22px; font-size: 12.5px; color: #9d9d9d; }
+  #status .stage { color: #e7e7e7; }
+  #status .right { margin-left: auto; display: flex; gap: 22px; }
+
+  #endcard { position: absolute; inset: 0; background: #ffffff; opacity: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 46px; }
+  #endcard .logos { display: flex; align-items: center; gap: 90px; }
+  #endcard .hex { height: 420px; }
+  #endcard .word { height: 190px; }
+  #endcard .url { font-size: 30px; color: #2b3a55; letter-spacing: .3px; }
+
+  #intro { position: absolute; inset: 0; background: #ffffff; display: none; flex-direction: column;
+    align-items: center; justify-content: center; gap: 34px; }
+  #intro img { height: 260px; }
+  #intro h1 { margin: 0; font-size: 76px; color: #1e2b45; font-weight: 750; letter-spacing: -1px; }
+  #intro p { margin: 0; font-size: 38px; color: #1f8a70; font-weight: 600; }
+</style>
+</head>
+<body>
+<div id="titlebar">
+  <div class="dots"><span style="background:#ff5f57"></span><span style="background:#febc2e"></span><span style="background:#28c840"></span></div>
+  <div id="search">climasus4r</div>
+  <div id="interp"><b>R</b><span id="rver">R</span></div>
+</div>
+<div id="activity"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+<div id="main">
+  <div id="left">
+    <div id="editor">
+      <div class="tabs"><div class="tab on"><span class="r">R</span><span id="fname">workflow_paper.R</span></div></div>
+      <div id="code" class="mono" style="top:44px"></div>
+    </div>
+    <div id="console">
+      <div class="ptitle"><span class="on">Console</span><span>Terminal</span><span>Problems</span><span>Output</span></div>
+      <div id="conbody"><div id="conlines" class="mono"></div></div>
+    </div>
+  </div>
+  <div id="right">
+    <div id="vars">
+      <div class="ptitle"><span class="on">Variables</span><span>Session</span></div>
+      <div id="varlist" class="mono"></div>
+    </div>
+    <div id="plots">
+      <div class="ptitle"><span class="on">Plots</span><span>Viewer</span><span>Help</span></div>
+      <div id="plotarea"><div class="empty" id="noplot">Nenhum gráfico</div><div id="surface"></div></div>
+    </div>
+  </div>
+</div>
+<div id="status"><span>⎇ master</span><span class="stage" id="stage"></span>
+  <span class="right"><span>Ln <span id="lnno">1</span>, Col <span id="colno">1</span></span><span>UTF-8</span><span>R</span></span></div>
+<div id="intro"><img id="intrologo"><h1 id="introtitle"></h1><p id="introsub"></p></div>
+<div id="endcard">
+  <div class="logos"><img class="hex" id="hexlogo"><img class="word" id="wordlogo"></div>
+  <div class="url mono" id="url"></div>
+</div>
+
+<script src="plotly.min.js"></script>
+<script src="build/motion_data.js"></script>
+<script src="build/motion_timing.js"></script>
+<script>
+const M = window.MOTION;
+const CPS = M.cps || 55;          // caracteres digitados por segundo
+const LH = 27;                    // altura da linha do editor (px)
+
+// Linha do tempo: [titulo] -> digita o chunk -> pausa -> Cmd+Enter -> espera (mais longa se ha grafico).
+const INTRO = M.intro ? M.intro.hold : 0, INTRO_FADE = M.intro ? 0.5 : 0;
+const RUN = M.run_delay, MIN_TYPE = M.min_type;
+let t0 = INTRO + (M.intro ? 0.3 : 1.0), timeline = [], offset = 0;
+for (const s of M.steps) {
+  const len = s.code.length;
+  const type = Math.max(MIN_TYPE, len / CPS);
+  const hold = s.surface ? M.surface_hold : (s.plot ? M.plot_hold : M.other_hold);
+  timeline.push({ ...s, start: t0, typeEnd: t0 + type, run: t0 + type + RUN, end: t0 + type + RUN + hold,
+                  from: offset, to: offset + len });
+  offset += len;
+  t0 = t0 + type + RUN + hold;
+}
+const FULL = timeline.map(s => s.code).join("");
+const END_START = t0, END_FADE = 1.0;
+const TOTAL = END_START + END_FADE + M.end_hold;
+
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const COL = { com: "#6a9955", str: "#ce9178", num: "#b5cea8", kw: "#569cd6", fn: "#dcdcaa", arg: "#9cdcfe", op: "#c586c0" };
+const RX = /(#.*$)|("(?:[^"\\]|\\.)*"?)|(\b\d+(?:\.\d+)?L?\b)|(\b(?:TRUE|FALSE|NULL|Inf|NA|function|if|else|for|in)\b)|([A-Za-z_.][\w.]*(?:::[A-Za-z_.][\w.]*)?)(?=\s*\()|([A-Za-z_.][\w.]*)(?=\s*=(?!=))|(\|>|<-|%>%)/g;
+const KIND = ["com", "str", "num", "kw", "fn", "arg", "op"];
+function hl(line) {
+  let out = "", last = 0;
+  line.replace(RX, (m, ...g) => {
+    const i = g[g.length - 2];
+    const k = KIND[g.slice(0, 7).findIndex(x => x !== undefined)];
+    out += esc(line.slice(last, i)) + `<span style="color:${COL[k]}">${esc(m)}</span>`;
+    last = i + m.length;
+    return m;
+  });
+  return out + esc(line.slice(last));
+}
+
+const $ = id => document.getElementById(id);
+const imgs = {};
+let surfaceReady = false;
+
+async function init() {
+  $("rver").textContent = M.r_version;
+  $("hexlogo").src = M.logo_hex;
+  $("wordlogo").src = M.logo_word;
+  $("url").textContent = M.url;
+  const loads = [$("hexlogo").decode(), $("wordlogo").decode()];
+  if (M.intro) {
+    $("intrologo").src = M.logo_hex;
+    $("introtitle").textContent = M.intro.title;
+    $("introsub").textContent = M.intro.subtitle;
+    $("intro").style.display = "flex";
+    loads.push($("intrologo").decode());
+  }
+  for (const s of timeline) if (s.plot && !imgs[s.plot]) {
+    const im = new Image(); im.src = s.plot; $("plotarea").appendChild(im); imgs[s.plot] = im; loads.push(im.decode());
+  }
+  await Promise.all(loads);
+  if (M.surface) {
+    const fig = M.surface;
+    for (const tr of fig.data) if (tr.colorscale) tr.colorscale = tr.colorscale.map(([a, b]) => [Number(a), b]);
+    $("surface").style.display = "block";   // visivel ao criar: a cena WebGL precisa do tamanho real
+    $("surface").style.visibility = "hidden";
+    await Plotly.newPlot("surface", fig.data, { ...fig.layout, autosize: true,
+      paper_bgcolor: "#ffffff", margin: { t: 50, b: 10, l: 10, r: 10 } },
+      { displayModeBar: false });   // sem staticPlot: ele desliga a cena WebGL na captura
+    surfaceReady = true;
+  }
+  return TOTAL;
+}
+
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+async function render(t) {
+  // ---- editor --------------------------------------------------------------
+  let typed = 0, cur = timeline[0];
+  for (const s of timeline) {
+    if (t >= s.start) cur = s;
+    typed += Math.round(clamp((t - s.start) / (s.typeEnd - s.start), 0, 1) * s.code.length);
+  }
+  const lines = FULL.slice(0, typed).split("\n");
+  const curLine = lines.length - 1;
+  // destaque azul nas linhas recem-executadas (Cmd+Enter)
+  let runFrom = -1, runTo = -1;
+  for (const s of timeline) if (t >= s.run && t < s.run + 0.45) {
+    runFrom = FULL.slice(0, s.from).split("\n").length - 1;
+    runTo = FULL.slice(0, s.to).replace(/\n+$/, "").split("\n").length - 1;
+  }
+  const visible = Math.floor(($("editor").clientHeight - 44) / LH);
+  const first = Math.max(0, curLine - visible + 4);
+  let html = "";
+  for (let i = first; i < Math.min(lines.length, first + visible + 1); i++) {
+    const cls = (i >= runFrom && i <= runTo) ? "ln run" : (i === curLine ? "ln cur" : "ln");
+    const caret = (i === curLine && t < END_START) ? '<span class="caret"></span>' : "";
+    html += `<div class="${cls}"><span class="no">${i + 1}</span><span>${hl(lines[i])}${caret}</span></div>`;
+  }
+  $("code").innerHTML = html;
+  $("lnno").textContent = curLine + 1;
+  $("colno").textContent = lines[curLine].length + 1;
+
+  // ---- console, variaveis, graficos ---------------------------------------
+  const done = timeline.filter(s => t >= s.run);
+  let con = [`<span class="busy">${esc(M.r_banner)}</span>`, ""];
+  for (const s of done) {
+    const code = s.code.split("\n").filter(l => l.trim() && !/^\s*#/.test(l));
+    code.forEach((l, i) => con.push(`<span class="p">${i ? "+" : "&gt;"}</span> ${hl(l)}`));
+  }
+  con.push('<span class="p">&gt;</span> ');
+  $("conlines").innerHTML = con.slice(-12).join("\n");
+
+  const vars = new Map();
+  let newest = null;
+  for (const s of done) if (s.var) { vars.set(s.var.name, s.var.desc); if (t < s.run + 1.2) newest = s.var.name; }
+  $("varlist").innerHTML = [...vars].map(([n, d]) =>
+    `<div class="var${n === newest ? " new" : ""}"><span class="n">${esc(n)}</span><span class="d">${esc(d)}</span></div>`).join("");
+
+  const shown = [...done].reverse().find(s => s.plot || s.surface);
+  for (const k in imgs) imgs[k].style.display = (shown && shown.plot === k) ? "block" : "none";
+  $("noplot").style.display = shown ? "none" : "flex";
+  const surfOn = !!(shown && shown.surface && surfaceReady);
+  $("surface").style.visibility = surfOn ? "visible" : "hidden";
+  if (surfOn) {
+    const a = 0.6 + (t - shown.run) * 0.75;   // rotacao continua da camera (rad/s)
+    await Plotly.relayout("surface", { "scene.camera.eye": { x: 2.0 * Math.cos(a), y: 2.0 * Math.sin(a), z: 0.95 } });
+  }
+  $("stage").textContent = cur.status ? "climasus4r ▸ " + cur.status : "";
+
+  // ---- titulo inicial (versao curta) e cartao final com os logos ----------
+  if (M.intro) $("intro").style.opacity = 1 - clamp((t - (INTRO - INTRO_FADE)) / INTRO_FADE, 0, 1);
+  $("endcard").style.opacity = clamp((t - END_START) / END_FADE, 0, 1);
+
+  await frame();
+  return true;
+}
+</script>
+</body>
+</html>
