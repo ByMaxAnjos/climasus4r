@@ -192,3 +192,15 @@ test_that("meta_from_json returns empty list for NULL/empty input", {
   expect_identical(.meta_from_json(NULL), list())
   expect_identical(.meta_from_json(""), list())
 })
+
+test_that("resolve_system_subtype keeps standardized SIH-RD (has *_sp value columns) as SIH-RD", {
+  rd <- data.frame(diagnostico_principal = "J18", total_pontos_sp = 1)
+  sp <- data.frame(SP_PROCREA = "x")
+  expect_identical(.resolve_system_subtype(rd, "SIH"), "SIH-RD")
+  expect_identical(.resolve_system_subtype(sp, "SIH"), "SIH-SP")
+})
+
+test_that("meta_from_json restores created as POSIXct", {
+  back <- .meta_from_json(.meta_to_json(list(created = Sys.time())))
+  expect_s3_class(back$created, "POSIXct")
+})

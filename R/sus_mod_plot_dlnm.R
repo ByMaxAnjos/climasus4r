@@ -714,11 +714,12 @@ sus_mod_plot_dlnm <- function(
   # who never asked for a contour) — always build the real plotly surface; `interactive` only
   # controls whether other `type`s in this function get wrapped for display, not this one.
   rlang::check_installed("plotly", reason = "for 3-D surface plots")
-  # plotly surface: x=exposure, y=lag, z=matrix (rows=exposure, cols=lag)
+  # plotly surface: z[i, j] is drawn at (x[j], y[i]), so rows must follow y (lag) -- transpose
+  # the exposure-by-lag matrix, otherwise only the first n_lag exposure values get plotted.
   plotly::plot_ly(
     x = exp_vec,
     y = lag_seq,
-    z = rr_mat,
+    z = t(rr_mat),
     type       = "surface",
     colorscale = list(
       c(0, pal$cold),

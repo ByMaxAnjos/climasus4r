@@ -126,6 +126,13 @@
 #'   Default is "~/.climasus4r_cache/data".
 #' @param force_redownload Logical. If TRUE, ignores cache and re-downloads 
 #'   everything. Useful when you suspect cached data is corrupted or outdated.
+#' @param filter_residence_uf Logical. For state-level systems (SIM, SIH, SIA,
+#'   SINASC), keep only records whose municipality code belongs to the
+#'   requested `uf` (default `TRUE`). Set to `FALSE` to keep every record in
+#'   the state file, e.g. SIH admissions of patients living in another state.
+#'   Needed to build residence-based national series, where an admission in
+#'   one state must be assigned to the patient's state of residence. Has no
+#'   effect on national systems (SINAN).
 #' @param parallel Logical. If TRUE (default), will use parallel processing 
 #'   for multiple UF/year combinations. Significantly speeds up bulk downloads.
 #' @param workers Integer. Number of parallel workers to use. Default is 4. 
@@ -226,6 +233,7 @@ sus_data_import <- function(uf = NULL,
                             use_cache = TRUE,
                             cache_dir = "~/.climasus4r_cache/data",
                             force_redownload = FALSE,
+                            filter_residence_uf = TRUE,
                             parallel = FALSE,
                             workers = 4,
                             lang = "pt",
@@ -245,6 +253,7 @@ sus_data_import <- function(uf = NULL,
         use_cache = use_cache, 
         cache_dir = cache_dir, 
         force_redownload = force_redownload, 
+        filter_residence_uf = filter_residence_uf,
         parallel = parallel,
         workers = workers, 
         lang = lang, 
@@ -274,6 +283,7 @@ sus_data_import <- function(uf = NULL,
         use_cache = use_cache, 
         cache_dir = cache_dir, 
         force_redownload = force_redownload, 
+        filter_residence_uf = filter_residence_uf,
         parallel = parallel,
         workers = workers, 
         lang = lang, 
@@ -286,7 +296,7 @@ sus_data_import <- function(uf = NULL,
   
 .import_tibble_internal <- function(
      uf, region, year, system, month, city, municipality_code,
-     use_cache, cache_dir, force_redownload, parallel,
+     use_cache, cache_dir, force_redownload, filter_residence_uf, parallel,
      workers, lang, verbose
     ) {
   # Validate language
@@ -808,6 +818,8 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
     
     # Generate cache key and path
     cache_key <- generate_cache_key(year_i, uf_i, system_i, month_i, is_national)
+    # The tibble cache stores post-filter data: keep unfiltered data apart
+    if (!filter_residence_uf) cache_key <- paste0(cache_key, "_nofilter")
     cache_path <- get_cache_path(cache_key)
     
     # Check cache first (if enabled and not forcing re-download)
@@ -853,7 +865,7 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
       data <- do.call(microdatasus::fetch_datasus, params_list)
 
       # Safety-net: keep only rows whose municipality prefix matches the requested state
-      if (!is_national && !is.null(data) && nrow(data) > 0L) {
+      if (filter_residence_uf && !is_national && !is.null(data) && nrow(data) > 0L) {
         state_code <- sprintf("%02d", as.integer(uf_to_code[toupper(uf_i)]))
         if (!is.na(state_code) && nchar(state_code) == 2L) {
           muni_candidates <- c(
@@ -985,6 +997,7 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
           "is_national",
           "use_cache",
           "force_redownload",
+          "filter_residence_uf",
           "cache_dir"
         )
       )
@@ -1024,7 +1037,8 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
   }
   
   #combined_data <- dplyr::bind_rows(list_of_dfs)
-  combined_data <- data.table::rbindlist(list_of_dfs, use.names = TRUE)
+  # fill = TRUE: monthly files of one year can differ in column set (layout changes)
+  combined_data <- data.table::rbindlist(list_of_dfs, use.names = TRUE, fill = TRUE)
   
   #NEW national system
   # Se for sistema nacional, filtrar pelos UFs solicitados
@@ -1235,7 +1249,7 @@ save_to_cache <- function(data, cache_path, year_i, uf_i, system_i, month_i = NU
 
 .import_arrow_internal <- function(
      uf, region, year, system, month, city, municipality_code,
-     use_cache, cache_dir, force_redownload, parallel,
+     use_cache, cache_dir, force_redownload, filter_residence_uf, parallel,
      workers, lang, verbose
     ) {
   #  0. Validacoes basicas 
@@ -1848,7 +1862,7 @@ if (!is.null(city) || !is.null(municipality_code)) {
         )
         ds_cols <- names(dataset)
         mf      <- muni_col_candidates[muni_col_candidates %in% ds_cols][1L]
-        if (!is.na(mf) && !is.null(mf)) {
+        if (filter_residence_uf && !is.na(mf) && !is.null(mf)) {
           uf_pattern <- paste0("^(", paste(state_str_codes, collapse = "|"), ")")
           dataset <- dataset |>
             dplyr::filter(

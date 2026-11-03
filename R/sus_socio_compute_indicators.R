@@ -294,6 +294,130 @@
     uncertainty_method = "none",
     numerator_col = NULL, denominator_col = NULL,
     source = "cnes"
+  ),
+
+  # ---------------------------------------------------------------------------
+  # Heat vulnerability (census tract-level proportions)
+  # ---------------------------------------------------------------------------
+  pct_age_0_4 = list(
+    name_pt = "Percentual de Criancas de 0 a 4 Anos",
+    name_en = "Share of Children Aged 0-4",
+    name_es = "Porcentaje de Ninos de 0 a 4 Anos",
+    category = "heat_vulnerability",
+    formula = "pop_0_4 / pop_total",
+    required_cols = c("pop_0_4", "pop_total"),
+    multiplier = 100, unit = "%",
+    uncertainty_method = "binomial",
+    numerator_col = "pop_0_4", denominator_col = "pop_total",
+    source = "census"
+  ),
+  pct_age_60_plus = list(
+    name_pt = "Percentual de Pessoas com 60 Anos ou Mais",
+    name_en = "Share of People Aged 60+",
+    name_es = "Porcentaje de Personas de 60 Anos o Mas",
+    category = "heat_vulnerability",
+    formula = "pop_60_plus / pop_total",
+    required_cols = c("pop_60_plus", "pop_total"),
+    multiplier = 100, unit = "%",
+    uncertainty_method = "binomial",
+    numerator_col = "pop_60_plus", denominator_col = "pop_total",
+    source = "census"
+  ),
+  single_person_hh_rate = list(
+    name_pt = "Taxa de Domicilios Unipessoais",
+    name_en = "Single-Person Household Rate",
+    name_es = "Tasa de Hogares Unipersonales",
+    category = "heat_vulnerability",
+    formula = "hh_single / total_hh",
+    required_cols = c("hh_single", "total_hh"),
+    multiplier = 100, unit = "%",
+    uncertainty_method = "binomial",
+    numerator_col = "hh_single", denominator_col = "total_hh",
+    source = "census"
+  ),
+  improvised_hh_rate = list(
+    name_pt = "Taxa de Domicilios Improvisados",
+    name_en = "Improvised Household Rate",
+    name_es = "Tasa de Viviendas Improvisadas",
+    category = "heat_vulnerability",
+    formula = "hh_improvised / total_hh",
+    required_cols = c("hh_improvised", "total_hh"),
+    multiplier = 100, unit = "%",
+    uncertainty_method = "binomial",
+    numerator_col = "hh_improvised", denominator_col = "total_hh",
+    source = "census"
+  ),
+  garbage_collection_rate = list(
+    name_pt = "Taxa de Domicilios com Coleta de Lixo",
+    name_en = "Households with Garbage Collection Rate",
+    name_es = "Tasa de Hogares con Recoleccion de Basura",
+    category = "heat_vulnerability",
+    formula = "hh_garbage / total_hh",
+    required_cols = c("hh_garbage", "total_hh"),
+    multiplier = 100, unit = "%",
+    uncertainty_method = "binomial",
+    numerator_col = "hh_garbage", denominator_col = "total_hh",
+    source = "census"
+  ),
+  treeless_hh_rate = list(
+    name_pt = "Taxa de Domicilios sem Arborizacao no Entorno",
+    name_en = "Households without Street Trees Rate",
+    name_es = "Tasa de Hogares sin Arborizacion en el Entorno",
+    category = "heat_vulnerability",
+    formula = "hh_no_tree / hh_surveyed",
+    required_cols = c("hh_no_tree", "hh_surveyed"),
+    multiplier = 100, unit = "%",
+    uncertainty_method = "binomial",
+    numerator_col = "hh_no_tree", denominator_col = "hh_surveyed",
+    source = "census"
+  ),
+  street_lighting_rate = list(
+    name_pt = "Taxa de Domicilios com Iluminacao Publica",
+    name_en = "Households with Street Lighting Rate",
+    name_es = "Tasa de Hogares con Alumbrado Publico",
+    category = "heat_vulnerability",
+    formula = "hh_lighting / hh_surveyed",
+    required_cols = c("hh_lighting", "hh_surveyed"),
+    multiplier = 100, unit = "%",
+    uncertainty_method = "binomial",
+    numerator_col = "hh_lighting", denominator_col = "hh_surveyed",
+    source = "census"
+  ),
+  sidewalk_rate = list(
+    name_pt = "Taxa de Domicilios com Calcada",
+    name_en = "Households with Sidewalk Rate",
+    name_es = "Tasa de Hogares con Acera",
+    category = "heat_vulnerability",
+    formula = "hh_sidewalk / hh_surveyed",
+    required_cols = c("hh_sidewalk", "hh_surveyed"),
+    multiplier = 100, unit = "%",
+    uncertainty_method = "binomial",
+    numerator_col = "hh_sidewalk", denominator_col = "hh_surveyed",
+    source = "census"
+  ),
+  paved_street_rate = list(
+    name_pt = "Taxa de Domicilios com Rua Pavimentada",
+    name_en = "Households on Paved Street Rate",
+    name_es = "Tasa de Hogares en Calle Pavimentada",
+    category = "heat_vulnerability",
+    formula = "hh_paved / hh_surveyed",
+    required_cols = c("hh_paved", "hh_surveyed"),
+    multiplier = 100, unit = "%",
+    uncertainty_method = "binomial",
+    numerator_col = "hh_paved", denominator_col = "hh_surveyed",
+    source = "census"
+  ),
+  black_brown_pop_rate = list(
+    name_pt = "Percentual de Populacao Preta e Parda",
+    name_en = "Share of Black and Brown Population",
+    name_es = "Porcentaje de Poblacion Negra y Parda",
+    category = "heat_vulnerability",
+    formula = "pop_black_brown / pop_total",
+    required_cols = c("pop_black_brown", "pop_total"),
+    multiplier = 100, unit = "%",
+    uncertainty_method = "binomial",
+    numerator_col = "pop_black_brown", denominator_col = "pop_total",
+    source = "census"
   )
 )
 
@@ -574,6 +698,7 @@ sus_socio_compute_indicators <- function(
       }
     )
     if (is.null(value)) next
+    value[!is.finite(value)] <- NA_real_  # zero denominators -> NA, not Inf/NaN
 
     df[[paste0("ind_", ind_id)]] <- value * spec$multiplier
     n_computed <- n_computed + 1L
@@ -642,8 +767,10 @@ sus_socio_compute_indicators <- function(
 #' categories, required columns, and uncertainty method.
 #'
 #' @param lang Language for indicator names: `"pt"` (default), `"en"`, `"es"`.
-#' @param category Optional character vector to filter by category. Use `NULL`
-#'   (default) to return all.
+#' @param category Optional character vector to filter by category (e.g.
+#'   `"demographic"`, `"socioeconomic"`, `"mortality"`, `"morbidity"`,
+#'   `"maternal_child"`, `"health_resources"`, `"heat_vulnerability"`). Use
+#'   `NULL` (default) to return all.
 #'
 #' @return A `tibble` with columns `id`, `name`, `category`, `required_cols`,
 #'   `unit`, `uncertainty_method`, `source`.

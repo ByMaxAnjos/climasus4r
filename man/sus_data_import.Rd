@@ -16,6 +16,7 @@ sus_data_import(
   use_cache = TRUE,
   cache_dir = "~/.climasus4r_cache/data",
   force_redownload = FALSE,
+  filter_residence_uf = TRUE,
   parallel = FALSE,
   workers = 4,
   lang = "pt",
@@ -173,6 +174,14 @@ Default is "~/.climasus4r_cache/data".}
 
 \item{force_redownload}{Logical. If TRUE, ignores cache and re-downloads
 everything. Useful when you suspect cached data is corrupted or outdated.}
+
+\item{filter_residence_uf}{Logical. For state-level systems (SIM, SIH, SIA,
+SINASC), keep only records whose municipality code belongs to the
+requested \code{uf} (default \code{TRUE}). Set to \code{FALSE} to keep every record in
+the state file, e.g. SIH admissions of patients living in another state.
+Needed to build residence-based national series, where an admission in
+one state must be assigned to the patient's state of residence. Has no
+effect on national systems (SINAN).}
 
 \item{parallel}{Logical. If TRUE (default), will use parallel processing
 for multiple UF/year combinations. Significantly speeds up bulk downloads.}

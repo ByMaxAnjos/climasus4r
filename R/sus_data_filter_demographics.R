@@ -447,9 +447,9 @@ sus_data_filter_demographics <- function(df,
     age_col <- find_column(df, c("age_years"))
 
     if (is.null(age_col)) {
-      cli::cli_alert_warning(paste0(
-        "Age column not found. Skipping age filter. ",
-        "Run sus_data_create_variables() to create age_years."
+      cli::cli_abort(c(
+        "{.arg age_range} requires an {.field age_years} column, which was not found.",
+        "i" = "Run {.fn sus_data_create_variables} before {.fn sus_data_filter_demographics}."
       ))
     } else {
       min_age <- age_range[1]
@@ -708,6 +708,7 @@ sus_data_filter_demographics <- function(df,
     "residence_municipality",
     "municipio_residencia",
     "codigo_municipio_residencia",
+    "code_muni",
     "municipio_residencia_paciente_sp",
     "municipio_estabelecimento_sp",
     "codigo_municipio_paciente",
@@ -1151,9 +1152,10 @@ sus_data_filter_demographics <- function(df,
     }
     age_col <- find_column_from_names(col_names, c("age_years"))
     if (is.null(age_col)) {
-      cli::cli_alert_warning(
-        "age_years column not found. Run sus_data_create_variables() first."
-      )
+      cli::cli_abort(c(
+        "{.arg age_range} requires an {.field age_years} column, which was not found.",
+        "i" = "Run {.fn sus_data_create_variables} before {.fn sus_data_filter_demographics}."
+      ))
     } else {
       df <- apply_filter(
         df,
@@ -1241,6 +1243,7 @@ sus_data_filter_demographics <- function(df,
     "residence_municipality",
     "municipio_residencia",
     "codigo_municipio_residencia",
+    "code_muni",
     "municipio_residencia_paciente_sp",
     "municipio_estabelecimento_sp",
     "codigo_municipio_paciente",

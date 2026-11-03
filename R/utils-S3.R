@@ -140,7 +140,10 @@ detect_backend_type <- function(df) {
   cols <- names(df)
   switch(system,
     "SIH" = {
-      if (any(grepl("_sp$", cols)) || any(grepl("^SP_", cols))) "SIH-SP"
+      # SIH-RD also carries *_sp value columns after standardization; only it
+      # has a primary diagnosis column.
+      if (any(c("DIAG_PRINC", "diagnostico_principal", "primary_diagnosis") %in% cols)) "SIH-RD"
+      else if (any(grepl("_sp$", cols)) || any(grepl("^SP_", cols))) "SIH-SP"
       else system
     },
     system
@@ -229,10 +232,13 @@ is_stage_at_least <- function(current, required) {
 .meta_from_json <- function(json_str) {
   if (is.null(json_str) || nchar(json_str) == 0) return(list())
   if (requireNamespace("jsonlite", quietly = TRUE)) {
-    tryCatch(
+    meta <- tryCatch(
       jsonlite::fromJSON(json_str, simplifyVector = TRUE),
       error = function(e) list()
     )
+    # JSON stores timestamps as text; print.climasus_df needs POSIXct
+    if (is.character(meta$created)) meta$created <- as.POSIXct(meta$created)
+    meta
   } else {
     list()
   }

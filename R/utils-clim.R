@@ -493,17 +493,51 @@ utils::globalVariables(c(
   }
 
   # 4. Aggregation rules by variable type
-  cols_sum  <- c("rainfall_mm", "sr_kj_m2")
-  
+  # INMET base variables
+  cols_sum  <- c("rainfall_mm", "sr_kj_m2",
+                 # Degree-day indices (sus_climate_compute_indicators)
+                 "cdd_c", "hdd_c", "gdd_c")
+
   cols_mean <- c(
     "patm_mb", "patm_max_mb", "patm_min_mb",
     "tair_dry_bulb_c", "dew_tmean_c",
-    "rh_mean_porc", "wd_degrees", "ws_2_m_s"
+    "rh_mean_porc", "wd_degrees", "ws_2_m_s",
+    # Derived variables (sus_climate_compute_indicators)
+    "vapor_pressure_kpa", "diurnal_range_c"
   )
-  
-  cols_max  <- c("tair_max_c", "dew_tmax_c", "rh_max_porc", "ws_gust_m_s")
-  
-  cols_min  <- c("tair_min_c", "dew_tmin_c", "rh_min_porc")
+
+  # Heat-stress indices -> daily MAXIMUM (sus_climate_compute_indicators)
+  # wbgt_c: Wet Bulb Globe Temperature-represents peak heat stress
+  # hi_c:   Heat Index-peak perceived temperature
+  # thi_c:  Temperature-Humidity Index-peak discomfort
+  # et_c:   Effective Temperature-peak thermal sensation
+  # utci_c: Universal Thermal Climate Index-peak physiological stress
+  # pet_c:  Physiological Equivalent Temperature-peak thermal load
+  cols_max  <- c(
+    "tair_max_c", "dew_tmax_c", "rh_max_porc", "ws_gust_m_s",
+    "wbgt_c", "hi_c", "thi_c", "et_c", "utci_c", "pet_c"
+  )
+
+  # Cold-stress indices → daily MINIMUM (sus_climate_compute_indicators)
+  # wcet_c: Wind Chill Equivalent Temperature-minimum thermal comfort
+  # wct_c:  Wind Chill Temperature-minimum perceived temperature
+  cols_min  <- c(
+    "tair_min_c", "dew_tmin_c", "rh_min_porc",
+    "wcet_c", "wct_c"
+  )
+
+  # Any numeric column from sus_climate_compute_indicators not covered above
+  # is aggregated by mean. This prevents silent column loss when new
+  # indicators are added to the pipeline.
+  all_known <- c(cols_sum, cols_mean, cols_max, cols_min,
+                 "date", "station_code", "station_name",
+                 "latitude", "longitude", "altitude", "uf", "region",
+                 "year", "time_group", "season_label")
+  numeric_cols <- names(data_proc)[vapply(data_proc, is.numeric, logical(1))]
+  cols_mean_extra <- setdiff(numeric_cols, all_known)
+  if (length(cols_mean_extra) > 0) {
+    cols_mean <- c(cols_mean, cols_mean_extra)
+  }
   
   # Metadata to preserve
   meta_vars <- c(
@@ -534,7 +568,7 @@ utils::globalVariables(c(
   # 7. Final name cleanup
   if ("time_group" %in% names(aggregated_data)) {
     aggregated_data <- aggregated_data %>%
-      dplyr::rename(date = "time_group")
+      dplyr::rename(date = time_group)
   } else if ("season_label" %in% names(aggregated_data)) {
     aggregated_data <- aggregated_data %>%
       dplyr::rename(season = "season_label")

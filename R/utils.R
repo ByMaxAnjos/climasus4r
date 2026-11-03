@@ -2180,3 +2180,25 @@ sus_install_deps <- function(
   }
   invisible(NULL)
 }
+
+# OpenFreeMap (no API key) vector basemap for a leaflet widget. Leaflet itself only draws raster
+# tiles, and OpenFreeMap serves vector tiles only, so maplibre-gl + its leaflet bridge are loaded
+# from a CDN when the widget opens (the basemap needs internet anyway; polygons still draw
+# without it).
+.map_openfreemap <- function(m) {
+  htmlwidgets::onRender(m, "function(el, x) {
+    var map = this;
+    function add(tag, attrs) { var e = document.createElement(tag); for (var k in attrs) e[k] = attrs[k]; document.head.appendChild(e); return e; }
+    function script(src, cb) { add('script', {src: src, onload: cb}); }
+    add('link', {rel: 'stylesheet', href: 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css'});
+    script('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js', function() {
+      script('https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js', function() {
+        var attr = '&copy; <a href=\"https://openfreemap.org\" target=\"_blank\">OpenFreeMap</a> &copy; <a href=\"https://openmaptiles.org/\" target=\"_blank\">OpenMapTiles</a> Data from <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\">OpenStreetMap</a>';
+        function base(name) { return L.maplibreGL({style: 'https://tiles.openfreemap.org/styles/' + name, attribution: attr}); }
+        var bases = {Positron: base('positron'), Liberty: base('liberty'), Bright: base('bright'), Dark: base('dark'), Fiord: base('fiord')};
+        bases.Positron.addTo(map);
+        L.control.layers(bases, null, {position: 'topright'}).addTo(map);
+      });
+    });
+  }")
+}

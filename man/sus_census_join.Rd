@@ -12,6 +12,8 @@ sus_census_join(
   census_vars = NULL,
   aggregation_fun = "sum",
   join_muni_col = NULL,
+  join_level = c("muni", "tract"),
+  join_tract_col = NULL,
   use_cache = TRUE,
   cache_dir = "~/.climasus4r_cache/census",
   lang = "pt",
@@ -32,17 +34,22 @@ sus_census_join(
 \item \code{"emigration"} - Emigration microdata
 \item \code{"tracts"} - Census tract aggregate data (setores censitarios).
 Use \code{tracts_dataset} to select which tract table to download.
+Combine with \code{join_level = "tract"} to join tract-level values
+(no aggregation) to a table of tracts.
 }}
 
 \item{tracts_dataset}{Character string. Relevant only when \code{dataset = "tracts"}.
-Selects which censobr tract table to download. Options: \code{"Basico"} (default),
+Selects which censobr tract table to download; the name is validated by
+\code{censobr::read_tracts()}. Census 2010 options: \code{"Basico"} (default),
 \code{"Domicilio01"}, \code{"Domicilio02"}, \code{"DomicilioRenda"},
-\code{"Pessoa01"} through \code{"Pessoa13"},
-\code{"ResponsavelRenda"}, \code{"ResponsavelRendaSexo"}.
+\code{"Pessoa01"} through \code{"Pessoa13"}, \code{"ResponsavelRenda"},
+\code{"ResponsavelRendaSexo"}. Census 2022 options: \code{"Basico"}, \code{"Pessoas"},
+\code{"Domicilio"}, \code{"ResponsavelRenda"}, \code{"Entorno"}, \code{"Indigenas"},
+\code{"Quilombolas"}.
 See \code{censobr::read_tracts()} for full variable listings per table.}
 
-\item{year}{Integer specifying census year. Options: \code{2010} (default) or \code{2000}.
-Note: Dataset availability varies by year.}
+\item{year}{Integer specifying census year. Options: \code{2010} (default), \code{2000}
+or \code{2022} (tracts only in some tables). Note: dataset availability varies by year.}
 
 \item{census_vars}{Character vector specifying census variables to add. Use \code{sus_census_select()} to select available variables.
 If \code{NULL}, returns all available variables (not recommended for large datasets).}
@@ -55,6 +62,16 @@ If \code{NULL}, returns all available variables (not recommended for large datas
 }}
 
 \item{join_muni_col}{Character string specifying the column in df containing the \strong{6 or 7-digit IBGE municipality code}. If \code{NULL}, detects common SUS patterns (e.g., \code{code_muni}).}
+
+\item{join_level}{Character. \code{"muni"} (default): microdata/tracts are
+aggregated to municipality and joined by municipality code. \code{"tract"}:
+only valid with \code{dataset = "tracts"}; \code{df} is a table of census tracts
+(e.g. an \code{sf} of setores) and the censobr tract table is joined by tract
+code, with raw censobr column names, no aggregation and no suffix.}
+
+\item{join_tract_col}{Character. Column of \code{df} holding the 15-digit tract
+code when \code{join_level = "tract"}. If \code{NULL}, auto-detects \code{code_tract} or
+\code{CD_SETOR}.}
 
 \item{use_cache}{Logical. If \code{TRUE} (default), uses censobr's caching system to store
 downloaded data locally for faster subsequent access.}
@@ -112,6 +129,13 @@ The function uses Arrow/Parquet format for efficient larger-than-memory dataset 
 \item Uses \code{dplyr::collect()} only after filtering
 \item Uses \code{sfarrow} pak for spatial filtering
 }
+\strong{Tract-level join} (\code{join_level = "tract"}): if \code{df} is not a
+\code{climasus_df} (e.g. a plain \code{sf} of tracts) it is promoted automatically.
+Only the municipalities present in \code{df} (first 7 digits of the tract code)
+are read from censobr. If \code{census_vars = NULL}, all census columns except
+the geographic/identification ones (\verb{code_*}, \verb{name_*}, \code{situacao},
+\code{area_km2}) are added; \code{code_tract} is always used as the join key.
+
 \strong{Spatial Data Support}:
 If \code{df} is an \code{sf} object from \code{sus_spatial_join()}, geometries are preserved in the output.
 }
@@ -130,6 +154,19 @@ sf_enriched <- sus_census_join(
   dataset = "population",
   census_vars = c("V0001", "V0002"),
   year = 2010,
+  lang = "pt"
+)
+
+# Join 2022 tract-level variables to an sf of setores (no aggregation)
+setores <- geobr::read_census_tract(code_tract = 1100205, year = 2022)
+setores <- sus_census_join(
+  df = setores,
+  dataset = "tracts",
+  tracts_dataset = "Domicilio",
+  year = 2022,
+  join_level = "tract",
+  join_tract_col = "code_tract",
+  census_vars = c("V00001", "V00002"),
   lang = "pt"
 )
 }

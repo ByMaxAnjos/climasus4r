@@ -14,15 +14,20 @@
 #'     \item `"emigration"` - Emigration microdata
 #'     \item `"tracts"` - Census tract aggregate data (setores censitarios).
 #'       Use `tracts_dataset` to select which tract table to download.
+#'       Combine with `join_level = "tract"` to join tract-level values
+#'       (no aggregation) to a table of tracts.
 #'   }
 #' @param tracts_dataset Character string. Relevant only when `dataset = "tracts"`.
-#'   Selects which censobr tract table to download. Options: `"Basico"` (default),
+#'   Selects which censobr tract table to download; the name is validated by
+#'   `censobr::read_tracts()`. Census 2010 options: `"Basico"` (default),
 #'   `"Domicilio01"`, `"Domicilio02"`, `"DomicilioRenda"`,
-#'   `"Pessoa01"` through `"Pessoa13"`,
-#'   `"ResponsavelRenda"`, `"ResponsavelRendaSexo"`.
+#'   `"Pessoa01"` through `"Pessoa13"`, `"ResponsavelRenda"`,
+#'   `"ResponsavelRendaSexo"`. Census 2022 options: `"Basico"`, `"Pessoas"`,
+#'   `"Domicilio"`, `"ResponsavelRenda"`, `"Entorno"`, `"Indigenas"`,
+#'   `"Quilombolas"`.
 #'   See `censobr::read_tracts()` for full variable listings per table.
-#' @param year Integer specifying census year. Options: `2010` (default) or `2000`.
-#'   Note: Dataset availability varies by year.
+#' @param year Integer specifying census year. Options: `2010` (default), `2000`
+#'   or `2022` (tracts only in some tables). Note: dataset availability varies by year.
 #' @param census_vars Character vector specifying census variables to add. Use `sus_census_select()` to select available variables.
 #'   If `NULL`, returns all available variables (not recommended for large datasets).
 #' @param aggregation_fun Character. Method to aggregate microdata to municipality level:
@@ -32,6 +37,14 @@
 #'     \item `"median"`, `"min"`, `"max"`, `"sd"`, `"q25"`, `"q75"`, `"q95"`, and `"q99"`.
 #'   }
 #' @param join_muni_col Character string specifying the column in df containing the **6 or 7-digit IBGE municipality code**. If `NULL`, detects common SUS patterns (e.g., `code_muni`).
+#' @param join_level Character. `"muni"` (default): microdata/tracts are
+#'   aggregated to municipality and joined by municipality code. `"tract"`:
+#'   only valid with `dataset = "tracts"`; `df` is a table of census tracts
+#'   (e.g. an `sf` of setores) and the censobr tract table is joined by tract
+#'   code, with raw censobr column names, no aggregation and no suffix.
+#' @param join_tract_col Character. Column of `df` holding the 15-digit tract
+#'   code when `join_level = "tract"`. If `NULL`, auto-detects `code_tract` or
+#'   `CD_SETOR`.
 #' @param use_cache Logical. If `TRUE` (default), uses censobr's caching system to store
 #'   downloaded data locally for faster subsequent access.
 #' @param cache_dir Character string specifying cache directory path. Defaults to
@@ -77,6 +90,13 @@
 #'   \item Uses `dplyr::collect()` only after filtering
 #'   \item Uses `sfarrow` pak for spatial filtering 
 #' }
+#' **Tract-level join** (`join_level = "tract"`): if `df` is not a
+#' `climasus_df` (e.g. a plain `sf` of tracts) it is promoted automatically.
+#' Only the municipalities present in `df` (first 7 digits of the tract code)
+#' are read from censobr. If `census_vars = NULL`, all census columns except
+#' the geographic/identification ones (`code_*`, `name_*`, `situacao`,
+#' `area_km2`) are added; `code_tract` is always used as the join key.
+#'
 #' **Spatial Data Support**:
 #' If `df` is an `sf` object from `sus_spatial_join()`, geometries are preserved in the output.
 #'
@@ -100,6 +120,19 @@
 #'   year = 2010,
 #'   lang = "pt"
 #' )
+#'
+#' # Join 2022 tract-level variables to an sf of setores (no aggregation)
+#' setores <- geobr::read_census_tract(code_tract = 1100205, year = 2022)
+#' setores <- sus_census_join(
+#'   df = setores,
+#'   dataset = "tracts",
+#'   tracts_dataset = "Domicilio",
+#'   year = 2022,
+#'   join_level = "tract",
+#'   join_tract_col = "code_tract",
+#'   census_vars = c("V00001", "V00002"),
+#'   lang = "pt"
+#' )
 #' }
 #' @export
 #' @importFrom glue glue
@@ -112,6 +145,8 @@ sus_census_join <- function(
   census_vars = NULL,
   aggregation_fun = "sum",
   join_muni_col = NULL,
+  join_level = c("muni", "tract"),
+  join_tract_col = NULL,
   use_cache = TRUE,
   cache_dir = "~/.climasus4r_cache/census",
   lang = "pt",
@@ -131,9 +166,17 @@ sus_census_join <- function(
   check_spatial(lang)
   
   msg <- get_census_messages(lang)
+  join_level <- match.arg(join_level)
 
   # Input validation
   if (!is.data.frame(df)) {cli::cli_abort(msg$error_df_type)}
+
+  # Evaluated before sus_meta()/ensure_climasus_df(), which may drop the sf class
+  is_spatial <- inherits(df, "sf")
+
+  if (join_level == "tract" && dataset != "tracts") {
+    cli::cli_abort(msg$error_tract_level_dataset)
+  }
 
   valid_datasets <- c(
     "population",
@@ -169,20 +212,11 @@ sus_census_join <- function(
     ))
   }
 
-  if (dataset == "tracts") {
-    valid_tracts_datasets <- c(
-      "Basico", "Domicilio01", "Domicilio02", "DomicilioRenda",
-      "Pessoa01", "Pessoa02", "Pessoa03", "Pessoa04", "Pessoa05",
-      "Pessoa06", "Pessoa07", "Pessoa08", "Pessoa09", "Pessoa10",
-      "Pessoa11", "Pessoa12", "Pessoa13",
-      "ResponsavelRenda", "ResponsavelRendaSexo"
-    )
-    if (!tracts_dataset %in% valid_tracts_datasets) {
-      cli::cli_abort(glue::glue(
-        msg$error_invalid_tracts_dataset,
-        valid = paste(valid_tracts_datasets, collapse = ", ")
-      ))
-    }
+  # tracts_dataset is validated by censobr::read_tracts()
+
+  # Tract-level join: promote a plain table/sf of tracts
+  if (join_level == "tract" && !inherits(df, "climasus_df")) {
+    df <- ensure_climasus_df(df, stage = "spatial", type = "tracts")
   }
 
   # Check if data is climasus_df
@@ -284,8 +318,6 @@ sus_census_join <- function(
 
   system <- sus_meta(df, "system")
 
-  # Check if df is spatial
-  is_spatial <- inherits(df, "sf")
   rows_before <- nrow(df)
 
   # ==========================================================================
@@ -385,6 +417,13 @@ sus_census_join <- function(
   # 4. FETCH & FILTER CENSUS DATA
   # ==========================================================================
 
+  if (join_level == "tract") {
+    df_enriched <- .census_join_tracts(
+      df, tracts_dataset, year, census_vars, join_tract_col,
+      use_cache, verbose, msg, lang
+    )
+  } else {
+  # ponytail: muni path kept un-indented on purpose (byte-identical diff); closes before FINALIZATION
   read_fn <- switch(
     dataset,
     "population" = censobr::read_population,
@@ -532,6 +571,7 @@ sus_census_join <- function(
   df_enriched <- dplyr::left_join(
     df, census_agg, 
     by = "code_muni_7")
+  }  # end join_level == "muni"
 
   # ==========================================================================
   # 7. FINALIZATION
@@ -573,6 +613,16 @@ sus_census_join <- function(
   )     
   }
   
+  # sus_meta() rebuilds a tibble-based climasus_df and drops the sf class: restore it
+  if (is_spatial && !inherits(df_enriched, "sf")) {
+    meta_final <- attr(df_enriched, "sus_meta")
+    df_enriched <- sf::st_as_sf(df_enriched)
+    if (!inherits(df_enriched, "climasus_df")) {
+      attr(df_enriched, "sus_meta") <- meta_final
+      class(df_enriched) <- c("climasus_df", class(df_enriched))
+    }
+  }
+
   if (verbose) {
     cli::cli_alert_success(msg$success)
     cli::cli_alert_info(glue::glue(
@@ -630,6 +680,63 @@ sus_census_join <- function(
   return(df)
 }
 
+#' Tract-level join: raw censobr tract columns by tract code (no aggregation)
+#' @noRd
+.census_join_tracts <- function(df, tracts_dataset, year, census_vars,
+                                join_tract_col, use_cache, verbose, msg, lang) {
+  tract_col <- join_tract_col
+  if (is.null(tract_col)) {
+    tract_col <- intersect(c("code_tract", "CD_SETOR"), names(df))[1]
+    if (is.na(tract_col)) cli::cli_abort(msg$no_tract_col)
+  } else if (!tract_col %in% names(df)) {
+    cli::cli_abort(paste0(msg$column_not_found, tract_col))
+  }
+
+  tract_codes <- as.character(df[[tract_col]])
+  munis <- unique(substr(tract_codes[!is.na(tract_codes)], 1, 7))
+
+  # censobr cache dir already set by sus_census_join() (section 2)
+  if (verbose) {
+    cli::cli_alert_info(glue::glue(msg$tracts_loading, tracts_dataset = tracts_dataset, year = year))
+    cli::cli_alert_info(glue::glue(msg$filtering_munis, n = format(length(munis), big.mark = ",")))
+  }
+
+  census_data <- censobr::read_tracts(
+    year = year, dataset = tracts_dataset,
+    showProgress = verbose, cache = use_cache, verbose = FALSE
+  )
+
+  # code_muni is double in censobr 2022 tables; compare with matching type
+  muni_type <- tryCatch(
+    census_data$schema$GetFieldByName("code_muni")$type$ToString(),
+    error = function(e) "double"
+  )
+  munis_f <- if (muni_type %in% c("string", "large_string")) munis else as.numeric(munis)
+
+  available_cols <- names(census_data)
+  if (!is.null(census_vars)) {
+    cols_to_select <- union("code_tract", intersect(census_vars, available_cols))
+  } else {
+    geo_cols <- c("situacao", "area_km2")
+    cols_to_select <- union(
+      "code_tract",
+      available_cols[!grepl("^(code_|name_)", available_cols) & !available_cols %in% geo_cols]
+    )
+  }
+
+  census <- census_data %>%
+    dplyr::filter(.data$code_muni %in% !!munis_f) %>%
+    dplyr::select(dplyr::all_of(cols_to_select)) %>%
+    dplyr::collect()
+  census$code_tract <- as.character(census$code_tract)
+  census <- dplyr::select(census, -dplyr::any_of("code_muni"))  # avoid .x/.y collisions when chained
+
+  if (verbose) cli::cli_alert_info(msg$joining)
+
+  df[[tract_col]] <- as.character(df[[tract_col]])
+  dplyr::left_join(df, census, by = stats::setNames("code_tract", tract_col))
+}
+
 #' Get Multilingual Messages for Census Operations
 #' @noRd
 get_census_messages <- function(lang) {
@@ -638,6 +745,8 @@ get_census_messages <- function(lang) {
       error_df_type = "Input 'df' must be a data.frame or sf object",
       error_invalid_dataset = "Invalid dataset. Must be one of: {valid}",
       error_invalid_fun = "Invalid aggregation function. Must be one of: {valid}",
+      error_tract_level_dataset = "join_level = \"tract\" requires dataset = \"tracts\"",
+      no_tract_col = "Tract code column not found. Use join_tract_col (looked for: code_tract, CD_SETOR).",
       error_invalid_tracts_dataset = "Invalid tracts_dataset. Must be one of: {valid}",
       detecting_geo_col = "Detecting municipality column...",
       no_geo_cols = "No municipality code column found. Please standardize your data first.",
@@ -661,6 +770,8 @@ get_census_messages <- function(lang) {
       error_df_type = "O input 'df' deve ser um data.frame ou objeto sf",
       error_invalid_dataset = "Dataset invalido. Deve ser um de: {valid}",
       error_invalid_fun = "Funcao de agregacao invalida. Deve ser uma de: {valid}",
+      error_tract_level_dataset = "join_level = \"tract\" requer dataset = \"tracts\"",
+      no_tract_col = "Coluna de codigo de setor nao encontrada. Use join_tract_col (procurado: code_tract, CD_SETOR).",
       error_invalid_tracts_dataset = "tracts_dataset invalido. Deve ser um de: {valid}",
       detecting_geo_col = "Detectando coluna de municipio...",
       no_geo_cols = "Nenhuma coluna de codigo de municipio encontrada. Padronize seus dados primeiro.",
@@ -684,6 +795,8 @@ get_census_messages <- function(lang) {
       error_df_type = "El input 'df' debe ser un data.frame o objeto sf",
       error_invalid_dataset = "Dataset invalido. Debe ser uno de: {valid}",
       error_invalid_fun = "Funcion de agregacion invalida. Debe ser una de: {valid}",
+      error_tract_level_dataset = "join_level = \"tract\" requiere dataset = \"tracts\"",
+      no_tract_col = "Columna de codigo de sector no encontrada. Use join_tract_col (buscado: code_tract, CD_SETOR).",
       error_invalid_tracts_dataset = "tracts_dataset invalido. Debe ser uno de: {valid}",
       detecting_geo_col = "Detectando columna de municipio...",
       no_geo_cols = "No se encontro ninguna columna de codigo de municipio. Estandarice sus datos primero.",

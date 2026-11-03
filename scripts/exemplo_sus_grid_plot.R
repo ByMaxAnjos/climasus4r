@@ -3,12 +3,15 @@
 # Demonstracao de sus_grid_plot() -- mapas de grade (raster) climatica/ambiental
 # =============================================================================
 
-library(climasus4r)
+
+climasus4r::sus_
 library(terra)
 
 # -----------------------------------------------------------------------------
 # 1. Exemplo rapido com raster sintetico (nao precisa de internet)
 # -----------------------------------------------------------------------------
+
+sus_data_cid_select()
 
 set.seed(1)
 r <- rast(nrows = 100, ncols = 100, xmin = -60, xmax = -40, ymin = -30, ymax = -10)

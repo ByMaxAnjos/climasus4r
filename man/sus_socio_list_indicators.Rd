@@ -9,8 +9,10 @@ sus_socio_list_indicators(lang = "pt", category = NULL)
 \arguments{
 \item{lang}{Language for indicator names: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
 
-\item{category}{Optional character vector to filter by category. Use \code{NULL}
-(default) to return all.}
+\item{category}{Optional character vector to filter by category (e.g.
+\code{"demographic"}, \code{"socioeconomic"}, \code{"mortality"}, \code{"morbidity"},
+\code{"maternal_child"}, \code{"health_resources"}, \code{"heat_vulnerability"}). Use
+\code{NULL} (default) to return all.}
 }
 \value{
 A \code{tibble} with columns \code{id}, \code{name}, \code{category}, \code{required_cols},

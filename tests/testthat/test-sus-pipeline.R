@@ -47,6 +47,17 @@ test_that("sus_data_filter_demographics filters by sex and age range", {
   expect_true(all(by_age$age_years >= 50))
 })
 
+test_that("sus_data_filter_demographics errors, not skips, when age_years is missing", {
+  no_age <- make_stand()
+  no_age$age_years <- NULL
+  expect_error(
+    sus_data_filter_demographics(no_age, age_range = c(60, Inf),
+                                 backend = "tibble", lang = "en",
+                                 verbose = FALSE),
+    "age_years"
+  )
+})
+
 test_that("sus_data_aggregate counts records per day", {
   out <- sus_data_aggregate(make_stand(), time_unit = "day",
                             backend = "tibble", lang = "en", verbose = FALSE)

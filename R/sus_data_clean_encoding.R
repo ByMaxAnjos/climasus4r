@@ -295,40 +295,25 @@ is_arrow_input <- inherits(df, c(
     cli::cli_alert_info(checking_count_msg[[lang]])
   }
   
-  # For Arrow Dataset, we need to sample to detect encoding issues
-  # Take a sample of rows to analyze encoding
-  sample_size <- min(10000, tryCatch(nrow(df), error = function(e) 10000))
-  
-  sample_data <- tryCatch({
-    df |>
-      dplyr::slice_head(n = sample_size) |>
-      dplyr::collect()
-  }, error = function(e) {
-    cli::cli_alert_warning("Could not sample dataset: {conditionMessage(e)}")
-    NULL
-  })
-  
-  if (is.null(sample_data)) {
-    cli::cli_alert_warning("Cannot detect encoding issues. Returning original dataset.")
-    return(df)
-  }
-  
-  # Detect which columns need correction
+  # Scan each text column in full, one at a time. Sampling the first rows is
+  # not enough: DATASUS files can carry a few corrupted records anywhere, and
+  # a missed one makes sus_data_standardize() fail later.
   cols_to_correct <- c()
-  
+
   for (col in text_cols) {
-    if (col %in% names(sample_data)) {
-      test_vector <- stats::na.omit(sample_data[[col]])
-      if (length(test_vector) > 0) {
-        # Check if any string is invalid UTF-8
-        needs_correction <- !all(stringi::stri_enc_isutf8(test_vector))
-        if (needs_correction) {
-          cols_to_correct <- c(cols_to_correct, col)
-        }
-      }
+    test_vector <- tryCatch(
+      stats::na.omit(dplyr::collect(dplyr::select(df, dplyr::all_of(col)))[[1L]]),
+      error = function(e) NULL
+    )
+    if (is.null(test_vector)) {
+      cli::cli_alert_warning("Could not check column {.field {col}}: skipped.")
+      next
+    }
+    if (length(test_vector) > 0 && !all(stringi::stri_enc_isutf8(test_vector))) {
+      cols_to_correct <- c(cols_to_correct, col)
     }
   }
-  
+
   if (length(cols_to_correct) > 0) {
     for (col in cols_to_correct) {
       col_sym <- rlang::sym(col)

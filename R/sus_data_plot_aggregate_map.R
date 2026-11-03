@@ -1150,7 +1150,7 @@ sus_data_plot_aggregate_map <- function(
   )
 
   m <- leaflet::leaflet(spatial) |>
-    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron)
+    .map_openfreemap()
 
   m <- if (is_point) {
     m |> leaflet::addCircleMarkers(
