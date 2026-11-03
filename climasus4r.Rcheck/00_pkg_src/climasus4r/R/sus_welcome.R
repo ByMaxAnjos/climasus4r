@@ -82,7 +82,7 @@ sus_welcome <- function(
          )),
     list(num = 3, color = "blue",
          name = c(pt = "FILTRAGEM E DERIVA\u00c7\u00c3O",  en = "FILTERING & VARIABLES",  es = "FILTRADO Y DERIVACI\u00d3N"),
-         fns  = c("sus_data_filter_cid()", "sus_data_filter_demographics()", "sus_create_variables()"),
+         fns  = c("sus_data_filter_cid()", "sus_data_filter_demographics()", "sus_data_create_variables()"),
          desc = c(
            pt = "Filtra por CID-10, vari\u00e1veis demogr\u00e1ficas e cria vari\u00e1veis derivadas (idade, sazonalidade, faixas)",
            en = "Filters by ICD-10, demographic variables and creates derived variables (age, seasonality, bands)",

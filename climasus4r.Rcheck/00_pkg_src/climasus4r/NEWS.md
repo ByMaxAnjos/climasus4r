@@ -16,7 +16,7 @@ for Brazil, from raw DATASUS import through epidemiological modelling.
   capítulo completo
 * `sus_data_filter_demographics()` — filtragem por variáveis demográficas (faixa etária, sexo,
   raça, município de residência)
-* `sus_create_variables()` — criação de variáveis derivadas (idade em anos, faixa etária,
+* `sus_data_create_variables()` — criação de variáveis derivadas (idade em anos, faixa etária,
   sazonalidade, indicadores de completitude)
 * `sus_data_aggregate()` — agrega registros individuais em contagens temporais por município,
   estado ou região, com múltiplas estratégias (semanal, mensal, anual)

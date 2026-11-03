@@ -105,7 +105,7 @@ df_analise <- sus_data_import(
   sus_data_clean_encoding(lang = "pt") |>
   sus_data_standardize(lang = "pt") |>
   sus_data_filter_cid(disease_group = "respiratory", lang = "pt") |>
-  sus_create_variables(
+  sus_data_create_variables(
     create_age_groups = TRUE,
     create_calendar_vars = TRUE,
     lang = "pt"
