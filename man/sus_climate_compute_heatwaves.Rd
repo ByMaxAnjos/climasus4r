@@ -18,7 +18,7 @@ sus_climate_compute_heatwaves(
 \arguments{
 \item{df}{A \code{climasus_df} at stage \code{"climate"} with type \code{"inmet"},
 \code{"filled"}, or \code{"indicators"}. Produced by \code{sus_climate_inmet()},
-\code{sus_climate_fill_gap()}, or \code{sus_climate_compute_indicators()}. Must
+\code{sus_climate_fill_inmet()}, or \code{sus_climate_compute_indicators()}. Must
 contain columns \code{date} and \code{station_code}. Temperature columns
 \code{tair_max_c}, \code{tair_min_c}, \code{tair_dry_bulb_c} are required for WHO/WMO/
 INMET/EHF; \code{utci_c}, \code{wbgt_c}, \code{hi_c} are required for UTCI/WBGT/HI
@@ -63,7 +63,7 @@ A named list with class \code{climasus_hw} and \code{sus_meta} attribute
 \description{
 Applies seven heatwave detection methods (WHO, WMO, INMET, EHF, UTCI, WBGT,
 HI) to a \code{climasus_df} at stage \code{"climate"} produced by
-\code{sus_climate_inmet()}, \code{sus_climate_fill_gap()}, or
+\code{sus_climate_inmet()}, \code{sus_climate_fill_inmet()}, or
 \code{sus_climate_compute_indicators()}. Aggregates hourly data to daily scale,
 computes smoothed historical percentile thresholds from a reference baseline,
 identifies heatwave days and discrete events per method, and returns a named

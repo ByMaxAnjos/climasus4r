@@ -177,7 +177,7 @@ output:
 <tbody>
 <tr><td>1</td><td>Exportar y Ejecutar RAPs</td><td>sus_rap_export(), sus_rap_read(), sus_rap_run()</td></tr>
 <tr><td>2</td><td>Pipelines con targets</td><td>sus_rap_targets(), sus_rap_make()</td></tr>
-<tr><td>3</td><td>Compartir y Scaffolding</td><td>sus_rap_share(), sus_rap_template()</td></tr>
+<tr><td>3</td><td>Compartir y Scaffolding</td><td>sus_rap_template()</td></tr>
 </tbody>
 </table>
 

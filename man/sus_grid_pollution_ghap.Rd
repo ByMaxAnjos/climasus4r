@@ -27,20 +27,22 @@ Note: \code{"no2"} is not yet publicly available.}
 \item{resolution}{Character. Temporal aggregation of source files.
 One of \code{"daily"}, \code{"monthly"}, or \code{"annual"}. Default: \code{"monthly"}.
 \itemize{
-\item \code{"daily"} -- available for PM2.5 only (2017-2022). Each monthly
+\item \code{"daily"} -- no longer served by Zenodo for any pollutant; falls
+back to \code{"annual"}. (Legacy PM2.5 behavior: each monthly
 ZIP (~3 GB) is downloaded, extracted to a temp directory, each daily
 NetCDF is aggregated, and the result is cached as Parquet. Subsequent
-calls read from Parquet without re-extracting.
-\item \code{"monthly"} -- PM2.5 only (2017-2022).
-\item \code{"annual"} -- PM2.5 (2017-2022), O3 (2000-2020), CO (2019-2022).
+calls read from Parquet without re-extracting.)
+\item \code{"monthly"} -- the PM2.5 monthly files were removed from Zenodo;
+falls back to \code{"annual"} with a warning.
+\item \code{"annual"} -- PM2.5 (2000-2022), O3 (2000-2020), CO (2019-2022).
 }
-O3 and CO automatically fall back to \code{"annual"} regardless of this
-parameter.}
+All pollutants currently fall back to \code{"annual"} regardless of this
+parameter; the annual value is assigned to January 1st of each year.}
 
 \item{years}{Integer vector. Years to download. Availability depends on
 pollutant and resolution:
 \itemize{
-\item PM2.5 daily, monthly & annual: 2017-2022
+\item PM2.5 annual: 2000-2022
 \item O3 annual: 2000-2020
 \item CO annual: 2019-2022
 }
@@ -128,7 +130,7 @@ and the result is stored as a Parquet cache for fast subsequent access.
 
 Available pollutants and temporal coverage:
 \itemize{
-\item \strong{PM2.5} (\code{"pm25"}) -- daily, monthly & annual, 2017-2022, 1 km, \eqn{\mu g/m^3}
+\item \strong{PM2.5} (\code{"pm25"}) -- annual only (V2), 2000-2022, 1 km, \eqn{\mu g/m^3}
 \item \strong{O3} (\code{"o3"}) -- annual only, 2000-2020, 10 km, ppb
 \item \strong{CO} (\code{"co"}) -- annual only, 2019-2022, 1 km, mg/m\eqn{^3}
 \item \strong{NO2} (\code{"no2"}) -- data not yet publicly released
@@ -162,7 +164,7 @@ Install with \code{install.packages(c("terra", "exactextractr"))}.
 library(geobr)
 mt_mun <- read_municipality(code_muni = "MT", year = 2020)
 
-# PM2.5 monthly for Mato Grosso, Jan-Mar 2020
+# PM2.5 for Mato Grosso, 2020 (monthly requests fall back to annual)
 ghap <- sus_grid_pollution_ghap(
   pollutants    = "pm25",
   resolution    = "monthly",

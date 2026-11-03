@@ -177,7 +177,7 @@ output:
 <tbody>
 <tr><td>1</td><td>Introductory Tutorial</td><td>sus_data_import(), sus_data_aggregate(), sus_climate_inmet()</td></tr>
 <tr><td>2</td><td>Case Studies</td><td>Complete pipeline SIM, SINAN, SIH</td></tr>
-<tr><td>3</td><td>INMET Download</td><td>sus_climate_inmet(), sus_climate_fill(), sus_climate_plot_fill()</td></tr>
+<tr><td>3</td><td>INMET Download</td><td>sus_climate_inmet(), sus_climate_fill_inmet(), sus_climate_plot_fill()</td></tr>
 <tr><td>4</td><td>Bioclimatic Indices</td><td>sus_climate_compute_indicators()</td></tr>
 <tr><td>5</td><td>Aggregation Part 1</td><td>sus_climate_aggregate() — 10 strategies</td></tr>
 <tr><td>6</td><td>Aggregation Part 2</td><td>sus_climate_aggregate() — practical guide</td></tr>
@@ -220,7 +220,7 @@ output:
       <span class="card-badge">INMET</span>
     </div>
     <h3 class="card-title">Automatic Download and Machine-Learning-Based Gap Filling of INMET Data</h3>
-    <p class="card-description">A practical guide with sus_climate_inmet(), sus_climate_fill(), and sus_climate_plot_fill().</p>
+    <p class="card-description">A practical guide with sus_climate_inmet(), sus_climate_fill_inmet(), and sus_climate_plot_fill().</p>
     <a href="https://bymaxanjos.github.io/climasus4r/en/articles/tutorial_clima_inmet.html" class="card-cta-button">Get Started →</a>
   </div>
 

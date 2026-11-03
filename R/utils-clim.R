@@ -43,7 +43,7 @@ utils::globalVariables(c(
 ))
 
 utils::globalVariables(c(
-  "above_ehf", "above_hi", "above_inmet", "above_utci", "above_wbgt",
+  "time_group", "above_ehf", "above_hi", "above_inmet", "above_utci", "above_wbgt",
   "above_who", "above_wmo", "all_of", "anomaly_mean", "approx",
   "available_muni_codes", "date_day", "duration_days", "ehf", "ehi_acc",
   "ehi_sig", "federal_unit", "first", "hi_c", "hi_c_flag_extreme",

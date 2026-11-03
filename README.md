@@ -213,7 +213,7 @@ sus_mod_plot_*() / sus_data_plot_*() / sus_data_export()
 | `sus_data_filter_cid()` | `sus_data_filter_cid.R` | `"stand"` | `"filter_cid"` | Filters by ICD-10 chapters or codes |
 | `sus_data_filter_demographics()` | `sus_data_filter_demographics.R` | `"filter_cid"` | `"filter_demo"` | Filters by age range, sex, and place of residence |
 | `sus_data_create_variables()` | `sus_create_variables.R` | `"filter_demo"` | `"derive"` | Creates derived variables (age groups, weekday, seasonality) |
-| `sus_filter_cid_explore()` | `sus_filter_cid_explore.R` | `df`, `lang`, `output` | viewer / tibble | Interactive ICD-10 group browser |
+| `sus_data_cid_select()` | `sus_filter_cid_explore.R` | `df`, `lang`, `output` | viewer / tibble | Interactive ICD-10 group browser |
 | `sus_data_cid_select()` | `sus_data_filter_cid.R` | `df`, `cid_group`, `lang` | filtered climasus_df | Outcome selection by predefined ICD group |
 
 ---
@@ -290,7 +290,7 @@ sus_mod_plot_*() / sus_data_plot_*() / sus_data_export()
 | `sus_grid_smvi()` | `sus_grid_smvi.R` | `bbox`, `indices`, dates | NDVI/NDWI/EVI | Vegetation and soil-moisture indices |
 | `sus_grid_prodes()` | `sus_grid_prodes.R` | `bbox`, `year` | deforestation | Cumulative PRODES/INPE deforestation |
 | `sus_grid_pollution_cams()` | `sus_grid_pollution_cams.R` | `bbox`, `pollutants`, dates | CAMS pollutants | Copernicus air quality |
-| `sus_grid_pollution_ghap()` | `sus_grid_pollution_ghap.R` | `bbox`, dates | GHAP PM2.5 | Fine particulate matter |
+| `sus_grid_pollution_ghap()` | `sus_grid_pollution_ghap.R` | `bbox`, dates | GHAP PM2.5 | Fine particulate matter (annual, 2000–2022) |
 | `sus_grid_pollution_merra2()` | `sus_grid_pollution_merra2.R` | `bbox`, `variables`, dates | MERRA-2 aerosols | NASA aerosols and gases |
 | `sus_grid_join()` | `sus_grid_join.R` | health_df, grid_df, `by` | integrated climasus_df | Links gridded data to the dataset by municipality × date |
 

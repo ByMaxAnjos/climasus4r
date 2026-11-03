@@ -27,7 +27,7 @@
 #  MAIN EXPORTED FUNCTION
 # =============================================================================
 
-#' Visualise time-series gap-filling from sus_climate_fill()
+#' Visualise time-series gap-filling from sus_climate_fill_inmet()
 #'
 #' @description
 #' Unified visualisation for gap-filling outputs of the `climasus4r` pipeline.
@@ -51,9 +51,9 @@
 #'   \item Residuals vs observed (heteroscedasticity diagnostic).
 #' }
 #'
-#' @param df_filled Output of `sus_climate_fill()`. In production mode this is a
+#' @param df_filled Output of `sus_climate_fill_inmet()`. In production mode this is a
 #'   `<climasus_df>` tibble; in evaluation mode it is the named list returned by
-#'   `sus_climate_fill(evaluation = TRUE)`.
+#'   `sus_climate_fill_inmet(evaluation = TRUE)`.
 #' @param df_original Raw data before gap filling, e.g. from `sus_climate_inmet()`.
 #'   Required in production mode; ignored in evaluation mode.
 #' @param target_var Character vector of variable(s) to visualise.
@@ -1734,7 +1734,7 @@ sus_climate_plot_fill <- function(
     # Error messages
     err_not_climasus      = "{.red {cli::symbol$cross} Input is not a {.cls climasus_df} object.}",
     err_orig_not_climasus = "{.red {cli::symbol$cross} df_original is not a {.cls climasus_df} object.}",
-    err_pipeline_hint     = "This function requires data processed by the {.pkg climasus4r} pipeline.\n  1. {.code sus_climate_inmet(...)}\n  2. {.code sus_climate_fill(...)}",
+    err_pipeline_hint     = "This function requires data processed by the {.pkg climasus4r} pipeline.\n  1. {.code sus_climate_inmet(...)}\n  2. {.code sus_climate_fill_inmet(...)}",
     err_wrong_stage       = "Wrong data stage. Current: {current}. Required: {required}.",
     stage_ok              = "Data stage validated.",
 
@@ -1791,7 +1791,7 @@ sus_climate_plot_fill <- function(
     # Error messages
     err_not_climasus      = "{.red {cli::symbol$cross} A entrada nao e um objeto {.cls climasus_df}.}",
     err_orig_not_climasus = "{.red {cli::symbol$cross} df_original nao e um objeto {.cls climasus_df}.}",
-    err_pipeline_hint     = "Esta funcao requer dados processados pelo pipeline {.pkg climasus4r}.\n  1. {.code sus_climate_inmet(...)}\n  2. {.code sus_climate_fill(...)}",
+    err_pipeline_hint     = "Esta funcao requer dados processados pelo pipeline {.pkg climasus4r}.\n  1. {.code sus_climate_inmet(...)}\n  2. {.code sus_climate_fill_inmet(...)}",
     err_wrong_stage       = "Estagio incorreto. Atual: {current}. Requerido: {required}.",
     stage_ok              = "Estagio de dados validado.",
 
@@ -1848,7 +1848,7 @@ sus_climate_plot_fill <- function(
     # Error messages
     err_not_climasus      = "{.red {cli::symbol$cross} La entrada no es un objeto {.cls climasus_df}.}",
     err_orig_not_climasus = "{.red {cli::symbol$cross} df_original no es un objeto {.cls climasus_df}.}",
-    err_pipeline_hint     = "Esta funcion requiere datos procesados por el pipeline {.pkg climasus4r}.\n  1. {.code sus_climate_inmet(...)}\n  2. {.code sus_climate_fill(...)}",
+    err_pipeline_hint     = "Esta funcion requiere datos procesados por el pipeline {.pkg climasus4r}.\n  1. {.code sus_climate_inmet(...)}\n  2. {.code sus_climate_fill_inmet(...)}",
     err_wrong_stage       = "Etapa incorrecta. Actual: {current}. Requerida: {required}.",
     stage_ok              = "Etapa de datos validada.",
 

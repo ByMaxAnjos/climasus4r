@@ -302,7 +302,7 @@ Para que la integración ocurra, necesita proporcionar dos objetos `climasus_df`
 | Argumento | Descripción | Requisito de `stage` en los Metadatos |
 |-----------|-----------|-----------------------------------|
 | `health_data` | Datos de salud de DATASUS ya agregados espacialmente. | Debe estar en la etapa `"spatial"` (salida de `sus_spatial_join()`). |
-| `climate_data` | Datos meteorológicos del INMET sin fallas. | Debe estar en la etapa `"climate"` (salida de `sus_climate_inmet()` y/o `sus_climate_fill()`). |
+| `climate_data` | Datos meteorológicos del INMET sin fallas. | Debe estar en la etapa `"climate"` (salida de `sus_climate_inmet()` y/o `sus_climate_fill_inmet()`). |
 | `climate_var` | Qué variables climáticas tomar (ej.: `"tair_dry_bulb_c"`, `"rainfall_mm"`). Predeterminado: `"all"`. | - |
 | `temporal_strategy` | Una de las 10 estrategias detalladas en el tutorial anterior. | - |
 | `climate_region` | `"auto"`, `"tropical"`, `"subtropical"`, o `"temperate"`. Adapta parámetros automáticamente. | - |

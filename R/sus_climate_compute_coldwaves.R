@@ -114,9 +114,9 @@ utils::globalVariables(c(
     es = "Periodo baseline corto ({n_years} anos). Se recomiendan al menos 20 anos."
   ),
   warn_na_temp = list(
-    pt = "{n_na} valor(es) NA em colunas de temperatura. Use sus_climate_fill_gap() antes.",
-    en = "{n_na} NA value(s) in temperature columns. Use sus_climate_fill_gap() first.",
-    es = "{n_na} valor(es) NA en columnas de temperatura. Use sus_climate_fill_gap() primero."
+    pt = "{n_na} valor(es) NA em colunas de temperatura. Use sus_climate_fill_inmet() antes.",
+    en = "{n_na} NA value(s) in temperature columns. Use sus_climate_fill_inmet() first.",
+    es = "{n_na} valor(es) NA en columnas de temperatura. Use sus_climate_fill_inmet() primero."
   ),
   warn_lang = list(
     pt = "Idioma {.val {lang}} nao suportado. Usando {.val pt}.",
@@ -146,7 +146,7 @@ utils::globalVariables(c(
 #'
 #' Applies seven coldwave detection methods (WHO, WMO, INMET, ECF, UTCI, WBGT,
 #' HI) to a `climasus_df` at stage `"climate"` produced by
-#' `sus_climate_inmet()`, `sus_climate_fill_gap()`, or
+#' `sus_climate_inmet()`, `sus_climate_fill_inmet()`, or
 #' `sus_climate_compute_indicators()`. Aggregates hourly data to daily scale,
 #' computes smoothed historical percentile thresholds from a reference baseline,
 #' identifies coldwave days and discrete events per method, and returns a named
@@ -184,7 +184,7 @@ utils::globalVariables(c(
 #'
 #' @param df A `climasus_df` at stage `"climate"` with type `"inmet"`,
 #'   `"filled"`, or `"indicators"`. Produced by `sus_climate_inmet()`,
-#'   `sus_climate_fill_gap()`, or `sus_climate_compute_indicators()`. Must
+#'   `sus_climate_fill_inmet()`, or `sus_climate_compute_indicators()`. Must
 #'   contain columns `date` and `station_code`. Temperature columns
 #'   `tair_max_c`, `tair_min_c`, `tair_dry_bulb_c` are required for WHO/WMO/
 #'   INMET/ECF; `utci_c`, `wbgt_c`, `hi_c` are required for UTCI/WBGT/HI

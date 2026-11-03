@@ -587,7 +587,7 @@ sus_climate_aggregate <- function(
       "sus_climate_inmet(...) followed by sus_climate_fill_inmet(..., evaluation = FALSE) and sus_climate_compute_indicators(...)"
     ))
   }
-  # Aceita dados provenientes de sus_climate_fill() (source = "INMET") ou
+  # Aceita dados provenientes de sus_climate_fill_inmet() (source = "INMET") ou
   # sus_climate_compute_indicators() (source = "compute_indicators" ou NULL).
   # Quando os metadados temporais estão ausentes ou o source é desconhecido,
   # emite aviso em vez de abortar — compatibilidade com pipelines externos.

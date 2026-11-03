@@ -312,8 +312,8 @@ sus_grid_pollution_merra2 <- function(
 
   if (length(manifest_rows) == 0) cli::cli_abort(msg$no_data_to_download)
 
-  manifest <- do.call(rbind, lapply(manifest_rows, as.data.frame,
-                                    stringsAsFactors = FALSE))
+  manifest <- do.call(rbind, lapply(manifest_rows, function(r) as.data.frame(as.list(r),
+                                    stringsAsFactors = FALSE)))
 
   # Deduplicate: pm25 and aod may share the same NetCDF (M2T1NXAER / M2TMNXAER)
   unique_nc <- unique(manifest[, c("filename", "url", "cache_nc")])

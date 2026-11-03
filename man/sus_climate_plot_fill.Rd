@@ -2,7 +2,7 @@
 % Please edit documentation in R/sus_climate_plot_fill.R
 \name{sus_climate_plot_fill}
 \alias{sus_climate_plot_fill}
-\title{Visualise time-series gap-filling from sus_climate_fill()}
+\title{Visualise time-series gap-filling from sus_climate_fill_inmet()}
 \usage{
 sus_climate_plot_fill(
   df_filled,
@@ -20,9 +20,9 @@ sus_climate_plot_fill(
 )
 }
 \arguments{
-\item{df_filled}{Output of \code{sus_climate_fill()}. In production mode this is a
+\item{df_filled}{Output of \code{sus_climate_fill_inmet()}. In production mode this is a
 \verb{<climasus_df>} tibble; in evaluation mode it is the named list returned by
-\code{sus_climate_fill(evaluation = TRUE)}.}
+\code{sus_climate_fill_inmet(evaluation = TRUE)}.}
 
 \item{df_original}{Raw data before gap filling, e.g. from \code{sus_climate_inmet()}.
 Required in production mode; ignored in evaluation mode.}

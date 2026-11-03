@@ -23,13 +23,13 @@ for Brazil, from raw DATASUS import through epidemiological modelling.
   capítulo completo
 * `sus_data_filter_demographics()` — filtragem por variáveis demográficas (faixa etária, sexo,
   raça, município de residência)
-* `sus_create_variables()` — criação de variáveis derivadas (idade em anos, faixa etária,
+* `sus_data_create_variables()` — criação de variáveis derivadas (idade em anos, faixa etária,
   sazonalidade, indicadores de completitude)
 * `sus_data_aggregate()` — agrega registros individuais em contagens temporais por município,
   estado ou região, com múltiplas estratégias (semanal, mensal, anual)
 * `sus_data_export()` — exporta `climasus_df` para CSV, Parquet ou DuckDB preservando metadados
 * `sus_data_quality_report()` — gera relatório de completitude, duplicatas e inconsistências
-* `sus_filter_cid_explore()` — ferramenta interativa para explorar a tabela CID-10
+* `sus_data_cid_select()` — ferramenta interativa para explorar a tabela CID-10
 
 ## Visualização de Dados
 
@@ -41,7 +41,7 @@ for Brazil, from raw DATASUS import through epidemiological modelling.
 
 * `sus_climate_inmet()` — importa dados horáros e diários de estações meteorológicas INMET,
   com 4.600+ estações e metadados embutidos em `inst/data_4r/station_meta.parquet`
-* `sus_climate_fill_gap()` — preenche lacunas de dados com interpolação temporal, média histórica
+* `sus_climate_fill_inmet()` — preenche lacunas de dados com interpolação temporal, média histórica
   ou krigagem espacial entre estações vizinhas
 * `sus_climate_aggregate()` — vincula dados climáticos de estações aos registros de saúde por
   município usando 10 estratégias de agregação temporal (exact, moving_window, distributed_lag,
@@ -66,7 +66,7 @@ for Brazil, from raw DATASUS import through epidemiological modelling.
 * `sus_grid_fires()` — focos de incêndio FIRMS/INPE
 * `sus_grid_pdsi()` — índice de seca Palmer (PDSI)
 * `sus_grid_pollution_cams()` — qualidade do ar CAMS (PM2.5, PM10, NO2, O3, SO2)
-* `sus_grid_pollution_ghap()` — PM2.5 global GHAP
+* `sus_grid_pollution_ghap()` — PM2.5 global GHAP (anual V2, 2000–2022; os arquivos mensais/diários foram removidos do Zenodo)
 * `sus_grid_pollution_merra2()` — PM2.5 MERRA-2 NASA
 * `sus_grid_prodes()` — desmatamento PRODES/INPE
 * `sus_grid_smvi()` — índice de vegetação SMVI/MapBiomas
@@ -74,7 +74,7 @@ for Brazil, from raw DATASUS import through epidemiological modelling.
 
 ## Junção Espacial
 
-* `sus_join_spatial()` — vincula registros de saúde a polígonos municipais/estaduais via `geobr`,
+* `sus_spatial_join()` — vincula registros de saúde a polígonos municipais/estaduais via `geobr`,
   com suporte a joins por código IBGE ou coordenadas
 
 ## Dados Socioeconômicos
@@ -82,7 +82,7 @@ for Brazil, from raw DATASUS import through epidemiological modelling.
 * `sus_socio_add_census()` — integra indicadores do Censo IBGE 2010/2022 via `censobr`
 * `sus_socio_compute_indicators()` — calcula índices compostos de vulnerabilidade socioeconômica
   (IDH-M, Gini, renda per capita, cobertura de saneamento)
-* `sus_census_explore()` — ferramenta exploratória para navegar variáveis censitárias disponíveis
+* `sus_census_select()` — ferramenta exploratória para navegar variáveis censitárias disponíveis
 
 ## Modelagem Epidemiológica
 

@@ -106,7 +106,7 @@ sus_welcome <- function(
          )),
     list(num = 6, color = "cyan",
          name = c(pt = "INTEGRA\u00c7\u00c3O CLIM\u00c1TICA",   en = "CLIMATE DATA",            es = "DATOS CLIM\u00c1TICOS"),
-         fns  = c("sus_climate_inmet()", "sus_climate_fill_gap()", "sus_climate_aggregate()",
+         fns  = c("sus_climate_inmet()", "sus_climate_fill_inmet()", "sus_climate_aggregate()",
                   "sus_grid_era5()", "sus_grid_chirps()", "sus_grid_pollution_cams()",
                   "sus_grid_fires()", "sus_grid_koppen()",
                   "sus_climate_compute_heatwaves()", "sus_climate_compute_coldwaves()",

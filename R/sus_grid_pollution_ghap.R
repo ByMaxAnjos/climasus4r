@@ -20,7 +20,7 @@ utils::globalVariables(c(
 #'
 #' Available pollutants and temporal coverage:
 #' \itemize{
-#'   \item **PM2.5** (`"pm25"`) -- daily, monthly & annual, 2017-2022, 1 km, \eqn{\mu g/m^3}
+#'   \item **PM2.5** (`"pm25"`) -- annual only (V2), 2000-2022, 1 km, \eqn{\mu g/m^3}
 #'   \item **O3** (`"o3"`) -- annual only, 2000-2020, 10 km, ppb
 #'   \item **CO** (`"co"`) -- annual only, 2019-2022, 1 km, mg/m\eqn{^3}
 #'   \item **NO2** (`"no2"`) -- data not yet publicly released
@@ -37,20 +37,22 @@ utils::globalVariables(c(
 #' @param resolution Character. Temporal aggregation of source files.
 #'   One of `"daily"`, `"monthly"`, or `"annual"`. Default: `"monthly"`.
 #'   \itemize{
-#'     \item `"daily"` -- available for PM2.5 only (2017-2022). Each monthly
+#'     \item `"daily"` -- no longer served by Zenodo for any pollutant; falls
+#'       back to `"annual"`. (Legacy PM2.5 behavior: each monthly
 #'       ZIP (~3 GB) is downloaded, extracted to a temp directory, each daily
 #'       NetCDF is aggregated, and the result is cached as Parquet. Subsequent
-#'       calls read from Parquet without re-extracting.
-#'     \item `"monthly"` -- PM2.5 only (2017-2022).
-#'     \item `"annual"` -- PM2.5 (2017-2022), O3 (2000-2020), CO (2019-2022).
+#'       calls read from Parquet without re-extracting.)
+#'     \item `"monthly"` -- the PM2.5 monthly files were removed from Zenodo;
+#'       falls back to `"annual"` with a warning.
+#'     \item `"annual"` -- PM2.5 (2000-2022), O3 (2000-2020), CO (2019-2022).
 #'   }
-#'   O3 and CO automatically fall back to `"annual"` regardless of this
-#'   parameter.
+#'   All pollutants currently fall back to `"annual"` regardless of this
+#'   parameter; the annual value is assigned to January 1st of each year.
 #'
 #' @param years Integer vector. Years to download. Availability depends on
 #'   pollutant and resolution:
 #'   \itemize{
-#'     \item PM2.5 daily, monthly & annual: 2017-2022
+#'     \item PM2.5 annual: 2000-2022
 #'     \item O3 annual: 2000-2020
 #'     \item CO annual: 2019-2022
 #'   }
@@ -146,7 +148,7 @@ utils::globalVariables(c(
 #' library(geobr)
 #' mt_mun <- read_municipality(code_muni = "MT", year = 2020)
 #'
-#' # PM2.5 monthly for Mato Grosso, Jan-Mar 2020
+#' # PM2.5 for Mato Grosso, 2020 (monthly requests fall back to annual)
 #' ghap <- sus_grid_pollution_ghap(
 #'   pollutants    = "pm25",
 #'   resolution    = "monthly",
@@ -266,7 +268,8 @@ sus_grid_pollution_ghap <- function(
 
   # \u2500\u2500 2. Build download manifest \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   # Auto-adjust resolution for pollutants that only have annual data
-  annual_only <- c("o3", "co")
+  # ponytail: Zenodo removed the PM2.5 monthly/daily V1 files; only annual V2 remains
+  annual_only <- c("pm25", "o3", "co")
   manifest_rows <- list()
 
   for (p in pollutants) {
@@ -364,8 +367,8 @@ sus_grid_pollution_ghap <- function(
     cli::cli_abort(msg$no_data_to_download)
   }
 
-  manifest <- do.call(rbind, lapply(manifest_rows, as.data.frame,
-                                     stringsAsFactors = FALSE))
+  manifest <- do.call(rbind, lapply(manifest_rows, function(r) as.data.frame(as.list(r),
+                                     stringsAsFactors = FALSE)))
 
   n_files <- nrow(manifest)
   if (verbose) {
@@ -652,7 +655,16 @@ sus_grid_pollution_ghap <- function(
                                 ymin = -35, ymax = 6) {
   r <- terra::rast(nc_path)
 
-  # Crop in pixel space
+  # Recent GDAL/terra read the file already georeferenced (lon/lat degrees):
+  # crop directly in geographic coordinates, no pixel-space fix needed.
+  e <- terra::ext(r)
+  if (e$xmin < -90 || e$ymin < -45) {
+    r <- terra::crop(r, terra::ext(xmin, xmax, ymin, ymax))
+    terra::crs(r) <- "EPSG:4326"
+    return(r)
+  }
+
+  # Legacy read: extent is in pixel units. Crop in pixel space
   px <- .ghap_to_pixel_bbox(xmin, xmax, ymin, ymax)
   r  <- terra::crop(r, terra::ext(px$xmin, px$xmax, px$ymin, px$ymax))
 
@@ -840,8 +852,8 @@ sus_grid_pollution_ghap <- function(
 .ghap_records <- list(
   pm25 = list(
     # Main record has ALL monthly + annual for 2017-2022
-    monthly = "10800980",
-    annual  = "10800980",
+    monthly = "10800980",  # files no longer hosted on Zenodo
+    annual  = "21975240",  # V2, 2000-2022
     # Daily data: one separate Zenodo record per year (one ZIP per month, ~3 GB each)
     daily   = c(
       "2017" = "10801181",
@@ -867,7 +879,7 @@ sus_grid_pollution_ghap <- function(
   pm25 = list(
     daily   = 2017:2022,
     monthly = 2017:2022,
-    annual  = 2017:2022
+    annual  = 2000:2022
   ),
   o3 = list(
     annual  = 2000:2020
@@ -904,8 +916,9 @@ sus_grid_pollution_ghap <- function(
     filename  <- sprintf("GHAP_%s_M%s_%s_V1.nc",  p_fname, res_code, ym)
     record_id <- .ghap_records[[pollutant]][["monthly"]]
   } else {
-    filename  <- sprintf("GHAP_%s_Y%s_%04d_V1.nc", p_fname, res_code,
-                         as.integer(year))
+    ver       <- if (pollutant == "pm25") "V2" else "V1"
+    filename  <- sprintf("GHAP_%s_Y%s_%04d_%s.nc", p_fname, res_code,
+                         as.integer(year), ver)
     record_id <- .ghap_records[[pollutant]][["annual"]]
   }
 
@@ -965,9 +978,17 @@ sus_grid_pollution_ghap <- function(
   }
   if (verbose) cli::cli_alert_info(
     glue::glue(msg$download_file, filename = filename))
+  old_opts <- options(timeout = max(3600, getOption("timeout")))  # files are 60-90 MB
+  on.exit(options(old_opts), add = TRUE)
   tryCatch({
     utils::download.file(url = url, destfile = cache_path,
                          mode = "wb", quiet = !verbose, method = "auto")
+    # Zenodo answers with an HTML page (HTTP 200) when a file is missing
+    magic <- readBin(cache_path, "raw", 4)
+    if (!(rawToChar(magic[1:3]) == "CDF" || magic[1] == as.raw(0x89) ||
+          rawToChar(magic[1:2]) == "PK")) {
+      stop("server did not return a data file (HTML page); URL: ", url)
+    }
     if (verbose) cli::cli_alert_success(
       glue::glue(msg$download_done, filename = filename))
     invisible(cache_path)
