@@ -18,61 +18,64 @@ sus_data_aggregate(
 )
 }
 \arguments{
-\item{df}{A data frame containing health data (output from \code{sus_data_standardize()}, or \verb{sus_data_filter*()}).}
+\item{df}{A \code{climasus_df} (stage \code{"stand"} or later, typically from
+\code{\link[=sus_data_standardize]{sus_data_standardize()}}, \code{\link[=sus_data_create_variables]{sus_data_create_variables()}} or the
+\verb{sus_data_filter_*()} functions), or an Arrow/DuckDB lazy table.}
 
-\item{time_unit}{Character string specifying the temporal aggregation unit.
-\strong{Standard units}: \code{"day"}, \code{"week"}, \code{"month"}, \code{"quarter"}, \code{"year"}
-\strong{Multi-day/week/month}: \code{"2 days"}, \code{"5 days"} (pentads), \code{"14 days"} (fortnightly),
-\code{"3 months"} (trimester), \code{"6 months"} (semester).
-\strong{Special}: \code{"season"} (Brazilian seasons: DJF, MAM, JJA, SON).
-Default is \code{"day"}.}
-
-\item{fun}{Character string or list of functions specifying the aggregation function(s).
-Options: \code{"count"} (default), \code{"sum"}, \code{"mean"}, \code{"median"}, \code{"min"}, \code{"max"},
-\code{"sd"}, \code{"q25"} (25th percentile), \code{"q75"}, \code{"q95"}, and \code{"q99"}.
-Can also be a named list for multiple aggregations, e.g.,
-\code{list(mean_temp = "mean", max_temp = "max")}.}
-
-\item{group_by}{Character vector with names of columns to group by (e.g.,
-\code{c("sex", "age_group", "race")}). If \code{NULL} (default), aggregates
-across \code{"municipality_code"} records.}
-
-\item{value_col}{Character string with the name of the column to aggregate when
-using functions other than \code{"count"}. Required for \code{"sum"}, \code{"mean"}, etc.
-For example, \code{"temperature"}, \code{"precipitation"}, \code{"pm25"}.}
-
-\item{complete_dates}{Logical. If \code{TRUE} (default), fills in missing time periods
-with zero counts to create a complete time series without gaps.}
-
-\item{date_col}{Character string with the name of the date column to use for
-aggregation. If \code{NULL} (default), the function will attempt to auto-detect
-the date column based on common patterns.}
-
-\item{backend}{Character string specifying the data processing backend.
-Use \code{"arrow"} for out-of-memory, lazy processing (recommended for large datasets),
-or \code{"tibble"} for in-memory processing (recommended for small to medium datasets).
+\item{time_unit}{Character scalar, default \code{"day"}. Temporal unit:
 \itemize{
-\item \code{"arrow"}: operations are performed lazily using the Apache Arrow engine,
-avoiding loading the full dataset into memory. Ideal for large files
-(e.g., Parquet, Feather) and high-performance workflows.
-\item \code{"tibble"}: data is fully loaded into memory as a tibble and processed eagerly
-using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
-}
+\item Standard: \code{"day"}, \code{"week"}, \code{"month"}, \code{"quarter"}, \code{"year"}.
+\item Multi-period: \code{"N days"} / \code{"N months"} (e.g. \code{"5 days"} pentads,
+\code{"14 days"}, \code{"3 months"}, \code{"6 months"}). \code{"2 weeks"} is not supported;
+use \code{"14 days"}.
+\item Special: \code{"season"} (Brazilian seasons DJF, MAM, JJA, SON).
+Anything else aborts with "Invalid time_unit".
+}}
 
-If not specified, the function may automatically choose the backend based on
-the input data type.}
+\item{fun}{Character scalar, or a named list/vector, default \code{"count"}.
+Valid values: \code{"count"}, \code{"sum"}, \code{"mean"}, \code{"median"}, \code{"min"}, \code{"max"},
+\code{"sd"}, \code{"q25"}, \code{"q75"}, \code{"q95"}, \code{"q99"}. A named list, e.g.
+\code{list(mean_temp = "mean", max_temp = "max")}, computes several statistics
+of \code{value_col}. Anything other than \code{"count"} requires \code{value_col}.
+Invalid values abort.}
 
-\item{lang}{Character string specifying the language for messages. Options:
-\code{"en"} (English), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}
+\item{group_by}{Character vector of column names to group by, e.g.
+\code{c("sex", "age_group")}. \code{NULL} (default) = no extra grouping. The
+municipality column of the system (residence/occurrence/establishment
+code, detected automatically) is always kept as a grouping key when
+present. Missing columns abort.}
 
-\item{verbose}{Logical. If \code{TRUE} (default), prints progress messages.}
+\item{value_col}{Character scalar, column to aggregate when \code{fun} is not
+\code{"count"} (e.g. \code{"temperature"}, \code{"pm25"}). Ignored for \code{"count"}.}
+
+\item{complete_dates}{Logical scalar, default \code{FALSE}. If \code{TRUE}, fills
+missing periods (per group) so the series has no gaps; filled values are
+\code{0} for \code{fun = "count"} and \code{NA} otherwise.}
+
+\item{date_col}{Character scalar, name of the date column. \code{NULL} (default)
+auto-detects it by system (e.g. admission date for SIH, death date for
+SIM, notification date for SINAN); aborts if none is found.}
+
+\item{backend}{Character scalar, \code{"arrow"} (default) or \code{"tibble"}.
+\code{"arrow"} aggregates lazily (Arrow/DuckDB) and collects only the small
+result; it falls back to \code{"tibble"} with a warning if it fails.
+\code{"tibble"} processes in memory.}
+
+\item{lang}{Character scalar, \code{"pt"} (default), \code{"en"} or \code{"es"}. Language
+of messages and of the smart column names.}
+
+\item{verbose}{Logical scalar, default \code{TRUE}. Print progress messages.}
 }
 \value{
-A tibble with aggregated data containing:
+A \code{climasus_df} tibble (\code{sus_meta}: \code{stage = "aggregate"}, system
+preserved, \code{temporal} = start/end/unit) with:
 \itemize{
-\item \code{date}: The aggregated date (start of period)
-\item Grouping columns (if \code{group_by} was specified)
-\item Aggregated value column(s) with smart names based on system and function
+\item \code{date}: start of each period (\code{Date})
+\item the municipality column and any \code{group_by} columns
+\item aggregated column(s): for \code{fun = "count"} a name derived from the
+system and \code{lang} (e.g. \code{n_deaths}/\code{n_obitos}, \code{n_hospitalizations}/
+\code{n_internacoes}, \code{n_cases}/\code{n_casos}); otherwise one column per \code{fun}
+(list names are used when \code{fun} is a named list)
 }
 }
 \description{
@@ -81,13 +84,16 @@ time units and grouping variables. This function is essential for preparing
 data for time series analysis, DLNM models, and other temporal epidemiological methods.
 }
 \details{
-\strong{New Features}:
+Pipeline position: after \code{\link[=sus_data_create_variables]{sus_data_create_variables()}} / filtering; before
+the spatial join, climate linkage and modelling steps.
+
+\strong{Features}:
 \itemize{
-\item \strong{Multiple aggregation functions}: Beyond counting, you can now calculate
-mean, sum, median, percentiles, etc., useful for climate and environmental data.
-\item \strong{Smart column naming}: The aggregated column is automatically named
-based on the health system (e.g., \code{n_deaths} for SIM, \code{n_hospitalizations}
-for SIH-RD, \code{n_births} for SINASC, \code{n_cases} for SINAN, \code{n_procedures} for SIA, and \code{n_establishments}, for CNES).
+\item \strong{Multiple aggregation functions}: counting, or sum/mean/median/
+percentiles of \code{value_col}.
+\item \strong{Smart column naming}: the count column is named from the health
+system (e.g., \code{n_deaths} for SIM, \code{n_hospitalizations}
+for SIH-RD, \code{n_births} for SINASC, \code{n_cases} for SINAN, \code{n_procedures} for SIA, and \code{n_establishments} for CNES).
 }
 \strong{Epidemiological Use Cases}:
 \itemize{
@@ -148,4 +154,8 @@ df_weekly <- sus_data_aggregate(
   group_by = c("age_group", "sex") #age_group comes from `sus_data_create_variables()`
 )
 }
+}
+\seealso{
+\code{\link[=sus_data_create_variables]{sus_data_create_variables()}}, \code{\link[=sus_data_filter_cid]{sus_data_filter_cid()}},
+\code{\link[=sus_data_plot_aggregate_ts]{sus_data_plot_aggregate_ts()}}, \code{\link[=sus_data_plot_aggregate_map]{sus_data_plot_aggregate_map()}}
 }

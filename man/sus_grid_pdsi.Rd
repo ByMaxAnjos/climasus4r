@@ -19,18 +19,26 @@ sus_grid_pdsi(
 )
 }
 \arguments{
-\item{years}{Integer vector. Years to download.
-TerraClimate: 1950-2025. NOAA PSL: 1850-2018.
-\code{NULL} (default) = last two complete years.}
+\item{years}{Numeric vector of years (character values error). Accepted forms:
+scalar (\code{2020}), range (\code{2015:2022}) or explicit vector
+(\code{c(2015, 2018, 2022)}). \code{c(2015, 2022)} means exactly those two years, NOT
+the range -- use \code{2015:2022}. De-duplicated, sorted, coerced with
+\code{as.integer()}. Valid range by \code{source}: TerraClimate 1950-2025; NOAA PSL
+1850-2018 (values outside error). \code{NULL} (default) = the last two complete
+years (shifted back to the source's last year if needed).}
 
-\item{months}{Integer vector (1-12). Months to include. Default \code{1:12}.}
+\item{months}{Numeric vector of months (1-12), e.g. \code{1:12} (default), \code{6:9},
+\code{c(1, 7)} (exactly January and July). Values outside 1-12 or \code{NA} error.}
 
-\item{source}{Character. Data source: \code{"terraclimate"} (default) or
-\code{"noaa_psl"}.}
+\item{source}{Character scalar, \code{"terraclimate"} (default) or \code{"noaa_psl"};
+validated with \code{match.arg()}. With \code{"noaa_psl"} one global file is downloaded
+and \code{years} selects the period within it.}
 
-\item{municipalities}{An \code{sf} POLYGON object (e.g., from
-\code{\link[geobr:read_municipality]{geobr::read_municipality()}}). When provided, rasters are aggregated and a
-\code{climasus_df} is returned. If \code{NULL}, returns cached NetCDF file paths.}
+\item{municipalities}{An \code{sf} polygon object (e.g. from \code{\link[geobr:read_municipality]{geobr::read_municipality()}})
+or \code{NULL} (default). Non-\code{sf} input errors. When provided, requires \code{terra}
+and \code{exactextractr}; rasters are aggregated per polygon (ID column
+auto-detected) and a \code{climasus_df} is returned. If \code{NULL}, file paths or a
+\code{SpatRaster} are returned (see \code{raster_area}).}
 
 \item{raster_area}{Only used when \code{municipalities = NULL}. One of:
 \itemize{
@@ -45,21 +53,24 @@ the state boundary via \code{geobr} (cached) and crop/mask to it.
 }
 Ignored (silently) if \code{municipalities} is provided.}
 
-\item{agg_fun}{Character. Spatial aggregation for
-\code{exactextractr::exact_extract()}. Default \code{"mean"} (area-weighted).}
+\item{agg_fun}{Character scalar. Spatial aggregation for
+\code{exactextractr::exact_extract()}: \code{"mean"} (default, area-weighted),
+\code{"sum"}, \code{"median"}, \code{"min"} or \code{"max"}; other values error. Only used when
+\code{municipalities} is provided.}
 
-\item{crop_brazil}{Logical. Crop global rasters to Brazil's bounding box.
-Default \code{TRUE}.}
+\item{crop_brazil}{Logical scalar. Crop global rasters to Brazil's bounding box
+before aggregation / raster construction. Default \code{TRUE}.}
 
-\item{use_cache}{Logical. Reuse cached NetCDF files and Parquet results.
-Default \code{TRUE}.}
+\item{use_cache}{Logical scalar. Reuse cached NetCDF files and Parquet results
+(\code{FALSE} re-downloads / recomputes). Default \code{TRUE}.}
 
-\item{cache_dir}{Character. Root cache directory.
-Default \code{"~/.climasus4r_cache/pdsi"}.}
+\item{cache_dir}{Character scalar. Root cache directory. Default
+\code{"~/.climasus4r_cache/pdsi"}.}
 
-\item{lang}{Character. Message language: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"} or
+\code{"es"}; other values error.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
 \itemize{
@@ -156,6 +167,7 @@ pdsi_hist <- sus_grid_pdsi(
 )
 
 # Join to health data for DLNM
+# sih_mt: a climasus_df at stage "spatial" or "aggregate"
 combined <- sus_grid_join(sih_mt, pdsi_mt)
 }
 

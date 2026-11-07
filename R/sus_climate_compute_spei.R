@@ -15,9 +15,13 @@ utils::globalVariables(c(
 #'
 #' SPEI extends [sus_climate_compute_spi()] by accounting for atmospheric water
 #' demand (temperature-driven evapotranspiration) in addition to precipitation
-#' supply. It uses the climatic water balance `D = P - PET` and fits a
-#' 3-parameter log-logistic distribution, making it sensitive to warming-
-#' amplified drought. Health applications in Brazil:
+#' supply. It uses the climatic water balance `D = P - PET`, accumulated over
+#' `s` months and standardised with an empirical distribution function
+#' (see **Algorithm**), making it sensitive to warming-
+#' amplified drought. Use it after [sus_grid_chirps()] / [sus_grid_era5()]
+#' (monthly, per municipality, `stage = "climate"`); rows must be consecutive
+#' months per municipality (missing months present as `NA`) because rolling sums
+#' use the previous `s` rows. Health applications in Brazil:
 #' \itemize{
 #'   \item Drought (SPEI-3 to SPEI-12): malnutrition, diarrhoeal disease,
 #'     heat-amplified mortality, vector-borne diseases in the semi-arid
@@ -35,18 +39,22 @@ utils::globalVariables(c(
 #'     data is available (e.g., INMET or ERA5 T2m).
 #' }
 #'
-#' @param df A `climasus_df` at `stage = "climate"` with monthly data.
-#'   Must contain `code_muni` (character), `date` (Date, first day of each
-#'   month), and the precipitation column named by `rain_var`.
+#' @param df A `climasus_df` at `stage = "climate"` (any other stage or a plain
+#'   tibble errors; Arrow objects are collected) with monthly data.
+#'   Must contain `code_muni` (character), `date` (Date or coercible, first day
+#'   of each month), and the precipitation column named by `rain_var`.
 #'
-#' @param rain_var Character. Name of the monthly precipitation column (mm).
-#'   Default `"rainfall_chirps_mm"`. Other common value: `"rainfall_mm"`.
+#' @param rain_var Single character string. Name of the monthly precipitation
+#'   column (mm). Default `"rainfall_chirps_mm"`. Other common value:
+#'   `"rainfall_mm"`. Errors if not found.
 #'
-#' @param pet_var Character. Name of the monthly potential evapotranspiration
-#'   column (mm). Used when `pet_method = "column"`. Default `"pet_mm"`.
-#'   Ignored when `pet_method = "thornthwaite"`.
+#' @param pet_var Single character string. Name of the monthly potential
+#'   evapotranspiration column (mm). Used (and required) when
+#'   `pet_method = "column"`. Default `"pet_mm"`. Ignored when
+#'   `pet_method = "thornthwaite"`.
 #'
-#' @param pet_method Character. How to obtain PET values. One of:
+#' @param pet_method Single character string, `"column"` (default) or
+#'   `"thornthwaite"`. How to obtain PET values:
 #'   \itemize{
 #'     \item `"column"` (default): use the column named by `pet_var` directly.
 #'     \item `"thornthwaite"`: compute Thornthwaite (1948) PET from monthly
@@ -55,26 +63,31 @@ utils::globalVariables(c(
 #'       when only INMET or ERA5 T2m is available.
 #'   }
 #'
-#' @param temp_var Character. Name of the monthly mean temperature column (°C).
-#'   Used only when `pet_method = "thornthwaite"`. Default `"tair_dry_bulb_c"`.
+#' @param temp_var Single character string. Name of the monthly mean
+#'   temperature column (degC). Used (and required) only when
+#'   `pet_method = "thornthwaite"`. Default `"tair_dry_bulb_c"`.
 #'
-#' @param scales Integer vector. SPEI timescales in months. Default
-#'   `c(1L, 3L, 6L, 12L)`.
+#' @param scales Positive integer vector of SPEI timescales in months, e.g.
+#'   `3`, `c(3, 6)` or `1:12`. Default `c(1L, 3L, 6L, 12L)`. Duplicates dropped,
+#'   sorted. Values below 1 or non-numeric input error.
 #'
-#' @param ref_start Date or `NULL`. Start of the calibration period for
-#'   log-logistic distribution fitting. `NULL` uses all available data.
-#'   WMO recommends at least 30 years.
+#' @param ref_start `Date`, date string (`"1991-01-01"`) or `NULL`. Start of
+#'   the calibration period. `NULL` (default) uses all available data. WMO
+#'   recommends at least 30 years. Must be earlier than `ref_end` if both
+#'   are given.
 #'
-#' @param ref_end Date or `NULL`. End of the calibration period. `NULL` uses
-#'   all available data.
+#' @param ref_end `Date`, date string (`"2020-12-31"`) or `NULL`. End of the
+#'   calibration period. `NULL` (default) uses all available data.
 #'
-#' @param min_n Integer. Minimum number of non-NA values required to fit the
-#'   log-logistic distribution per location. Default `24L` (2 years).
-#'   Locations with fewer values receive `NA`.
+#' @param min_n Single integer >= 2. Minimum number of non-NA values of the
+#'   accumulated water balance in the calibration period required per
+#'   location. Default `24L` (2 years). Locations with fewer values receive
+#'   `NA`.
 #'
-#' @param lang Character. Message language: `"pt"` (default), `"en"`, `"es"`.
+#' @param lang Single character string. Message language: `"pt"` (default),
+#'   `"en"`, `"es"`; other values error.
 #'
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
 #' @return The input `climasus_df` with additional columns:
 #'   \itemize{
@@ -82,7 +95,9 @@ utils::globalVariables(c(
 #'       dimensionless). For example, `scales = c(3, 6, 12)` adds
 #'       `spei_3mo`, `spei_6mo`, `spei_12mo`.
 #'   }
-#'   Metadata: `stage = "climate"`, `type = "spei"`.
+#'   The first `s - 1` months of each location are `NA` (incomplete window).
+#'   Output is a tibble-based `climasus_df` sorted by `code_muni` and `date`.
+#'   `sus_meta()`: `stage = "climate"`, `type = "spei"` (other fields kept).
 #'
 #' @section SPEI vs SPI:
 #' SPEI is more sensitive to climate change because rising temperatures increase
@@ -96,10 +111,12 @@ utils::globalVariables(c(
 #' \enumerate{
 #'   \item Compute climate water balance: `D = P - PET` (monthly).
 #'   \item Accumulate over `s` months via rolling sum.
-#'   \item Fit 3-parameter log-logistic distribution via L-moments
-#'     (Vicente-Serrano et al., 2010). Falls back to empirical ECDF for
-#'     numerically unstable cases.
-#'   \item Transform to standard normal.
+#'   \item Transform the calibration-period distribution to standard normal
+#'     using the empirical CDF with Hazen plotting positions (non-parametric;
+#'     this is a simplification of the 3-parameter log-logistic fit of
+#'     Vicente-Serrano et al., 2010). The distribution pools all calendar
+#'     months of the location.
+#'   \item Map every value of the series through that distribution.
 #' }
 #'
 #' @references
@@ -146,8 +163,8 @@ utils::globalVariables(c(
 #' names(spei_mt)              # ..., spei_3mo, spei_6mo, spei_12mo
 #' }
 #'
-#' @seealso [sus_climate_compute_spi()], [sus_grid_chirps()], [sus_grid_era5()],
-#'   [sus_grid_join()], [sus_mod_dlnm()]
+#' @seealso [sus_climate_compute_spi()], [sus_climate_uniplu()],
+#'   [sus_grid_chirps()], [sus_grid_era5()], [sus_grid_join()], [sus_mod_dlnm()]
 #'
 #' @export
 #' @importFrom dplyr arrange n_distinct

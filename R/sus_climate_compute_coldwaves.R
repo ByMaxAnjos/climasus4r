@@ -182,29 +182,36 @@ utils::globalVariables(c(
 #' **7. HI** `HImin < P10(HImin)` for >= N days (default N=3). Requires `hi_c`
 #' column from `sus_climate_compute_indicators()`.
 #'
-#' @param df A `climasus_df` at stage `"climate"` with type `"inmet"`,
-#'   `"filled"`, or `"indicators"`. Produced by `sus_climate_inmet()`,
+#' @param df A `climasus_df` (Arrow-backed objects are collected) at stage
+#'   `"climate"` with type `"inmet"`, `"filled"`, or `"indicators"`. Produced by `sus_climate_inmet()`,
 #'   `sus_climate_fill_inmet()`, or `sus_climate_compute_indicators()`. Must
 #'   contain columns `date` and `station_code`. Temperature columns
 #'   `tair_max_c`, `tair_min_c`, `tair_dry_bulb_c` are required for WHO/WMO/
 #'   INMET/ECF; `utci_c`, `wbgt_c`, `hi_c` are required for UTCI/WBGT/HI
 #'   (available after `sus_climate_compute_indicators()`).
 #' @param method Character vector. One or more of `"WHO"`, `"WMO"`, `"INMET"`,
-#'   `"EHF"`, `"UTCI"`, `"WBGT"`, `"HI"`. Use `"all"` to run every method.
+#'   `"EHF"`, `"UTCI"`, `"WBGT"`, `"HI"` (case-sensitive; e.g. `"WHO"` or
+#'   `c("WHO", "INMET")`). Default is all seven; `"all"` is also accepted.
 #'   Methods whose required columns are absent emit a warning and are skipped.
-#'   Note: the internal algorithm for the `"EHF"` slot uses the Excess Cold
-#'   Factor (ECF) formula.
-#' @param baseline_start Date or character (e.g., `"1981-01-01"`). Start of the
-#'   reference period for percentile thresholds. `NULL` uses the full series.
-#' @param baseline_end Date or character. End of the reference period.
-#'   `NULL` uses the full series.
-#' @param percentile Numeric (0-100, default `10`). Percentile used for WHO,
-#'   WMO, UTCI, WBGT, and HI threshold calculations (lower tail for coldwaves).
-#' @param min_duration Integer or `NULL`. Minimum consecutive days to qualify as
-#'   a coldwave. `NULL` uses method defaults: WHO=3, WMO=5, INMET=5, EHF=3,
-#'   UTCI=3, WBGT=3, HI=3.
-#' @param lang Character. Output language: `"pt"` (default), `"en"`, `"es"`.
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#'   Note: the `"EHF"` slot implements the Excess Cold Factor (ECF) (method 4
+#'   above), so `"EHF"` and "ECF" are the same method.
+#' @param baseline_start `Date` or ISO date string (e.g., `"1981-01-01"`).
+#'   Start of the reference period for percentile thresholds. `NULL` (default)
+#'   uses the start of the full series. Errors if the baseline is empty; a
+#'   warning is shown if it spans fewer than 10 years.
+#' @param baseline_end `Date` or ISO date string (e.g., `"2020-12-31"`). End of
+#'   the reference period. `NULL` (default) uses the end of the full series.
+#' @param percentile Numeric scalar in 0-100 (default `10`). Lower-tail
+#'   percentile used for the WHO, WMO, UTCI, WBGT and HI thresholds (e.g. `5`
+#'   for stricter events). Not used by INMET (fixed mean - 5 degC) or ECF
+#'   (fixed P5).
+#' @param min_duration Single integer or `NULL`. Minimum consecutive days to
+#'   qualify as a coldwave, applied to **all** selected methods. `NULL`
+#'   (default) uses method defaults: WHO=3, WMO=5, INMET=5, EHF=3, UTCI=3,
+#'   WBGT=3, HI=3.
+#' @param lang Single character string. Message language: `"pt"` (default),
+#'   `"en"`, `"es"`; other values fall back to `"pt"` with a warning.
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
 #' @return A named list with class `climasus_cw` and `sus_meta` attribute
 #'   (stage `"climate"`, type `"coldwaves"`):
@@ -244,10 +251,17 @@ utils::globalVariables(c(
 #' cw$events
 #' cw$summary
 #' cw$daily[cw$daily$cw_any, ]
+#'
+#' # Helpers
+#' cw_get_events(cw, method_filter = "WHO")
+#' cw_count_by_year(cw)
+#' cw_active_days(cw)
 #' }
 #'
-#' @seealso [sus_climate_inmet()], [sus_climate_compute_indicators()],
-#'   [sus_climate_plot_coldwaves()]
+#' @seealso [sus_climate_inmet()], [sus_climate_fill_inmet()],
+#'   [sus_climate_compute_indicators()], [sus_climate_compute_heatwaves()],
+#'   [sus_climate_plot_coldwaves()], [cw_get_events()], [cw_count_by_year()],
+#'   [cw_active_days()]
 #'
 #' @export
 #' @importFrom dplyr mutate select filter group_by summarise arrange left_join
@@ -868,8 +882,12 @@ sus_climate_compute_coldwaves <- function(
 #'
 #' @param cw_result A `climasus_cw` list returned by
 #'   `sus_climate_compute_coldwaves()`.
-#' @param method_filter Character vector. If supplied, keep only these methods.
-#' @return A tibble of coldwave events.
+#' @param method_filter Character vector of method names (e.g. `"WHO"` or
+#'   `c("WHO", "INMET")`) matched against the `method` column. `NULL`
+#'   (default) keeps all methods.
+#' @return A tibble of coldwave events (see `events` in
+#'   [sus_climate_compute_coldwaves()]).
+#' @seealso [sus_climate_compute_coldwaves()]
 #' @export
 cw_get_events <- function(cw_result, method_filter = NULL) {
   ev <- cw_result$events
@@ -882,7 +900,8 @@ cw_get_events <- function(cw_result, method_filter = NULL) {
 #' @param cw_result A `climasus_cw` list returned by
 #'   `sus_climate_compute_coldwaves()`.
 #' @return A tibble with columns year, station_code, station_name, method,
-#'   n_events, total_days_cw, mean_duration.
+#'   n_events, total_days_cw, mean_duration (those present in the summary).
+#' @seealso [sus_climate_compute_coldwaves()]
 #' @export
 cw_count_by_year <- function(cw_result) {
   cols <- intersect(
@@ -897,7 +916,9 @@ cw_count_by_year <- function(cw_result) {
 #'
 #' @param cw_result A `climasus_cw` list returned by
 #'   `sus_climate_compute_coldwaves()`.
-#' @return A filtered tibble from `cw_result$daily`.
+#' @return A tibble with columns `station_code`, `date_day`, `tmin`, `tmean`
+#'   and the `cw_*` flag columns, restricted to days where `cw_any` is `TRUE`.
+#' @seealso [sus_climate_compute_coldwaves()]
 #' @export
 cw_active_days <- function(cw_result) {
   cw_result$daily |>

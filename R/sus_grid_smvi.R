@@ -52,31 +52,35 @@ utils::globalVariables(c(
 #' authentication required. Events file (109 MB) covers the full global
 #' domain at 0.25° resolution and is downloaded once and cached.
 #'
-#' @param years Integer vector. Years to include. Must be within 1990–2021.
-#'   `NULL` (default) returns all available years.
+#' @param years Numeric vector or `NULL`. Accepted forms: scalar (`2015`), range
+#'   (`2000:2021`) or explicit vector (`c(2010, 2020)` = exactly those two years,
+#'   NOT the range -- use `2010:2020`). Valid range 1990-2021 (outside values
+#'   error; character values error). De-duplicated, sorted, coerced with
+#'   `as.integer()`. `NULL` (default) = all available years.
 #'
-#' @param municipalities An `sf` POLYGON object (e.g., from
-#'   [geobr::read_municipality()]). When provided, flash drought events are
-#'   spatially assigned to municipalities and statistics are aggregated.
-#'   If `NULL`, returns the raw event data frame for Brazil filtered to
-#'   the requested years.
+#' @param municipalities An `sf` polygon object (e.g. from [geobr::read_municipality()])
+#'   or `NULL` (default). Non-`sf` input errors. When provided, events are
+#'   assigned to municipalities and aggregated. If `NULL`, the raw event table
+#'   (Brazil bounding box if `brazil_only = TRUE`) for the requested years is
+#'   returned.
 #'
-#' @param aggregate_by Character. Temporal resolution of the output when
-#'   `municipalities` is provided. One of `"year"` (default) or `"month"`.
-#'   Annual aggregation counts flash drought events and their total duration
-#'   per municipality per year.
+#' @param aggregate_by Character scalar, `"year"` (default) or `"month"`
+#'   (validated with `match.arg()`, partial matching allowed). Temporal resolution
+#'   of the municipality output; ignored when `municipalities = NULL`.
 #'
-#' @param brazil_only Logical. Filter the global dataset to Brazil's bounding
-#'   box (-75 to -28 lon, -35 to 6 lat) before processing. Default `TRUE`.
+#' @param brazil_only Logical scalar. Restrict the global grid to Brazil's bounding box
+#'   (lon -75 to -28, lat -35 to 6) before processing. Default `TRUE`.
 #'
-#' @param use_cache Logical. Reuse cached files. Default `TRUE`.
+#' @param use_cache Logical scalar. Reuse the downloaded `LONLAT.csv` and events
+#'   archive (~109 MB). Default `TRUE`.
 #'
-#' @param cache_dir Character. Root cache directory.
-#'   Default `"~/.climasus4r_cache/smvi"`.
+#' @param cache_dir Character scalar. Root cache directory. Default
+#'   `"~/.climasus4r_cache/smvi"`.
 #'
-#' @param lang Character. Message language: `"pt"` (default), `"en"`, `"es"`.
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"` or
+#'   `"es"`; other values error.
 #'
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
 #' @return
 #' \itemize{
@@ -138,7 +142,8 @@ utils::globalVariables(c(
 #' )
 #'
 #' # Join to health data for DLNM
-#' combined <- sus_grid_join(sih_mt, smvi_mt)
+#' # sih_mt: a climasus_df at stage "spatial" or "aggregate"
+#' combined <- sus_grid_join(sih_mt, smvi_mt, by = c("code_muni", "date"))
 #' }
 #'
 #' @seealso [sus_climate_compute_spi()], [sus_climate_compute_spei()],

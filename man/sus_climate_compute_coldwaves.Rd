@@ -16,8 +16,8 @@ sus_climate_compute_coldwaves(
 )
 }
 \arguments{
-\item{df}{A \code{climasus_df} at stage \code{"climate"} with type \code{"inmet"},
-\code{"filled"}, or \code{"indicators"}. Produced by \code{sus_climate_inmet()},
+\item{df}{A \code{climasus_df} (Arrow-backed objects are collected) at stage
+\code{"climate"} with type \code{"inmet"}, \code{"filled"}, or \code{"indicators"}. Produced by \code{sus_climate_inmet()},
 \code{sus_climate_fill_inmet()}, or \code{sus_climate_compute_indicators()}. Must
 contain columns \code{date} and \code{station_code}. Temperature columns
 \code{tair_max_c}, \code{tair_min_c}, \code{tair_dry_bulb_c} are required for WHO/WMO/
@@ -25,27 +25,34 @@ INMET/ECF; \code{utci_c}, \code{wbgt_c}, \code{hi_c} are required for UTCI/WBGT/
 (available after \code{sus_climate_compute_indicators()}).}
 
 \item{method}{Character vector. One or more of \code{"WHO"}, \code{"WMO"}, \code{"INMET"},
-\code{"EHF"}, \code{"UTCI"}, \code{"WBGT"}, \code{"HI"}. Use \code{"all"} to run every method.
+\code{"EHF"}, \code{"UTCI"}, \code{"WBGT"}, \code{"HI"} (case-sensitive; e.g. \code{"WHO"} or
+\code{c("WHO", "INMET")}). Default is all seven; \code{"all"} is also accepted.
 Methods whose required columns are absent emit a warning and are skipped.
-Note: the internal algorithm for the \code{"EHF"} slot uses the Excess Cold
-Factor (ECF) formula.}
+Note: the \code{"EHF"} slot implements the Excess Cold Factor (ECF) (method 4
+above), so \code{"EHF"} and "ECF" are the same method.}
 
-\item{baseline_start}{Date or character (e.g., \code{"1981-01-01"}). Start of the
-reference period for percentile thresholds. \code{NULL} uses the full series.}
+\item{baseline_start}{\code{Date} or ISO date string (e.g., \code{"1981-01-01"}).
+Start of the reference period for percentile thresholds. \code{NULL} (default)
+uses the start of the full series. Errors if the baseline is empty; a
+warning is shown if it spans fewer than 10 years.}
 
-\item{baseline_end}{Date or character. End of the reference period.
-\code{NULL} uses the full series.}
+\item{baseline_end}{\code{Date} or ISO date string (e.g., \code{"2020-12-31"}). End of
+the reference period. \code{NULL} (default) uses the end of the full series.}
 
-\item{percentile}{Numeric (0-100, default \code{10}). Percentile used for WHO,
-WMO, UTCI, WBGT, and HI threshold calculations (lower tail for coldwaves).}
+\item{percentile}{Numeric scalar in 0-100 (default \code{10}). Lower-tail
+percentile used for the WHO, WMO, UTCI, WBGT and HI thresholds (e.g. \code{5}
+for stricter events). Not used by INMET (fixed mean - 5 degC) or ECF
+(fixed P5).}
 
-\item{min_duration}{Integer or \code{NULL}. Minimum consecutive days to qualify as
-a coldwave. \code{NULL} uses method defaults: WHO=3, WMO=5, INMET=5, EHF=3,
-UTCI=3, WBGT=3, HI=3.}
+\item{min_duration}{Single integer or \code{NULL}. Minimum consecutive days to
+qualify as a coldwave, applied to \strong{all} selected methods. \code{NULL}
+(default) uses method defaults: WHO=3, WMO=5, INMET=5, EHF=3, UTCI=3,
+WBGT=3, HI=3.}
 
-\item{lang}{Character. Output language: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Single character string. Message language: \code{"pt"} (default),
+\code{"en"}, \code{"es"}; other values fall back to \code{"pt"} with a warning.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
 A named list with class \code{climasus_cw} and \code{sus_meta} attribute
@@ -117,6 +124,11 @@ cw <- df_indicators |>
 cw$events
 cw$summary
 cw$daily[cw$daily$cw_any, ]
+
+# Helpers
+cw_get_events(cw, method_filter = "WHO")
+cw_count_by_year(cw)
+cw_active_days(cw)
 }
 
 }
@@ -133,6 +145,8 @@ Development}. Geneva. (Adapted for coldwaves)
 }
 }
 \seealso{
-\code{\link[=sus_climate_inmet]{sus_climate_inmet()}}, \code{\link[=sus_climate_compute_indicators]{sus_climate_compute_indicators()}},
-\code{\link[=sus_climate_plot_coldwaves]{sus_climate_plot_coldwaves()}}
+\code{\link[=sus_climate_inmet]{sus_climate_inmet()}}, \code{\link[=sus_climate_fill_inmet]{sus_climate_fill_inmet()}},
+\code{\link[=sus_climate_compute_indicators]{sus_climate_compute_indicators()}}, \code{\link[=sus_climate_compute_heatwaves]{sus_climate_compute_heatwaves()}},
+\code{\link[=sus_climate_plot_coldwaves]{sus_climate_plot_coldwaves()}}, \code{\link[=cw_get_events]{cw_get_events()}}, \code{\link[=cw_count_by_year]{cw_count_by_year()}},
+\code{\link[=cw_active_days]{cw_active_days()}}
 }

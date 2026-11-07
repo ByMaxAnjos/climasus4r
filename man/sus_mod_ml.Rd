@@ -24,56 +24,65 @@ sus_mod_ml(
 )
 }
 \arguments{
-\item{df}{A data frame (plain or \code{climasus_df}) with one row per
-observation (e.g., city × day or city × month). Must contain
-\code{outcome_col} and at least one numeric feature column.}
+\item{df}{A \code{data.frame}, tibble or \code{climasus_df} (Arrow-backed inputs are
+collected) with one row per observation (e.g. city x day or city x month).
+Must contain \code{outcome_col} and at least one numeric feature column. Rows
+with \code{NA} in the outcome or any feature are dropped (reported when
+\code{verbose = TRUE}); at least \code{2 * nfold} complete rows are required.
+Non-data-frame input errors.}
 
-\item{outcome_col}{Character. Name of the column to predict (the target
-variable). Must be numeric.}
+\item{outcome_col}{Character scalar (no default). Name of the numeric column
+to predict, e.g. \code{"n_obitos"}. Errors if absent or non-numeric. For
+\code{objective = "binary:logistic"} it must be coded 0/1.}
 
-\item{feature_cols}{Character vector or \code{NULL}. Names of columns to use as
-predictors. When \code{NULL} (default), all numeric columns except
-\code{outcome_col} and \code{id_col} are used automatically.}
+\item{feature_cols}{Character vector or \code{NULL} (default). Predictor columns,
+e.g. \code{c("tair_max_c", "rh_mean_porc")}. All must exist and be numeric
+(error otherwise; encode factors beforehand). \code{NULL} uses every numeric
+column except \code{outcome_col} and \code{id_col}.}
 
-\item{id_col}{Character or \code{NULL}. City or group identifier column used for
-\strong{group-aware cross-validation}: each group is kept entirely in one fold,
-preventing data leakage across cities. When \code{NULL}, standard random
-k-fold is used. Strongly recommended when data has a city dimension.}
+\item{id_col}{Character scalar or \code{NULL} (default). Group identifier (e.g.
+\code{"name_muni"}) enabling \strong{group-aware CV}: all rows of a group fall in the
+same fold, avoiding leakage across cities. \code{NULL} uses random k-fold.
+Excluded from the automatic feature set. Errors if absent.}
 
-\item{objective}{Character. XGBoost objective function. One of
-\code{"count:poisson"} (default), \code{"reg:squarederror"}, or
-\code{"binary:logistic"}. See Details.}
+\item{objective}{Character scalar: \code{"count:poisson"} (default),
+\code{"reg:squarederror"} or \code{"binary:logistic"}. Other values error. Sets the
+CV metric (Poisson negative log-likelihood, RMSE or log-loss,
+respectively). See \strong{XGBoost objective}.}
 
-\item{nrounds}{Integer. Maximum number of boosting rounds. The optimal
-value is selected via early stopping during cross-validation. Default
-\code{500L}.}
+\item{nrounds}{Positive integer. Maximum number of boosting rounds for the CV.
+The final number of rounds (\code{best_nrounds}) is the one minimising the
+CV test metric, subject to \code{early_stopping}. Default \code{500L}.}
 
-\item{max_depth}{Integer. Maximum tree depth. Default \code{6L}. Increase for
-more complex patterns; decrease to reduce overfitting.}
+\item{max_depth}{Positive integer. Maximum tree depth. Default \code{6L}; lower
+values reduce overfitting.}
 
-\item{eta}{Numeric. Learning rate (step size shrinkage). Default \code{0.05}.
-Smaller values require more rounds but often generalize better.}
+\item{eta}{Numeric in (0, 1]. Learning rate (shrinkage). Default \code{0.05};
+smaller values need more rounds but usually generalise better.}
 
-\item{subsample}{Numeric ∈ (0, 1]. Row subsampling ratio per tree.
+\item{subsample}{Numeric in (0, 1]. Row subsampling ratio per tree. Default
+\code{0.8}.}
+
+\item{colsample_bytree}{Numeric in (0, 1]. Column subsampling ratio per tree.
 Default \code{0.8}.}
 
-\item{colsample_bytree}{Numeric ∈ (0, 1]. Column subsampling ratio per
-tree. Default \code{0.8}.}
+\item{min_child_weight}{Numeric >= 0. Minimum sum of instance weight in a
+leaf. Default \code{1}; larger values prevent learning rare patterns.}
 
-\item{min_child_weight}{Numeric. Minimum sum of instance weight in a leaf.
-Default \code{1}. Increase to prevent learning rare patterns.}
+\item{nfold}{Integer >= 2. Number of CV folds. Default \code{5L}. With \code{id_col},
+it is reduced (with a warning) to the number of groups if there are fewer
+groups than folds.}
 
-\item{nfold}{Integer. Number of cross-validation folds. Default \code{5L}.}
+\item{early_stopping}{Positive integer. CV stops when the test metric has not
+improved for this many consecutive rounds. Default \code{50L}.}
 
-\item{early_stopping}{Integer. Stop training if the CV metric does not
-improve for this many consecutive rounds. Default \code{50L}.}
+\item{seed}{Integer. Random seed for fold assignment and XGBoost. Default
+\code{42L}.}
 
-\item{seed}{Integer. Random seed for reproducibility. Default \code{42L}.}
+\item{lang}{Character scalar: \code{"pt"} (default), \code{"en"}, \code{"es"}. Language of
+messages; unsupported values warn and fall back to \code{"pt"}.}
 
-\item{lang}{Character. Language for messages: \code{"pt"} (default), \code{"en"},
-\code{"es"}.}
-
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. If \code{TRUE} (default) prints progress messages.}
 }
 \value{
 A \code{climasus_ml} object (named list) with:
@@ -81,7 +90,7 @@ A \code{climasus_ml} object (named list) with:
 \item{\verb{$predictions}}{Tibble with one row per (non-NA) observation:
 \code{observed}, \code{fitted} (train-set prediction), \code{cv_predicted}
 (out-of-fold CV prediction), \code{residual} (observed - cv_predicted),
-and the \code{id_col} and \code{outcome_col} columns if present.}
+preceded by the \code{id_col} column when \code{id_col} is given.}
 \item{\verb{$importance}}{Tibble sorted by \code{Gain} (descending): \code{Feature},
 \code{Gain} (average loss reduction per split), \code{Cover} (average number
 of samples per split), \code{Frequency} (proportion of splits using this
@@ -145,12 +154,13 @@ print(ml)
 tidy(ml)    # predictions tibble
 
 # Forecast for a new climate scenario
-new_climate <- data.frame(tair_max_c = 36, rh_pct_mean = 60, ...)
+# newdata must contain all columns in ml$meta$feature_cols
+new_climate <- df_aggregated[1:10, ml$meta$feature_cols]
 predict(ml, newdata = new_climate)
 }
 
 }
 \seealso{
 \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, \code{\link[=sus_mod_vulnerability_index]{sus_mod_vulnerability_index()}},
-\code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}}, \code{\link[=predict.climasus_ml]{predict.climasus_ml()}}
+\code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}}, \code{\link[=predict.climasus_ml]{predict.climasus_ml()}}, \code{\link[=sus_mod_plot_ml]{sus_mod_plot_ml()}}
 }

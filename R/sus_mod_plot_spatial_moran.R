@@ -148,25 +148,37 @@ utils::globalVariables(c(
 #' LL = `"blue3"`, HL = `"darkorange"`, LH = `"steelblue"`, NS = `"grey80"`.
 #'
 #' @param x A `climasus_spatial_moran` object from [sus_mod_spatial_moran()].
-#' @param municipalities An `sf` object with at least the column `code_muni`
-#'   (7-digit IBGE code) and polygon geometry. Required when `type` is `"map"`
-#'   or `"both"`. Ignored for `type = "scatter"`.
-#' @param type Character. Which panel(s) to produce. One of `"map"` (default),
-#'   `"scatter"`, or `"both"`.
-#' @param alpha Numeric in (0, 1). Significance level used for the subtitle
-#'   annotation. Default `0.05`.
-#' @param title Character or `NULL`. Custom title overriding the default
-#'   translated title. Applies to the first / only panel. Default `NULL`.
-#' @param lang Character. Output language: `"pt"` (default), `"en"`, or `"es"`.
-#' @param ... Additional arguments passed to [ggplot2::ggsave()] when saving,
-#'   or ignored.
+#' @param municipalities An `sf` object with polygon geometry and a
+#'   `code_muni` column (IBGE municipality code; numeric or character, it is
+#'   coerced to character before merging with `x$local$code_muni`).
+#'   Required when `type` is `"map"` or `"both"` (error if `NULL` or if
+#'   `code_muni` is missing); ignored for `type = "scatter"`. Units in
+#'   `x$local` without a match are omitted from the map with a warning.
+#'   Default `NULL`.
+#' @param type Character scalar. Panel(s) to produce: `"map"` (default),
+#'   `"scatter"`, or `"both"`. Partial matching applies (`match.arg()`).
+#' @param alpha Numeric scalar in (0, 1). Currently accepted but NOT used by
+#'   the plotting code: quadrants are taken as already classified in
+#'   `x$local$quadrant` (significance is set in [sus_mod_spatial_moran()]).
+#'   Default `0.05`.
+#' @param title Character scalar or `NULL`. Custom title replacing the default
+#'   translated title. With `type = "both"` it applies to the map panel only;
+#'   the scatter panel keeps its default title. Default `NULL`.
+#' @param lang Character scalar. Output language: `"pt"` (default), `"en"`,
+#'   or `"es"`. Any other value triggers a warning and falls back to `"pt"`.
+#' @param ... Currently unused (ignored).
 #'
 #' @return
-#' - `type = "map"` -> a `ggplot` object.
-#' - `type = "scatter"` -> a `ggplot` object.
-#' - `type = "both"` -> a `patchwork` / `ggplot` combined object, or a named
-#'   list `list(map = <ggplot>, scatter = <ggplot>)` if \pkg{patchwork} is not
-#'   installed.
+#' - `type = "map"` or `"scatter"`: a `ggplot` object.
+#' - `type = "both"`: a `patchwork` object (two panels side by side) when
+#'   \pkg{patchwork} is installed, otherwise a named list
+#'   `list(map = <ggplot>, scatter = <ggplot>)`.
+#'
+#' Errors if `x` is not a `climasus_spatial_moran`.
+#' The scatter panel uses `z_std` / `lag_z` from `x$local` when present;
+#' otherwise they are approximated from `Ii` and `quadrant` (sign from the
+#' quadrant, magnitude from `sqrt(abs(Ii))`), so the scatter is indicative,
+#' not exact.
 #'
 #' @examples
 #' \dontrun{
@@ -181,7 +193,8 @@ utils::globalVariables(c(
 #' sus_mod_plot_spatial_moran(moran_res, type = "scatter", lang = "es")
 #' }
 #'
-#' @seealso [sus_mod_spatial_moran()], [sus_mod_spatial_weights()]
+#' @seealso [sus_mod_spatial_moran()], [sus_mod_spatial_weights()],
+#'   [sus_mod_plot_spatial_scan()]
 #'
 #' @export
 #' @importFrom cli cli_abort cli_alert_warning

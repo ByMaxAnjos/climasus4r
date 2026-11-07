@@ -18,7 +18,8 @@ sus_climate_anomaly(
 }
 \arguments{
 \item{observed}{A \code{climasus_df} from \code{\link[=sus_climate_inmet]{sus_climate_inmet()}} or
-\code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}}. At minimum must contain: a station identifier
+\code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}} (a plain tibble errors; Arrow objects are
+collected first). At minimum must contain: a station identifier
 column (see \code{station_col}), a date column (see \code{date_col}), and at least
 one climate variable column covered by the \code{vars} mapping.}
 
@@ -26,32 +27,37 @@ one climate variable column covered by the \code{vars} mapping.}
 columns \code{codigo}, \code{mes}, \code{decada}, \code{var_code}, and \code{valor}. Run
 \code{\link[=sus_climate_normals_meta]{sus_climate_normals_meta()}} to see available \code{var_code} values.}
 
-\item{vars}{Named character vector mapping \strong{observed column names} to
-\strong{normals \code{var_code} values}, e.g.
+\item{vars}{Named character vector mapping \strong{observed column names} (names)
+to \strong{normals \code{var_code} values} (values), e.g.
 \code{c(tair_max_c = "t_max", rainfall_mm = "precipitation")}.
-\code{NULL} (default) auto-detects variables using the built-in map for
-standard INMET columns.}
+\code{NULL} (default) auto-detects variables using the built-in map
+(\code{tair_max_c}-\code{t_max}, \code{tair_min_c}-\code{t_min}, \code{tair_dry_bulb_c}-\code{t_mean_comp},
+\code{rainfall_mm}-\code{precipitation}, \code{rh_mean_porc}-\code{rh_mean}) restricted to
+columns present in \code{observed} and codes present in \code{normals}. Errors if
+nothing can be mapped or if a supplied name/code is not found.}
 
-\item{method}{Character. Anomaly computation method: \code{"absolute"} (default),
-\code{"relative"}, \code{"standardized"}, or \code{"all"}.}
+\item{method}{Single character string. Anomaly computation method: \code{"absolute"}
+(default), \code{"relative"}, \code{"standardized"}, or \code{"all"} (partial matching
+allowed; invalid values error).}
 
-\item{time_scale}{Character. Temporal resolution for the anomaly:
+\item{time_scale}{Single character string, \code{"monthly"} (default) or
+\code{"decadal"}. Temporal resolution for the anomaly:
 \code{"monthly"} (default) averages normals across the three decades of each
 month and aggregates observations by calendar month; \code{"decadal"} preserves
 the 10-day decade structure of INMET normals and is more precise for
 variables such as temperature extremes and precipitation.}
 
-\item{station_col}{Character. Name of the station identifier column in
-\code{observed}. Default \code{"station_code"}. Must contain INMET codes matching
-the \code{codigo} column in \code{normals}.}
+\item{station_col}{Single character string. Name of the station identifier
+column in \code{observed}. Default \code{"station_code"}. Must contain INMET codes
+matching the \code{codigo} column in \code{normals}. The output keeps this name.}
 
-\item{date_col}{Character. Name of the date or datetime column in
-\code{observed}. Default \code{"date"}. Accepts \code{Date} or \code{POSIXct}.}
+\item{date_col}{Single character string. Name of the date or datetime column
+in \code{observed}. Default \code{"date"}. Accepts \code{Date} or \code{POSIXct}.}
 
-\item{lang}{Character. Language for messages: \code{"pt"} (default), \code{"en"},
-\code{"es"}.}
+\item{lang}{Single character string. Language for messages: \code{"pt"} (default),
+\code{"en"}, \code{"es"}. Unsupported values fall back to \code{"pt"} with a warning.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
 A \code{climasus_df} at stage \code{"climate"} and type \code{"anomaly"}. One row
@@ -64,17 +70,21 @@ Key columns:
 \item{\code{month_name}}{Portuguese month name, ASCII.}
 \item{\code{decade_num}}{Decade within month (1, 2, or 3). Present only when
 \code{time_scale = "decadal"}.}
-\item{\verb{\{v\}_obs}}{Observed monthly/decadal value (mean or sum depending on
+\item{\verb{<v>_obs}}{Observed monthly/decadal value (mean or sum depending on
 variable type).}
-\item{\verb{\{v\}_normal}}{Climatological normal value.}
-\item{\verb{\{v\}_anomaly}}{Absolute anomaly: obs − normal.}
-\item{\verb{\{v\}_anomaly_pct}}{Relative anomaly (\\%): (obs − normal) /
+\item{\verb{<v>_normal}}{Climatological normal value.}
+\item{\verb{<v>_anomaly}}{Absolute anomaly: obs − normal.}
+\item{\verb{<v>_anomaly_pct}}{Relative anomaly (\%): (obs − normal) /
 |normal| × 100. Only when \verb{method ∈ c("relative", "all")}.}
-\item{\verb{\{v\}_anomaly_std}}{Standardized anomaly (z-score):
+\item{\verb{<v>_anomaly_std}}{Standardized anomaly (z-score):
 (obs − normal) / σ_obs, where σ is the inter-annual SD of monthly
 observations for each station × month. Only when
 \verb{method ∈ c("standardized", "all")}.}
 }
+
+\code{sus_meta()}: \code{stage = "climate"}, \code{type = "anomaly"}, \code{system} inherited
+from \code{observed}; also stores \code{method}, \code{time_scale}, \code{normal_period} and
+\code{var_map}.
 }
 \description{
 Computes climate anomalies by comparing observed meteorological data from
@@ -84,6 +94,14 @@ Computes climate anomalies by comparing observed meteorological data from
 standardized z-score ((obs − normal) / σ_obs). The result is a \code{climasus_df}
 ready for epidemiological modelling with \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}},
 \code{\link[=sus_climate_compute_heatwaves]{sus_climate_compute_heatwaves()}}, or \code{\link[=sus_mod_vulnerability_index]{sus_mod_vulnerability_index()}}.
+}
+\details{
+Use it after \code{\link[=sus_climate_inmet]{sus_climate_inmet()}} (or \code{\link[=sus_climate_fill_inmet]{sus_climate_fill_inmet()}}) and
+\code{\link[=sus_climate_normals]{sus_climate_normals()}}. Station codes in \code{observed} must match the INMET
+station codes (\code{codigo}) in \code{normals}; only stations present in both
+contribute normals (others get \code{NA}). Only INMET-style columns are mapped
+by default: \code{tair_max_c}, \code{tair_min_c}, \code{tair_dry_bulb_c}, \code{rainfall_mm},
+\code{rh_mean_porc} (rainfall is summed per period, the others averaged).
 }
 \section{Why anomalies matter for climate-health with DATASUS}{
 
@@ -129,6 +147,8 @@ anom <- sus_climate_anomaly(obs, norm)
 anom_std <- sus_climate_anomaly(obs, norm,
                                  method     = "standardized",
                                  vars       = c(tair_dry_bulb_c = "t_mean_comp"))
+dplyr::select(anom_std, station_code, year, month_num,
+              tair_dry_bulb_c_anomaly_std)
 
 # 4. Decadal precipitation anomalies — dengue/leptospirosis lag studies
 anom_10d <- sus_climate_anomaly(obs, norm,

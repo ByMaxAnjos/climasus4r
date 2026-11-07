@@ -15,30 +15,42 @@ sus_data_read(
 )
 }
 \arguments{
-\item{path}{Character vector of file paths, or a single directory path.
-If a directory is provided, all matching files will be read.}
+\item{path}{Character vector of file paths, or a directory path, e.g.
+\code{"data/sim.parquet"}, \code{c("2020.parquet", "2021.parquet")} or \code{"data/"}.
+Directories are searched recursively for files whose extension equals
+\code{format} (\strong{so \code{format} must be supplied when \code{path} is a directory}; with
+\code{format = NULL} the function aborts with an error). Paths that do not exist are reported
+and skipped; the function aborts if no file is found. Files named
+\verb{*_metadata.txt} are ignored.}
 
-\item{format}{Character string specifying the input format. Options: \code{"dbf"}, \code{"dbc"},
-\code{"rds"}, \code{"parquet"}, \code{"geoparquet"}, \code{"shapefile"}, \code{"gpkg"}, \code{"geojson"}, \code{"csv"}.
-If \code{NULL} (default), automatically detects format from file extension.}
+\item{format}{Character scalar, one of \code{"dbf"}, \code{"dbc"}, \code{"rds"},
+\code{"parquet"}, \code{"geoparquet"}, \code{"shapefile"}, \code{"gpkg"}, \code{"geojson"}, \code{"csv"},
+or \code{NULL} (default) to detect the format of each file from its extension
+(e.g. \code{.tsv}/\code{.txt} are read as csv, \code{.shp} as shapefile). Files with an
+unsupported extension are skipped with a warning. Parquet files are
+checked for a geometry column/geo metadata and read as GeoParquet when
+found.}
 
-\item{parallel}{Logical. If \code{TRUE}, uses parallel processing for multiple files.
-Requires \code{future} and \code{future.apply} packages. Default: \code{FALSE}.}
+\item{parallel}{Logical scalar, default \code{FALSE}. Read multiple files in
+parallel (requires the \code{future} and \code{future.apply} packages).}
 
-\item{workers}{Integer. Number of parallel workers when \code{parallel = TRUE}. Default: 4.}
+\item{workers}{Integer, default \code{4}. Number of parallel workers; only used
+when \code{parallel = TRUE} (a warning is issued if it exceeds the number of
+cores).}
 
-\item{read_metadata}{Logical. If \code{TRUE} (default), loads companion metadata files
-and attaches them as attributes.}
+\item{read_metadata}{Logical scalar, default \code{FALSE}. If \code{TRUE}, reads the
+companion \verb{<file>_metadata.txt} written by \code{\link[=sus_data_export]{sus_data_export()}} (if it
+exists) and attaches it as an attribute.}
 
-\item{lang}{Character string specifying the language for messages. Options:
-\code{"en"} (English), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}
+\item{lang}{Character scalar, \code{"pt"} (default), \code{"en"} or \code{"es"}. Language
+of messages; other values abort.}
 
-\item{verbose}{Logical. If \code{TRUE} (default), prints progress and summary.}
+\item{verbose}{Logical scalar, default \code{TRUE}. Print progress and summary.}
 }
 \value{
-A data frame or sf object (for spatial data) containing the loaded data.
-For batch reads, all files are combined with \code{dplyr::bind_rows()}.
-Metadata is attached as attributes:
+A data frame or \code{sf} object (for spatial files) with the loaded data
+(rows of several files are combined with \code{dplyr::bind_rows()}). If
+\code{read_metadata = TRUE}, metadata is attached as attributes:
 \itemize{
 \item Single file: \code{attr(df, "metadata")}
 \item Batch: \code{attr(df, "batch_metadata")} (list of metadata from each file)
@@ -80,6 +92,9 @@ df <- sus_data_read(c("output/2020.parquet", "output/2021.parquet"))
 # Directory (all Parquet files)
 df <- sus_data_read("output/", format = "parquet")
 
+# With the companion metadata file
+df <- sus_data_read("output/data.parquet", read_metadata = TRUE)
+
 # Parallel batch read
 df <- sus_data_read("output/", format = "dbf", 
                     parallel = TRUE, workers = 6)
@@ -89,4 +104,7 @@ batch_meta <- attr(df, "batch_metadata")
 n_files <- attr(df, "n_files_combined")
 }
 
+}
+\seealso{
+\code{\link[=sus_data_export]{sus_data_export()}}, \code{\link[=sus_data_import]{sus_data_import()}}
 }

@@ -16,21 +16,27 @@ sus_climate_uniplu(
 )
 }
 \arguments{
-\item{years}{Integer vector of year(s) to import.
-Examples: \code{2020}, \code{2020:2024}, \code{c(2015, 2020, 2024)}.
-Must be between 1885 and the current year. If \code{NULL} (default), imports
-the last 2 years.}
+\item{years}{Numeric (integer-valued) vector of year(s) to keep. Accepted
+forms: a single year (\code{2023}), a range (\code{2020:2024}), or an explicit
+vector (\code{c(2015, 2020, 2024)}). \code{c(2020, 2024)} means exactly those two
+years, \strong{not} the range 2020-2024; use \code{2020:2024} for a range. Valid
+values are 1885 to the current year; \code{NA}, non-numeric input (e.g.
+\code{"2023"}) or out-of-range values raise an error. If \code{NULL} (default),
+the previous and the current year are kept. The whole dataset is
+downloaded regardless; \code{years} only filters it.}
 
-\item{uf}{Character vector of Brazilian state codes
-(e.g., \code{"RN"}, \code{c("SP", "RJ", "MG")}). Case insensitive. If \code{NULL}
-(default), all 27 states are returned.}
+\item{uf}{Character vector of two-letter state codes: one (\code{"RN"}) or
+several (\code{c("SP", "RJ", "MG")}). Case insensitive, whitespace trimmed.
+Unknown codes, \code{NA} or empty strings raise an error; \code{"all"} is \strong{not}
+accepted. If \code{NULL} (default), all 27 UFs are returned.}
 
 \item{network}{Character vector of monitoring network(s) to include.
 One or more of: \code{"Hidroweb"}, \code{"INMET"}, \code{"ICEA"}, \code{"CEMADEN"},
-\code{"Telemetria"}. Case insensitive. If \code{NULL} (default), all networks
-are returned.}
+\code{"Telemetria"}, e.g. \code{"CEMADEN"} or \code{c("Hidroweb", "INMET")}. Case
+insensitive; any other value raises an error. If \code{NULL} (default), all
+networks are returned.}
 
-\item{aggregate_to}{Character. Temporal resolution for aggregating sub-daily
+\item{aggregate_to}{Single character string. Temporal resolution for aggregating sub-daily
 observations into totals. One of:
 \itemize{
 \item \code{"day"} (default): Daily rainfall totals (\code{sum(rain_mm)})
@@ -40,26 +46,26 @@ observations into totals. One of:
 }
 When \code{"none"}, \code{rainfall_mm} reflects the raw measurement interval
 (10 min to 1440 min depending on network). Use \code{"day"} for compatibility
-with \code{sus_climate_aggregate()}.}
+with \code{sus_climate_aggregate()}. Any other value raises an error.}
 
-\item{use_cache}{Logical. If \code{TRUE} (default), skips download when the two
+\item{use_cache}{Logical scalar. If \code{TRUE} (default), skips download when the two
 Parquet files already exist in \verb{cache_dir/uniplu/}. The full ZIP (~1.6 GB)
 is only downloaded once. Use \code{use_cache = FALSE} to force a re-download
 (e.g., after a new dataset version is published on Zenodo).}
 
-\item{cache_dir}{Character. Directory path for the disk cache.
+\item{cache_dir}{Single non-empty character string. Directory path for the disk cache.
 Default: \code{"~/.climasus4r_cache/climate"}. Created automatically if absent.
 Use \code{unlink(file.path(cache_dir, "uniplu"), recursive = TRUE)} to clear
 the UNIPLU cache.}
 
-\item{lang}{Character. Message language. One of:
+\item{lang}{Single character string. Message language. One of:
 \itemize{
 \item \code{"pt"}: Portuguese (default)
 \item \code{"en"}: English
 \item \code{"es"}: Spanish
 }}
 
-\item{verbose}{Logical. If \code{TRUE} (default), prints progress messages
+\item{verbose}{Logical scalar. If \code{TRUE} (default), prints progress messages
 including cache status, download progress, filtering counts, and
 aggregation summary.}
 }
@@ -103,6 +109,12 @@ Only present when \code{aggregate_to = "none"}.}
 \strong{Unified Brazilian Rainfall Dataset (UNIPLU-BR)} — the most comprehensive
 national rainfall database for Brazil, covering \strong{21,000+ gauges} from
 five monitoring networks over \strong{140 years (1885–2025)}.
+
+Use it instead of \code{\link[=sus_climate_inmet]{sus_climate_inmet()}} when only rainfall is needed (longer
+history, more gauge networks). Output is stage \code{"climate"}, type \code{"uniplu"}
+and can be passed to \code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}} (\code{climate_var = "rainfall_mm"}),
+\code{\link[=sus_climate_compute_spi]{sus_climate_compute_spi()}} / \code{\link[=sus_climate_compute_spei]{sus_climate_compute_spei()}} (use
+\code{aggregate_to = "month"}). A network connection is needed on first use.
 
 The function implements a full processing pipeline:
 \enumerate{
@@ -166,6 +178,9 @@ rain_raw <- sus_climate_uniplu(
   aggregate_to = "none"
 )
 
+# Non-consecutive years: exactly 2010 and 2020 (NOT 2010-2020)
+rain_two <- sus_climate_uniplu(years = c(2010, 2020), uf = "RN")
+
 # Check metadata
 sus_meta(rain_rn)
 
@@ -204,5 +219,6 @@ of high-time-resolution data in Brazil.
 \item \code{\link[=sus_climate_inmet]{sus_climate_inmet()}} for multi-variable meteorological data (INMET)
 \item \code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}} for health-climate temporal integration
 \item \code{\link[=sus_climate_fill_inmet]{sus_climate_fill_inmet()}} for ML-based gap filling
+\item \code{\link[=sus_climate_compute_spi]{sus_climate_compute_spi()}} for drought indices from monthly rainfall
 }
 }

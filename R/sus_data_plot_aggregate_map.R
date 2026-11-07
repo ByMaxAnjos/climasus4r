@@ -48,13 +48,17 @@ utils::globalVariables(c(
 #'   `n_obitos`, `n_internacoes`, `n_nascimentos`, `n_casos`,
 #'   `n_procedimentos`, `n_estabelecimentos` and their English / Spanish
 #'   equivalents.
-#' @param map_type Character.  `"bubble"` (default), `"choropleth"` or `"quantile_choropleth"` 
+#' @param map_type Character scalar, one of `"bubble"` (default),
+#'   `"choropleth"` or `"quantile_choropleth"` (partial matching allowed).
 #' @param rate_per_100k Logical.  If `TRUE`, divides `total_cases` by `pop_25`
 #'   (from `municipio_meta`) and multiplies by 1e5 to compute incidence per
 #'   100,000 inhabitants.  Default `FALSE`.
-#' @param period Date scalar or `c(start, end)` vector.  When supplied, rows
-#'   in `df` whose `date` column falls outside the interval are removed before
-#'   aggregation.  `NULL` (default) uses all rows.
+#' @param period `NULL` (default, all rows), a start date, or `c(start, end)`;
+#'   `Date` or strings coercible by `as.Date()` (e.g. `"2022-01-01"`,
+#'   `c("2022-01-01", "2022-06-30")`), bounds inclusive. A single value means
+#'   **from that date until today**, not a single day. Rows of `df` whose
+#'   `date` column falls outside are removed before summing; skipped with a
+#'   warning if `df` has no `date` column.
 #' @param city Character vector of municipality names or 6-/7-digit IBGE codes.
 #'   When supplied, the map is restricted to those municipalities. Names are
 #'   resolved through `municipio_meta` with accent tolerance.

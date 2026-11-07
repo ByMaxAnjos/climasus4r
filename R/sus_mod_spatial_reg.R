@@ -168,8 +168,8 @@ utils::globalVariables(c(
 #'
 #' For models with a spatial lag (`lag`, `durbin`, `sac`), the total effect of
 #' a covariate is decomposed into *direct* (own-unit), *indirect* (spillover),
-#' and *total* effects using `spatialreg::impacts()` with `R` simulations for
-#' inference. For the `error` model impacts equal OLS slopes and no
+#' and *total* effects using `spatialreg::impacts()` with `R = 200` simulations (fixed, not
+#' user-settable) for inference. For the `error` model impacts equal OLS slopes and no
 #' decomposition is meaningful; the `$impacts` element will be `NULL`.
 #'
 #' @section Residual diagnostics:
@@ -178,26 +178,28 @@ utils::globalVariables(c(
 #' verify that spatial autocorrelation has been adequately absorbed. A
 #' non-significant Moran p-value indicates a well-specified spatial model.
 #'
-#' @param df A `data.frame` or `climasus_df` containing all variables in
-#'   `formula`. If an `sf` object, geometry is dropped automatically.
-#' @param formula A `formula` specifying the outcome and predictors, e.g.
-#'   `deaths ~ mean_temp + precip + pib_pc`.
-#' @param W A `climasus_weights` object produced by
-#'   [sus_mod_spatial_weights()]. Must contain a `listw` element whose
-#'   length matches `nrow(df)`.
-#' @param model Character. Spatial model family. One of `"lag"` (SAR,
+#' @param df A `data.frame` or `climasus_df` (an `sf` object is accepted;
+#'   geometry is dropped with a warning) with one row per spatial unit,
+#'   containing every variable used in `formula`. Row order must match the
+#'   region order of `W` (no internal sorting). Non-data-frames error.
+#' @param formula A `formula`, e.g. `deaths ~ mean_temp + precip + pib_pc`.
+#'   Transformations such as `log(pop)` are allowed. Non-formula input errors.
+#' @param W A `climasus_weights` object from [sus_mod_spatial_weights()]
+#'   containing a `listw` element whose number of units equals `nrow(df)`
+#'   (not checked here; a mismatch surfaces as an error from
+#'   **spatialreg**).
+#' @param model Character scalar. Spatial model family: `"lag"` (SAR,
 #'   default), `"error"` (SEM), `"durbin"` (SDM), or `"sac"` (SAC).
-#' @param method Character. Estimation method passed to the underlying
-#'   **spatialreg** function. One of `"eigen"` (default), `"LU"`,
-#'   `"Chebyshev"`, or `"MC"`. `"eigen"` is exact; the others are
-#'   approximations suitable for large datasets.
-#' @param zero_policy Logical. If `TRUE` (default), spatial units with no
-#'   neighbours (islands) are allowed and receive a zero spatial lag/error.
-#'   Passed to all **spatialreg** and **spdep** calls.
-#' @param lang Character. Output language for messages: `"pt"` (default),
-#'   `"en"`, or `"es"`.
-#' @param verbose Logical. If `TRUE` (default), print progress messages via
-#'   **cli**.
+#' @param method Character scalar. Log-determinant method passed to
+#'   **spatialreg**: `"eigen"` (default, exact), `"LU"`, `"Chebyshev"`, or
+#'   `"MC"` (the latter three are approximations for large `n`).
+#' @param zero_policy Logical scalar. `TRUE` (default) allows units without
+#'   neighbours (islands), which get a zero spatial lag; `FALSE` makes
+#'   **spatialreg**/**spdep** error on islands. Passed to every call.
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"`,
+#'   or `"es"`; anything else errors (`match.arg`).
+#' @param verbose Logical scalar. Print progress messages via \pkg{cli}.
+#'   Default `TRUE`.
 #'
 #' @return An object of class `c("climasus_spatial_reg", "list")` with the
 #'   following named elements:

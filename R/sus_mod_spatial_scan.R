@@ -147,28 +147,33 @@ utils::globalVariables(c(
 #' [sf::st_centroid()] after reprojecting to WGS 84 (EPSG 4326) so that
 #' longitude/latitude coordinates are passed to `kulldorff()`.
 #'
-#' @param df A `data.frame` (or `climasus_df`) containing at minimum:
-#'   a `code_muni` column (character or integer) and the columns named by
-#'   `cases`, `population`, and optionally `expected`.
-#' @param cases Character. Name of the column in `df` with case counts
-#'   (non-negative integer or numeric).
-#' @param population Character. Name of the column in `df` with the
-#'   at-risk population denominator.
-#' @param municipalities An `sf` object with POLYGON or MULTIPOLYGON
-#'   geometry and a `code_muni` column used to join to `df`.
-#' @param expected Character or `NULL`. Name of the column in `df` with
-#'   the expected number of cases under the null model. When `NULL`
-#'   (default), `SpatialEpi::kulldorff()` computes expected counts
-#'   internally from the overall rate.
-#' @param max_pop_frac Numeric in (0, 1]. Maximum fraction of the total
-#'   population that a single cluster window may contain. Default `0.5`.
-#' @param n_simulations Positive integer. Number of Monte Carlo simulations
-#'   for hypothesis testing. Default `999`. Increase to `9999` for
-#'   publication-quality p-values.
-#' @param alpha Numeric in (0, 1). Significance level for secondary cluster
-#'   filtering. Default `0.05`.
-#' @param lang Character. Output language: `"pt"` (default), `"en"`, `"es"`.
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param df A `data.frame` (or `climasus_df`) with one row per municipality
+#'   and a `code_muni` column (character or numeric; coerced to character),
+#'   plus the columns named by `cases`, `population` and optionally
+#'   `expected`. Municipalities in `municipalities` without a row in `df` are
+#'   dropped with a warning; if none match the function errors.
+#' @param cases Character scalar. Column in `df` with case counts
+#'   (non-negative numeric), e.g. `"deaths"`. Rows with `NA` cases are dropped.
+#' @param population Character scalar. Column in `df` with the at-risk
+#'   population (positive numeric), e.g. `"population"`.
+#' @param municipalities An `sf` object (required) with POLYGON or
+#'   MULTIPOLYGON geometry and a `code_muni` column used to join to `df`;
+#'   errors if not `sf` or if `code_muni` is missing. Centroids are computed
+#'   after reprojecting to EPSG:4326.
+#' @param expected Character scalar or `NULL`. Column in `df` with expected
+#'   cases under the null. `NULL` (default) lets `SpatialEpi::kulldorff()`
+#'   derive them from the overall rate. A name not found in `df` only warns
+#'   and is ignored.
+#' @param max_pop_frac Numeric scalar in (0, 1]. Maximum share of the total
+#'   population a cluster window may contain (e.g. `0.25`). Default `0.5`.
+#' @param n_simulations Positive integer scalar. Monte Carlo replications,
+#'   e.g. `999L` (default); `9999L` for publication-quality p-values.
+#' @param alpha Numeric scalar in (0, 1). Significance level used to retain
+#'   secondary clusters (passed to `SpatialEpi::kulldorff()` as
+#'   `alpha.level`). Default `0.05`.
+#' @param lang Character scalar. Message language: `"pt"` (default, first
+#'   option), `"en"`, or `"es"`; partial matching, other values error.
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
 #' @return A `climasus_spatial_scan` object (named list) with:
 #' \describe{
@@ -232,7 +237,9 @@ utils::globalVariables(c(
 #' result$secondary_clusters
 #' }
 #'
-#' @seealso [sus_spatial_join()], [sus_mod_dlnm()], [sus_mod_af()]
+#' @seealso [sus_mod_plot_spatial_scan()] to map the clusters,
+#'   [sus_mod_spatial_moran()], [sus_mod_spatial_weights()],
+#'   [sus_spatial_join()]
 #'
 #' @export
 #' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_alert_warning cli_abort

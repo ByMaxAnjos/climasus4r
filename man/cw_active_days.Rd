@@ -11,8 +11,12 @@ cw_active_days(cw_result)
 \code{sus_climate_compute_coldwaves()}.}
 }
 \value{
-A filtered tibble from \code{cw_result$daily}.
+A tibble with columns \code{station_code}, \code{date_day}, \code{tmin}, \code{tmean}
+and the \verb{cw_*} flag columns, restricted to days where \code{cw_any} is \code{TRUE}.
 }
 \description{
 Return daily rows where at least one coldwave method is active
+}
+\seealso{
+\code{\link[=sus_climate_compute_coldwaves]{sus_climate_compute_coldwaves()}}
 }

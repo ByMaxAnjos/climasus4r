@@ -10,11 +10,17 @@ cw_get_events(cw_result, method_filter = NULL)
 \item{cw_result}{A \code{climasus_cw} list returned by
 \code{sus_climate_compute_coldwaves()}.}
 
-\item{method_filter}{Character vector. If supplied, keep only these methods.}
+\item{method_filter}{Character vector of method names (e.g. \code{"WHO"} or
+\code{c("WHO", "INMET")}) matched against the \code{method} column. \code{NULL}
+(default) keeps all methods.}
 }
 \value{
-A tibble of coldwave events.
+A tibble of coldwave events (see \code{events} in
+\code{\link[=sus_climate_compute_coldwaves]{sus_climate_compute_coldwaves()}}).
 }
 \description{
 Extract coldwave events table from a climasus_cw result
+}
+\seealso{
+\code{\link[=sus_climate_compute_coldwaves]{sus_climate_compute_coldwaves()}}
 }

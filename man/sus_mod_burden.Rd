@@ -17,32 +17,42 @@ sus_mod_burden(
 }
 \arguments{
 \item{fits}{Named list of \code{climasus_af}, \code{climasus_excess}, or
-\code{climasus_dlnm} objects. Names become city/stratum labels in the output.
-All elements must be the same class; mixing types is not allowed.}
+\code{climasus_dlnm} objects, e.g. \code{list(sp = af_sp, rj = af_rj)}. Names become
+city/stratum labels (\code{city} column); unnamed or partly named lists get
+\code{"city_1"}, \code{"city_2"}, ... for the missing names. All elements must be
+the same class (mixing errors) and the list must be non-empty. A single
+object must still be wrapped in a list.}
 
-\item{component}{Character. For \code{climasus_af} inputs: which heat/cold
-component to display and rank. One of \code{"total"} (default), \code{"heat"},
-\code{"cold"}, or \code{"all"} (all three components; ranking is always derived
-from the \code{"total"} component). Ignored for \code{climasus_excess} inputs.}
+\item{component}{Character scalar. For \code{climasus_af} (and \code{climasus_dlnm})
+inputs: which component to display, one of \code{"total"} (default), \code{"heat"},
+\code{"cold"}, or \code{"all"} (three rows per city). Ranking and \verb{$concentration}
+are always derived from the \code{"total"} component. Ignored for
+\code{climasus_excess} inputs. Other values error.}
 
-\item{rank_by}{Character or \code{NULL}. Metric for ranking cities.
-For AF inputs: \code{"an"} (attributable number, default) or \code{"af_pct"}
-(attributable fraction percent). For excess inputs: \code{"excess"} (default)
-or \code{"excess_pct"}. \code{NULL} selects the default for the detected input type.}
+\item{rank_by}{Character scalar or \code{NULL}. Ranking metric. AF inputs:
+\code{"an"} (attributable number; default) or \code{"af_pct"} (attributable fraction,
+percent). Excess inputs: \code{"excess"} (default) or \code{"excess_pct"}. \code{NULL}
+picks the default for the detected input. A metric that does not match the
+input type falls back to the default with a warning; any other value
+errors.}
 
-\item{top_n}{Integer or \code{NULL}. Keep only the top-N cities after ranking.
-\code{NULL} (default) retains all cities.}
+\item{top_n}{Positive integer or \code{NULL} (default). Keep only the \code{top_n}
+highest-ranked cities (e.g. \code{5L}); values larger than the number of cities
+keep all. \code{NULL}, non-numeric or non-positive values keep all cities
+(no error).}
 
-\item{nsim}{Integer. Monte Carlo simulations used when auto-computing AF
-from \code{climasus_dlnm} inputs. \code{0L} (default) uses the faster delta-method CI.}
+\item{nsim}{Non-negative integer. Monte Carlo draws passed to \code{\link[=sus_mod_af]{sus_mod_af()}}
+when \code{fits} are \code{climasus_dlnm} objects; ignored for AF/excess inputs.
+Default \code{0L} (fast delta-method CI); use e.g. \code{1000L} for Monte Carlo CI.}
 
-\item{alpha}{Numeric. Significance level for confidence intervals.
-Default \code{0.05}.}
+\item{alpha}{Numeric scalar in (0, 1). Significance level used when
+auto-computing AF from \code{climasus_dlnm} inputs (default \code{0.05}, 95\% CI);
+ignored for AF/excess inputs, whose CI are already fixed.}
 
-\item{lang}{Character. Language for messages: \code{"pt"} (default), \code{"en"},
-\code{"es"}.}
+\item{lang}{Character scalar: \code{"pt"} (default), \code{"en"} or \code{"es"}. Language of
+messages. An unsupported value gives a warning and falls back to \code{"pt"}.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. If \code{TRUE} (default) prints progress messages.}
 }
 \value{
 A \code{climasus_burden} object (named list) with:
@@ -99,5 +109,5 @@ sus_mod_burden(exc_list, rank_by = "excess_pct")
 }
 \seealso{
 \code{\link[=sus_mod_af]{sus_mod_af()}}, \code{\link[=sus_mod_excess]{sus_mod_excess()}}, \code{\link[=sus_mod_pool]{sus_mod_pool()}},
-\code{\link[=sus_mod_metaregression]{sus_mod_metaregression()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
+\code{\link[=sus_mod_metaregression]{sus_mod_metaregression()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, \code{\link[=sus_mod_plot_burden]{sus_mod_plot_burden()}}
 }

@@ -18,28 +18,38 @@ utils::globalVariables(c("code_muni", "date", ".data"))
 #' `sus_spatial_join`), equivalent to the role [sus_climate_aggregate()] plays
 #' for station-based INMET data.
 #'
-#' @param health_data A `climasus_df` at stage `"spatial"`, `"aggregate"`, or
-#'   `"census"`. Must contain `code_muni` (character) and `date` (Date) columns.
+#' @param health_data A `climasus_df` with `sus_meta` stage `"spatial"`, `"aggregate"`
+#'   or `"census"` (other stages error). Must contain every column named in `by`
+#'   (by default `code_muni` and `date`, a Date). Any geometry column is dropped
+#'   before joining.
 #'
-#' @param grid_data A `climasus_df` at stage `"climate"` produced by any
-#'   `sus_grid_*()` function. Must contain `code_muni` and `date` columns and
-#'   at least one environmental variable column.
+#' @param grid_data A `climasus_df` at stage `"climate"` produced by a `sus_grid_*()`
+#'   function (non-`climasus_df` or other stages error). Must contain every column
+#'   in `by` plus at least one other (environmental) column; `geometry`/`geom`
+#'   columns are ignored.
 #'
-#' @param by Character vector. Join key columns. Default `c("code_muni", "date")`.
-#'   Change to `c("code_muni")` if joining annual grid data (e.g., PRODES) to
-#'   monthly health data — the join will broadcast the annual value to all months.
+#' @param by Character vector of join key columns present in BOTH inputs.
+#'   Default `c("code_muni", "date")`. Use `"code_muni"` alone to join
+#'   time-invariant or annual grid data (e.g. PRODES) to health data: the grid
+#'   value is repeated for every health row of that municipality, so make sure
+#'   `grid_data` has one row per municipality (otherwise rows are duplicated).
+#'   Empty or non-character input errors.
 #'
-#' @param type_out Character. Overrides `sus_meta$type` in the result.
-#'   `NULL` (default) inherits the type from `grid_data`.
+#' @param type_out Character scalar or `NULL` (default). Overrides `sus_meta$type` in
+#'   the result; `NULL` inherits the type of `grid_data` (or `"grid"` if none).
 #'
-#' @param lang Character. Message language: `"pt"` (default), `"en"`, `"es"`.
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"` or
+#'   `"es"`; other values error.
 #'
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
 #' @return A `climasus_df` with all columns from `health_data` plus the
 #'   environmental variable columns from `grid_data`. Metadata:
-#'   `stage = "climate"`, `type` inherited from `grid_data` (or `type_out`).
-#'   Rows from `health_data` with no matching grid row receive `NA` for grid
+#'   `stage = "climate"`, `type` inherited from `grid_data` (or `type_out`);
+#'   the rest of `health_data`'s metadata is kept and a history entry is added.
+#'   It is a left join: every `health_data` row is kept. Columns present in
+#'   both inputs (other than `by`) are not overwritten but get dplyr's
+#'   `.x`/`.y` suffixes (a warning is printed). Rows from `health_data` with no matching grid row receive `NA` for grid
 #'   columns.
 #'
 #' @section Temporal granularity mismatch:
@@ -55,12 +65,12 @@ utils::globalVariables(c("code_muni", "date", ".data"))
 #' mt_mun <- read_municipality(code_muni = "MT", year = 2020)
 #'
 #' # Health data (SIH respiratory hospitalisations)
-#' sih_agg <- sus_data_import(system = "SIH", years = 2020, uf = "MT") |>
+#' sih_agg <- sus_data_import(uf = "MT", year = 2020, system = "SIH") |>
 #'   sus_data_clean_encoding() |>
 #'   sus_data_standardize() |>
-#'   sus_data_filter_cid(cid_group = "respiratorio") |>
-#'   sus_data_aggregate() |>
-#'   sus_spatial_join(municipalities = mt_mun)
+#'   sus_data_filter_cid(icd_codes = "J") |>
+#'   sus_data_aggregate(time_unit = "day") |>
+#'   sus_spatial_join(level = "munic")
 #'
 #' # Gridded climate data
 #' era5 <- sus_grid_era5(

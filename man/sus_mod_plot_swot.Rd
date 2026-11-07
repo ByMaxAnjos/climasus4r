@@ -20,37 +20,48 @@ sus_mod_plot_swot(
 \arguments{
 \item{x}{A \code{climasus_swot} object from \code{\link[=sus_mod_swot]{sus_mod_swot()}}.}
 
-\item{type}{Character. Plot type: \code{"radar"} (default), \code{"matrix"}, or
-\code{"bar"}.}
+\item{type}{Character scalar. Plot type: \code{"radar"} (default), \code{"matrix"},
+or \code{"bar"}. Partial matching applies.}
 
-\item{output_type}{Character. \code{"plot"} (default), \code{"table"}, or \code{"all"}
-(named list \verb{$plot}, \verb{$table}).}
+\item{output_type}{Character scalar. What to return: \code{"plot"} (default),
+\code{"table"}, or \code{"all"} (named list \verb{$plot}, \verb{$table}).}
 
-\item{interactive}{Logical. Convert the ggplot2 output to an interactive
-\pkg{plotly} widget. Default \code{FALSE}.}
+\item{interactive}{Logical scalar. \code{TRUE} converts the ggplot2 output with
+\code{plotly::ggplotly()} (requires \pkg{plotly}). Default \code{FALSE}.}
 
-\item{entities}{Character vector or \code{NULL}. Subset of entity names to plot.
-\code{NULL} (default) plots all entities. For \code{type = "matrix"}, only the first
-entity in the selection is shown.}
+\item{entities}{Character vector or \code{NULL}. Entity names (values of
+\code{x$scores$entity}) to plot, e.g. \code{"Manaus"} or \code{c("Manaus", "Belem")}.
+\code{NULL} (default) plots all entities. For \code{type = "matrix"} only one
+entity is shown (the first of the selection; a warning is issued when
+several are present).}
 
-\item{top_n}{Integer. For \code{type = "matrix"}, maximum number of indicator
-bullets to display per quadrant. Default \code{3L}.}
+\item{top_n}{Integer scalar. Only for \code{type = "matrix"}: maximum number of
+indicator bullets listed per quadrant. Default \code{3L}.}
 
-\item{base_size}{Numeric. ggplot2 base font size. Default \code{12}.}
+\item{base_size}{Numeric scalar. ggplot2 base font size in points. Default
+\code{12L}.}
 
-\item{save_plot}{Character or \code{NULL}. File path to save the plot (PNG/PDF).}
+\item{save_plot}{Character scalar or \code{NULL}. Output file path. The format
+follows the extension via \code{\link[ggplot2:ggsave]{ggplot2::ggsave()}} (e.g. \code{".png"}, \code{".pdf"};
+9 x 6 in); with \code{interactive = TRUE} it is saved as a self-contained HTML
+widget (requires \pkg{htmlwidgets}). \code{NULL} (default) does not save.}
 
-\item{lang}{Character. Language for labels: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar. Label language: \code{"pt"} (default), \code{"en"}, or
+\code{"es"}. An unsupported single string warns and falls back to \code{"pt"}.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{FALSE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{FALSE}.}
 }
 \value{
 Depending on \code{output_type}:
 \itemize{
-\item \code{"plot"} -> a \code{ggplot} or \code{plotly} object.
-\item \code{"table"} -> a \code{tibble} of the plotted data.
-\item \code{"all"} -> a named list \verb{$plot}, \verb{$table}.
+\item \code{"plot"}: a \code{ggplot} (or \code{plotly} if \code{interactive = TRUE}) object.
+\item \code{"table"}: a \code{tibble}. For \code{"radar"}/\code{"bar"} it is the long-format
+scores (entity, quadrant, score); for \code{"matrix"} it is \code{x$scores}
+filtered by \code{entities}.
+\item \code{"all"}: a named list \code{list(plot, table)}.
 }
+
+Errors if \code{x} is not a \code{climasus_swot}.
 }
 \description{
 Produces radar (spider), matrix (2x2 SWOT board), and bar charts from a
@@ -77,5 +88,6 @@ out <- sus_mod_plot_swot(swot, output_type = "all")
 
 }
 \seealso{
-\code{\link[=sus_mod_swot]{sus_mod_swot()}}, \code{\link[=sus_mod_plot_vulnerability]{sus_mod_plot_vulnerability()}}
+\code{\link[=sus_mod_swot]{sus_mod_swot()}}, \code{\link[=sus_mod_plot_vulnerability]{sus_mod_plot_vulnerability()}},
+\code{\link[=sus_mod_vulnerability_index]{sus_mod_vulnerability_index()}}
 }

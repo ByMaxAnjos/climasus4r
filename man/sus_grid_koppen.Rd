@@ -2,7 +2,7 @@
 % Please edit documentation in R/sus_grid_koppen.R
 \name{sus_grid_koppen}
 \alias{sus_grid_koppen}
-\title{Assign Kopppen-Geiger Climate Zones to Brazilian Municipalities}
+\title{Assign Koppen-Geiger Climate Zones to Brazilian Municipalities}
 \usage{
 sus_grid_koppen(
   data,
@@ -14,38 +14,49 @@ sus_grid_koppen(
 )
 }
 \arguments{
-\item{data}{A \code{climasus_df} or \code{data.frame} containing a \code{code_muni} column
-(6- or 7-digit IBGE municipality code), \strong{or} an \code{sf} object of Brazilian
-municipalities.}
+\item{data}{A \code{climasus_df}, \code{data.frame} or \code{sf} object with a \code{code_muni}
+column (6- or 7-digit IBGE code, character or numeric; the 7th digit is
+ignored). Other classes, or a missing \code{code_muni}, error. \code{sf} input is
+returned as a plain tibble without geometry.}
 
-\item{mode}{Character. Assignment mode: \code{"approx"} (default, no extra
-dependencies) or \code{"exact"} (requires \code{sf} and \code{koppen_sf}).}
+\item{mode}{Character scalar. \code{"approx"} (default): rule-based assignment from
+municipality centroids in the bundled \code{municipio_meta} table (no extra
+packages). \code{"exact"}: spatial join of those centroids to \code{koppen_sf}
+(requires \code{sf}). Any other value errors.}
 
-\item{koppen_sf}{An \code{sf} polygon object with a column named \code{koppen}
-containing the zone codes (\code{"Af"}, \code{"Am"}, etc.). Required when
-\code{mode = "exact"}. The Alvares et al. (2013) shapefile is available at
-\url{https://doi.org/10.1127/0941-2948/2013/0507}. Ignored for
-\code{mode = "approx"}.}
+\item{koppen_sf}{An \code{sf} polygon object with a column named \code{koppen} holding the
+zone codes (e.g. \code{"Af"}, \code{"Aw"}, \code{"Cf"}). Required for \code{mode = "exact"}
+(error if missing or without a \code{koppen} column); ignored for \code{"approx"}.
+Reprojected to EPSG:4326 if needed. With \code{as_factor = TRUE}, codes outside
+the seven levels below (e.g. \code{"Cfa"}, \code{"Cwb"}) become \code{NA}; use
+\code{as_factor = FALSE} to keep detailed codes. Reference publication:
+\url{https://doi.org/10.1127/0941-2948/2013/0507}.}
 
-\item{as_factor}{Logical. Return \code{zona_koppen} as an ordered factor with
-canonical level order (\verb{Af < Am < As < Aw < BSh < Cf < Cw})?
-Default \code{TRUE}. Set to \code{FALSE} to get a plain character column.}
+\item{as_factor}{Logical scalar. If \code{TRUE} (default) \code{zona_koppen} is an ordered
+factor with levels \verb{Af < Am < As < Aw < BSh < Cf < Cw}; if \code{FALSE} a
+character column. Municipalities without a match are \code{NA} (a warning is
+printed).}
 
-\item{lang}{Character. Language for messages: \code{"pt"} (default), \code{"en"},
-\code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"} or
+\code{"es"}. Unsupported values fall back to \code{"pt"} with a warning.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
-The input object with an additional column \code{zona_koppen}. If the
-input was a \code{climasus_df}, the returned object preserves its class and
-\code{sus_meta} attribute with the history updated.
+The input rows with an additional column \code{zona_koppen} (ordered
+factor or character, see \code{as_factor}). A \code{climasus_df} input keeps its
+class and \code{sus_meta} (stage/system unchanged, history updated); a
+\code{data.frame} or \code{sf} input returns a tibble.
 }
 \description{
-Adds a \code{zona_koppen} column to a \code{climasus_df} (or plain \code{data.frame}) with
-municipality-level Koppen-Geiger climate classification following
-Alvares et al. (2013), who produced the first high-resolution (1 km) Koppen
-map for Brazil.
+Adds a \code{zona_koppen} column with a municipality-level Koppen-Geiger climate
+class (after Alvares et al. (2013), the 1 km Koppen map for Brazil) to a
+\code{climasus_df}, \code{data.frame} or \code{sf} object. Use it at any pipeline stage
+after a \code{code_muni} column exists (typically after \code{\link[=sus_spatial_join]{sus_spatial_join()}}) to
+obtain a climate-zone covariate or stratifier for \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}} /
+\code{\link[=sus_mod_casecrossover]{sus_mod_casecrossover()}}. It does not change \code{sus_meta} stage or type
+(only a history entry is added). Note: \code{"approx"} uses simplified
+state/centroid rules (approximate, not the original raster).
 }
 \details{
 Two assignment modes are available:
@@ -94,5 +105,6 @@ Sparovek, G. (2013). Koppen's climate classification map for Brazil.
 \doi{10.1127/0941-2948/2013/0507}
 }
 \seealso{
-\code{\link[=sus_grid_era5]{sus_grid_era5()}}, \code{\link[=sus_mod_casecrossover]{sus_mod_casecrossover()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
+\code{\link[=sus_spatial_join]{sus_spatial_join()}}, \code{\link[=sus_grid_era5]{sus_grid_era5()}}, \code{\link[=sus_mod_casecrossover]{sus_mod_casecrossover()}},
+\code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
 }

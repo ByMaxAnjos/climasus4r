@@ -18,21 +18,29 @@ sus_data_export(
 )
 }
 \arguments{
-\item{df}{A data frame or sf object containing the processed health data to export.}
+\item{df}{A data frame, \code{climasus_df} or \code{sf} object to export. Lazy
+Arrow/DuckDB tables are not accepted (collect them first).}
 
-\item{file_path}{Character string specifying the output file path. The file
-extension determines the format if \code{format} is not explicitly specified.}
+\item{file_path}{Character scalar, output path, e.g. \code{"output/data.rds"}.
+Required. The extension is used to infer \code{format} when \code{format = NULL}.
+Aborts if the file exists and \code{overwrite = FALSE}.}
 
-\item{format}{Character string specifying the output format. Options:
-\code{"rds"} (default, R binary format), \code{"arrow"} (Apache Arrow/Parquet),
-\code{"geoparquet"} (GeoArrow/GeoParquet for spatial data), \code{"shapefile"} (ESRI Shapefile), \code{"GeoPackage"},
-and \code{"csv"} (comma-separated values).
-If \code{NULL}, infers from \code{file_path} extension and data type (auto-detects sf objects).}
+\item{format}{Character scalar, one of \code{"rds"}, \code{"parquet"}, \code{"csv"},
+\code{"geoparquet"}, \code{"shapefile"}, \code{"gpkg"}, \code{"geojson"}, or \code{NULL} (default)
+to infer. The spatial formats (\code{"geoparquet"}, \code{"shapefile"}, \code{"gpkg"},
+\code{"geojson"}) require an \code{sf} object. Inference: non-spatial data use the
+extension (\code{.rds}, \code{.csv}, \code{.parquet}; otherwise \code{"rds"}); \code{sf} data map
+\code{.shp}, \code{.parquet}/\code{.geoparquet}, \code{.gpkg}, \code{.geojson}, \code{.rds}, \code{.csv}
+(otherwise \code{"geoparquet"}). Any other value aborts. For \code{"parquet"} and
+\code{"csv"} with \code{sf} input the geometry is written as WKT text.}
 
-\item{include_metadata}{Logical. If \code{TRUE} (default), saves a companion
-metadata file (\code{.txt} or \code{.json}) with processing information.}
+\item{include_metadata}{Logical scalar, default \code{TRUE}. Save a companion
+\verb{<file>_metadata.txt} next to the file (readable with
+\code{\link[=sus_data_read]{sus_data_read()}} \code{read_metadata = TRUE}).}
 
-\item{metadata}{Named list containing custom metadata to save. Common fields:
+\item{metadata}{Named list of custom metadata written to the companion file,
+or \code{NULL} (default) to generate basic metadata (source, size, rows,
+columns, date, compression, spatial flag). Common fields:
 \itemize{
 \item \code{source_system}: Health system (e.g., "SIM-DO")
 \item \code{states}: Vector of state codes
@@ -43,27 +51,26 @@ metadata file (\code{.txt} or \code{.json}) with processing information.}
 \item \code{package_version}: climasus4r version
 \item \code{author}: Analyst name
 \item \code{notes}: Additional notes
-}
-If \code{NULL}, generates basic metadata automatically.}
+}}
 
-\item{compress}{Logical. If \code{TRUE} (default for RDS and Arrow), compresses
-the output file. Compression level can be specified for some formats.}
+\item{compress}{Logical scalar, default \code{TRUE}. Compress the output: RDS
+compression, Parquet \code{snappy} (otherwise uncompressed). Ignored by other
+formats.}
 
-\item{compression_level}{Integer specifying compression level (1-9). Higher
-values = smaller files but slower. Default is 6. Only applies to formats
-that support compression.}
+\item{compression_level}{Integer 1-9, default \code{6}. Currently \strong{not used} by
+the export code (kept for compatibility).}
 
-\item{overwrite}{Logical. If \code{TRUE}, overwrites existing files. If \code{FALSE}
-(default), stops with an error if file exists.}
+\item{overwrite}{Logical scalar, default \code{FALSE}. If \code{FALSE}, an existing
+file causes an error; if \code{TRUE} it is replaced.}
 
-\item{lang}{Character string specifying the language for messages. Options:
-\code{"en"} (English, default), \code{"pt"} (Portuguese), \code{"es"} (Spanish).}
+\item{lang}{Character scalar, \code{"pt"} (default), \code{"en"} or \code{"es"}. Language
+of messages; other values abort.}
 
-\item{verbose}{Logical. If \code{TRUE} (default), prints export summary.}
+\item{verbose}{Logical scalar, default \code{TRUE}. Print the export summary.}
 }
 \value{
-Invisibly returns the file path of the exported data. If metadata
-was saved, also returns the metadata file path as an attribute.
+Invisibly, the exported \code{file_path} (character); when metadata was
+written, its path is attached as attribute \code{"metadata_file"}.
 }
 \description{
 Exports processed health data to a file with optional metadata documentation
@@ -81,7 +88,7 @@ and interoperability with Python, Spark, etc.
 \item \strong{GeoParquet} (\code{.geoparquet}, \code{.parquet} for sf objects): Optimized
 columnar format for spatial data. Combines benefits of Parquet with
 efficient geometry storage. 50-90\% smaller than shapefiles, 10-100x faster.
-\item \strong{Shapefile} (\code{.shp} or \code{.gpkg}): Traditional GIS format. Widely supported but
+\item \strong{Shapefile} (\code{.shp}; \code{format = "gpkg"} for GeoPackage): Traditional GIS format. Widely supported but
 inefficient for large datasets. Multiple files generated (.shp, .shx, .dbf, etc.).
 \item \strong{CSV} (\code{.csv}): Universal text format. Human-readable, compatible
 with all software. Best for sharing with non-R users. Larger file size.
@@ -91,9 +98,9 @@ Note: Geometries are exported as WKT (Well-Known Text) for spatial data.
 \strong{Automatic Format Detection}:
 If \code{format = NULL}, the function automatically detects the best format:
 \itemize{
-\item If input is an \code{sf} object and extension is \code{.parquet} → \code{"geoparquet"}
-\item If input is an \code{sf} object and extension is \code{.shp} → \code{"shapefile"}
-\item Otherwise, infers from file extension
+\item If input is an \code{sf} object and extension is \code{.parquet} -> \code{"geoparquet"}
+\item If input is an \code{sf} object and extension is \code{.shp} -> \code{"shapefile"}
+\item Otherwise, infers from file extension (see \code{format})
 }
 
 \strong{Spatial Data Export}:
@@ -142,4 +149,7 @@ sus_data_export(
 )
 }
 
+}
+\seealso{
+\code{\link[=sus_data_read]{sus_data_read()}}, \code{\link[=sus_spatial_join]{sus_spatial_join()}}
 }

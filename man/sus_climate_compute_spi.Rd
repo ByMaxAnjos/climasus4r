@@ -16,31 +16,38 @@ sus_climate_compute_spi(
 )
 }
 \arguments{
-\item{df}{A \code{climasus_df} at \code{stage = "climate"} with monthly precipitation.
-Must contain \code{code_muni} (character), \code{date} (Date, first day of each
-month), and the column named by \code{var}.}
+\item{df}{A \code{climasus_df} at \code{stage = "climate"} (any other stage or a plain
+tibble errors; Arrow objects are collected) with monthly precipitation.
+Must contain \code{code_muni} (character), \code{date} (Date or coercible, first day
+of each month), and the column named by \code{var}.}
 
-\item{var}{Character. Name of the monthly precipitation column.
-Default \code{"rainfall_chirps_mm"}. Other common value: \code{"rainfall_mm"}.}
+\item{var}{Single character string. Name of the monthly precipitation
+column (mm). Default \code{"rainfall_chirps_mm"}. Other common value:
+\code{"rainfall_mm"}. Errors if not found.}
 
-\item{scales}{Integer vector. SPI timescales in months. Default
-\code{c(1L, 3L, 6L, 12L)}. Common choices: 1 (soil moisture), 3 (short-term),
-6 (agriculture/water supply), 12 (groundwater/streamflow).}
+\item{scales}{Positive integer vector of SPI timescales in months, e.g.
+\code{3}, \code{c(3, 6)} or \code{1:12}. Default \code{c(1L, 3L, 6L, 12L)}. Duplicates dropped,
+sorted. Values below 1 or non-numeric input error. Common choices: 1
+(soil moisture), 3 (short-term), 6 (agriculture/water supply), 12
+(groundwater/streamflow).}
 
-\item{ref_start}{Date or \code{NULL}. Start of the calibration period for
-gamma distribution fitting. \code{NULL} (default) uses all available data.
-WMO recommends at least 30 years; CHIRPS 1981–2010 is ideal.}
+\item{ref_start}{\code{Date}, date string (\code{"1991-01-01"}) or \code{NULL}. Start of
+the calibration period for gamma distribution fitting. \code{NULL} (default)
+uses all available data. WMO recommends at least 30 years; CHIRPS
+1981-2010 is ideal. Must be earlier than \code{ref_end} if both are given.}
 
-\item{ref_end}{Date or \code{NULL}. End of the calibration period.
-\code{NULL} (default) uses all available data.}
+\item{ref_end}{\code{Date}, date string (\code{"2020-12-31"}) or \code{NULL}. End of the
+calibration period. \code{NULL} (default) uses all available data.}
 
-\item{min_n}{Integer. Minimum number of non-NA, non-zero precipitation
-values required to fit the gamma distribution per location. Default \code{24L}
-(2 years). Locations with fewer values receive \code{NA} for all SPI columns.}
+\item{min_n}{Single integer >= 2. Minimum number of non-NA rolling-sum
+values in the calibration period required per location. Default \code{24L}
+(2 years). Locations with fewer values receive \code{NA} for all SPI columns
+(a location also gets \code{NA} if fewer than 4 positive values exist).}
 
-\item{lang}{Character. Message language: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Single character string. Message language: \code{"pt"} (default),
+\code{"en"}, \code{"es"}; other values error.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
 The input \code{climasus_df} with additional columns:
@@ -48,7 +55,9 @@ The input \code{climasus_df} with additional columns:
 \item \verb{spi_\{s\}mo} — SPI at timescale \code{s} months (numeric, dimensionless)
 }
 For example, \code{scales = c(1, 3, 6, 12)} adds \code{spi_1mo}, \code{spi_3mo},
-\code{spi_6mo}, \code{spi_12mo}. Metadata: \code{stage = "climate"}, \code{type = "spi"}.
+\code{spi_6mo}, \code{spi_12mo}. The first \code{s - 1} months of each location are \code{NA}
+(incomplete window). Output is sorted by \code{code_muni} and \code{date}.
+\code{sus_meta()}: \code{stage = "climate"}, \code{type = "spi"} (other fields kept).
 }
 \description{
 \code{sus_climate_compute_spi()} calculates the Standardized Precipitation Index
@@ -69,7 +78,12 @@ vector-borne diseases during water scarcity
 The function requires \strong{monthly} precipitation data (one row per
 municipality × month). The best upstream source is
 \code{\link[=sus_grid_chirps]{sus_grid_chirps()}} with \code{resolution = "monthly"} (0.05°, 1981–present).
-INMET-derived \code{rainfall_mm} from \code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}} also works.
+INMET-derived \code{rainfall_mm} aggregated monthly (e.g. with
+\code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}} \code{time_unit = "month"}) also works, as does monthly
+\code{\link[=sus_climate_uniplu]{sus_climate_uniplu()}} output (\code{aggregate_to = "month"}) once \code{code_muni}
+has been added. Rows must be consecutive months per municipality: the
+rolling sum is taken over the previous \code{s} rows, so missing months must be
+present as \code{NA}.
 }
 \section{SPI classification}{
 
@@ -93,6 +107,8 @@ For each municipality and timescale \code{s}:
 \item Estimate gamma distribution parameters (shape \eqn{\alpha},
 rate \eqn{\beta}) via method of moments from the calibration period,
 handling zero-inflation with a mixed distribution (McKee et al., 1993).
+The fit pools all calendar months of the location (it is not fitted
+separately for each month of the year).
 \item Transform to standard normal: \code{SPI = qnorm(p0 + (1-p0) * pgamma(x, shape, rate))}, where \code{p0} is the proportion of zeros.
 }
 }
@@ -134,6 +150,7 @@ drought frequency and duration to time scales. \emph{Proceedings of the 8th
 Conference on Applied Climatology}. American Meteorological Society.
 }
 \seealso{
-\code{\link[=sus_grid_chirps]{sus_grid_chirps()}}, \code{\link[=sus_climate_anomaly]{sus_climate_anomaly()}}, \code{\link[=sus_grid_join]{sus_grid_join()}},
+\code{\link[=sus_climate_compute_spei]{sus_climate_compute_spei()}}, \code{\link[=sus_grid_chirps]{sus_grid_chirps()}},
+\code{\link[=sus_climate_uniplu]{sus_climate_uniplu()}}, \code{\link[=sus_climate_anomaly]{sus_climate_anomaly()}}, \code{\link[=sus_grid_join]{sus_grid_join()}},
 \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
 }

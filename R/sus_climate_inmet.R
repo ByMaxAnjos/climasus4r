@@ -4,6 +4,14 @@
 #' `sus_climate_inmet()` downloads, imports, standardizes, and quality-controls
 #' Brazilian meteorological data from the National Institute of Meteorology (INMET).
 #'
+#' This is the entry point of the **climate** branch of the pipeline (stage
+#' `"climate"`, type `"inmet"`). Its output feeds [sus_climate_fill_inmet()]
+#' (gap filling), [sus_climate_aggregate()] (join with health data),
+#' [sus_climate_compute_indicators()], [sus_climate_compute_heatwaves()] and
+#' [sus_climate_compute_coldwaves()]. It does not need a health `climasus_df`
+#' as input. Only INMET automatic-station historical files (2000 onwards) are
+#' supported; a network connection is required unless the data are cached.
+#'
 #' The function implements a **comprehensive processing pipeline**:
 #' \enumerate{
 #'   \item **Download**: Multi-year data with automatic retry and backoff
@@ -14,49 +22,59 @@
 #'   \item **Parallel Processing**: Both between and within years
 #' }
 #'
-#' @param years Numeric vector of year(s) to import.
-#'   Examples: `2020`, `2020:2024`, `c(2019, 2021, 2023)`.
-#'   Must be between 2000 and current year. If `NULL`, imports last 2 years.
+#' @param years Numeric (integer-valued) vector of year(s) to import. Accepted
+#'   forms: a single year (`2023`), a range (`2020:2024`), or an explicit
+#'   vector (`c(2019, 2021, 2023)`). `c(2020, 2024)` means exactly those two
+#'   years, **not** the range 2020-2024; use `2020:2024` for a range.
+#'   Duplicates are dropped and years are sorted. Valid values are 2000 up to
+#'   the current year (the current year is partial); values outside this
+#'   interval, `NA`, or non-numeric input (e.g. `"2023"`) raise an error.
+#'   If `NULL` (default), the previous and the current year are imported.
 #'
-#' @param uf Character vector of Brazilian state codes (e.g., `"AM"`,
-#'   `c("RJ", "MG")`). Case insensitive. If `NULL` (default), imports
-#'   **all 27 states** (may be slow - see **Performance**).
+#' @param uf Character vector of two-letter state codes: one (`"AM"`) or
+#'   several (`c("RJ", "MG")`). Case insensitive, whitespace trimmed. The 27
+#'   UFs (incl. `"DF"`) are valid; unknown codes, `NA` or empty strings raise
+#'   an error. The string `"all"` is **not** accepted: use `NULL` (default),
+#'   which imports **all states** (slow for many years).
 #'
 #' @param station_code Character vector of INMET station codes to filter
-#'   (e.g., `c("A101", "A122")`). Optional. If provided, the function downloads
-#'   data for the requested `years`/`uf` and then filters to include only the
-#'   specified stations. If `NULL` (default), all stations in the selected
-#'   states are returned. Station codes are matched case-insensitively.
+#'   (e.g., `"A101"`, `c("A101", "A122")`). Optional. If provided, the function
+#'   downloads data for the requested `years`/`uf` and then keeps only the
+#'   specified stations (filter applied after download, so it does not reduce
+#'   download size). Matched case-insensitively. If `NULL` (default), all
+#'   stations are returned. Errors if no row matches any code.
 #'
-#' @param use_cache Logical. If `TRUE` (default), implements two-level caching:
-#'   \itemize{
-#'     \item **Session cache**: In-memory cache (MD5 hash of parameters)
-#'     \item **Disk cache**: Parquet files with Zstandard compression
-#'   }
-#'   Use `unlink(cache_dir, recursive = TRUE)` to clear all caches.
+#' @param use_cache Logical scalar. If `TRUE` (default), downloaded zips and
+#'   the processed Parquet dataset (partitioned by year) are stored in and
+#'   re-used from `cache_dir`; requires the \pkg{arrow} package for the
+#'   Parquet layer. If `FALSE`, nothing is read from the cache.
+#'   Use `unlink(cache_dir, recursive = TRUE)` to clear it.
 #'
-#' @param cache_dir Character. Directory path for disk cache.
-#'   Default: `"~/.climasus4r_cache/climate"`. Created automatically.
+#' @param cache_dir Single non-empty character string: directory for the disk
+#'   cache. Default `"~/.climasus4r_cache/climate"` (tilde expanded). Created
+#'   automatically when `use_cache = TRUE`.
 #'
-#' @param parallel Logical. If `TRUE` (default), enables **two levels** of parallelism:
+#' @param parallel Logical scalar. Default `FALSE`. If `TRUE` (and the
+#'   effective number of workers is greater than 1), enables parallelism:
 #'   \itemize{
 #'     \item **Between years**: Multiple years downloaded simultaneously
 #'     \item **Within year**: CSV files for each year parsed in parallel
 #'   }
 #'   For single-year imports, only within-year parallelization applies.
 #'
-#' @param workers Integer. Number of parallel workers. Default: `4`.
-#'   Ignored if `parallel = FALSE`. Uses `future::multisession` backend.
-#'   Automatically capped at `availableCores() - 1`.
+#' @param workers Single positive integer: number of parallel workers.
+#'   Default `2`. Ignored if `parallel = FALSE`. Uses the \pkg{future}
+#'   multisession backend and is automatically capped at the number of cores
+#'   available minus one (a message reports the cap when `verbose = TRUE`).
 #'
-#' @param lang Character. Message language. One of:
+#' @param lang Single character string, message language. One of:
 #'   \itemize{
 #'     \item `"pt"`: Portuguese (default)
 #'     \item `"en"`: English
 #'     \item `"es"`: Spanish
 #'   }
 #'
-#' @param verbose Logical. If `TRUE` (default), prints detailed progress including:
+#' @param verbose Logical scalar. If `TRUE` (default), prints detailed progress including:
 #'   \itemize{
 #'     \item Cache hits/misses
 #'     \item Download progress with retry attempts
@@ -70,7 +88,7 @@
 #'
 #' **Data Columns:**
 #' \describe{
-#'   \item{`station_code`}{Character. INMET 8-digit station identifier (e.g., "A001")}
+#'   \item{`station_code`}{Character. INMET station identifier (e.g., "A001")}
 #'   \item{`station_name`}{Character. Full station name}
 #'   \item{`region`}{Character. Brazilian region (Norte, Nordeste, etc.)}
 #'   \item{`UF`}{Character. State abbreviation}
@@ -82,17 +100,17 @@
 #'
 #' **Metadata** (accessible via `attr(x, "sus_meta")`):
 #' \describe{
-#'   \item{`version`}{Package version used}
-#'   \item{`timestamp`}{Import date/time}
-#'   \item{`source`}{"INMET"}
+#'   \item{`system`}{`NULL` (not a DATASUS system)}
+#'   \item{`stage`}{`"climate"`}
+#'   \item{`type`}{`"inmet"`}
+#'   \item{`spatial`}{Logical, `TRUE` if the object is an `sf`}
+#'   \item{`temporal`}{List with `start` and `end` (min/max `date`)}
 #'   \item{`years`}{Years imported}
-#'   \item{`ufs`}{States imported}
-#'   \item{`station_codes`}{Station codes filtered (or NULL if all)}
-#'   \item{`cache_used`}{Whether cache was used}
-#'   \item{`qc_stats`}{List with quality control statistics}
+#'   \item{`ufs`}{States requested (`NULL` if all)}
+#'   \item{`station_codes`}{Station codes filtered (or `NULL` if all)}
 #'   \item{`n_stations`}{Number of unique stations}
 #'   \item{`n_observations`}{Total rows}
-#'   \item{`temporal_coverage`}{List with `start` and `end` dates}
+#'   \item{`created`, `modified`}{Timestamps}
 #'   \item{`history`}{Character vector of processing steps}
 #' }
 #'
@@ -150,7 +168,6 @@
 #' \itemize{
 #'   \item **Format**: Apache Parquet with Zstandard compression (level 6)
 #'   \item **Partitioning**: By `year` and `UF` for fast filtering
-#'   \item **Backup**: Compressed CSV as fallback if Parquet corrupted
 #'   \item **Location**: `~/.climasus4r_cache/climate/inmet_parquet/`
 #' }
 #'
@@ -165,6 +182,8 @@
 #'
 #' @seealso
 #' * [sus_climate_fill_inmet()] for ML-based gap filling
+#' * [sus_climate_aggregate()] to join climate with health data
+#' * [sus_climate_compute_indicators()] for derived indicators
 #' * [sus_spatial_join()] for preparing municipality data
 #'
 #' @examples
@@ -197,8 +216,11 @@
 #'   verbose = TRUE
 #' )
 #'
+#' # Non-consecutive years: exactly 2019 and 2023 (NOT 2019-2023)
+#' climate_two <- sus_climate_inmet(years = c(2019, 2023), uf = "AM")
+#'
 #' # Inspect available stations
-#' climate_df |>
+#' climate_am |>
 #'   dplyr::distinct(station_code, station_name, latitude, longitude)
 #' }
 #'
@@ -477,7 +499,7 @@ sus_climate_inmet <- function(
 #' multiple years. Features intelligent caching, parallel processing, UF
 #' filtering, and robust download with retries.
 #'
-#' @param years Numeric vector. Year(s) to download.
+#' @param years Integer vector. Year(s) to download.
 #' @param uf Character vector. State codes to filter (optional).
 #' @param cache_dir Character. Directory for caching.
 #' @param use_cache Logical. Whether to use cached data.

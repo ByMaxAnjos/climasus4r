@@ -7,115 +7,73 @@
 #' Includes specialized support for SUS-specific coding practices and
 #' multilingual interface (English, Portuguese, Spanish).
 #'
-#' @param df A `data.frame` or `tibble` containing SUS health data with ICD-10 codes.
-#'   Typically obtained from DATASUS systems (SIM, SIH, SINAN). The data should
-#'   contain at least one column with ICD-10 codes in standard format (e.g., "A00.0",
-#'   "I10", "C50.9").
-#' @param icd_codes A character vector of ICD-10 codes, ranges, or categories.
-#'   Multiple syntaxes are supported:
+#' @param df A `climasus_df` (stage `"stand"` or later, see
+#'   [sus_data_standardize()]), tibble/data frame, or lazy Arrow/DuckDB table
+#'   with at least one ICD-10 column. Systems without ICD-10 (SINAN, CNES,
+#'   and SINASC in practice) have no auto-detectable column; pass `icd_column`
+#'   explicitly or the function aborts with "ICD column not found".
+#' @param icd_codes Character vector of ICD-10 codes, or `NULL` (default).
+#'   Provide either `icd_codes` or `disease_group`; if both are given,
+#'   `disease_group` wins and `icd_codes` is ignored with a warning; if neither,
+#'   the function aborts. Accepted forms:
+#'   - Single or multiple codes: `"J18"`, `c("I10", "I11", "I21")`. Codes are
+#'     compared as written (DATASUS stores them without the dot, e.g. `"J189"`;
+#'     use 3-character categories or prefixes such as `"J18"` with
+#'     `match_type = "starts_with"`).
+#'   - Letter-number ranges: `"J00-J99"`, `"J09-J18"`, `"C00-D48"`,
+#'     `"V01-Y98"`; ranges may span several letters and are expanded to
+#'     3-character categories (e.g. `J09`, `J10`, ..., `J18`).
+#'   - A single letter for a whole chapter: `"I"` (all `I...` codes, with
+#'     `match_type = "starts_with"`).
+#' @param disease_group Character scalar or vector with names of predefined
+#'   disease groups, or `NULL` (default). Examples: `"dengue"`, `"malaria"`,
+#'   `"respiratory"`, `"cardiovascular"`, `"diarrheal"`, `"heat_related"`,
+#'   `"climate_sensitive_all"`, `"pediatric_respiratory"`,
+#'   `c("dengue", "chikungunya")` (union of codes). There are 58 groups
+#'   (defined in the internal `.icd_disease_groups` list; inspect them with
+#'   `names(climasus4r:::.icd_disease_groups)`). Unknown names abort and list
+#'   suggestions. Takes precedence over `icd_codes`.
+#' @param icd_column Character scalar, name of the column with ICD-10 codes,
+#'   e.g. `"causa_basica"`. `NULL` (default) auto-detects it from the system
+#'   and `lang` (column names depend on `lang` used in
+#'   [sus_data_standardize()]): SIM `causa_basica` / `underlying_cause` / `causa_basica`
+#'   then the cause lines; SIH `diagnostico_principal` / `primary_diagnosis`
+#'   and secondary diagnoses; SIA `cid_principal` / `primary_icd`; otherwise any
+#'   column matching known ICD names.
+#' @param match_type Character scalar, how codes are matched:
+#'   - `"starts_with"` (default): the column value begins with any code
+#'     (`"I10"` matches `"I10"`, `"I100"`, `"I109"`).
+#'   - `"exact"`: the value equals one of the codes.
+#'   - `"range"`: unanchored regex match of the (expanded) codes anywhere in the value.
+#'   Any other value (including `"chapter"` and `"fuzzy"`) is **not
+#'   implemented**: a warning is issued and `"starts_with"` is used.
+#' @param backend Character scalar, `"arrow"` (default) or `"tibble"`.
+#'   `"arrow"` filters lazily and falls back to `"tibble"` (in memory) with a
+#'   warning if it fails; `"tibble"` processes in memory.
+#' @param lang Character scalar, `"pt"` (default), `"en"` or `"es"`. Language of
+#'   messages and of the standardized column names looked up for ICD
+#'   auto-detection.
+#' @param verbose Logical scalar, default `TRUE`. Print records before/after
+#'   and percentage retained.
 #'
-#'   **Basic filtering:**
-#'   - Single code: `"J18.9"` (Pneumonia, unspecified)
-#'   - Multiple codes: `c("I10", "I11.0", "I11.9")` (Hypertensive diseases)
-#'
-#'   **Range filtering:**
-#'   - Complete range: `"J00-J99"` (All diseases of respiratory system)
-#'   - Partial range: `"J09-J18"` (Influenza and pneumonia only)
-#'
-#'   **Chapter filtering:**
-#'   - Full chapter: `"I"` (All diseases of circulatory system, codes I00-I99)
-#'   - Chapter group: `"C00-D48"` (All neoplasms)
-#'
-#'   **Special SUS categories:**
-#'   - `"causas_externas"` or `"external_causes"`: V01-Y98 (External causes)
-#'   - `"causas_maternas"` or `"maternal_causes"`: O00-O99 (Pregnancy/childbirth)
-#'   - `"causas_infantis"` or `"infant_causes"`: P00-P96 (Perinatal conditions)
-#'   - `"doencas_infecciosas"` or `"infectious_diseases"`: A00-B99 (Infectious)
-#'   - `"doencas_respiratorias"` or `"respiratory_diseases"`: J00-J99 (Respiratory)
-#'   - `"doencas_cardiovasculares"` or `"cardiovascular_diseases"`: I00-I99 (Cardio)
-#'   - `"neoplasias"` or `"neoplasms"`: C00-D48 (Neoplasms)
-#'
-#'   **Brazilian epidemiological priorities:**
-#'   - `"dengue_like"`: A90-A91 (Dengue) + A92.0-A92.9 (Other viral fevers)
-#'   - `"zika_chik"`: A92.8 (Zika) + A92.0 (Chikungunya)
-#'   - `"tb_respiratoria"`: A15-A16 (Respiratory tuberculosis)
-#'   - `"covid19"`: U07.1 (COVID-19) + U07.2 (Suspected COVID-19)
-#'   - `"violencia"`: X85-Y09 (Assault) + Y35-Y36 (Legal intervention)
-#'
-#'   **Note**: Either `icd_codes` OR `disease_group` must be provided, not both.
-#'
-#' @param disease_group Character. Name of predefined disease group (e.g., "dengue",
-#'   "cardiovascular", "respiratory"). Use `list_disease_groups()` to see all available groups.
-#'   Mutually exclusive with `icd_codes`.
-#'
-#' @param icd_column Character. Name of the column containing ICD-10 codes.
-#'   If NULL (default), the function attempts auto-detection from common SUS
-#'   column names in this priority order:
-#'   1. `"CAUSABAS"` - Underlying cause (primary cause of death in SIM)
-#'   2. `"DIAG_PRINC"` - Main diagnosis (SIH hospitalizations)
-#'   3. `"DIAG_SECUN"` - Secondary diagnosis
-#'   4. `"CAUSAOBITO"` - Cause of death (alternative SIM field)
-#'   5. `"DIAGNOSTIC"` - Diagnosis (SINAN notifiable diseases)
-#'   6. `"linha_a"` through `"linha_f"` - Multiple cause lines (SIM)
-#'
-#' @param match_type Character. Type of matching algorithm:
-#'   - `"exact"`: Exact code match (e.g., "I10" matches only "I10")
-#'   - `"starts_with"`: Match codes starting with pattern (default, e.g., "I10" matches "I10", "I10.0", "I10.9")
-#'   - `"range"`: Match codes within specified ranges (e.g., "I10-I15" matches I10-I15.9)
-#'   - `"chapter"`: Match entire ICD-10 chapter (e.g., "I" matches I00-I99.9)
-#'   - `"fuzzy"`: Allow for common SUS coding variations (e.g., "I10" matches "I10", "I10 ", "I10X")
-#'
-#' @param backend Character string specifying the data processing backend.
-#'   Use `"arrow"` for out-of-memory, lazy processing (recommended for large datasets),
-#'   or `"tibble"` for in-memory processing (recommended for small to medium datasets).
-#'
-#'   - `"arrow"`: operations are performed lazily using the Apache Arrow engine,
-#'     avoiding loading the full dataset into memory. Ideal for large files
-#'     (e.g., Parquet, Feather) and high-performance workflows.
-#'
-#'   - `"tibble"`: data is fully loaded into memory as a tibble and processed eagerly
-#'     using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
-#'
-#'   If not specified, the function may automatically choose the backend based on
-#'   the input data type.
-#' @param lang Character. Language for user interface messages, warnings, and
-#'   documentation. Options:
-#'   - `"en"`: English
-#'   - `"pt"`: Portuguese (default, recommended for Brazilian users)
-#'   - `"es"`: Spanish
-#'   Affects all console output and documentation of matched codes.
-#'
-#' @param verbose Logical. If TRUE (default), prints detailed filtering
-#'   information including: records processed, match statistics, common
-#'   coding issues detected, and time elapsed.
-#'
-#' @return A filtered `data.frame` or `tibble` containing only records matching
-#'   the specified ICD-10 codes or disease group. The output preserves all original columns
+#' @return The input rows whose ICD column matches, all columns preserved (a
+#'   `climasus_df`; lazy if the input was lazy and arrow succeeded).
+#'   `sus_meta`: `stage = "filter_cid"`, `type = "filter_cid"`, with a history
+#'   entry describing the filter.
 #'
 #' @details
-#' ## Automatic ICD Column Detection
+#' Pipeline position: after [sus_data_standardize()]; next
+#' [sus_data_filter_demographics()] and [sus_data_create_variables()].
 #'
-#' The function automatically identifies the appropriate ICD column based on the
-#' health system
+#' ## Disease groups
+#' The predefined groups cover ICD chapters, climate-sensitive diseases
+#' (vector-borne, waterborne, heat/cold related), specific conditions (dengue,
+#' malaria, cardiovascular, respiratory, ...), syndromic groups and
+#' age-specific groups. Each group stores ICD code ranges, multilingual labels
+#' and a climate-sensitivity flag.
 #'
-#' ## Disease Groups
-#'
-#' The function includes 50+ predefined epidemiological groups organized by:
-#'
-#' - **ICD Chapters**: All major disease categories (A00-Y98)
-#' - **Climate-Sensitive Diseases**: Vector-borne, waterborne, heat-related, etc.
-#' - **Specific Conditions**: Dengue, malaria, cardiovascular, respiratory, etc.
-#' - **Syndromic Groups**: Fever, respiratory, diarrheal syndromes
-#' - **Age-Specific Groups**: Pediatric, elderly populations
-#'
-#' Each group includes:
-#' - ICD code ranges
-#' - Multilingual labels and descriptions
-#' - Climate sensitivity flag
-#' - Associated climate factors
-#'
-#' Use `list_disease_groups()` to see all available groups and their details.
-#'
+#' @seealso [sus_data_standardize()], [sus_data_filter_demographics()],
+#'   [sus_data_create_variables()], [sus_data_cid_select()]
 #'
 #' @importFrom stringr str_detect str_trim str_to_upper str_remove_all
 #' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_alert_warning cli_alert_danger
@@ -160,14 +118,6 @@
 #'   lang = "pt"
 #' )
 #'
-#' # List all available disease groups
-#' list_disease_groups(lang = "pt")
-#'
-#' # List only climate-sensitive groups
-#' list_disease_groups(climate_sensitive_only = TRUE, lang = "en")
-#'
-#' # Get details about a specific group
-#' get_disease_group_details("dengue", lang = "pt")
 #' }
 #'
 #' @references

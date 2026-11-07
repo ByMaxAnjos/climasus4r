@@ -11,14 +11,27 @@ sus_cache_clear(
 )
 }
 \arguments{
-\item{cache_dir}{Character. Cache directory to clear. Default is "~/.climasus4r_cache".}
+\item{cache_dir}{Character scalar, cache directory to clear. Default
+\code{"~/.climasus4r_cache"}. A non-existent directory is reported and nothing
+is done.}
 
-\item{older_than_days}{Numeric. Only clear files older than this many days. NULL clears all.}
+\item{older_than_days}{Numeric scalar, e.g. \code{30}. Only files whose age in days
+exceeds this value are deleted. \code{NULL} (default) clears all matching files.}
 
-\item{verbose}{Logical. If TRUE, prints information about what was cleared.}
+\item{verbose}{Logical scalar, default \code{TRUE}. Print what will be deleted;
+in an interactive session (and only when \code{verbose = TRUE}) you are asked
+to confirm.}
+}
+\value{
+Invisibly, the number of files deleted, or \code{NULL} if nothing was
+deleted (missing directory, no files or none matching, or cancelled).
 }
 \description{
-Clear the Climasus4r cache
+Deletes cached data files (\code{.parquet}, \code{.rds}, \code{.dbf}, \code{.shp}, \code{.gpkg},
+\code{.geojson}, \code{.csv}, \code{.txt}) found in \code{cache_dir} and its sub-folders (the search is
+recursive), including the downloads of \code{\link[=sus_data_import]{sus_data_import()}} stored in
+\verb{~/.climasus4r_cache/data} (Parquet files of the arrow backend in its \code{raw}
+sub-folder).
 }
 \examples{
 \dontrun{
@@ -28,4 +41,7 @@ sus_cache_clear()
 # Clear only files older than 90 days
 sus_cache_clear(older_than_days = 90)
 }
+}
+\seealso{
+\code{\link[=sus_cache_info]{sus_cache_info()}}, \code{\link[=sus_data_import]{sus_data_import()}}
 }

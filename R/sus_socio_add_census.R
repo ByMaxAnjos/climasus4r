@@ -1,104 +1,116 @@
 #' Add Census Socioeconomic variables to Health Data
 #'
-#' Enriches health data with socioeconomic indicators from Brazilian Census using
-#' the `censobr` package. Provides aggregation of microdata to municipality level. Supports multiple census datasets (population, households,
-#' families, mortality, emigration) with intelligent caching and optimized performance for large datasets using Arrow/Parquet format.
-#'
-#' @param df A `data.frame` or `sf` object containing health data. Typically the output from `sus_spatial_join()` function.
-#' @param dataset Character string specifying the census dataset to use. Options:
-#'   \itemize{
-#'     \item `"population"` - Population microdata (default)
-#'     \item `"households"` - Household microdata
-#'     \item `"families"` - Family microdata
-#'     \item `"mortality"` - Mortality microdata
-#'     \item `"emigration"` - Emigration microdata
-#'     \item `"tracts"` - Census tract aggregate data (setores censitarios).
-#'       Use `tracts_dataset` to select which tract table to download.
-#'       Combine with `join_level = "tract"` to join tract-level values
-#'       (no aggregation) to a table of tracts.
-#'   }
-#' @param tracts_dataset Character string. Relevant only when `dataset = "tracts"`.
-#'   Selects which censobr tract table to download; the name is validated by
-#'   `censobr::read_tracts()`. Census 2010 options: `"Basico"` (default),
-#'   `"Domicilio01"`, `"Domicilio02"`, `"DomicilioRenda"`,
-#'   `"Pessoa01"` through `"Pessoa13"`, `"ResponsavelRenda"`,
-#'   `"ResponsavelRendaSexo"`. Census 2022 options: `"Basico"`, `"Pessoas"`,
-#'   `"Domicilio"`, `"ResponsavelRenda"`, `"Entorno"`, `"Indigenas"`,
-#'   `"Quilombolas"`.
-#'   See `censobr::read_tracts()` for full variable listings per table.
-#' @param year Integer specifying census year. Options: `2010` (default), `2000`
-#'   or `2022` (tracts only in some tables). Note: dataset availability varies by year.
-#' @param census_vars Character vector specifying census variables to add. Use `sus_census_select()` to select available variables.
-#'   If `NULL`, returns all available variables (not recommended for large datasets).
-#' @param aggregation_fun Character. Method to aggregate microdata to municipality level:
-#'   \itemize{
-#'     \item `"sum"` - Sums the selected variables by municipality (e.g., for total population).
-#'     \item `"mean"` - Averages the selected variables (e.g., for income).
-#'     \item `"median"`, `"min"`, `"max"`, `"sd"`, `"q25"`, `"q75"`, `"q95"`, and `"q99"`.
-#'   }
-#' @param join_muni_col Character string specifying the column in df containing the **6 or 7-digit IBGE municipality code**. If `NULL`, detects common SUS patterns (e.g., `code_muni`).
-#' @param join_level Character. `"muni"` (default): microdata/tracts are
-#'   aggregated to municipality and joined by municipality code. `"tract"`:
-#'   only valid with `dataset = "tracts"`; `df` is a table of census tracts
-#'   (e.g. an `sf` of setores) and the censobr tract table is joined by tract
-#'   code, with raw censobr column names, no aggregation and no suffix.
-#' @param join_tract_col Character. Column of `df` holding the 15-digit tract
-#'   code when `join_level = "tract"`. If `NULL`, auto-detects `code_tract` or
-#'   `CD_SETOR`.
-#' @param use_cache Logical. If `TRUE` (default), uses censobr's caching system to store
-#'   downloaded data locally for faster subsequent access.
-#' @param cache_dir Character string specifying cache directory path. Defaults to
-#'   `"~/.climasus4r_cache/census"`.The function automatically calls `censobr::set_censobr_cache_dir(cache_dir)` to ensure consistency across the ecosystem.
-#' @param lang Character string specifying language for messages. Options: `"pt"` (Portuguese, default), `"en"` (English), `"es"` (Spanish).
-#' @param translate_columns Logical. If TRUE, translates column names. Default is TRUE.
-#' @param standardize_values Logical. If TRUE, standardizes categorical values. Default is TRUE.
-#' @param verbose Logical. If `TRUE` (default), prints progress messages and download progress bar.
-#'
-#' @return Returns the input `data.frame` or `sf` object with additional columns. If the input is an sf object, the spatial geometry and CRS are strictly preserved through a join.
+#' @description
+#' Enriches spatialized health data with Brazilian Census variables from the
+#' `censobr` package, aggregated to municipality level (or joined by census
+#' tract). Run it after [sus_spatial_join()] (stage `"spatial"` or later) and
+#' before [sus_socio_compute_indicators()] and the epidemiological models. Use
+#' [sus_census_select()] to discover valid `census_vars`.
 #'
 #' @details
-#' **Integration with censobr package**:
-#' This function is a wrapper around censobr's dataset-specific functions
-#' (`read_population()`, `read_households()`, etc.), providing seamless integration
-#' with the climasus4r ecosystem.
+#' **Integration with censobr**: wraps `censobr::read_population()`,
+#' `read_households()`, `read_families()`, `read_mortality()`,
+#' `read_emigration()` and `read_tracts()`, reading Arrow/Parquet data lazily,
+#' filtering to the municipalities present in `df` before collecting, and
+#' caching downloads in `cache_dir`.
 #'
-#' **Geographic Columns**:
-#' The function automatically inherits and matches geographic columns following
-#' the geobr/censobr standard:
-#' \itemize{
-#'   \item `code_muni` - 7-digit municipality code
-#'   \item `code_state` - 2-digit state code
-#'   \item `abbrev_state` - State abbreviation (e.g., "AM")
-#'   \item `name_state` - State name
-#'   \item `code_region` - Region code
-#'   \item `name_region` - Region name
-#'   \item `code_weighting` - Weighting area code
-#' }
+#' **Municipality join (`join_level = "muni"`)**: the census table is
+#' aggregated per municipality with `aggregation_fun` over all numeric columns
+#' selected and left-joined to `df` through the 7-digit municipality code column
+#' `code_muni_7`, which [sus_spatial_join()] (`level = "munic"`) creates. `df`
+#' must therefore contain `code_muni_7`; `join_muni_col` is currently accepted
+#' but not used by the code. Aggregated columns get the suffix
+#' `_<aggregation_fun>` (e.g. `V0001_sum`) when `translate_columns` or
+#' `standardize_values` is `TRUE`.
 #'
-#' **Automatic Column Detection**:
-#' If `join_muni_col = NULL`, the function automatically detects the appropriate code municipality
-#' column based on common SUS patterns:
-#' \itemize{
-#'   \item **Municipality**: `residence_municipality_code`, `municipality_code`,
-#'     `codigo_municipio`, `CODMUNRES`, etc.
-#' }
-#' **Performance Optimization**:
-#' The function uses Arrow/Parquet format for efficient larger-than-memory dataset handling:
-#' \itemize{
-#'   \item Downloads data only once (cached locally)
-#'   \item Filters municipalities BEFORE loading to RAM
-#'   \item Uses `dplyr::collect()` only after filtering
-#'   \item Uses `sfarrow` pak for spatial filtering 
-#' }
-#' **Tract-level join** (`join_level = "tract"`): if `df` is not a
-#' `climasus_df` (e.g. a plain `sf` of tracts) it is promoted automatically.
-#' Only the municipalities present in `df` (first 7 digits of the tract code)
-#' are read from censobr. If `census_vars = NULL`, all census columns except
-#' the geographic/identification ones (`code_*`, `name_*`, `situacao`,
-#' `area_km2`) are added; `code_tract` is always used as the join key.
+#' **Tract join (`join_level = "tract"`)**: if `df` is not a `climasus_df`
+#' (e.g. a plain `sf` of tracts) it is promoted automatically. Only the
+#' municipalities present in `df` (first 7 digits of the tract code) are read
+#' from censobr. If `census_vars = NULL`, all census columns except the
+#' geographic/identification ones (`code_*`, `name_*`, `situacao`, `area_km2`)
+#' are added; `code_tract` is always the join key. Raw censobr column names are
+#' kept, with no aggregation and no suffix.
 #'
-#' **Spatial Data Support**:
-#' If `df` is an `sf` object from `sus_spatial_join()`, geometries are preserved in the output.
+#' **Geographic columns** follow the geobr/censobr standard (`code_muni`,
+#' `code_state`, `abbrev_state`, `name_state`, `code_region`, `name_region`,
+#' `code_weighting`).
+#'
+#' **Spatial data**: if `df` is an `sf` object its geometry and CRS are
+#' preserved.
+#'
+#' @param df A `climasus_df` (typically an `sf` from [sus_spatial_join()]) at
+#'   stage `"spatial"` or later, containing `code_muni_7` for the municipality
+#'   join. Plain `data.frame`/`sf` objects that are not `climasus_df` error,
+#'   except when `join_level = "tract"` (they are promoted). Non-data-frame
+#'   input errors.
+#' @param dataset Character scalar, one of:
+#'   \itemize{
+#'     \item `"population"` (default) - population microdata
+#'     \item `"households"` - household microdata
+#'     \item `"families"` - family microdata
+#'     \item `"mortality"` - mortality microdata
+#'     \item `"emigration"` - emigration microdata
+#'     \item `"tracts"` - census-tract aggregates (setores censitarios); select
+#'       the table with `tracts_dataset`. With `join_level = "muni"` the tract
+#'       table is aggregated to municipality; with `join_level = "tract"` it is
+#'       joined by tract code without aggregation.
+#'   }
+#'   Other values error.
+#' @param tracts_dataset Character scalar, used only when
+#'   `dataset = "tracts"` (default `"Basico"`); validated by
+#'   `censobr::read_tracts()`. Census 2010: `"Basico"`, `"Domicilio01"`,
+#'   `"Domicilio02"`, `"DomicilioRenda"`, `"Pessoa01"` to `"Pessoa13"`,
+#'   `"ResponsavelRenda"`, `"ResponsavelRendaSexo"`. Census 2022: `"Basico"`,
+#'   `"Pessoas"`, `"Domicilio"`, `"ResponsavelRenda"`, `"Entorno"`,
+#'   `"Indigenas"`, `"Quilombolas"`. See `censobr::read_tracts()` for the
+#'   variables of each table.
+#' @param year Numeric scalar census year, default `2010`; typical values
+#'   `2000`, `2010` or `2022` (a single year only, ranges/vectors are not
+#'   supported). It is passed to censobr, which validates availability per
+#'   dataset (2022 mainly for tracts).
+#' @param census_vars Character vector of census variable names to add, e.g.
+#'   `c("V0001", "V0002")` (find them with [sus_census_select()]). Names not
+#'   present in the table are silently ignored. `NULL` (default) keeps all
+#'   variables (not recommended for microdata: heavy).
+#' @param aggregation_fun Character scalar used for `join_level = "muni"` to
+#'   aggregate each numeric variable by municipality (NAs removed): `"sum"`
+#'   (default; counts such as population), `"mean"` (e.g. income), `"median"`,
+#'   `"min"`, `"max"`, `"sd"`, `"q25"`, `"q75"`, `"q95"`, `"q99"`. Other values
+#'   error. Ignored for `join_level = "tract"`.
+#' @param join_muni_col Character scalar or `NULL`. Intended name of the
+#'   municipality-code column of `df`; currently NOT used (the join relies on
+#'   `code_muni_7`, see Details). Default `NULL`.
+#' @param join_level Character scalar, `"muni"` (default) or `"tract"`
+#'   (validated with `match.arg()`). `"muni"`: aggregate to municipality and
+#'   join by municipality code. `"tract"`: only valid with
+#'   `dataset = "tracts"` (otherwise errors); `df` is a table of tracts and the
+#'   censobr table is joined by tract code.
+#' @param join_tract_col Character scalar or `NULL`. Column of `df` with the
+#'   15-digit tract code, used when `join_level = "tract"`. `NULL` (default)
+#'   auto-detects `code_tract` or `CD_SETOR`; a name not in `df` errors.
+#' @param use_cache Logical scalar. If `TRUE` (default), sets the censobr
+#'   cache directory to `cache_dir` so downloads are reused.
+#' @param cache_dir Character scalar. Cache directory, default
+#'   `"~/.climasus4r_cache/census"`; created if missing and passed to
+#'   `censobr::set_censobr_cache_dir()`.
+#' @param lang Character scalar. Message (and column-translation) language:
+#'   `"pt"` (default), `"en"` or `"es"`; other values fall back to `"pt"` with a
+#'   warning.
+#' @param translate_columns Logical scalar. If `TRUE` (default), translates
+#'   census column names (municipality join only) to `lang`.
+#' @param standardize_values Logical scalar. If `TRUE` (default), standardizes
+#'   categorical values of the census table to `lang` (municipality join only).
+#' @param verbose Logical scalar. If `TRUE` (default), prints progress messages
+#'   and a download progress bar.
+#'
+#' @return The input object (`sf` geometry and CRS preserved when `df` is `sf`)
+#'   with the census columns added; a `climasus_df` with `sus_meta`
+#'   `stage = "census"`, `type = <dataset>`, same `system`, and a history
+#'   entry. Rows are kept (left join); municipalities without census data get
+#'   `NA`.
+#'
+#' @seealso [sus_spatial_join()], [sus_census_select()],
+#'   [sus_socio_compute_indicators()], [sus_socio_list_indicators()]
 #'
 #' @references
 #' Pereira, Rafael H. M.; Barbosa, Rogerio J. (2023) censobr: Download Data from Brazil’s Population Census. R package version v0.4.0, https://CRAN.R-project.org/package=censobr. DOI: 10.32614/CRAN.package.censobr.

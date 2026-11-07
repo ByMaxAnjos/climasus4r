@@ -15,70 +15,77 @@ sus_socio_compute_indicators(
 )
 }
 \arguments{
-\item{df}{A \code{climasus_df} object at stage \verb{>= "spatial"}. Typically the
-output of \code{\link[=sus_census_join]{sus_census_join()}}.}
+\item{df}{A \code{climasus_df} whose \code{sus_meta} stage is \code{"spatial"} or later,
+typically the output of \code{\link[=sus_census_join]{sus_census_join()}}. Plain data frames and
+earlier stages error.}
 
-\item{indicators}{Character vector of indicator IDs to compute. If \code{NULL}
-(default), all indicators whose required columns are present in \code{df}
-are computed automatically.  Use \code{\link[=sus_socio_list_indicators]{sus_socio_list_indicators()}} to
-inspect the full catalogue.}
+\item{indicators}{Character vector of indicator IDs, e.g.
+\code{"dependency_ratio"} or \code{c("aging_index", "water_connection_rate")}.
+\code{NULL} (default) computes every indicator whose required columns are
+present (after \code{col_mapping}); errors if there are none. Unknown IDs give
+a warning and are dropped (error if none is valid). IDs: see
+\code{\link[=sus_socio_list_indicators]{sus_socio_list_indicators()}}.}
 
 \item{col_mapping}{Named list mapping formula-space variable names to actual
-column names in \code{df}.  For example:
+column names of \code{df}, e.g.
+\code{list(pop_young = "pop_0_14_sum", total_hh = "V003_sum")}. Names not
+mapped are looked up in \code{df} under their own formula name. Non-list input
+errors. Default \code{list()}.}
 
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{list(pop_young = "pop_0_14_sum", total_hh = "V003_sum")
-}\if{html}{\out{</div>}}
+\item{confidence_level}{Numeric scalar strictly between 0 and 1: confidence
+level of the Poisson/Binomial intervals (e.g. \code{0.95}, \code{0.99}). Other values
+error. Default \code{0.95}.}
 
-Only mappings that override the defaults need to be specified.}
+\item{add_ci}{Logical scalar. If \code{TRUE} (default), adds \verb{_low}/\verb{_high}
+columns for indicators with a Poisson or Binomial uncertainty method.}
 
-\item{confidence_level}{Numeric. Confidence level for Poisson / Binomial
-intervals.  Default \code{0.95}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"} or
+\code{"es"}; other values fall back to \code{"pt"} with a warning.}
 
-\item{add_ci}{Logical. If \code{TRUE} (default), adds \verb{*_low} and \verb{*_high}
-columns for indicators that support uncertainty quantification
-(Poisson for rates, Wilson score for proportions).}
-
-\item{lang}{Language for messages: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
-
-\item{verbose}{Logical. Print progress messages.  Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
-The input \code{climasus_df} with additional columns prefixed \code{ind_}:
+The input \code{climasus_df} with new numeric columns:
 \itemize{
-\item \verb{ind_<id>} — computed value
-\item \verb{ind_<id>_low} / \verb{ind_<id>_high} — confidence-interval bounds
-(only for Poisson/Binomial indicators when \code{add_ci = TRUE})
+\item \verb{ind_<id>} - computed value (scaled by the indicator multiplier)
+\item \verb{ind_<id>_low} / \verb{ind_<id>_high} - interval bounds (only for
+Poisson/Binomial indicators when \code{add_ci = TRUE})
 }
-\code{sus_meta} is updated to \code{type = "indicators"} with a history entry.
+\code{sus_meta} is updated to \code{stage = "census"}, \code{type = "indicators"} (the
+\code{system} is kept) with a history entry.
 }
 \description{
-Computes a set of standardised indicators from the columns already present
-in a \code{climasus_df} object (typically the output of \code{\link[=sus_census_join]{sus_census_join()}}).
-Indicators span demographics, socioeconomic vulnerability, mortality,
-morbidity, maternal-child health, and health-resource availability.
-Column names from the census aggregation step (e.g. \code{V003_sum}) can be
-mapped to the formula-space names expected by each indicator via
-\code{col_mapping}.
+Computes standardised indicators (demographic, socioeconomic, mortality,
+morbidity, maternal-child health, health resources, heat vulnerability) from
+columns already present in a \code{climasus_df}. Run it after
+\code{\link[=sus_census_join]{sus_census_join()}} (or any step that provides the numerators and
+denominators) and before modelling/mapping; it works with any DATASUS
+\code{system}. Column names from the census step (e.g. \code{V003_sum}) are mapped to
+the formula-space names each indicator expects through \code{col_mapping}. Use
+\code{\link[=sus_socio_list_indicators]{sus_socio_list_indicators()}} to see the catalogue, formulas and required
+columns.
 }
 \details{
-\strong{Formula evaluation}: each indicator formula is evaluated using
-\code{rlang::eval_tidy()} against a named-list environment built from the
-resolved column values, so no package-level NSE column names are needed.
+\strong{Formula evaluation}: each indicator formula is evaluated with
+\code{rlang::eval_tidy()} against the resolved column values, multiplied by the
+indicator's \code{multiplier} (e.g. 100 for \%, 1000 per 1,000). Non-finite
+results (zero denominators) become \code{NA}.
 
-\strong{Missing columns}: if a requested indicator lacks required columns (after
-applying \code{col_mapping}), a warning is emitted and the indicator is skipped.
-The function never aborts due to missing columns.
+\strong{Missing columns}: a requested indicator whose required columns are absent
+(after \code{col_mapping}) is skipped with a warning; the function errors only if
+no indicator could be computed.
 
 \strong{Confidence intervals}:
 \itemize{
-\item \emph{Poisson (Garwood exact)}: for event-count / population-at-risk
-rates (mortality, incidence, hospitalisation).
-\item \emph{Binomial (Wilson score)}: for proportions (\%, coverage indices).
-\item \emph{None}: for ratios with complex numerators or direct index values.
+\item \emph{Poisson (Garwood exact)}: event-count / population-at-risk rates
+(mortality, incidence, hospitalisation).
+\item \emph{Binomial (Wilson score)}: proportions (\%, coverage indices).
+\item \emph{None}: ratios with complex numerators or direct index values.
 }
 }
 \examples{
 \dontrun{
+# df_census: output of sus_census_join()
 df_ind <- sus_socio_compute_indicators(
   df_census,
   indicators = c("dependency_ratio", "water_connection_rate"),
@@ -94,5 +101,6 @@ df_ind <- sus_socio_compute_indicators(
 
 }
 \seealso{
-\code{\link[=sus_census_join]{sus_census_join()}}, \code{\link[=sus_socio_list_indicators]{sus_socio_list_indicators()}}
+\code{\link[=sus_census_join]{sus_census_join()}}, \code{\link[=sus_census_select]{sus_census_select()}},
+\code{\link[=sus_socio_list_indicators]{sus_socio_list_indicators()}}
 }

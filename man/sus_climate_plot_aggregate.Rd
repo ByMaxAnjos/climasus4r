@@ -20,20 +20,26 @@ sus_climate_plot_aggregate(
 )
 }
 \arguments{
-\item{df}{A \code{climasus_df} at \code{stage = "climate"} produced by
-\code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}}. Must contain at least \code{date}, \code{code_muni}, a
-health outcome column, and one or more climate exposure columns.}
+\item{df}{A data frame, typically a \code{climasus_df} at \code{stage = "climate"}
+produced by \code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}}. Must contain at least \code{date}
+(Date or coercible), a health outcome column, and one or more climate
+exposure columns (\code{code_muni} is not required).}
 
-\item{outcome_col}{Character. Name of the health-outcome column
-(e.g. \code{"n_obitos"}, \code{"n_internacoes"}). If \code{NULL} (default) the first
-integer column that is not a climate variable is used.}
+\item{outcome_col}{Single character string, name of the health-outcome
+column (e.g. \code{"n_obitos"}, \code{"n_internacoes"}). If \code{NULL} (default) a
+numeric column is auto-detected, preferring names starting with \code{n_} or
+containing obito/internac/caso/morte/hospitaliz/death/case/admission;
+otherwise the first numeric non-climate column. Errors if not found.}
 
-\item{climate_cols}{Character vector of climate column names to visualise.
-If \code{NULL} (default) all columns that match the naming conventions of
-\code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}} are detected automatically (\verb{lag*}, \verb{mvwin*},
-\verb{off*to*}, \verb{gdd*}, \verb{_lag*}, or known INMET variable names).}
+\item{climate_cols}{Character vector of climate column names to visualise,
+e.g. \code{"tair_dry_bulb_c"} or \code{c("lag7_tair_dry_bulb_c", "lag14_tair_dry_bulb_c")}.
+If \code{NULL} (default) columns are detected automatically from the naming
+conventions of \code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}} (\verb{lag*}, \verb{mvwin*}, \verb{off*to*},
+\verb{gdd*}, \verb{*_lag*}, known INMET/indicator names, \verb{spi_*}, \verb{spei_*});
+errors if none is found or if a given name is missing. \code{"ccf"} and
+(single-panel) \code{"scatter"} use only the first column.}
 
-\item{plot_type}{Character. One of:
+\item{plot_type}{Single character string. One of:
 \describe{
 \item{\code{"timeseries"}}{Dual-axis time-series: rescaled climate exposure
 (ribbon) overlaid on health outcome (line + points). When multiple
@@ -43,10 +49,11 @@ back to the first column only when \code{patchwork} is not available.}
 \item{\code{"scatter"}}{Scatter plot with loess/GAM smooth: climate exposure
 on x-axis, health outcome on y-axis. Shows the marginal association
 ignoring temporal structure.}
-\item{\code{"ccf"}}{Cross-Correlation Function bars from \eqn{-30} to
-\code{+max_lag} days. Highlights lags with significant correlation
-(|r| > 2/sqrt(n)) in a contrasting colour. Useful for identifying
-the optimal lag before modelling.}
+\item{\code{"ccf"}}{Cross-Correlation Function bars from \code{-max_lag} to
+\code{+max_lag} (in observations, i.e. days for daily data), computed for
+the first climate column only. Highlights lags with significant
+correlation (|r| > 2/sqrt(n)) in a contrasting colour. Useful for
+identifying the optimal lag before modelling.}
 \item{\code{"distribution"}}{Histogram + density overlay of each climate
 column. For \code{discrete_lag} outputs the multiple lag columns are
 overlaid for comparison.}
@@ -58,35 +65,40 @@ outcome incidence, side-by-side, to reveal seasonal co-variation.}
 }
 Default \code{"timeseries"}.}
 
-\item{smooth_method}{Character. Smoothing method for the scatter plot:
-\code{"loess"} (default) or \code{"gam"}.}
+\item{smooth_method}{Single character string. Smoothing method passed to
+\code{ggplot2::geom_smooth()} in the scatter plot: \code{"loess"} (default) or
+\code{"gam"} (needs \pkg{mgcv}); not validated otherwise.}
 
-\item{max_lag}{Integer. Maximum lag (days) shown in the CCF plot.
-Default \code{30L}.}
+\item{max_lag}{Single integer. Maximum lag (observations, i.e. days for
+daily data) on each side in the CCF plot, e.g. \code{21L}. Default \code{30L}.}
 
-\item{alpha}{Numeric. Confidence level for CCF significance bounds
-(default \code{0.05}; bounds drawn at \eqn{\pm 2/\sqrt{n}}).}
+\item{alpha}{Numeric scalar in (0, 1). Significance level for the
+confidence band of the scatter smoother (\code{level = 1 - alpha}; default
+\code{0.05}). It does not change the CCF bounds, which are always drawn at
+\eqn{\pm 2/\sqrt{n}}.}
 
-\item{interactive}{Logical. If \code{TRUE}, returns a \code{plotly} interactive
+\item{interactive}{Logical scalar. If \code{TRUE}, returns a \code{plotly} interactive
 version built with \code{plotly::plot_ly()} for proper dual-axis support
 (\code{plotly::ggplotly()} is avoided as it breaks secondary axes for
 \code{"timeseries"}). Requires \code{plotly} to be installed. Default \code{FALSE}.}
 
-\item{lang}{Character. Language for axis labels and titles:
-\code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Single character string. Language for axis labels and titles:
+\code{"pt"} (default), \code{"en"}, \code{"es"}; other values error.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 
-\item{title}{Character or \code{NULL}. Override the auto-generated plot title.
-Default \code{NULL} uses the built-in multilingual title.}
+\item{title}{Single character string or \code{NULL}. Override the
+auto-generated plot title. Default \code{NULL} uses the built-in multilingual
+title.}
 
-\item{source}{Character or \code{NULL}. Data source attribution prepended to the
-plot caption. Default \code{NULL}.}
+\item{source}{Single character string or \code{NULL}. Data source attribution
+prepended to the plot caption. Default \code{NULL}.}
 }
 \value{
 A \code{ggplot2} object, a \code{patchwork} object (when multiple climate
-columns are supplied and \code{patchwork} is installed for \code{"timeseries"} or
-\code{"scatter"} plot types), or a \code{plotly} object when \code{interactive = TRUE}.
+columns are supplied and \code{patchwork} is installed for the \code{"timeseries"}
+plot type), or a \code{plotly} object when \code{interactive = TRUE}. The input data
+are not modified; no \code{sus_meta} is returned.
 }
 \description{
 \code{sus_climate_plot_aggregate()} produces exploratory visualisations for the
@@ -96,6 +108,11 @@ smooth, cross-correlation (CCF), distribution, correlation matrix, and
 seasonal patterns. Modelling-specific plots (DLNM surfaces, residual
 diagnostics, RR tables) are deliberately excluded to avoid duplication with
 the dedicated \verb{sus_mod_plot_*} family.
+
+Use it right after \code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}} (stage \code{"climate"}) and before
+modelling. No stage check is made: any data frame (or \code{sf}, whose geometry
+is dropped) with a \code{date} column, an outcome column and climate columns
+works.
 }
 \examples{
 \dontrun{
@@ -122,6 +139,12 @@ sus_climate_plot_aggregate(df_lag, plot_type = "corr_matrix", lang = "en")
 
 # Cross-correlation
 sus_climate_plot_aggregate(df_agg, plot_type = "ccf", max_lag = 21L)
+
+# Explicit columns and interactive output
+sus_climate_plot_aggregate(
+  df_agg, outcome_col = "n_obitos",
+  climate_cols = "tair_dry_bulb_c", interactive = TRUE
+)
 }
 
 }

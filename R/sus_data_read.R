@@ -4,23 +4,35 @@
 #' Supports automatic format detection, batch processing, parallel execution, spatial data,
 #' metadata loading, and data validation.
 #'
-#' @param path Character vector of file paths, or a single directory path.
-#'   If a directory is provided, all matching files will be read.
-#' @param format Character string specifying the input format. Options: `"dbf"`, `"dbc"`,
-#'   `"rds"`, `"parquet"`, `"geoparquet"`, `"shapefile"`, `"gpkg"`, `"geojson"`, `"csv"`.
-#'   If `NULL` (default), automatically detects format from file extension.
-#' @param read_metadata Logical. If `TRUE` (default), loads companion metadata files
-#'   and attaches them as attributes.
-#' @param parallel Logical. If `TRUE`, uses parallel processing for multiple files.
-#'   Requires `future` and `future.apply` packages. Default: `FALSE`.
-#' @param workers Integer. Number of parallel workers when `parallel = TRUE`. Default: 4.
-#' @param lang Character string specifying the language for messages. Options:
-#'   `"en"` (English), `"pt"` (Portuguese, default), `"es"` (Spanish).
-#' @param verbose Logical. If `TRUE` (default), prints progress and summary.
+#' @param path Character vector of file paths, or a directory path, e.g.
+#'   `"data/sim.parquet"`, `c("2020.parquet", "2021.parquet")` or `"data/"`.
+#'   Directories are searched recursively for files whose extension equals
+#'   `format` (**so `format` must be supplied when `path` is a directory**; with
+#'   `format = NULL` the function aborts with an error). Paths that do not exist are reported
+#'   and skipped; the function aborts if no file is found. Files named
+#'   `*_metadata.txt` are ignored.
+#' @param format Character scalar, one of `"dbf"`, `"dbc"`, `"rds"`,
+#'   `"parquet"`, `"geoparquet"`, `"shapefile"`, `"gpkg"`, `"geojson"`, `"csv"`,
+#'   or `NULL` (default) to detect the format of each file from its extension
+#'   (e.g. `.tsv`/`.txt` are read as csv, `.shp` as shapefile). Files with an
+#'   unsupported extension are skipped with a warning. Parquet files are
+#'   checked for a geometry column/geo metadata and read as GeoParquet when
+#'   found.
+#' @param parallel Logical scalar, default `FALSE`. Read multiple files in
+#'   parallel (requires the `future` and `future.apply` packages).
+#' @param workers Integer, default `4`. Number of parallel workers; only used
+#'   when `parallel = TRUE` (a warning is issued if it exceeds the number of
+#'   cores).
+#' @param read_metadata Logical scalar, default `FALSE`. If `TRUE`, reads the
+#'   companion `<file>_metadata.txt` written by [sus_data_export()] (if it
+#'   exists) and attaches it as an attribute.
+#' @param lang Character scalar, `"pt"` (default), `"en"` or `"es"`. Language
+#'   of messages; other values abort.
+#' @param verbose Logical scalar, default `TRUE`. Print progress and summary.
 #'
-#' @return A data frame or sf object (for spatial data) containing the loaded data.
-#'   For batch reads, all files are combined with `dplyr::bind_rows()`.
-#'   Metadata is attached as attributes:
+#' @return A data frame or `sf` object (for spatial files) with the loaded data
+#'   (rows of several files are combined with `dplyr::bind_rows()`). If
+#'   `read_metadata = TRUE`, metadata is attached as attributes:
 #'   \itemize{
 #'     \item Single file: `attr(df, "metadata")`
 #'     \item Batch: `attr(df, "batch_metadata")` (list of metadata from each file)
@@ -57,6 +69,9 @@
 #' # Directory (all Parquet files)
 #' df <- sus_data_read("output/", format = "parquet")
 #'
+#' # With the companion metadata file
+#' df <- sus_data_read("output/data.parquet", read_metadata = TRUE)
+#'
 #' # Parallel batch read
 #' df <- sus_data_read("output/", format = "dbf", 
 #'                     parallel = TRUE, workers = 6)
@@ -66,6 +81,7 @@
 #' n_files <- attr(df, "n_files_combined")
 #' }
 #'
+#' @seealso [sus_data_export()], [sus_data_import()]
 #' @export
 #' @importFrom glue glue
 sus_data_read <- function(path,
@@ -106,6 +122,12 @@ sus_data_read <- function(path,
   
   for (p in path) {
     if (dir.exists(p)) {
+      if (is.null(format)) {
+        cli::cli_abort(c(
+          "x" = "{.arg format} is required when {.arg path} is a directory: {.path {p}}",
+          ">" = "Example: {.code format = 'parquet'}"
+        ))
+      }
       # Directory: list all matching files
       files_in_dir <- list.files(
         path = p,

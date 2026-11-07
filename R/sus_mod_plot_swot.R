@@ -101,26 +101,37 @@ utils::globalVariables(c(
 #' | `"bar"` | Grouped horizontal bars comparing all four quadrant scores per entity |
 #'
 #' @param x A `climasus_swot` object from [sus_mod_swot()].
-#' @param type Character. Plot type: `"radar"` (default), `"matrix"`, or
-#'   `"bar"`.
-#' @param output_type Character. `"plot"` (default), `"table"`, or `"all"`
-#'   (named list `$plot`, `$table`).
-#' @param interactive Logical. Convert the ggplot2 output to an interactive
-#'   \pkg{plotly} widget. Default `FALSE`.
-#' @param entities Character vector or `NULL`. Subset of entity names to plot.
-#'   `NULL` (default) plots all entities. For `type = "matrix"`, only the first
-#'   entity in the selection is shown.
-#' @param top_n Integer. For `type = "matrix"`, maximum number of indicator
-#'   bullets to display per quadrant. Default `3L`.
-#' @param base_size Numeric. ggplot2 base font size. Default `12`.
-#' @param save_plot Character or `NULL`. File path to save the plot (PNG/PDF).
-#' @param lang Character. Language for labels: `"pt"` (default), `"en"`, `"es"`.
-#' @param verbose Logical. Print progress messages. Default `FALSE`.
+#' @param type Character scalar. Plot type: `"radar"` (default), `"matrix"`,
+#'   or `"bar"`. Partial matching applies.
+#' @param output_type Character scalar. What to return: `"plot"` (default),
+#'   `"table"`, or `"all"` (named list `$plot`, `$table`).
+#' @param interactive Logical scalar. `TRUE` converts the ggplot2 output with
+#'   `plotly::ggplotly()` (requires \pkg{plotly}). Default `FALSE`.
+#' @param entities Character vector or `NULL`. Entity names (values of
+#'   `x$scores$entity`) to plot, e.g. `"Manaus"` or `c("Manaus", "Belem")`.
+#'   `NULL` (default) plots all entities. For `type = "matrix"` only one
+#'   entity is shown (the first of the selection; a warning is issued when
+#'   several are present).
+#' @param top_n Integer scalar. Only for `type = "matrix"`: maximum number of
+#'   indicator bullets listed per quadrant. Default `3L`.
+#' @param base_size Numeric scalar. ggplot2 base font size in points. Default
+#'   `12L`.
+#' @param save_plot Character scalar or `NULL`. Output file path. The format
+#'   follows the extension via [ggplot2::ggsave()] (e.g. `".png"`, `".pdf"`;
+#'   9 x 6 in); with `interactive = TRUE` it is saved as a self-contained HTML
+#'   widget (requires \pkg{htmlwidgets}). `NULL` (default) does not save.
+#' @param lang Character scalar. Label language: `"pt"` (default), `"en"`, or
+#'   `"es"`. An unsupported single string warns and falls back to `"pt"`.
+#' @param verbose Logical scalar. Print progress messages. Default `FALSE`.
 #'
 #' @return Depending on `output_type`:
-#'   - `"plot"` -> a `ggplot` or `plotly` object.
-#'   - `"table"` -> a `tibble` of the plotted data.
-#'   - `"all"` -> a named list `$plot`, `$table`.
+#'   - `"plot"`: a `ggplot` (or `plotly` if `interactive = TRUE`) object.
+#'   - `"table"`: a `tibble`. For `"radar"`/`"bar"` it is the long-format
+#'     scores (entity, quadrant, score); for `"matrix"` it is `x$scores`
+#'     filtered by `entities`.
+#'   - `"all"`: a named list `list(plot, table)`.
+#'
+#' Errors if `x` is not a `climasus_swot`.
 #'
 #' @examples
 #' \dontrun{
@@ -132,7 +143,8 @@ utils::globalVariables(c(
 #' out <- sus_mod_plot_swot(swot, output_type = "all")
 #' }
 #'
-#' @seealso [sus_mod_swot()], [sus_mod_plot_vulnerability()]
+#' @seealso [sus_mod_swot()], [sus_mod_plot_vulnerability()],
+#'   [sus_mod_vulnerability_index()]
 #'
 #' @export
 #' @importFrom cli cli_h1 cli_alert_success cli_alert_warning cli_abort

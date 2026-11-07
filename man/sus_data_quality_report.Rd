@@ -21,12 +21,13 @@ sus_data_quality_report(
 \item{df}{A \code{climasus_df} or plain \code{data.frame}. Arrow objects are
 materialised automatically.}
 
-\item{output_format}{Character. One of \code{"console"} (default), \code{"gt"},
-\code{"markdown"}, or \code{"html"}. The \code{"gt"} format returns a \code{gt_tbl} object
-suitable for Quarto / R Markdown documents.}
+\item{output_format}{Character scalar, one of \code{"console"} (default),
+\code{"gt"}, \code{"markdown"}, or \code{"html"}; anything else aborts. \code{"gt"} needs the
+\code{gt} package and produces a \code{gt_tbl} suitable for Quarto / R Markdown.}
 
-\item{output_file}{Character. File path for \code{"markdown"} and \code{"html"}
-formats. Defaults to a timestamped filename in the working directory.}
+\item{output_file}{Character scalar, file path for \code{"markdown"} and \code{"html"}
+(e.g. \code{"reports/quality.md"}; the directory must exist). \code{NULL} (default)
+uses a timestamped filename in the working directory.}
 
 \item{save_file}{Logical. For \code{"markdown"} and \code{"html"} formats, whether to
 write the report to disk. Default \code{TRUE}. Set to \code{FALSE} to only compute
@@ -40,7 +41,8 @@ interactive sessions.}
 
 \item{check_dates}{Logical. Include date validation section. Default \code{TRUE}.}
 
-\item{top_n}{Integer. Rows shown in frequency tables. Default \code{10}.}
+\item{top_n}{Integer scalar, default \code{10}. Maximum rows shown in each
+frequency table.}
 
 \item{lang}{Character. Output language: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
 
@@ -86,4 +88,8 @@ sus_data_quality_report(df, output_format = "html",
                         output_file = "reports/quality.html")
 }
 
+}
+\seealso{
+\code{\link[=sus_data_ts_quality]{sus_data_ts_quality()}}, \code{\link[=sus_data_standardize]{sus_data_standardize()}},
+\code{\link[=sus_data_filter_cid]{sus_data_filter_cid()}}
 }

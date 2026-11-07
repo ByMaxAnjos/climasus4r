@@ -660,37 +660,57 @@ get_valid_values_internal <- function(field) {
 
 #' Access and update climasus_df metadata
 #'
-#' A single, unified interface for reading and writing metadata on
-#' \code{climasus_df} objects (including Arrow Tables and DuckDB results).
-#' Minimises namespace pollution by replacing the previous family of ten accessor functions.
+#' A single, unified interface for reading and writing metadata (the
+#' \code{sus_meta} attribute) on \code{climasus_df} objects, Arrow Tables and
+#' DuckDB results.
 #'
 #' Supports multiple backends:
 #' - **climasus_df**: metadata stored as \code{sus_meta} attribute
 #' - **Arrow Table**: metadata embedded in schema under \code{"climasus_meta"} key
 #' - **DuckDB result**: metadata extracted from companion \code{<table>__meta} table
 #'
-#' @param x A \code{climasus_df} object, Arrow Table, DuckDB result, or \code{NULL} when using
-#'   \code{valid_values}.
-#' @param field Character. When provided as the only extra argument, returns
-#'   the value of that metadata field (\code{"system"}, \code{"stage"},
-#'   \code{"type"}, \code{"spatial"}, \code{"temporal"}, \code{"backend"},
-#'   \code{"created"}, \code{"modified"}, \code{"history"}, \code{"user"}).
-#' @param system Character. DATASUS system identifier (e.g. \code{"SIM"}).
-#' @param stage Character. Pipeline stage (e.g. \code{"filter_cid"}).
-#' @param type Character. Data type (e.g. \code{"raw"}).
-#' @param backend Character. Storage backend: \code{"tibble"} (default),
-#'   \code{"parquet"}, or \code{"duckdb"}.
-#' @param add_history Character. A single string appended (with timestamp) to
-#'   the processing history.
-#' @param print_history Logical. If \code{TRUE}, prints the history and returns
-#'   \code{invisible(NULL)}.
-#' @param valid_values Character. When provided, returns the allowed values for
-#'   that vocabulary (\code{"system"}, \code{"stage"}, \code{"type"},
-#'   \code{"backend"}).
-#' @param ... Additional named metadata fields to update.
+#' Dispatch order: \code{valid_values}, \code{print_history}, field getter,
+#' get-all (no modifiers), then \code{add_history} and field updates.
+#' To write to Parquet/DuckDB use [write_parquet_climasus()] and
+#' [write_duckdb_climasus()]; to read back use `from_arrow_climasus()` and
+#' `from_duckdb_climasus()`.
 #'
-#' @return The updated \code{climasus_df} object, the requested field value, or
-#'   \code{invisible(NULL)} when \code{print_history = TRUE}.
+#' @param x A \code{climasus_df} object, Arrow Table/query, DuckDB result, or
+#'   \code{NULL} (default) when using \code{valid_values}.
+#' @param field Character scalar, default \code{NULL}. When it is the only
+#'   argument besides \code{x}, returns that metadata field: \code{"system"},
+#'   \code{"stage"}, \code{"type"}, \code{"spatial"}, \code{"temporal"},
+#'   \code{"backend"}, \code{"created"}, \code{"modified"}, \code{"history"}
+#'   or \code{"user"}. Other names abort.
+#' @param system Character scalar, default \code{NULL}. Set the DATASUS system:
+#'   \code{"SIM"}, \code{"SIH"}, \code{"SIA"}, \code{"SINAN"}, \code{"CNES"},
+#'   \code{"SINASC"} (sub-types such as \code{"SIH-RD"} are accepted by the
+#'   pipeline functions).
+#' @param stage Character scalar, default \code{NULL}. Set the pipeline stage,
+#'   one of \code{import, clean, stand, filter_cid, filter_demo, derive,
+#'   aggregate, spatial, climate, census} (in pipeline order).
+#' @param type Character scalar, default \code{NULL}. Set the data type (e.g.
+#'   \code{"raw"}, \code{"clean"}, \code{"stand"}, \code{"derive"},
+#'   \code{"agg"}); the full vocabulary is returned by
+#'   \code{sus_meta(valid_values = "type")}.
+#' @param backend Character scalar, default \code{NULL}. Set the storage
+#'   backend: \code{"tibble"}, \code{"arrow"}, \code{"parquet"} or
+#'   \code{"duckdb"}.
+#' @param add_history Character scalar (one string), default \code{NULL}.
+#'   Appended with a timestamp to the processing history.
+#' @param print_history Logical scalar, default \code{FALSE}. If \code{TRUE},
+#'   prints the history and returns \code{invisible(NULL)}.
+#' @param valid_values Character scalar, default \code{NULL}. Returns the
+#'   allowed values of a vocabulary: \code{"system"}, \code{"stage"},
+#'   \code{"type"} or \code{"backend"}. Does not need \code{x}.
+#' @param ... Additional named metadata fields to update (e.g.
+#'   \code{temporal = list(start = ..., end = ..., unit = "day")},
+#'   \code{spatial = TRUE}, \code{user = list(...)}).
+#'
+#' @return The whole metadata list (no modifiers), the requested field value
+#'   (\code{field}), the character vocabulary (\code{valid_values}),
+#'   \code{invisible(NULL)} (\code{print_history = TRUE}), or otherwise the
+#'   object \code{x} with updated metadata.
 #'
 #' @examples
 #' \dontrun{
@@ -698,6 +718,8 @@ get_valid_values_internal <- function(field) {
 #' sus_meta(df)
 #' sus_meta(df, "stage")
 #' df <- sus_meta(df, stage = "filter_cid", type = "filter_cid")
+#' df <- sus_meta(df, add_history = "Removed missing values")
+#' sus_meta(df, print_history = TRUE)
 #'
 #' # With Arrow Table (auto-extracts from schema metadata)
 #' arrow_tbl <- as_arrow_climasus(df)
@@ -713,6 +735,8 @@ get_valid_values_internal <- function(field) {
 #' # Query valid values (no object needed)
 #' sus_meta(valid_values = "backend")
 #' }
+#' @seealso [write_parquet_climasus()], [write_duckdb_climasus()],
+#'   `from_arrow_climasus()`, `from_duckdb_climasus()`
 #' @export
 sus_meta <- function(
     x             = NULL,

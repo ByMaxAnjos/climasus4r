@@ -68,25 +68,35 @@ utils::globalVariables(c(
 #' inequality analysis: how unevenly burden is distributed across cities.
 #'
 #' @param fits Named list of `climasus_af`, `climasus_excess`, or
-#'   `climasus_dlnm` objects. Names become city/stratum labels in the output.
-#'   All elements must be the same class; mixing types is not allowed.
-#' @param component Character. For `climasus_af` inputs: which heat/cold
-#'   component to display and rank. One of `"total"` (default), `"heat"`,
-#'   `"cold"`, or `"all"` (all three components; ranking is always derived
-#'   from the `"total"` component). Ignored for `climasus_excess` inputs.
-#' @param rank_by Character or `NULL`. Metric for ranking cities.
-#'   For AF inputs: `"an"` (attributable number, default) or `"af_pct"`
-#'   (attributable fraction percent). For excess inputs: `"excess"` (default)
-#'   or `"excess_pct"`. `NULL` selects the default for the detected input type.
-#' @param top_n Integer or `NULL`. Keep only the top-N cities after ranking.
-#'   `NULL` (default) retains all cities.
-#' @param nsim Integer. Monte Carlo simulations used when auto-computing AF
-#'   from `climasus_dlnm` inputs. `0L` (default) uses the faster delta-method CI.
-#' @param alpha Numeric. Significance level for confidence intervals.
-#'   Default `0.05`.
-#' @param lang Character. Language for messages: `"pt"` (default), `"en"`,
-#'   `"es"`.
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#'   `climasus_dlnm` objects, e.g. `list(sp = af_sp, rj = af_rj)`. Names become
+#'   city/stratum labels (`city` column); unnamed or partly named lists get
+#'   `"city_1"`, `"city_2"`, ... for the missing names. All elements must be
+#'   the same class (mixing errors) and the list must be non-empty. A single
+#'   object must still be wrapped in a list.
+#' @param component Character scalar. For `climasus_af` (and `climasus_dlnm`)
+#'   inputs: which component to display, one of `"total"` (default), `"heat"`,
+#'   `"cold"`, or `"all"` (three rows per city). Ranking and `$concentration`
+#'   are always derived from the `"total"` component. Ignored for
+#'   `climasus_excess` inputs. Other values error.
+#' @param rank_by Character scalar or `NULL`. Ranking metric. AF inputs:
+#'   `"an"` (attributable number; default) or `"af_pct"` (attributable fraction,
+#'   percent). Excess inputs: `"excess"` (default) or `"excess_pct"`. `NULL`
+#'   picks the default for the detected input. A metric that does not match the
+#'   input type falls back to the default with a warning; any other value
+#'   errors.
+#' @param top_n Positive integer or `NULL` (default). Keep only the `top_n`
+#'   highest-ranked cities (e.g. `5L`); values larger than the number of cities
+#'   keep all. `NULL`, non-numeric or non-positive values keep all cities
+#'   (no error).
+#' @param nsim Non-negative integer. Monte Carlo draws passed to [sus_mod_af()]
+#'   when `fits` are `climasus_dlnm` objects; ignored for AF/excess inputs.
+#'   Default `0L` (fast delta-method CI); use e.g. `1000L` for Monte Carlo CI.
+#' @param alpha Numeric scalar in (0, 1). Significance level used when
+#'   auto-computing AF from `climasus_dlnm` inputs (default `0.05`, 95% CI);
+#'   ignored for AF/excess inputs, whose CI are already fixed.
+#' @param lang Character scalar: `"pt"` (default), `"en"` or `"es"`. Language of
+#'   messages. An unsupported value gives a warning and falls back to `"pt"`.
+#' @param verbose Logical scalar. If `TRUE` (default) prints progress messages.
 #'
 #' @return A `climasus_burden` object (named list) with:
 #'   \describe{
@@ -132,7 +142,7 @@ utils::globalVariables(c(
 #' }
 #'
 #' @seealso [sus_mod_af()], [sus_mod_excess()], [sus_mod_pool()],
-#'   [sus_mod_metaregression()], [sus_mod_dlnm()]
+#'   [sus_mod_metaregression()], [sus_mod_dlnm()], [sus_mod_plot_burden()]
 #'
 #' @export
 #' @importFrom cli cli_h1 cli_h2 cli_alert_info cli_alert_success

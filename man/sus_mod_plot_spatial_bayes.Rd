@@ -15,24 +15,28 @@ sus_mod_plot_spatial_bayes(
 )
 }
 \arguments{
-\item{x}{A \code{climasus_spatial_bayes} object from \code{\link[=sus_mod_spatial_bayes]{sus_mod_spatial_bayes()}}.}
+\item{x}{A \code{climasus_spatial_bayes} object from \code{\link[=sus_mod_spatial_bayes]{sus_mod_spatial_bayes()}}.
+Other classes error. Uses \code{x$rr} (maps) and \code{x$fixed} (\code{"coef"}).}
 
-\item{municipalities}{An \code{sf} object containing municipality polygons with a
-\code{code_muni} column (7-digit IBGE code). Required for \code{type = "rr"},
-\code{"uncertainty"}, and \code{"both"}. Typically obtained via
-\code{\link[geobr:read_municipality]{geobr::read_municipality()}}.}
+\item{municipalities}{An \code{sf} polygon object with a \code{code_muni} column
+(IBGE municipality code; compared as character with \code{x$rr$code_muni}),
+e.g. from \code{geobr::read_municipality()}. Required for \code{type = "rr"},
+\code{"uncertainty"} and \code{"both"} (errors if \code{NULL}, not \code{sf}, or without
+\code{code_muni}; needs \pkg{sf}); ignored by \code{"coef"}. Polygons without a
+matching estimate are drawn in grey.}
 
-\item{type}{Character. One of \code{"rr"} (default), \code{"uncertainty"}, \code{"coef"},
-or \code{"both"}. See \strong{Plot types}.}
+\item{type}{Character scalar: \code{"rr"} (default), \code{"uncertainty"}, \code{"coef"} or
+\code{"both"}. See \strong{Plot types}. Partial matching applies; other values error.}
 
-\item{title}{Character or \code{NULL}. Custom plot title. When \code{NULL} (default),
-a multilingual default is used.}
+\item{title}{Character scalar or \code{NULL} (default). Custom title; \code{NULL} uses a
+translated default. For \code{type = "both"} it is the title of the combined
+panel (not of the individual maps).}
 
-\item{base_size}{Numeric. Base font size passed to ggplot2 themes. Default
-\code{12}.}
+\item{base_size}{Numeric scalar. Base font size in points for the ggplot2
+themes. Default \code{12}.}
 
-\item{lang}{Character. Language for axis labels and titles: \code{"pt"} (default),
-\code{"en"}, or \code{"es"}.}
+\item{lang}{Character scalar: \code{"pt"} (default), \code{"en"}, \code{"es"}. Language of
+axis labels and titles; unsupported values warn and fall back to \code{"pt"}.}
 
 \item{...}{Currently unused; reserved for future arguments.}
 }
@@ -44,7 +48,7 @@ installed, otherwise a named list with elements \verb{$rr} and \verb{$uncertaint
 }
 }
 \description{
-Produces three types of visualization for a \code{climasus_spatial_bayes} object
+Produces four types of visualization for a \code{climasus_spatial_bayes} object
 returned by \code{\link[=sus_mod_spatial_bayes]{sus_mod_spatial_bayes()}}: a relative risk choropleth map,
 a credible interval width (uncertainty) choropleth, a forest plot of fixed
 effects, or a combined panel of both maps.
@@ -54,16 +58,16 @@ effects, or a combined panel of both maps.
 \describe{
 \item{\code{"rr"}}{Choropleth map of the smoothed posterior mean relative risk
 (\code{rr_mean}). Uses a diverging colour scale centred at 1.0 (navy = below,
-white = 1.0, red = above). Municipalities where the entire 95\\% credible
+white = 1.0, red = above). Municipalities where the entire 95\% credible
 interval lies above 1 (\code{rr_lower95 > 1}) receive a black border to flag
 significantly elevated risk.}
-\item{\code{"uncertainty"}}{Choropleth of the 95\\% credible interval width
+\item{\code{"uncertainty"}}{Choropleth of the 95\% credible interval width
 (\code{rr_upper95 - rr_lower95}), rendered with the plasma palette from
 \code{\link[ggplot2:scale_viridis]{ggplot2::scale_fill_viridis_c()}}. Highlights areas with high posterior
 uncertainty, often due to small populations or sparse data.}
 \item{\code{"coef"}}{Horizontal forest plot of the fixed-effect posterior
 summaries stored in \code{x$fixed}. A dashed vertical reference line marks
-zero. Points show the posterior mean; horizontal bars show the 95\\%
+zero. Points show the posterior mean; horizontal bars show the 95\%
 credible interval.}
 \item{\code{"both"}}{Side-by-side panel combining the \code{"rr"} and
 \code{"uncertainty"} maps. Uses \pkg{patchwork} when available; falls back to
@@ -102,5 +106,6 @@ sus_mod_plot_spatial_bayes(result, municipalities = shp, type = "both")
 
 }
 \seealso{
-\code{\link[=sus_mod_spatial_bayes]{sus_mod_spatial_bayes()}}, \code{\link[=sus_mod_spatial_weights]{sus_mod_spatial_weights()}}
+\code{\link[=sus_mod_spatial_bayes]{sus_mod_spatial_bayes()}}, \code{\link[=sus_mod_spatial_weights]{sus_mod_spatial_weights()}},
+\code{\link[=sus_mod_plot_spacetime]{sus_mod_plot_spacetime()}}
 }

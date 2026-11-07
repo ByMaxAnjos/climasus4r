@@ -17,6 +17,11 @@ utils::globalVariables(c(
 #' variable's Excel file from the INMET portal, parses the decade-level monthly
 #' structure, and returns a tidy long-format `climasus_df`.
 #'
+#' Use it as the reference input of [sus_climate_anomaly()], alongside observed
+#' data from [sus_climate_inmet()]. A network connection is needed unless the
+#' catalogue and files are cached. Normals are station-level (INMET
+#' conventional stations), not municipality-level.
+#'
 #' @section Public-health and environmental relevance:
 #' Climate normals serve as the **climatological baseline** against which
 #' observed exposures are compared in epidemiological studies:
@@ -36,18 +41,22 @@ utils::globalVariables(c(
 #'     normals quantify chronic exposure as an IPCC *hazard* pillar component.
 #' }
 #'
-#' @param period Character. Reference climatological period. One of
-#'   `"1961-1990"`, `"1981-2010"`, or `"1991-2020"` (default).
-#' @param target_var Character vector of `var_code` values to download
-#'   (e.g. `c("t_max", "precipitation")`). `NULL` (default) downloads all
-#'   variables available for the selected `period`. Run
-#'   `sus_climate_normals_meta()` to inspect the catalogue.
-#' @param cache_dir Character. Local directory for disk-cached files.
-#'   Default: `"~/.climasus4r_cache/normals"`.
-#' @param use_cache Logical. If `TRUE` (default), loads from and saves to
-#'   `cache_dir`. Set to `FALSE` to force a fresh download.
-#' @param lang Character. Message language: `"pt"` (default), `"en"`, `"es"`.
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param period Single character string, exactly one of `"1961-1990"`,
+#'   `"1981-2010"`, or `"1991-2020"` (default). A vector or any other value
+#'   errors.
+#' @param target_var Character vector of `var_code` values to download, e.g.
+#'   `"t_max"` or `c("t_max", "precipitation")`. `NULL` (default) downloads
+#'   all variables available for the selected `period`. Codes not in the
+#'   catalogue for that period are silently ignored; an error is raised only if
+#'   none match. Run `sus_climate_normals_meta()` to inspect valid codes.
+#' @param cache_dir Single character string. Local directory for disk-cached
+#'   files. Default `"~/.climasus4r_cache/normals"`.
+#' @param use_cache Logical scalar. If `TRUE` (default), loads from and saves
+#'   to `cache_dir`. Set to `FALSE` to force a fresh download.
+#' @param lang Single character string. Message language: `"pt"` (default),
+#'   `"en"`, `"es"` (case-insensitive; others fall back to `"pt"` with a
+#'   warning).
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
 #' @return A `climasus_df` object at stage `"climate"` and type `"normals"`,
 #'   tidy long format with columns:
@@ -61,8 +70,11 @@ utils::globalVariables(c(
 #'   \item{`var_code`}{Character. Variable identifier from `normal_meta`.}
 #'   \item{`variable_pt`}{Character. Variable label in Portuguese.}
 #'   \item{`variable_en`}{Character. Variable label in English.}
+#'   \item{`variable_es`}{Character. Variable label in Spanish.}
 #'   \item{`period`}{Character. Reference period (e.g. `"1991-2020"`).}
 #' }
+#' `sus_meta()`: `stage = "climate"`, `type = "normals"`, `system = NULL`,
+#' plus `period`, `n_stations`, `n_variables`.
 #'
 #' @examples
 #' \dontrun{
@@ -80,8 +92,8 @@ utils::globalVariables(c(
 #' meta <- sus_climate_normals_meta(period = "1991-2020")
 #' }
 #'
-#' @seealso [sus_climate_normals_meta()], [sus_climate_inmet()],
-#'   [sus_mod_dlnm()], [sus_mod_vulnerability_index()]
+#' @seealso [sus_climate_normals_meta()], [sus_climate_anomaly()],
+#'   [sus_climate_inmet()], [sus_mod_dlnm()], [sus_mod_vulnerability_index()]
 #'
 #' @export
 #' @importFrom dplyr filter select mutate across bind_rows as_tibble n_distinct
@@ -216,17 +228,20 @@ sus_climate_normals <- function(
 #' available variables and their `var_code` values before calling
 #' [sus_climate_normals()].
 #'
-#' @param period Character. Filter to a specific period, or `NULL` (default)
-#'   to return the full catalogue.
-#' @param lang Character. Language for the returned label column:
-#'   `"pt"` (default), `"en"`, `"es"`.
-#' @param cache_dir Character. Cache directory. Default:
+#' @param period Single character string (`"1961-1990"`, `"1981-2010"`,
+#'   `"1991-2020"`) to filter the catalogue, or `NULL` (default) to return
+#'   all periods. An unknown value returns an empty tibble (no error).
+#' @param lang Single character string. Language for the `variable_label`
+#'   column: `"pt"` (default), `"en"`, `"es"` (others fall back to `"pt"`).
+#' @param cache_dir Single character string. Cache directory. Default
 #'   `"~/.climasus4r_cache/normals"`.
-#' @param use_cache Logical. Use cached catalogue. Default `TRUE`.
-#' @param verbose Logical. Print messages. Default `FALSE`.
+#' @param use_cache Logical scalar. Use cached catalogue. Default `TRUE`.
+#' @param verbose Logical scalar. Print messages. Default `FALSE`.
 #'
 #' @return A tibble with columns `var_code`, `variable_label`, `period`,
 #'   `var_slug`, and `code_link`.
+#'
+#' @seealso [sus_climate_normals()]
 #'
 #' @examples
 #' \dontrun{

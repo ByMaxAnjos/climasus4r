@@ -16,31 +16,46 @@ sus_mod_plot_burden(
 )
 }
 \arguments{
-\item{x}{A \code{climasus_burden} object produced by \code{\link[=sus_mod_burden]{sus_mod_burden()}}.}
+\item{x}{A \code{climasus_burden} object produced by \code{\link[=sus_mod_burden]{sus_mod_burden()}}. Other
+classes error.}
 
-\item{type}{Character. Plot type: \code{"lollipop"} (default), \code{"lorenz"}, or
-\code{"stacked"}.}
+\item{type}{Character scalar: \code{"lollipop"} (default; cities ranked by AN or
+excess, with CI when available), \code{"lorenz"} (Lorenz concentration curve
+from \verb{$concentration}) or \code{"stacked"} (heat vs cold AN per city). \code{"stacked"}
+errors unless \code{x} was built from AF/DLNM inputs with
+\code{component = "all"}. \code{"lollipop"} uses the \code{"total"} rows, so it needs
+\code{component = "total"} or \code{"all"} in \code{\link[=sus_mod_burden]{sus_mod_burden()}}. Partial matching
+applies; other values error.}
 
-\item{output_type}{Character. \code{"plot"} (default), \code{"table"}, or \code{"all"}
-(named list \verb{$plot}, \verb{$table}, \verb{$data}).}
+\item{output_type}{Character scalar: \code{"plot"} (default), \code{"table"} (the
+plotted data) or \code{"all"} (list with \verb{$plot}, \verb{$table}, \verb{$data}).}
 
-\item{interactive}{Logical. \code{TRUE} converts the ggplot2 output to an
-interactive \pkg{plotly} widget. Default \code{FALSE}.}
+\item{interactive}{Logical scalar. \code{TRUE} converts the ggplot to a
+\pkg{plotly} widget (requires \pkg{plotly}). Default \code{FALSE}.}
 
-\item{base_size}{Numeric. ggplot2 base font size. Default \code{12}.}
+\item{base_size}{Numeric scalar. Base font size in points for the ggplot2
+theme. Default \code{12L}.}
 
-\item{save_plot}{Character or \code{NULL}. File path to save the plot.}
+\item{save_plot}{Character scalar or \code{NULL} (default). Output path, e.g.
+\code{"burden.png"} / \code{"burden.pdf"} (saved with \code{\link[ggplot2:ggsave]{ggplot2::ggsave()}}, 9 x 5 in);
+with \code{interactive = TRUE} use an \code{.html} path (needs \pkg{htmlwidgets}).
+\code{NULL} does not save.}
 
-\item{lang}{Character. Language for labels: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar: \code{"pt"} (default), \code{"en"}, \code{"es"}. Language of
+labels; unsupported values warn and fall back to \code{"pt"}.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{FALSE}.}
+\item{verbose}{Logical scalar. If \code{TRUE} prints progress messages. Default
+\code{FALSE}.}
 }
 \value{
 Depending on \code{output_type}:
 \itemize{
-\item \code{"plot"} -> a \code{ggplot} or \code{plotly} object.
-\item \code{"table"} -> a \code{tibble} of the plotted data.
-\item \code{"all"} -> a named list: \verb{$plot}, \verb{$table}, \verb{$data}.
+\item \code{"plot"}: a \code{ggplot} (or \code{plotly} when \code{interactive = TRUE}) object.
+\item \code{"table"}: a tibble of the plotted data (\code{"total"} rows of
+\verb{$burden_table} for \code{"lollipop"}, \verb{$concentration} for \code{"lorenz"},
+heat/cold rows for \code{"stacked"}).
+\item \code{"all"}: a named list with \verb{$plot}, \verb{$table} and \verb{$data} (identical to
+\verb{$table}).
 }
 }
 \description{
@@ -58,16 +73,17 @@ charts from a \code{climasus_burden} object returned by \code{\link[=sus_mod_bur
 
 \examples{
 \dontrun{
-burden <- sus_mod_burden(af_list, lang = "pt")
+burden <- sus_mod_burden(af_list, component = "all", lang = "pt")
 
 sus_mod_plot_burden(burden, type = "lollipop", lang = "pt")
 sus_mod_plot_burden(burden, type = "lorenz",   lang = "en")
-sus_mod_plot_burden(burden, type = "stacked",  lang = "es")
+sus_mod_plot_burden(burden, type = "stacked",  lang = "es")  # needs component = "all"
 out <- sus_mod_plot_burden(burden, output_type = "all")
 out$table
 }
 
 }
 \seealso{
-\code{\link[=sus_mod_burden]{sus_mod_burden()}}, \code{\link[=sus_mod_af]{sus_mod_af()}}, \code{\link[=sus_mod_excess]{sus_mod_excess()}}
+\code{\link[=sus_mod_burden]{sus_mod_burden()}}, \code{\link[=sus_mod_af]{sus_mod_af()}}, \code{\link[=sus_mod_excess]{sus_mod_excess()}},
+\code{\link[=sus_mod_plot_af]{sus_mod_plot_af()}}
 }

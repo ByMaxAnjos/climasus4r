@@ -33,49 +33,60 @@ utils::globalVariables(c(
 #'     Same key as FIRMS MODIS. 375 m resolution, 2012 to present.
 #' }
 #'
-#' @param years Numeric vector of years. INPE: 1998–present.
-#'   FIRMS MODIS: 2000–present. FIRMS VIIRS: 2012–present.
+#' @param years Numeric vector of years (required, no default; character values
+#'   error). Accepted forms: scalar (`2022`), range (`2018:2022`) or explicit
+#'   vector (`c(2019, 2021)`). `c(2018, 2022)` means exactly those two years,
+#'   NOT the range -- use `2018:2022`. De-duplicated, sorted, coerced with
+#'   `as.integer()`. Valid range depends on `source`: INPE 1998 to current year;
+#'   FIRMS MODIS 2000 to current year; FIRMS VIIRS 2012 to current year (values
+#'   outside error).
 #'
-#' @param months Integer vector (1–12). Default `1:12`.
+#' @param months Numeric vector of months (1-12), e.g. `7:10`, `c(1, 7)` (exactly
+#'   January and July). Default `1:12`. Values outside 1-12 or `NA` error.
 #'
-#' @param uf Character vector of state codes (e.g., `c("MT", "PA")`).
-#'   Case-insensitive. `NULL` = all Brazil. Used to filter INPE queries and
-#'   as a shortcut to define `bbox` for FIRMS.
+#' @param uf Character vector of 2-letter state codes, e.g. `"MT"` or
+#'   `c("MT", "PA")`; case-insensitive, whitespace trimmed; invalid codes error.
+#'   `NULL` (default) = all Brazil. For INPE it is sent as a query filter; for
+#'   FIRMS it is used only to derive `bbox` when `bbox` is `NULL`.
 #'
-#' @param bbox Numeric vector `c(xmin, ymin, xmax, ymax)` in WGS84 longitude/
-#'   latitude. Used by FIRMS for spatial subsetting. If `NULL` and `uf` is
-#'   provided, the bbox is computed from Brazilian state centroids. If both
-#'   are `NULL`, Brazil's bounding box is used.
+#' @param bbox Numeric vector `c(xmin, ymin, xmax, ymax)` in WGS84 lon/lat.
+#'   Used only for FIRMS sources (ignored for INPE). If `NULL`: derived from
+#'   `uf` when given, otherwise Brazil's box `c(-75, -35, -28, 6)`.
 #'
-#' @param source Character. Data source: `"inpe"` (default), `"firms_modis"`,
-#'   or `"firms_viirs"`.
+#' @param source Character scalar, one of `"inpe"` (default), `"firms_modis"`,
+#'   `"firms_viirs"`. Validated with `match.arg()` (partial matching allowed).
 #'
-#' @param municipalities An `sf` POLYGON object (e.g., from
-#'   [geobr::read_municipality()]). When provided, fire points are spatially
-#'   joined to polygons and aggregated to daily municipality-level counts.
-#'   If `NULL`, the raw fire point data are returned as a `climasus_df`.
+#' @param municipalities An `sf` polygon object (e.g. from [geobr::read_municipality()])
+#'   or `NULL` (default). Non-`sf` input errors. When provided, points are
+#'   reprojected to WGS84, joined (`st_within`) and aggregated to daily
+#'   municipality counts; the ID column is auto-detected and truncated to 7
+#'   digits. If `NULL`, raw fire points are returned.
 #'
-#' @param agg_fun Character. Aggregation strategy when `municipalities` is
-#'   provided. Currently `"count"` is supported (count of fire hotspots per
-#'   municipality per day). Future versions may support `"frp_sum"`.
+#' @param agg_fun Character scalar. Reserved; currently NOT used by the code (the
+#'   municipality aggregation always returns `n_fires` and `frp_mean`). Default
+#'   `"count"`.
 #'
-#' @param biome Character vector. INPE biome filter. Allowed values:
-#'   `"Amazonia"`, `"Cerrado"`, `"Mata Atlantica"`, `"Caatinga"`,
-#'   `"Pampa"`, `"Pantanal"`. `NULL` = no filter.
+#' @param biome Character vector. INPE biome filter, any of `"Amazonia"`,
+#'   `"Cerrado"`, `"Mata Atlantica"`, `"Caatinga"`, `"Pampa"`, `"Pantanal"`
+#'   (exact spelling, no accents; other values error). `NULL` (default) = no
+#'   filter. Only applied to INPE requests.
 #'
-#' @param use_cache Logical. Reuse previously downloaded CSV/JSON files.
-#'   Default `TRUE`.
+#' @param use_cache Logical scalar. Reuse previously downloaded monthly files (one
+#'   CSV per source/year/month under `cache_dir`). Default `TRUE`. The
+#'   file name carries a hash of the filters sent to the API (`uf`/`biome` for
+#'   INPE, `bbox` for FIRMS), so changing them never reuses an older file.
 #'
-#' @param cache_dir Character. Root cache directory.
-#'   Default `"~/.climasus4r_cache/fires"`.
+#' @param cache_dir Character scalar. Root cache directory. Default
+#'   `"~/.climasus4r_cache/fires"`.
 #'
-#' @param firms_key Character. NASA FIRMS MAP KEY.
-#'   Defaults to `Sys.getenv("FIRMS_MAP_KEY")`. Required when
-#'   `source %in% c("firms_modis", "firms_viirs")`.
+#' @param firms_key Character scalar or `NULL`. NASA FIRMS MAP KEY. If `NULL` or
+#'   empty, falls back to `Sys.getenv("FIRMS_MAP_KEY")`. Required (error if
+#'   empty) for `"firms_modis"`/`"firms_viirs"`; ignored for INPE.
 #'
-#' @param lang Character. Message language: `"pt"` (default), `"en"`, `"es"`.
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"` or
+#'   `"es"`; other values error.
 #'
-#' @param verbose Logical. Print progress. Default `TRUE`.
+#' @param verbose Logical scalar. Print progress. Default `TRUE`.
 #'
 #' @return
 #' \itemize{
@@ -85,7 +96,8 @@ utils::globalVariables(c(
 #'     `NA` when not available). Metadata: `stage = "climate"`,
 #'     `type = "fires"`.
 #'   \item If `municipalities = NULL`: a `climasus_df` with raw fire point
-#'     columns: `date`, `lat`, `lon`, `frp`, `biome`, `estado`, `source`.
+#'     columns (those available from the source): `date`, `lat`, `lon`,
+#'     `frp`, `biome`, `estado`, `source`. Same metadata.
 #' }
 #'
 #' @section INPE Queimadas API:
@@ -134,8 +146,8 @@ utils::globalVariables(c(
 #' )
 #' }
 #'
-#' @seealso [sus_grid_pollution_cams()], [sus_climate_anomaly()],
-#'   [sus_mod_dlnm()]
+#' @seealso [sus_grid_pollution_cams()], [sus_grid_smvi()], [sus_grid_prodes()],
+#'   [sus_grid_join()], [sus_climate_anomaly()], [sus_mod_dlnm()]
 #'
 #' @export
 #' @importFrom rlang .data is_installed
@@ -236,6 +248,10 @@ sus_grid_fires <- function(
 
   # ── 2. Build manifest (year × month) ─────────────────────────────────────────
   manifest_rows <- list()
+  # Monthly CSVs hold the filtered raw points: key on what the API filters on
+  # (INPE: uf + biome; FIRMS: bbox), see .grid_cache_key().
+  fkey <- if (source == "inpe") .grid_cache_key(NULL, uf = uf, biome = biome)
+          else .grid_cache_key(NULL, bbox = bbox)
   for (yr in years) {
     for (mo in months) {
       last_day <- lubridate::days_in_month(lubridate::make_date(yr, mo, 1L))
@@ -245,7 +261,7 @@ sus_grid_fires <- function(
         date_start = sprintf("%04d-%02d-01", yr, mo),
         date_end   = sprintf("%04d-%02d-%02d", yr, mo, last_day),
         cache_path = file.path(cache_dir, source,
-                               sprintf("%04d_%02d.csv", yr, mo))
+                               sprintf("%04d_%02d_%s.csv", yr, mo, fkey))
       )
       manifest_rows[[length(manifest_rows) + 1]] <- row
     }

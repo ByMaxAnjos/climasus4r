@@ -16,31 +16,44 @@ sus_mod_plot_pool(
 )
 }
 \arguments{
-\item{x}{A \code{climasus_pool} object produced by \code{\link[=sus_mod_pool]{sus_mod_pool()}}.}
+\item{x}{A \code{climasus_pool} object produced by \code{\link[=sus_mod_pool]{sus_mod_pool()}}. Other
+classes error.}
 
-\item{type}{Character. Plot type: \code{"overall"} (default), \code{"forest"}, or
-\code{"spaghetti"}.}
+\item{type}{Character scalar: \code{"overall"} (default; pooled curve from
+\verb{$exposure_curve}, errors if empty), \code{"forest"} (per-city RR from
+\verb{$city_table}, raw and BLUP) or \code{"spaghetti"} (per-city BLUP curves over
+the pooled curve; needs \verb{$blup_preds}, otherwise a warning is issued and
+the \code{"overall"} plot is returned). Partial matching applies; other values
+error.}
 
-\item{output_type}{Character. \code{"plot"} (default), \code{"table"}, or \code{"all"}
-(named list \verb{$plot}, \verb{$table}, \verb{$data}).}
+\item{output_type}{Character scalar: \code{"plot"} (default), \code{"table"} (plotted
+data) or \code{"all"} (list with \verb{$plot}, \verb{$table}, \verb{$data}).}
 
-\item{interactive}{Logical. \code{TRUE} converts the ggplot2 output to an
-interactive \pkg{plotly} widget. Default \code{FALSE}.}
+\item{interactive}{Logical scalar. \code{TRUE} converts the ggplot to a
+\pkg{plotly} widget (requires \pkg{plotly}). Default \code{FALSE}.}
 
-\item{base_size}{Numeric. ggplot2 base font size. Default \code{12}.}
+\item{base_size}{Numeric scalar. Base font size in points for the ggplot2
+theme. Default \code{12L}.}
 
-\item{save_plot}{Character or \code{NULL}. File path to save the plot.}
+\item{save_plot}{Character scalar or \code{NULL} (default). Output path, e.g.
+\code{"pool.png"} (saved with \code{\link[ggplot2:ggsave]{ggplot2::ggsave()}}, 9 x 5 in); with
+\code{interactive = TRUE} use an \code{.html} path (needs \pkg{htmlwidgets}).
+\code{NULL} does not save.}
 
-\item{lang}{Character. Language for labels: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar: \code{"pt"} (default), \code{"en"}, \code{"es"}. Language of
+labels; unsupported values warn and fall back to \code{"pt"}.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{FALSE}.}
+\item{verbose}{Logical scalar. If \code{TRUE} prints progress messages. Default
+\code{FALSE}.}
 }
 \value{
 Depending on \code{output_type}:
 \itemize{
-\item \code{"plot"} -> a \code{ggplot} or \code{plotly} object.
-\item \code{"table"} -> a \code{tibble} of the plotted data.
-\item \code{"all"} -> a named list: \verb{$plot}, \verb{$table}, \verb{$data}.
+\item \code{"plot"}: a \code{ggplot} (or \code{plotly} when \code{interactive = TRUE}) object.
+\item \code{"table"}: the plotted data: \code{x$exposure_curve} for \code{"overall"},
+\code{x$city_table} for \code{"forest"} and \code{"spaghetti"}.
+\item \code{"all"}: a named list with \verb{$plot}, \verb{$table} and \verb{$data} (identical to
+\verb{$table}).
 }
 }
 \description{
@@ -69,5 +82,6 @@ out$table
 
 }
 \seealso{
-\code{\link[=sus_mod_pool]{sus_mod_pool()}}, \code{\link[=sus_mod_plot_dlnm]{sus_mod_plot_dlnm()}}
+\code{\link[=sus_mod_pool]{sus_mod_pool()}}, \code{\link[=sus_mod_metaregression]{sus_mod_metaregression()}},
+\code{\link[=sus_mod_plot_dlnm]{sus_mod_plot_dlnm()}}
 }

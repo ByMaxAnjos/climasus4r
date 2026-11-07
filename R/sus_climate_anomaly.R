@@ -171,6 +171,13 @@ utils::globalVariables(c(
 #' ready for epidemiological modelling with [sus_mod_dlnm()],
 #' [sus_climate_compute_heatwaves()], or [sus_mod_vulnerability_index()].
 #'
+#' Use it after [sus_climate_inmet()] (or [sus_climate_fill_inmet()]) and
+#' [sus_climate_normals()]. Station codes in `observed` must match the INMET
+#' station codes (`codigo`) in `normals`; only stations present in both
+#' contribute normals (others get `NA`). Only INMET-style columns are mapped
+#' by default: `tair_max_c`, `tair_min_c`, `tair_dry_bulb_c`, `rainfall_mm`,
+#' `rh_mean_porc` (rainfall is summed per period, the others averaged).
+#'
 #' @section Why anomalies matter for climate-health with DATASUS:
 #' \itemize{
 #'   \item **Multi-city comparability**: standardized anomalies make DLNM
@@ -197,32 +204,38 @@ utils::globalVariables(c(
 #' | `"all"` | All three | Exploratory analysis |
 #'
 #' @param observed A `climasus_df` from [sus_climate_inmet()] or
-#'   [sus_climate_aggregate()]. At minimum must contain: a station identifier
+#'   [sus_climate_aggregate()] (a plain tibble errors; Arrow objects are
+#'   collected first). At minimum must contain: a station identifier
 #'   column (see `station_col`), a date column (see `date_col`), and at least
 #'   one climate variable column covered by the `vars` mapping.
 #' @param normals A `climasus_df` from [sus_climate_normals()]. Must contain
 #'   columns `codigo`, `mes`, `decada`, `var_code`, and `valor`. Run
 #'   [sus_climate_normals_meta()] to see available `var_code` values.
-#' @param vars Named character vector mapping **observed column names** to
-#'   **normals `var_code` values**, e.g.
+#' @param vars Named character vector mapping **observed column names** (names)
+#'   to **normals `var_code` values** (values), e.g.
 #'   `c(tair_max_c = "t_max", rainfall_mm = "precipitation")`.
-#'   `NULL` (default) auto-detects variables using the built-in map for
-#'   standard INMET columns.
-#' @param method Character. Anomaly computation method: `"absolute"` (default),
-#'   `"relative"`, `"standardized"`, or `"all"`.
-#' @param time_scale Character. Temporal resolution for the anomaly:
+#'   `NULL` (default) auto-detects variables using the built-in map
+#'   (`tair_max_c`-`t_max`, `tair_min_c`-`t_min`, `tair_dry_bulb_c`-`t_mean_comp`,
+#'   `rainfall_mm`-`precipitation`, `rh_mean_porc`-`rh_mean`) restricted to
+#'   columns present in `observed` and codes present in `normals`. Errors if
+#'   nothing can be mapped or if a supplied name/code is not found.
+#' @param method Single character string. Anomaly computation method: `"absolute"`
+#'   (default), `"relative"`, `"standardized"`, or `"all"` (partial matching
+#'   allowed; invalid values error).
+#' @param time_scale Single character string, `"monthly"` (default) or
+#'   `"decadal"`. Temporal resolution for the anomaly:
 #'   `"monthly"` (default) averages normals across the three decades of each
 #'   month and aggregates observations by calendar month; `"decadal"` preserves
 #'   the 10-day decade structure of INMET normals and is more precise for
 #'   variables such as temperature extremes and precipitation.
-#' @param station_col Character. Name of the station identifier column in
-#'   `observed`. Default `"station_code"`. Must contain INMET codes matching
-#'   the `codigo` column in `normals`.
-#' @param date_col Character. Name of the date or datetime column in
-#'   `observed`. Default `"date"`. Accepts `Date` or `POSIXct`.
-#' @param lang Character. Language for messages: `"pt"` (default), `"en"`,
-#'   `"es"`.
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param station_col Single character string. Name of the station identifier
+#'   column in `observed`. Default `"station_code"`. Must contain INMET codes
+#'   matching the `codigo` column in `normals`. The output keeps this name.
+#' @param date_col Single character string. Name of the date or datetime column
+#'   in `observed`. Default `"date"`. Accepts `Date` or `POSIXct`.
+#' @param lang Single character string. Language for messages: `"pt"` (default),
+#'   `"en"`, `"es"`. Unsupported values fall back to `"pt"` with a warning.
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
 #' @return A `climasus_df` at stage `"climate"` and type `"anomaly"`. One row
 #'   per station × year × month (or × decade when `time_scale = "decadal"`).
@@ -234,17 +247,21 @@ utils::globalVariables(c(
 #'   \item{`month_name`}{Portuguese month name, ASCII.}
 #'   \item{`decade_num`}{Decade within month (1, 2, or 3). Present only when
 #'     `time_scale = "decadal"`.}
-#'   \item{`{v}_obs`}{Observed monthly/decadal value (mean or sum depending on
+#'   \item{`<v>_obs`}{Observed monthly/decadal value (mean or sum depending on
 #'     variable type).}
-#'   \item{`{v}_normal`}{Climatological normal value.}
-#'   \item{`{v}_anomaly`}{Absolute anomaly: obs − normal.}
-#'   \item{`{v}_anomaly_pct`}{Relative anomaly (\%): (obs − normal) /
+#'   \item{`<v>_normal`}{Climatological normal value.}
+#'   \item{`<v>_anomaly`}{Absolute anomaly: obs − normal.}
+#'   \item{`<v>_anomaly_pct`}{Relative anomaly (%): (obs − normal) /
 #'     |normal| × 100. Only when `method ∈ c("relative", "all")`.}
-#'   \item{`{v}_anomaly_std`}{Standardized anomaly (z-score):
+#'   \item{`<v>_anomaly_std`}{Standardized anomaly (z-score):
 #'     (obs − normal) / σ_obs, where σ is the inter-annual SD of monthly
 #'     observations for each station × month. Only when
 #'     `method ∈ c("standardized", "all")`.}
 #' }
+#'
+#' `sus_meta()`: `stage = "climate"`, `type = "anomaly"`, `system` inherited
+#' from `observed`; also stores `method`, `time_scale`, `normal_period` and
+#' `var_map`.
 #'
 #' @examples
 #' \dontrun{
@@ -261,6 +278,8 @@ utils::globalVariables(c(
 #' anom_std <- sus_climate_anomaly(obs, norm,
 #'                                  method     = "standardized",
 #'                                  vars       = c(tair_dry_bulb_c = "t_mean_comp"))
+#' dplyr::select(anom_std, station_code, year, month_num,
+#'               tair_dry_bulb_c_anomaly_std)
 #'
 #' # 4. Decadal precipitation anomalies — dengue/leptospirosis lag studies
 #' anom_10d <- sus_climate_anomaly(obs, norm,

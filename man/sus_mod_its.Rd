@@ -19,40 +19,48 @@ sus_mod_its(
 )
 }
 \arguments{
-\item{data}{A \code{climasus_df} at stage \code{"aggregate"} or \code{"climate"}, or any
-\code{data.frame} with a date column and an integer count column.}
+\item{data}{A \code{climasus_df}, tibble or \code{data.frame} with one row per day
+(single series; rows are not aggregated, so aggregate multi-city data first
+with \code{\link[=sus_data_aggregate]{sus_data_aggregate()}}). Needs a date column and a numeric count
+column. The pipeline stage is not checked. Other classes error. Rows with
+\code{NA} date or outcome are dropped.}
 
-\item{outcome_col}{Character. Name of the daily health outcome count column.
-Default: \code{"n_obitos"}.}
+\item{outcome_col}{Character scalar. Name of the daily outcome count column.
+Default \code{"n_obitos"}. Errors if absent.}
 
-\item{date_col}{Character. Name of the date column. Default: \code{"date"}.}
+\item{date_col}{Character scalar. Name of the date column (coerced with
+\code{as.Date()}). Default \code{"date"}. Errors if absent.}
 
-\item{interruption_dates}{Date or character vector of at least one
-interruption date (ISO \code{"YYYY-MM-DD"} format). Must lie strictly within
-the data range. For a single interruption pass a scalar;
-for multiple, pass a vector.}
+\item{interruption_dates}{Required. One or more dates, as \code{Date} or ISO
+character: scalar (\code{"2020-03-17"}, \code{as.Date("2020-03-17")}) or vector
+(\code{c("2020-03-17", "2021-01-18")}) for several interruptions (sorted
+internally; each adds its own level and slope terms). Every date must lie
+strictly inside the data range (after the first and before the last
+day), otherwise the call errors; a warning is issued if fewer than 90 days
+precede the first interruption.}
 
-\item{harmonics}{Integer. Number of sinusoidal harmonic pairs for seasonal
-control (\eqn{H} in the model above). \code{0} suppresses seasonal terms.
-Default: \code{2L}.}
+\item{harmonics}{Non-negative integer. Number of sine/cosine pairs for
+seasonality (\eqn{H}); \code{2L} (default) = annual + semi-annual cycles,
+\code{0} removes seasonal terms.}
 
-\item{family}{Character. GLM family: \code{"quasipoisson"} (default, robust to
-overdispersion) or \code{"poisson"}.}
+\item{family}{Character scalar: \code{"quasipoisson"} (default, handles
+overdispersion) or \code{"poisson"}. Other values error.}
 
-\item{covariates}{Character vector or \code{NULL}. Names of additional columns to
-include as linear confounders (e.g., \code{"rh_pct"}, \code{"holiday"}). Must be
-numeric or dummy-coded. Default: \code{NULL}.}
+\item{covariates}{Character vector or \code{NULL} (default). Names of extra numeric
+or dummy-coded columns entered linearly (e.g. \code{c("rh_pct", "holiday")}).
+Errors if any is absent from \code{data}.}
 
-\item{alpha}{Numeric. Significance level for confidence intervals.
-Default: \code{0.05} (95\% CI).}
+\item{alpha}{Numeric scalar in (0, 1). Significance level; CI use
+\code{qnorm(1 - alpha / 2)}. Default \code{0.05} (95\% CI).}
 
-\item{counterfactual}{Logical. Compute and return counterfactual predictions.
-Default: \code{TRUE}.}
+\item{counterfactual}{Logical scalar. If \code{TRUE} (default) computes the
+counterfactual series (\verb{$counterfactual}); \code{FALSE} skips it and returns
+\code{NULL} there.}
 
-\item{lang}{Character. Language for messages: \code{"pt"} (default), \code{"en"},
-\code{"es"}.}
+\item{lang}{Character scalar: \code{"pt"} (default), \code{"en"}, \code{"es"}. Language of
+messages; unsupported values warn and fall back to \code{"pt"}.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. If \code{TRUE} (default) prints progress messages.}
 }
 \value{
 A \code{climasus_its} list with:
@@ -143,5 +151,6 @@ in evaluating health care quality improvements. \emph{Academic Pediatrics},
 13(6 Suppl), S38-44. \doi{10.1016/j.acap.2013.08.002}
 }
 \seealso{
-\code{\link[=sus_mod_excess]{sus_mod_excess()}}, \code{\link[=sus_mod_casecrossover]{sus_mod_casecrossover()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
+\code{\link[=sus_mod_excess]{sus_mod_excess()}}, \code{\link[=sus_mod_casecrossover]{sus_mod_casecrossover()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}},
+\code{\link[=sus_data_aggregate]{sus_data_aggregate()}}
 }

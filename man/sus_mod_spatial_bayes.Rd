@@ -22,30 +22,33 @@ sus_mod_spatial_bayes(
 )
 }
 \arguments{
-\item{df}{A \code{data.frame} or \code{climasus_df} at the aggregate pipeline stage.
-Must contain \code{code_muni} (7-digit IBGE code), the \code{outcome} column, all
-columns named in \code{covariates}, and optionally an \code{offset} column.
-Rows are sorted by \code{code_muni} internally to align with \code{W}.}
+\item{df}{A \code{data.frame} or \code{climasus_df} at the aggregate pipeline stage
+(see \code{\link[=sus_data_aggregate]{sus_data_aggregate()}}) with \strong{exactly one row per municipality}
+(\code{nrow(df)} must equal \code{W$n_regions}, otherwise error; for panels use
+\code{\link[=sus_mod_spacetime_bayes]{sus_mod_spacetime_bayes()}}). Must contain \code{code_muni} (IBGE code), the
+\code{outcome} column and all \code{covariates}/\code{offset} columns. Rows are sorted
+by \code{code_muni} internally, so \code{W} must follow the same sorted order.}
 
-\item{outcome}{Character. Name of the response variable column in \code{df}
-(e.g. \code{"deaths"}, \code{"hospitalizations"}).}
+\item{outcome}{Character scalar. Name of the response column in \code{df}
+(e.g. \code{"deaths"}, \code{"hospitalizations"}). \code{NA} values trigger a warning.}
 
-\item{W}{A \code{climasus_weights} object produced by
-\code{\link[=sus_mod_spatial_weights]{sus_mod_spatial_weights()}}. Must contain either a \verb{$W} dense matrix or a
-\verb{$nb} neighbour list from which a binary adjacency matrix is built.}
+\item{W}{A \code{climasus_weights} object from \code{\link[=sus_mod_spatial_weights]{sus_mod_spatial_weights()}}
+with a \verb{$W} dense matrix or a \verb{$nb} neighbour list (a binary adjacency
+matrix is built from it). Errors otherwise.}
 
-\item{covariates}{Character vector of covariate column names in \code{df} to
-include as fixed effects. Default \code{NULL} (intercept-only model).}
+\item{covariates}{Character vector of column names in \code{df} included as
+fixed effects, e.g. \code{c("temp_mean", "prec_total")}. \code{NULL} (default)
+fits an intercept-only model. Missing columns error.}
 
-\item{offset}{Character. Name of an \strong{expected counts} column in \code{df}
-(on the natural scale, not log-transformed). Used as \code{log(offset)} in the
-linear predictor for Poisson models. Default \code{NULL}.}
+\item{offset}{Character scalar or \code{NULL}. Name of an \strong{expected counts}
+column in \code{df} (natural scale, not logged; must be positive), entered as
+\code{log(offset)} for Poisson models. Default \code{NULL}.}
 
-\item{family}{Character. Response distribution. One of \code{"poisson"}
-(default), \code{"binomial"}, or \code{"gaussian"}. Note: \code{"gaussian"} is not
-supported for \code{model = "bym2"}.}
+\item{family}{Character scalar. Response distribution: \code{"poisson"}
+(default), \code{"binomial"}, or \code{"gaussian"}. \code{"gaussian"} is not supported
+for \code{model = "bym2"} (error).}
 
-\item{model}{Character. Spatial model structure. One of:
+\item{model}{Character scalar. Spatial model structure, one of:
 \itemize{
 \item \code{"bym"} (default) -- Besag-York-Mollie model via CARBayes/MCMC.
 \item \code{"leroux"} -- Leroux CAR model via CARBayes/MCMC.
@@ -55,9 +58,10 @@ complexity priors. Requires the \strong{INLA} package (not on CRAN; see
 \url{https://www.r-inla.org/download-install}).
 }}
 
-\item{n_iter}{Positive integer. Total number of MCMC iterations
-(including burn-in). Used only for CARBayes models (\code{"bym"}, \code{"leroux"},
-\code{"independent"}). Default \code{10000}. Ignored for \code{model = "bym2"}.}
+\item{n_iter}{Positive integer scalar. Total MCMC iterations (including
+burn-in), e.g. \code{20000L}. Used only for CARBayes models (\code{"bym"},
+\code{"leroux"}, \code{"independent"}); ignored for \code{model = "bym2"}. Default
+\code{10000L}.}
 
 \item{burnin}{Positive integer. Number of initial MCMC iterations to
 discard as burn-in. Must be less than \code{n_iter}. Used only for CARBayes
@@ -71,20 +75,20 @@ the Inverse-Gamma prior for the variance of spatial random effects.
 Used only for CARBayes models. Default \code{c(1, 0.01)} (weakly informative).
 Ignored for \code{model = "bym2"} (which uses PC priors instead).}
 
-\item{seed}{Integer. Random seed passed to \code{\link[base:Random]{base::set.seed()}} for
-reproducible MCMC (CARBayes models) or to \code{INLA::inla.set.control.compute}
-via \code{inla.seed} (BYM2). Default \code{42}.}
+\item{seed}{Integer scalar. Random seed passed to \code{\link[base:Random]{base::set.seed()}} for
+reproducible MCMC (CARBayes models) or to INLA via \code{inla.seed} (BYM2).
+Default \code{42L}.}
 
-\item{lang}{Character. Language for CLI messages: \code{"pt"} (default),
-\code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"},
+or \code{"es"}; anything else errors (\code{match.arg}).}
 
-\item{verbose}{Logical. If \code{TRUE} (default), print progress messages
-via \strong{cli}.}
+\item{verbose}{Logical scalar. Print progress messages via \pkg{cli}.
+Default \code{TRUE}.}
 }
 \value{
 A named list of class \code{c("climasus_spatial_bayes", "list")} with
 slots \verb{$fixed} (posterior fixed effects), \verb{$random} (spatial random
-effects per municipality), \verb{$rr} (posterior relative risk with 95\\%
+effects per municipality), \verb{$rr} (posterior relative risk with 95\%
 credible intervals), \verb{$fitted} (posterior mean fitted values), \verb{$dic}
 (Deviance Information Criterion; for BYM2 a named numeric with both DIC
 and WAIC), \verb{$model}, \verb{$family}, \verb{$n_iter_effective}, and \verb{$call}.

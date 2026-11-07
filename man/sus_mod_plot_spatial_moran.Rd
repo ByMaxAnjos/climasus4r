@@ -17,32 +17,44 @@ sus_mod_plot_spatial_moran(
 \arguments{
 \item{x}{A \code{climasus_spatial_moran} object from \code{\link[=sus_mod_spatial_moran]{sus_mod_spatial_moran()}}.}
 
-\item{municipalities}{An \code{sf} object with at least the column \code{code_muni}
-(7-digit IBGE code) and polygon geometry. Required when \code{type} is \code{"map"}
-or \code{"both"}. Ignored for \code{type = "scatter"}.}
+\item{municipalities}{An \code{sf} object with polygon geometry and a
+\code{code_muni} column (IBGE municipality code; numeric or character, it is
+coerced to character before merging with \code{x$local$code_muni}).
+Required when \code{type} is \code{"map"} or \code{"both"} (error if \code{NULL} or if
+\code{code_muni} is missing); ignored for \code{type = "scatter"}. Units in
+\code{x$local} without a match are omitted from the map with a warning.
+Default \code{NULL}.}
 
-\item{type}{Character. Which panel(s) to produce. One of \code{"map"} (default),
-\code{"scatter"}, or \code{"both"}.}
+\item{type}{Character scalar. Panel(s) to produce: \code{"map"} (default),
+\code{"scatter"}, or \code{"both"}. Partial matching applies (\code{match.arg()}).}
 
-\item{alpha}{Numeric in (0, 1). Significance level used for the subtitle
-annotation. Default \code{0.05}.}
+\item{alpha}{Numeric scalar in (0, 1). Currently accepted but NOT used by
+the plotting code: quadrants are taken as already classified in
+\code{x$local$quadrant} (significance is set in \code{\link[=sus_mod_spatial_moran]{sus_mod_spatial_moran()}}).
+Default \code{0.05}.}
 
-\item{title}{Character or \code{NULL}. Custom title overriding the default
-translated title. Applies to the first / only panel. Default \code{NULL}.}
+\item{title}{Character scalar or \code{NULL}. Custom title replacing the default
+translated title. With \code{type = "both"} it applies to the map panel only;
+the scatter panel keeps its default title. Default \code{NULL}.}
 
-\item{lang}{Character. Output language: \code{"pt"} (default), \code{"en"}, or \code{"es"}.}
+\item{lang}{Character scalar. Output language: \code{"pt"} (default), \code{"en"},
+or \code{"es"}. Any other value triggers a warning and falls back to \code{"pt"}.}
 
-\item{...}{Additional arguments passed to \code{\link[ggplot2:ggsave]{ggplot2::ggsave()}} when saving,
-or ignored.}
+\item{...}{Currently unused (ignored).}
 }
 \value{
 \itemize{
-\item \code{type = "map"} -> a \code{ggplot} object.
-\item \code{type = "scatter"} -> a \code{ggplot} object.
-\item \code{type = "both"} -> a \code{patchwork} / \code{ggplot} combined object, or a named
-list \verb{list(map = <ggplot>, scatter = <ggplot>)} if \pkg{patchwork} is not
-installed.
+\item \code{type = "map"} or \code{"scatter"}: a \code{ggplot} object.
+\item \code{type = "both"}: a \code{patchwork} object (two panels side by side) when
+\pkg{patchwork} is installed, otherwise a named list
+\verb{list(map = <ggplot>, scatter = <ggplot>)}.
 }
+
+Errors if \code{x} is not a \code{climasus_spatial_moran}.
+The scatter panel uses \code{z_std} / \code{lag_z} from \code{x$local} when present;
+otherwise they are approximated from \code{Ii} and \code{quadrant} (sign from the
+quadrant, magnitude from \code{sqrt(abs(Ii))}), so the scatter is indicative,
+not exact.
 }
 \description{
 Produces a choropleth LISA cluster map and/or a Moran scatter plot from a
@@ -78,5 +90,6 @@ sus_mod_plot_spatial_moran(moran_res, type = "scatter", lang = "es")
 
 }
 \seealso{
-\code{\link[=sus_mod_spatial_moran]{sus_mod_spatial_moran()}}, \code{\link[=sus_mod_spatial_weights]{sus_mod_spatial_weights()}}
+\code{\link[=sus_mod_spatial_moran]{sus_mod_spatial_moran()}}, \code{\link[=sus_mod_spatial_weights]{sus_mod_spatial_weights()}},
+\code{\link[=sus_mod_plot_spatial_scan]{sus_mod_plot_spatial_scan()}}
 }

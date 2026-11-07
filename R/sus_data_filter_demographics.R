@@ -4,57 +4,68 @@
 #' age range, education level, region, and municipality. This function complements
 #' `sus_data_filter_cid()` by enabling stratified analyses by population subgroups.
 #'
-#' @param df A `climasus_df` object containing health data (output of the
-#'   `climasus4r` pipeline).
-#' @param sex Character vector specifying sex categories to include. Accepts
-#'   values in English, Portuguese, or Spanish (e.g., `"Male"`, `"Masculino"`,
-#'   `"Masculino"`). If `NULL` (default), includes all sexes.
-#' @param race Character vector specifying race/color categories to include.
-#'   Accepts IBGE standard categories in multiple languages. If `NULL` (default),
-#'   includes all races.
-#' @param age_range Numeric vector of length 2 specifying the age range
-#'   `c(min_age, max_age)`. Use `Inf` for no upper limit. If `NULL` (default),
-#'   includes all ages.
-#' @param education Character vector specifying education levels to include.
-#'   If `NULL` (default), includes all education levels.
-#' @param region A string indicating a predefined group of states or regions
-#'   (supports multilingual names PT, EN, ES). See Details.
+#' @param df A `climasus_df` at stage `"stand"` or later (see
+#'   [sus_data_standardize()]), or a lazy Arrow/DuckDB table. Must be
+#'   standardized so that the demographic columns can be found.
+#' @param sex Character scalar or vector of sex labels to keep, e.g. `"Female"`,
+#'   `c("Masculino", "Feminino")`. Must match the labels of the standardized
+#'   column in the language used in [sus_data_standardize()] (English
+#'   `Male`/`Female`; Portuguese `Masculino`/`Feminino`; Spanish
+#'   `Masculino`/`Femenino`); input is converted to title case. `NULL`
+#'   (default) keeps all. If no sex column is found, a warning is issued and the
+#'   filter is skipped.
+#' @param race Character scalar or vector of race/color labels to keep, e.g.
+#'   `"Parda"`, `c("Branca", "Preta")` (IBGE categories, see Details), matched
+#'   against the standardized column in the same way as `sex`. `NULL` (default)
+#'   keeps all. Skipped with a warning if no race column is found.
+#' @param age_range Numeric vector of length 2, `c(min_age, max_age)` in years,
+#'   both ends inclusive, e.g. `c(0, 4)`, `c(65, Inf)` (`Inf` = no upper
+#'   limit). `NULL` (default) keeps all ages. **Requires an `age_years`
+#'   column**, created by [sus_data_create_variables()]; the function aborts if
+#'   it is missing or if the length is not 2.
+#' @param education Character scalar or vector of education labels to keep (as
+#'   they appear in the standardized column, title-cased). `NULL` (default)
+#'   keeps all. Skipped with a warning if no education column is found.
+#' @param region Character or numeric scalar/vector, default `NULL`. State(s) to
+#'   keep, given as region/biome names (e.g. `"norte"`, `"amazonia_legal"`,
+#'   `"matopiba"`; PT/EN/ES aliases such as `"north"` accepted; see Details),
+#'   UF abbreviations (`"SP"`, `c("RJ", "ES")`) or IBGE state codes (`35`).
+#'   The elements are combined (union). Matching uses the state column of the
+#'   data (e.g. manager/notification UF), not municipality of residence.
+#'   Aborts if no valid state results.
 #' @param city Character vector of municipality names (e.g., `"Sao Paulo"`,
 #'   `"Natal"`) or IBGE codes (6 or 7-digit, e.g., `"3550308"`, `"2408102"`).
 #'   Case-insensitive; accents are normalised for matching. Partial typos trigger
 #'   fuzzy suggestions. If `NULL` (default), no additional municipality filter is
 #'   applied. Results are merged (union) with any codes in `municipality_code`.
-#' @param municipality_code Character or numeric vector specifying municipality
-#'   codes (IBGE 6 or 7-digit codes) to include. If `NULL` (default), includes
-#'   all municipalities.
-#' @param drop_ignored Logical. If `TRUE`, explicitly removes rows where
-#'   demographic variables (sex, race, education) contain missing values (`NA`)
-#'   or DATASUS ignored codes (e.g., `"9"`, `"Ignorado"`). Default is `FALSE`.
-#' @param backend Character string specifying the data processing backend.
-#'   Use `"arrow"` for out-of-memory, lazy processing (recommended for large datasets),
-#'   or `"tibble"` for in-memory processing (recommended for small to medium datasets).
+#' @param municipality_code Character or numeric vector of IBGE municipality
+#'   codes (6 or 7 digits), e.g. `c(3550308, 3304557)`. Combined (union) with
+#'   `city`. `NULL` (default) keeps all municipalities.
+#' @param drop_ignored Logical scalar, default `FALSE`. If `TRUE`, rows with
+#'   `NA` or DATASUS "ignored" codes (`"Ignorado"`, `"9"`, `"99"`, `"unknown"`,
+#'   ...) in the columns of the requested `sex`/`race`/`education` filters are
+#'   removed.
+#' @param backend Character scalar, `"arrow"` (default) or `"tibble"`.
+#'   `"arrow"` filters lazily and falls back to `"tibble"` (in memory) with a
+#'   warning if it fails; `"tibble"` processes in memory.
+#' @param use_cache Logical scalar, default `TRUE`. Cache the municipality
+#'   metadata used to resolve `city`/`municipality_code`; only relevant then.
+#' @param cache_dir Character scalar, directory of the cache, default
+#'   `"~/.climasus4r_cache/spatial"`.
+#' @param lang Character scalar, `"pt"` (default), `"en"` or `"es"`. Language of
+#'   messages; other values abort.
+#' @param verbose Logical scalar, default `TRUE`. Print the filtering summary.
 #'
-#'   - `"arrow"`: operations are performed lazily using the Apache Arrow engine,
-#'     avoiding loading the full dataset into memory. Ideal for large files
-#'     (e.g., Parquet, Feather) and high-performance workflows.
-#'
-#'   - `"tibble"`: data is fully loaded into memory as a tibble and processed eagerly
-#'     using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
-#'
-#'   If not specified, the function may automatically choose the backend based on
-#'   the input data type.
-#' @param use_cache Logical. If `TRUE` (default), uses cached spatial data to
-#'   avoid re-downloads and improve performance. Only relevant when `city` is
-#'   provided.
-#' @param cache_dir Character string specifying the directory to store cached
-#'   files. Default is `"~/.climasus4r_cache/spatial"`.
-#' @param lang Character string specifying the language for messages.
-#'   Options: `"en"` (English), `"pt"` (Portuguese, default), `"es"` (Spanish).
-#' @param verbose Logical. If `TRUE` (default), prints filtering summary.
-#'
-#' @return A `climasus_df` filtered by all specified demographic criteria.
+#' @return A `climasus_df` with only the rows meeting **all** the given
+#'   criteria (lazy if the input was lazy and arrow succeeded); columns are
+#'   unchanged. `sus_meta`: `stage = "filter_demo"`, `type = "filter_demo"`,
+#'   with the applied filters recorded in the history.
 #'
 #' @details
+#' Pipeline position: after [sus_data_filter_cid()] (or directly after
+#' [sus_data_standardize()]); `age_range` needs [sus_data_create_variables()]
+#' first. All filters are combined with AND; `NULL` arguments are skipped.
+#'
 #' The function automatically detects column names in different languages and
 #' standardisations. It handles both original DATASUS column names and
 #' standardised names from `sus_data_standardize()`.
@@ -73,7 +84,9 @@
 #'   \item Spanish: `"Blanca"`, `"Negra"`, `"Amarilla"`, `"Parda"`, `"Indigena"`
 #' }
 #'
-#' **IBGE Macro-regions:**
+#' **Regions accepted by `region`:**
+#'
+#'   **IBGE Macro-regions:**
 #'   * `"norte"`: c("AC", "AP", "AM", "PA", "RO", "RR", "TO")
 #'   * `"nordeste"`: c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE")
 #'   * `"centro_oeste"`: c("DF", "GO", "MT", "MS")
@@ -106,10 +119,11 @@
 #' \dontrun{
 #' library(climasus4r)
 #'
-#' # Filter by sex only
-#' df_women <- sus_data_filter_demographics(df, sex = "Female")
+#' # Filter by sex only (labels follow the language used in standardize)
+#' df_women <- sus_data_filter_demographics(df, sex = "Feminino", lang = "pt")
 #'
-#' # Filter by age range (elderly, 65+)
+#' # Filter by age range (elderly, 65+); needs age_years from
+#' # sus_data_create_variables()
 #' df_elderly <- sus_data_filter_demographics(df, age_range = c(65, Inf))
 #'
 #' # Filter by city name (with accent tolerance)
@@ -134,10 +148,13 @@
 #' df_children <- sus_data_filter_demographics(
 #'   df,
 #'   age_range = c(0, 5),
-#'   region    = "Norte",
+#'   region    = "norte",
 #'   lang      = "pt"
 #' )
 #' }
+#'
+#' @seealso [sus_data_filter_cid()], [sus_data_create_variables()],
+#'   [sus_data_standardize()]
 #'
 #' @export
 sus_data_filter_demographics <- function(df,

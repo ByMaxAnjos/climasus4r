@@ -18,37 +18,42 @@ sus_mod_spatial_scan(
 )
 }
 \arguments{
-\item{df}{A \code{data.frame} (or \code{climasus_df}) containing at minimum:
-a \code{code_muni} column (character or integer) and the columns named by
-\code{cases}, \code{population}, and optionally \code{expected}.}
+\item{df}{A \code{data.frame} (or \code{climasus_df}) with one row per municipality
+and a \code{code_muni} column (character or numeric; coerced to character),
+plus the columns named by \code{cases}, \code{population} and optionally
+\code{expected}. Municipalities in \code{municipalities} without a row in \code{df} are
+dropped with a warning; if none match the function errors.}
 
-\item{cases}{Character. Name of the column in \code{df} with case counts
-(non-negative integer or numeric).}
+\item{cases}{Character scalar. Column in \code{df} with case counts
+(non-negative numeric), e.g. \code{"deaths"}. Rows with \code{NA} cases are dropped.}
 
-\item{population}{Character. Name of the column in \code{df} with the
-at-risk population denominator.}
+\item{population}{Character scalar. Column in \code{df} with the at-risk
+population (positive numeric), e.g. \code{"population"}.}
 
-\item{municipalities}{An \code{sf} object with POLYGON or MULTIPOLYGON
-geometry and a \code{code_muni} column used to join to \code{df}.}
+\item{municipalities}{An \code{sf} object (required) with POLYGON or
+MULTIPOLYGON geometry and a \code{code_muni} column used to join to \code{df};
+errors if not \code{sf} or if \code{code_muni} is missing. Centroids are computed
+after reprojecting to EPSG:4326.}
 
-\item{expected}{Character or \code{NULL}. Name of the column in \code{df} with
-the expected number of cases under the null model. When \code{NULL}
-(default), \code{SpatialEpi::kulldorff()} computes expected counts
-internally from the overall rate.}
+\item{expected}{Character scalar or \code{NULL}. Column in \code{df} with expected
+cases under the null. \code{NULL} (default) lets \code{SpatialEpi::kulldorff()}
+derive them from the overall rate. A name not found in \code{df} only warns
+and is ignored.}
 
-\item{max_pop_frac}{Numeric in (0, 1]. Maximum fraction of the total
-population that a single cluster window may contain. Default \code{0.5}.}
+\item{max_pop_frac}{Numeric scalar in (0, 1]. Maximum share of the total
+population a cluster window may contain (e.g. \code{0.25}). Default \code{0.5}.}
 
-\item{n_simulations}{Positive integer. Number of Monte Carlo simulations
-for hypothesis testing. Default \code{999}. Increase to \code{9999} for
-publication-quality p-values.}
+\item{n_simulations}{Positive integer scalar. Monte Carlo replications,
+e.g. \code{999L} (default); \code{9999L} for publication-quality p-values.}
 
-\item{alpha}{Numeric in (0, 1). Significance level for secondary cluster
-filtering. Default \code{0.05}.}
+\item{alpha}{Numeric scalar in (0, 1). Significance level used to retain
+secondary clusters (passed to \code{SpatialEpi::kulldorff()} as
+\code{alpha.level}). Default \code{0.05}.}
 
-\item{lang}{Character. Output language: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default, first
+option), \code{"en"}, or \code{"es"}; partial matching, other values error.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
 A \code{climasus_spatial_scan} object (named list) with:
@@ -140,5 +145,7 @@ Kim, A. Y. & Wakefield, J. (2010). R data and methods for spatial
 epidemiology: the SpatialEpi package. University of Washington.
 }
 \seealso{
-\code{\link[=sus_spatial_join]{sus_spatial_join()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, \code{\link[=sus_mod_af]{sus_mod_af()}}
+\code{\link[=sus_mod_plot_spatial_scan]{sus_mod_plot_spatial_scan()}} to map the clusters,
+\code{\link[=sus_mod_spatial_moran]{sus_mod_spatial_moran()}}, \code{\link[=sus_mod_spatial_weights]{sus_mod_spatial_weights()}},
+\code{\link[=sus_spatial_join]{sus_spatial_join()}}
 }

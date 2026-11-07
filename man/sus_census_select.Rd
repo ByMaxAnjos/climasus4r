@@ -13,55 +13,61 @@ sus_census_select(
 )
 }
 \arguments{
-\item{dataset}{Character string specifying the census dataset. Options:
-\itemize{
-\item \code{"all"} - All datasets (default)
-\item \code{"population"} - Population microdata
-\item \code{"households"} - Household microdata
-\item \code{"families"} - Family microdata
-\item \code{"mortality"} - Mortality microdata
-\item \code{"emigration"} - Emigration microdata
-\item \code{"tracts"} - Census tract aggregate data
-}}
+\item{dataset}{Character scalar, one of \code{"all"} (default; the five
+microdata datasets), \code{"population"}, \code{"households"}, \code{"families"},
+\code{"mortality"}, \code{"emigration"}, \code{"tracts"} (see Details: currently
+unsupported). Other values error.}
 
-\item{year}{Integer specifying census year. Options: \code{2010} (default) or \code{2000}.}
+\item{year}{Numeric scalar, \code{2010} (default) or \code{2000} (\code{2022} is not
+accepted here; other values error). Only labels the output.}
 
-\item{lang}{Character string specifying language. Options: \code{"pt"} (Portuguese,
-default), \code{"en"} (English), \code{"es"} (Spanish).}
+\item{lang}{Character scalar. Language of variable labels and messages:
+\code{"pt"} (default), \code{"en"} or \code{"es"}; other values error.}
 
-\item{output}{Character string specifying output format. Options:
-\itemize{
-\item \code{"browser"} - Interactive HTML in web browser (default)
-\item \code{"console"} - Simple list in R console
-\item \code{"codes"} - Returns only variable codes as character vector
-}}
+\item{output}{Character scalar. \code{"browser"} (default) opens an interactive
+HTML page (temporary file) and returns the table invisibly; \code{"console"}
+prints a summary per dataset and returns the table invisibly; \code{"codes"}
+returns the unique variable codes. Other values error.}
 
-\item{verbose}{Logical. If \code{TRUE} (default), prints informative messages.}
+\item{verbose}{Logical scalar. If \code{TRUE} (default), prints informative
+messages (for \code{output = "codes"} also a short preview).}
 }
 \value{
 Depending on \code{output}:
 \itemize{
-\item \code{"browser"}: Opens HTML interface, returns invisible data.frame
-\item \code{"console"}: Prints summary, returns invisible data.frame
-\item \code{"codes"}: Returns character vector of variable codes
+\item \code{"browser"} and \code{"console"}: invisibly, a \code{data.frame} with columns
+\code{code}, \code{name}, \code{dataset}, \code{type} (\code{"regular_variable"} or
+\code{"imputation_marker"}), \code{category}, \code{has_categories}, \code{n_categories}
+and \code{year}.
+\item \code{"codes"}: a character vector of unique variable codes, to pass to
+\code{census_vars} in \code{\link[=sus_census_join]{sus_census_join()}}.
 }
 }
 \description{
-Opens an interactive HTML interface to explore Brazilian Census variables
-and copy codes for use with sus_census_join().
+Lists the Brazilian Census variables (code, label, dataset, category) that
+can be requested from \code{\link[=sus_census_join]{sus_census_join()}}, either in an interactive HTML
+page, as a console summary, or as a character vector of codes. Use it before
+\code{\link[=sus_census_join]{sus_census_join()}} to choose \code{census_vars}. It does not need or change any
+\code{climasus_df}.
 }
 \details{
-This function helps users discover which census variables are available.
-The interactive interface allows easy copying of variable codes for use
-in \code{sus_census_join(vars = ...)}.
+Variables come from the package's bundled dictionaries (population,
+households, families, mortality, emigration), in the requested \code{lang}. The
+dictionaries do not depend on \code{year}, which only labels the output. Codes
+starting with \code{"M"} are flagged as imputation markers. The \code{"tracts"} value
+is accepted by validation but no tract dictionary is bundled, so
+\code{dataset = "tracts"} currently errors ("No variables found"); for tract
+tables see \code{censobr::read_tracts()} and the \code{tracts_dataset} argument of
+\code{\link[=sus_census_join]{sus_census_join()}}. With \code{dataset = "all"} only the five microdata
+datasets are listed.
 }
 \examples{
 \dontrun{
 # Open interactive explorer for all datasets
 sus_census_select()
 
-# Explore only population variables
-sus_census_select(dataset = "population")
+# Explore only population variables in the console
+sus_census_select(dataset = "population", output = "console")
 
 # Get variable codes for programmatic use
 vars <- sus_census_select(
@@ -70,13 +76,16 @@ vars <- sus_census_select(
   lang = "en"
 )
 
-# Use in sus_census_join
+# Use them in sus_census_join() (df: climasus_df at stage "spatial")
 data <- sus_census_join(
   df = my_data,
-  vars = vars,
+  census_vars = vars[1:2],
   dataset = "population",
   year = 2010
 )
 }
 
+}
+\seealso{
+\code{\link[=sus_census_join]{sus_census_join()}}, \code{\link[=sus_socio_compute_indicators]{sus_socio_compute_indicators()}}
 }

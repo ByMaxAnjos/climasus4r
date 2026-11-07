@@ -18,37 +18,53 @@ sus_mod_metaregression(
 )
 }
 \arguments{
-\item{fits}{A named list of \code{climasus_dlnm} objects, one per city or region.
-All fits must use the same \code{climate_col}, \code{lag_max}, \code{argvar}, and
-\code{arglag}. Produced by \code{sus_mod_dlnm()}.}
+\item{fits}{Named list of \code{climasus_dlnm} objects (from \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}),
+one per city/region, e.g. \code{list(fortaleza = fit_a, recife = fit_b)}. Names
+identify cities and are matched to \code{covariates}; missing names become
+\code{"city_1"}, ... Must be non-empty and all elements must be
+\code{climasus_dlnm}. All fits must share the same \code{climate_col} and \code{lag_max}
+(otherwise error) and should share \code{argvar}/\code{arglag} (those of the first
+fit are used for prediction). Needs \pkg{mvmeta} and \pkg{dlnm}.}
 
-\item{covariates}{A \code{data.frame} with one row per city and city-level
-predictors. City names must be stored as row names (default) or in the
-column specified by \code{city_col}. Cities present in \code{fits} but absent in
-\code{covariates} are excluded from the meta-regression with a warning.}
+\item{covariates}{\code{data.frame} with one row per city and the city-level
+predictors (e.g. mean temperature, poverty index). City identifiers are the
+row names (default) or the column named by \code{city_col}. Cities in \code{fits}
+absent from \code{covariates} are dropped with a warning; if none match, the
+call errors. Non-data-frame input errors. Covariates are z-standardised
+(mean 0, SD 1; constant columns are only centred) before fitting.}
 
-\item{covariate_cols}{Character vector of column names to use as
-meta-regression predictors. Default \code{NULL} uses all numeric columns in
-\code{covariates} (after removing the city identifier column if any).}
+\item{covariate_cols}{Character vector or \code{NULL} (default). Columns of
+\code{covariates} used as predictors, e.g. \code{c("mean_temp", "poverty_pct")}.
+\code{NULL} uses all numeric columns (excluding \code{city_col}). Names not in
+\code{covariates} are silently ignored; if none remain the call errors.}
 
-\item{city_col}{Character. Name of the column in \code{covariates} that holds
-city identifiers. Default \code{NULL} uses row names of \code{covariates}.}
+\item{city_col}{Character scalar or \code{NULL} (default). Column of \code{covariates}
+holding city identifiers; \code{NULL} uses \code{rownames(covariates)}. Errors if the
+column does not exist.}
 
-\item{pred_at}{Numeric vector of quantile probabilities (0–1) for the
-exposure-response summary table. Default \code{c(0.75, 0.90, 0.95, 0.99)}.}
+\item{pred_at}{Numeric vector of probabilities in (0, 1) (scalar or vector),
+default \code{c(0.75, 0.90, 0.95, 0.99)}. Exposure percentiles (computed over
+the pooled observations of all cities) at which the average-city RR is
+reported in \verb{$exposure_response}.}
 
-\item{blup}{Logical. Compute BLUP city-specific predictions? Default \code{TRUE}.}
+\item{blup}{Logical scalar. If \code{TRUE} (default) computes BLUP city-specific
+predictions; requires at least 2 matched cities (otherwise skipped
+silently) and a successful \code{mvmeta::blup()}.}
 
-\item{method}{Character. \code{mvmeta} estimation method: \code{"reml"} (default),
-\code{"ml"}, or \code{"fixed"}.}
+\item{method}{Character scalar. Estimation method passed to
+\code{mvmeta::mvmeta()}: \code{"reml"} (default), \code{"ml"}, \code{"fixed"} (no
+between-city variance), or other \code{mvmeta} methods (\code{"mm"}, \code{"vc"}); not
+validated here. If the covariate model fails to fit, a warning is issued
+and the intercept-only model is used instead.}
 
-\item{alpha}{Numeric. Significance level for confidence intervals.
+\item{alpha}{Numeric scalar in (0, 1). Significance level; the \code{crosspred}
+confidence intervals use \code{ci.level = 1 - alpha}. Stored in \verb{$meta$alpha}.
 Default \code{0.05}.}
 
-\item{lang}{Character. Language for messages: \code{"pt"} (default), \code{"en"},
-\code{"es"}.}
+\item{lang}{Character scalar: \code{"pt"} (default), \code{"en"}, \code{"es"}. Language of
+messages; unsupported values warn and fall back to \code{"pt"}.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. If \code{TRUE} (default) prints progress messages.}
 }
 \value{
 A \code{climasus_metaregression} list with:
@@ -58,8 +74,12 @@ A \code{climasus_metaregression} list with:
 comparison).}
 \item{\verb{$pooled_pred}}{\code{dlnm::crosspred} for the average city (all
 standardized covariates = 0, i.e., the intercept).}
-\item{\verb{$blup_preds}}{Named list of per-city BLUP \code{crosspred} objects
-(when \code{blup = TRUE}).}
+\item{\verb{$pooled_curve}}{Tibble of the 100-point average-city curve:
+\code{exposure}, \code{rr}, \code{rr_lo}, \code{rr_hi} (\code{NULL} if prediction failed).}
+\item{\verb{$exposure_response}}{Tibble with \code{pct}, \code{exposure}, \code{rr},
+\code{rr_lo}, \code{rr_hi} at the percentiles in \code{pred_at}.}
+\item{\verb{$blup_preds}}{Named list of per-city BLUP \code{crosspred} objects;
+\code{NULL} when \code{blup = FALSE}, fewer than 2 cities, or BLUP failed.}
 \item{\verb{$city_table}}{Tibble: one row per city with raw and BLUP RRs at
 the 75th percentile exposure.}
 \item{\verb{$covariate_tests}}{Tibble: one row per covariate with Wald
@@ -75,7 +95,7 @@ each covariate (for back-transformation).}
 }
 }
 \description{
-Extends two-stage multivariate meta-analysis (\code{sus_mod_pool()}) by including
+Extends two-stage multivariate meta-analysis (\code{\link[=sus_mod_pool]{sus_mod_pool()}}) by including
 city-level covariates (e.g., mean temperature, poverty index, age structure)
 to explain between-city heterogeneity in climate-health associations.
 Covariates are automatically standardized to mean 0, SD 1 so the intercept
@@ -134,5 +154,6 @@ regression with random effects. \emph{Statistics in Medicine}, 17(22),
 2537-2550.
 }
 \seealso{
-\code{\link[=sus_mod_pool]{sus_mod_pool()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, \code{\link[=sus_mod_sensitivity]{sus_mod_sensitivity()}}
+\code{\link[=sus_mod_pool]{sus_mod_pool()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, \code{\link[=sus_mod_sensitivity]{sus_mod_sensitivity()}},
+\code{\link[=sus_mod_plot_pool]{sus_mod_plot_pool()}}
 }

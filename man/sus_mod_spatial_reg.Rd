@@ -16,33 +16,35 @@ sus_mod_spatial_reg(
 )
 }
 \arguments{
-\item{df}{A \code{data.frame} or \code{climasus_df} containing all variables in
-\code{formula}. If an \code{sf} object, geometry is dropped automatically.}
+\item{df}{A \code{data.frame} or \code{climasus_df} (an \code{sf} object is accepted;
+geometry is dropped with a warning) with one row per spatial unit,
+containing every variable used in \code{formula}. Row order must match the
+region order of \code{W} (no internal sorting). Non-data-frames error.}
 
-\item{formula}{A \code{formula} specifying the outcome and predictors, e.g.
-\code{deaths ~ mean_temp + precip + pib_pc}.}
+\item{formula}{A \code{formula}, e.g. \code{deaths ~ mean_temp + precip + pib_pc}.
+Transformations such as \code{log(pop)} are allowed. Non-formula input errors.}
 
-\item{W}{A \code{climasus_weights} object produced by
-\code{\link[=sus_mod_spatial_weights]{sus_mod_spatial_weights()}}. Must contain a \code{listw} element whose
-length matches \code{nrow(df)}.}
+\item{W}{A \code{climasus_weights} object from \code{\link[=sus_mod_spatial_weights]{sus_mod_spatial_weights()}}
+containing a \code{listw} element whose number of units equals \code{nrow(df)}
+(not checked here; a mismatch surfaces as an error from
+\strong{spatialreg}).}
 
-\item{model}{Character. Spatial model family. One of \code{"lag"} (SAR,
+\item{model}{Character scalar. Spatial model family: \code{"lag"} (SAR,
 default), \code{"error"} (SEM), \code{"durbin"} (SDM), or \code{"sac"} (SAC).}
 
-\item{method}{Character. Estimation method passed to the underlying
-\strong{spatialreg} function. One of \code{"eigen"} (default), \code{"LU"},
-\code{"Chebyshev"}, or \code{"MC"}. \code{"eigen"} is exact; the others are
-approximations suitable for large datasets.}
+\item{method}{Character scalar. Log-determinant method passed to
+\strong{spatialreg}: \code{"eigen"} (default, exact), \code{"LU"}, \code{"Chebyshev"}, or
+\code{"MC"} (the latter three are approximations for large \code{n}).}
 
-\item{zero_policy}{Logical. If \code{TRUE} (default), spatial units with no
-neighbours (islands) are allowed and receive a zero spatial lag/error.
-Passed to all \strong{spatialreg} and \strong{spdep} calls.}
+\item{zero_policy}{Logical scalar. \code{TRUE} (default) allows units without
+neighbours (islands), which get a zero spatial lag; \code{FALSE} makes
+\strong{spatialreg}/\strong{spdep} error on islands. Passed to every call.}
 
-\item{lang}{Character. Output language for messages: \code{"pt"} (default),
-\code{"en"}, or \code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"},
+or \code{"es"}; anything else errors (\code{match.arg}).}
 
-\item{verbose}{Logical. If \code{TRUE} (default), print progress messages via
-\strong{cli}.}
+\item{verbose}{Logical scalar. Print progress messages via \pkg{cli}.
+Default \code{TRUE}.}
 }
 \value{
 An object of class \code{c("climasus_spatial_reg", "list")} with the
@@ -108,8 +110,8 @@ term (\code{lambda}). Estimated via \code{spatialreg::sacsarlm()}.
 
 For models with a spatial lag (\code{lag}, \code{durbin}, \code{sac}), the total effect of
 a covariate is decomposed into \emph{direct} (own-unit), \emph{indirect} (spillover),
-and \emph{total} effects using \code{spatialreg::impacts()} with \code{R} simulations for
-inference. For the \code{error} model impacts equal OLS slopes and no
+and \emph{total} effects using \code{spatialreg::impacts()} with \code{R = 200} simulations (fixed, not
+user-settable) for inference. For the \code{error} model impacts equal OLS slopes and no
 decomposition is meaningful; the \verb{$impacts} element will be \code{NULL}.
 }
 

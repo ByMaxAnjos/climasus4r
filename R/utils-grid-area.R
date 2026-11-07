@@ -14,6 +14,8 @@
 #' @param raster_area FALSE, TRUE, an `sf` object, or a 2-letter UF code.
 #' @param raster_crs Target CRS (from the raster being cropped) to
 #'   reproject the resolved area into.
+#' @param cache_dir,use_cache,lang,verbose Passed to the state-boundary
+#'   download/cache helper when `raster_area` is a UF code.
 #' @return `NULL` when no area-specific crop should be applied (i.e.
 #'   `raster_area = TRUE`), otherwise a `terra::SpatVector` ready to pass
 #'   to [terra::crop()] / [terra::mask()].

@@ -98,12 +98,16 @@ utils::globalVariables(c(
 
 # -- Exported function ------------------------------------------------
 
-#' Assign Kopppen-Geiger Climate Zones to Brazilian Municipalities
+#' Assign Koppen-Geiger Climate Zones to Brazilian Municipalities
 #'
-#' Adds a `zona_koppen` column to a `climasus_df` (or plain `data.frame`) with
-#' municipality-level Koppen-Geiger climate classification following
-#' Alvares et al. (2013), who produced the first high-resolution (1 km) Koppen
-#' map for Brazil.
+#' Adds a `zona_koppen` column with a municipality-level Koppen-Geiger climate
+#' class (after Alvares et al. (2013), the 1 km Koppen map for Brazil) to a
+#' `climasus_df`, `data.frame` or `sf` object. Use it at any pipeline stage
+#' after a `code_muni` column exists (typically after [sus_spatial_join()]) to
+#' obtain a climate-zone covariate or stratifier for [sus_mod_dlnm()] /
+#' [sus_mod_casecrossover()]. It does not change `sus_meta` stage or type
+#' (only a history entry is added). Note: `"approx"` uses simplified
+#' state/centroid rules (approximate, not the original raster).
 #'
 #' Two assignment modes are available:
 #'
@@ -125,26 +129,33 @@ utils::globalVariables(c(
 #'   \item{**Cw**}{Subtropical winter dry -- SE plateau / Center-West uplands.}
 #' }
 #'
-#' @param data A `climasus_df` or `data.frame` containing a `code_muni` column
-#'   (6- or 7-digit IBGE municipality code), **or** an `sf` object of Brazilian
-#'   municipalities.
-#' @param mode Character. Assignment mode: `"approx"` (default, no extra
-#'   dependencies) or `"exact"` (requires `sf` and `koppen_sf`).
-#' @param koppen_sf An `sf` polygon object with a column named `koppen`
-#'   containing the zone codes (`"Af"`, `"Am"`, etc.). Required when
-#'   `mode = "exact"`. The Alvares et al. (2013) shapefile is available at
-#'   <https://doi.org/10.1127/0941-2948/2013/0507>. Ignored for
-#'   `mode = "approx"`.
-#' @param as_factor Logical. Return `zona_koppen` as an ordered factor with
-#'   canonical level order (`Af < Am < As < Aw < BSh < Cf < Cw`)?
-#'   Default `TRUE`. Set to `FALSE` to get a plain character column.
-#' @param lang Character. Language for messages: `"pt"` (default), `"en"`,
-#'   `"es"`.
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param data A `climasus_df`, `data.frame` or `sf` object with a `code_muni`
+#'   column (6- or 7-digit IBGE code, character or numeric; the 7th digit is
+#'   ignored). Other classes, or a missing `code_muni`, error. `sf` input is
+#'   returned as a plain tibble without geometry.
+#' @param mode Character scalar. `"approx"` (default): rule-based assignment from
+#'   municipality centroids in the bundled `municipio_meta` table (no extra
+#'   packages). `"exact"`: spatial join of those centroids to `koppen_sf`
+#'   (requires `sf`). Any other value errors.
+#' @param koppen_sf An `sf` polygon object with a column named `koppen` holding the
+#'   zone codes (e.g. `"Af"`, `"Aw"`, `"Cf"`). Required for `mode = "exact"`
+#'   (error if missing or without a `koppen` column); ignored for `"approx"`.
+#'   Reprojected to EPSG:4326 if needed. With `as_factor = TRUE`, codes outside
+#'   the seven levels below (e.g. `"Cfa"`, `"Cwb"`) become `NA`; use
+#'   `as_factor = FALSE` to keep detailed codes. Reference publication:
+#'   <https://doi.org/10.1127/0941-2948/2013/0507>.
+#' @param as_factor Logical scalar. If `TRUE` (default) `zona_koppen` is an ordered
+#'   factor with levels `Af < Am < As < Aw < BSh < Cf < Cw`; if `FALSE` a
+#'   character column. Municipalities without a match are `NA` (a warning is
+#'   printed).
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"` or
+#'   `"es"`. Unsupported values fall back to `"pt"` with a warning.
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
-#' @return The input object with an additional column `zona_koppen`. If the
-#'   input was a `climasus_df`, the returned object preserves its class and
-#'   `sus_meta` attribute with the history updated.
+#' @return The input rows with an additional column `zona_koppen` (ordered
+#'   factor or character, see `as_factor`). A `climasus_df` input keeps its
+#'   class and `sus_meta` (stage/system unchanged, history updated); a
+#'   `data.frame` or `sf` input returns a tibble.
 #'
 #' @references
 #' Alvares, C.A., Stape, J.L., Sentelhas, P.C., Goncalves, J.L.M., &
@@ -167,7 +178,8 @@ utils::globalVariables(c(
 #' df_exact <- sus_grid_koppen(df_aggregated, mode = "exact", koppen_sf = kop_sf)
 #' }
 #'
-#' @seealso [sus_grid_era5()], [sus_mod_casecrossover()], [sus_mod_dlnm()]
+#' @seealso [sus_spatial_join()], [sus_grid_era5()], [sus_mod_casecrossover()],
+#'   [sus_mod_dlnm()]
 #'
 #' @export
 #' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_alert_warning cli_abort

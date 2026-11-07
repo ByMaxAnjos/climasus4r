@@ -20,6 +20,6 @@ Invisibly returns \code{x}.
 \description{
 Displays a formatted summary of the Bayesian spatial model fit, including
 DIC, effective MCMC sample size (or NA for INLA-based models), model
-specification, and the top fixed effects with posterior means and 95\\%
+specification, and the top fixed effects with posterior means and 95\%
 credible intervals.
 }

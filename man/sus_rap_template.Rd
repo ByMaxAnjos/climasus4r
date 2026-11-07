@@ -16,27 +16,31 @@ sus_rap_template(
 )
 }
 \arguments{
-\item{path}{\code{character(1)}  - Parent directory where \verb{<name>/} will be
-created (e.g. \code{"~/projetos"}).}
+\item{path}{\code{character(1)}, non-empty parent directory where \verb{<name>/} will
+be created, e.g. \code{"~/projetos"}.}
 
-\item{name}{\code{character(1)}  - Project name; becomes the directory name.}
+\item{name}{\code{character(1)}, non-empty project name; becomes the directory
+name.}
 
-\item{system}{\code{character(1)}  - DATASUS system for the template pipeline
-(e.g. \code{"SIM-DO"}, \code{"SINAN"}, \code{"SIH"}). Default \code{"SIM-DO"}.}
+\item{system}{\code{character(1)}, DATASUS system code written into the template
+pipeline, default \code{"SIM-DO"}. Use a code accepted by \code{\link[=sus_data_import]{sus_data_import()}}
+(e.g. \code{"SIM-DO"}, \code{"SINAN-DENGUE"}, \code{"SIH-RD"}); the value is not
+validated here. Monthly systems (SIH, SIA, CNES) also need a \code{month}
+argument in the generated import call, which you must add.}
 
-\item{include_renv}{\code{logical(1)}  - Initialise \code{renv} for dependency
-management. Requires the \code{renv} package. Default \code{TRUE}.}
+\item{include_renv}{\code{logical(1)}, default \code{TRUE}. Initialise \code{renv} for
+dependency management (requires the \code{renv} package).}
 
-\item{include_targets}{\code{logical(1)}  - Create \verb{_targets.R} and \code{run.R}.
-Default \code{TRUE}.}
+\item{include_targets}{\code{logical(1)}, default \code{TRUE}. Create \verb{_targets.R} and
+\code{run.R}.}
 
-\item{include_quarto}{\code{logical(1)}  - Create \code{analysis.qmd}. Default \code{TRUE}.}
+\item{include_quarto}{\code{logical(1)}, default \code{TRUE}. Create \code{analysis.qmd}.}
 
-\item{include_github_actions}{\code{logical(1)}  - Create
-\code{.github/workflows/rap.yml}. Default \code{FALSE}.}
+\item{include_github_actions}{\code{logical(1)}, default \code{FALSE}. Create
+\code{.github/workflows/rap.yml}.}
 
-\item{lang}{\code{character(1)}  - Language for generated comments and messages:
-\code{"pt"} (default), \code{"en"}, or \code{"es"}.}
+\item{lang}{\code{character(1)}, \code{"pt"} (default), \code{"en"} or \code{"es"}. Language of
+generated comments and messages.}
 }
 \value{
 Invisibly, the absolute path of the created project directory.
@@ -70,8 +74,11 @@ following RAP best practices.
 sus_rap_template(
   path   = "~/projetos",
   name   = "dengue_am",
-  system = "SINAN",
+  system = "SINAN-DENGUE",
   lang   = "pt"
 )
 }
+}
+\seealso{
+\code{\link[=sus_rap_export]{sus_rap_export()}}, \code{\link[=sus_rap_targets]{sus_rap_targets()}}, \code{\link[=sus_rap_read]{sus_rap_read()}}
 }

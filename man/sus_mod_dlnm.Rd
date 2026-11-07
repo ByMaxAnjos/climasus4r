@@ -23,64 +23,79 @@ sus_mod_dlnm(
 )
 }
 \arguments{
-\item{df}{A \code{climasus_df} at stage \code{"climate"} and type \code{"distributed_lag"},
-produced by \code{sus_climate_aggregate(temporal_strategy = "distributed_lag")}.
-Must contain a \code{date} column (Date), the outcome column, and lag columns
-\verb{\{climate_col\}_lag0}, ..., \verb{\{climate_col\}_lag\{L\}}. Geometry columns
-(sf) are automatically dropped before modelling.}
+\item{df}{A \code{climasus_df} (Arrow-backed inputs are collected) at stage
+\code{"climate"}, normally with type \code{"distributed_lag"}, produced by
+\code{sus_climate_aggregate(temporal_strategy = "distributed_lag")}. A plain
+tibble, or a stage other than \code{"climate"}, errors; a type other than
+\code{"distributed_lag"} only warns. Must contain a \code{date} column, the outcome
+column, and the lag columns \verb{\{climate_col\}_lag0}, ..., \verb{\{climate_col\}_lag\{L\}}.
+Geometry (sf) is dropped. Rows are aggregated by \code{date} (outcome summed,
+exposure and covariates averaged across municipalities), so multi-city
+input is modelled as one pooled series.}
 
-\item{outcome_col}{Character. Name of the daily health count column
-(e.g., \code{"n_obitos"}, \code{"n_internacoes"}, \code{"n_dengue"}). Default:
-\code{"n_obitos"}.}
+\item{outcome_col}{Character scalar. Name of the daily health count column
+(e.g. \code{"n_obitos"}, \code{"n_internacoes"}). Default \code{"n_obitos"}. Errors if
+absent.}
 
-\item{climate_col}{Character or \code{NULL}. Base name of the climate exposure
-(without \verb{_lagN} suffix, e.g., \code{"tair_dry_bulb_c"}). \code{NULL} auto-detects
-by priority: air temperature > rainfall > humidity > other known variables.}
+\item{climate_col}{Character scalar or \code{NULL}. Base name of the exposure
+without the \verb{_lagN} suffix (e.g. \code{"tair_dry_bulb_c"}). \code{NULL} (default)
+auto-detects among the \verb{*_lagN} columns, preferring (in order) air
+temperature, rainfall, humidity and other known variables, else the first
+one found. Errors if no \verb{\{climate_col\}_lagN} column exists.}
 
-\item{lag_max}{Integer or \code{NULL}. Maximum lag to include in the crossbasis.
-\code{NULL} auto-detects from the highest \code{N} present in \verb{\{climate_col\}_lagN}
-columns.}
+\item{lag_max}{Non-negative integer scalar or \code{NULL}. Maximum lag of the
+crossbasis (lags \code{0:lag_max} are used), e.g. \code{21}. \code{NULL} (default) uses
+the highest \code{N} among the \verb{\{climate_col\}_lagN} columns. A value smaller than
+the available maximum truncates the lags; a larger one errors (missing
+columns). At least \code{lag_max + 10} complete days are required.}
 
-\item{covariates}{Character vector or \code{NULL}. Names of additional columns in
-\code{df} to include as linear confounders in the GLM formula (e.g.,
-\code{c("rainfall_mm", "rh_mean_porc")}). These are averaged across
-municipalities before fitting. Default: \code{NULL}.}
+\item{covariates}{Character vector or \code{NULL} (default). Names of extra
+columns in \code{df} added linearly to the GLM, e.g.
+\code{c("rainfall_mm", "rh_mean_porc")}; averaged across municipalities per
+date. Errors if any is absent.}
 
-\item{argvar}{Named list. Arguments for the exposure dimension of the
-\code{crossbasis} (passed to \code{dlnm::crossbasis(argvar = ...)}). Default:
-\code{list(fun = "ns", df = 4)}. See \strong{Basis selection} section.}
+\item{argvar}{Named list. Exposure-dimension basis passed to
+\code{dlnm::crossbasis(argvar = )} (any \code{dlnm::onebasis()} spec, e.g.
+\code{list(fun = "ns", df = 4)}, \code{list(fun = "bs", degree = 2, knots = ...)},
+\code{list(fun = "lin")}, \code{list(fun = "thr", thr.value = 25)}). Default
+\code{list(fun = "ns", df = 4)}. See \strong{Basis selection}.}
 
-\item{arglag}{Named list. Arguments for the lag dimension of the
-\code{crossbasis} (passed to \code{dlnm::crossbasis(arglag = ...)}). Default:
-\code{list(fun = "ns", df = 3)}. See \strong{Basis selection} section.}
+\item{arglag}{Named list. Lag-dimension basis passed to
+\code{dlnm::crossbasis(arglag = )}, e.g. \code{list(fun = "ns", df = 3)} (default),
+\code{list(fun = "poly", degree = 2)}, \code{list(fun = "integer")}. See
+\strong{Basis selection}.}
 
-\item{family}{Character. GLM family: \code{"quasipoisson"} (default, recommended),
-\code{"poisson"}, or \code{"negbin"} (redirected to \code{"quasipoisson"} with warning).}
+\item{family}{Character scalar: \code{"quasipoisson"} (default, recommended),
+\code{"poisson"} or \code{"negbin"} (the latter is redirected to \code{"quasipoisson"}
+with a warning). Matched with \code{match.arg()}; anything else errors.}
 
-\item{ns_df}{Integer or \code{NULL}. Degrees of freedom for the natural spline
-time trend (\code{splines::ns(date, df = ns_df)}). \code{NULL} (default) triggers
-automatic computation based on \code{dof_per_year}. Set to \code{0} to suppress
-time control entirely.}
+\item{ns_df}{Integer scalar or \code{NULL}. Degrees of freedom of the natural
+spline on date (\code{splines::ns(as.integer(date), df = ns_df)}) controlling
+trend/seasonality. \code{NULL} (default) computes it from \code{dof_per_year};
+\code{0} removes the time control entirely.}
 
-\item{dof_per_year}{Integer. Degrees of freedom per year of data used for
-automatic \code{ns_df} computation. Default: \code{4L}. Ignored when \code{ns_df} is
-explicitly set.}
+\item{dof_per_year}{Non-negative integer. Used only when \code{ns_df = NULL}:
+\code{ns_df = max(dof_per_year, round(dof_per_year * years_of_data))}. Default
+\code{4L}; \code{0} (with \code{ns_df = NULL}) also suppresses time control. See
+\strong{Temporal confounding}.}
 
-\item{ref_value}{Numeric or \code{NULL}. Exposure value where RR = 1 (the
-centring value for \code{dlnm::crosspred()}). \code{NULL} (default) uses the
-sample median of lag-0 exposure values.}
+\item{ref_value}{Numeric scalar or \code{NULL}. Exposure value with RR = 1
+(centring value of \code{dlnm::crosspred()}), in the units of \code{climate_col},
+e.g. \code{24}. \code{NULL} (default) uses the median of the lag-0 exposure.}
 
-\item{pred_at}{Numeric vector of quantile probabilities (0-1) at which to
-report the cumulative exposure-response curve in \verb{$exposure_response}.
-Default: \code{c(0.25, 0.50, 0.75, 0.90, 0.95, 0.99)}.}
+\item{pred_at}{Numeric vector of probabilities in (0, 1) (scalar or
+vector, e.g. \code{c(0.50, 0.95)}). Exposure percentiles reported in
+\verb{$exposure_response}. Default \code{c(0.25, 0.50, 0.75, 0.90, 0.95, 0.99)}.
+Values outside the 1st-99th percentile grid are matched to the nearest
+grid point.}
 
-\item{alpha}{Numeric (0-1). Confidence level for intervals:
-CI = \eqn{(1 - \alpha)}. Default: \code{0.05} (95\% CI).}
+\item{alpha}{Numeric scalar in (0, 1). Significance level; confidence
+intervals have level \code{1 - alpha}. Default \code{0.05} (95\% CI).}
 
-\item{lang}{Character. Language for messages: \code{"pt"} (default), \code{"en"},
-\code{"es"}.}
+\item{lang}{Character scalar: \code{"pt"} (default), \code{"en"}, \code{"es"}. Language of
+messages; unsupported values warn and fall back to \code{"pt"}.}
 
-\item{verbose}{Logical. Print progress steps and warnings. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. If \code{TRUE} (default) prints progress steps.}
 }
 \value{
 A \code{climasus_dlnm} list with the following components:
@@ -93,14 +108,14 @@ the exposure and lag dimensions.}
 grid from the 1st to 99th percentile of exposure. Contains
 \code{allRRfit}, \code{allRRlow}, \code{allRRhigh} (cumulative overall effect)
 and \code{matRRfit}, \code{matRRlow}, \code{matRRhigh} (lag-specific effects).}
-\item{\verb{$exposure_response}}{Tibble with cumulative RR at the
-percentiles specified in \code{pred_at}: columns \code{pct}, \code{exposure},
+\item{\verb{$exposure_response}}{Tibble with cumulative RR (vs \code{ref_value})
+at the exposure percentiles in \code{pred_at}: columns \code{pct}, \code{exposure},
 \code{rr}, \code{lo}, \code{hi}.}
 \item{\verb{$lag_response}}{Tibble with lag-specific RR at the 75th
-percentile of exposure (for \code{dlnm_lag} plots): columns \code{lag},
+percentile of exposure (used by \code{sus_mod_plot_dlnm(type = "lag")}): columns \code{lag},
 \code{rr}, \code{lo}, \code{hi}, \code{rr_cum}.}
 \item{\verb{$models}}{One-row summary tibble for integration with
-\code{plot_climate_health(fit = ...)}: \code{variable}, \code{n}, \code{family},
+\code{\link[=sus_mod_plot_dlnm]{sus_mod_plot_dlnm()}}: \code{variable}, \code{n}, \code{family},
 \code{lag_max}, \code{ref_value}, \code{exposure_p75}, \code{rr}, \code{lo}, \code{hi},
 \code{lag_peak}, \code{disp_ratio}, \code{aic_poisson}.}
 \item{\verb{$data_daily}}{Aggregated daily tibble used for model
@@ -218,11 +233,9 @@ fit$exposure_response   # RR cumulative at percentile grid
 fit$lag_response        # RR by lag at p75
 fit$diagnostics$disp_ratio
 
-# Step 3: visualise (requires plot_climate_health)
-# plots <- plot_climate_health(
-#   data = df_dl, fit = fit,
-#   plot_type = c("dlnm_surface", "dlnm_overall", "dlnm_lag")
-# )
+# Step 3: visualise
+sus_mod_plot_dlnm(fit, type = "overall")
+sus_mod_plot_dlnm(fit, type = "lag")
 }
 
 }
@@ -251,5 +264,7 @@ Perkins, S.E. (2015). A review on the scientific understanding of
 heatwaves. \emph{Atmospheric Research}, 164-165, 242-267.
 }
 \seealso{
-\code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}}, \code{\link[=sus_climate_compute_heatwaves]{sus_climate_compute_heatwaves()}}
+\code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}}, \code{\link[=sus_mod_af]{sus_mod_af()}}, \code{\link[=sus_mod_excess]{sus_mod_excess()}},
+\code{\link[=sus_mod_pool]{sus_mod_pool()}}, \code{\link[=sus_mod_sensitivity]{sus_mod_sensitivity()}}, \code{\link[=sus_mod_plot_dlnm]{sus_mod_plot_dlnm()}},
+\code{\link[=sus_climate_compute_heatwaves]{sus_climate_compute_heatwaves()}}
 }

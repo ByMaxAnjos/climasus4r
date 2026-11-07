@@ -16,109 +16,71 @@ sus_data_filter_cid(
 )
 }
 \arguments{
-\item{df}{A \code{data.frame} or \code{tibble} containing SUS health data with ICD-10 codes.
-Typically obtained from DATASUS systems (SIM, SIH, SINAN). The data should
-contain at least one column with ICD-10 codes in standard format (e.g., "A00.0",
-"I10", "C50.9").}
+\item{df}{A \code{climasus_df} (stage \code{"stand"} or later, see
+\code{\link[=sus_data_standardize]{sus_data_standardize()}}), tibble/data frame, or lazy Arrow/DuckDB table
+with at least one ICD-10 column. Systems without ICD-10 (SINAN, CNES,
+and SINASC in practice) have no auto-detectable column; pass \code{icd_column}
+explicitly or the function aborts with "ICD column not found".}
 
-\item{icd_codes}{A character vector of ICD-10 codes, ranges, or categories.
-Multiple syntaxes are supported:
-
-\strong{Basic filtering:}
+\item{icd_codes}{Character vector of ICD-10 codes, or \code{NULL} (default).
+Provide either \code{icd_codes} or \code{disease_group}; if both are given,
+\code{disease_group} wins and \code{icd_codes} is ignored with a warning; if neither,
+the function aborts. Accepted forms:
 \itemize{
-\item Single code: \code{"J18.9"} (Pneumonia, unspecified)
-\item Multiple codes: \code{c("I10", "I11.0", "I11.9")} (Hypertensive diseases)
-}
-
-\strong{Range filtering:}
-\itemize{
-\item Complete range: \code{"J00-J99"} (All diseases of respiratory system)
-\item Partial range: \code{"J09-J18"} (Influenza and pneumonia only)
-}
-
-\strong{Chapter filtering:}
-\itemize{
-\item Full chapter: \code{"I"} (All diseases of circulatory system, codes I00-I99)
-\item Chapter group: \code{"C00-D48"} (All neoplasms)
-}
-
-\strong{Special SUS categories:}
-\itemize{
-\item \code{"causas_externas"} or \code{"external_causes"}: V01-Y98 (External causes)
-\item \code{"causas_maternas"} or \code{"maternal_causes"}: O00-O99 (Pregnancy/childbirth)
-\item \code{"causas_infantis"} or \code{"infant_causes"}: P00-P96 (Perinatal conditions)
-\item \code{"doencas_infecciosas"} or \code{"infectious_diseases"}: A00-B99 (Infectious)
-\item \code{"doencas_respiratorias"} or \code{"respiratory_diseases"}: J00-J99 (Respiratory)
-\item \code{"doencas_cardiovasculares"} or \code{"cardiovascular_diseases"}: I00-I99 (Cardio)
-\item \code{"neoplasias"} or \code{"neoplasms"}: C00-D48 (Neoplasms)
-}
-
-\strong{Brazilian epidemiological priorities:}
-\itemize{
-\item \code{"dengue_like"}: A90-A91 (Dengue) + A92.0-A92.9 (Other viral fevers)
-\item \code{"zika_chik"}: A92.8 (Zika) + A92.0 (Chikungunya)
-\item \code{"tb_respiratoria"}: A15-A16 (Respiratory tuberculosis)
-\item \code{"covid19"}: U07.1 (COVID-19) + U07.2 (Suspected COVID-19)
-\item \code{"violencia"}: X85-Y09 (Assault) + Y35-Y36 (Legal intervention)
-}
-
-\strong{Note}: Either \code{icd_codes} OR \code{disease_group} must be provided, not both.}
-
-\item{disease_group}{Character. Name of predefined disease group (e.g., "dengue",
-"cardiovascular", "respiratory"). Use \code{list_disease_groups()} to see all available groups.
-Mutually exclusive with \code{icd_codes}.}
-
-\item{icd_column}{Character. Name of the column containing ICD-10 codes.
-If NULL (default), the function attempts auto-detection from common SUS
-column names in this priority order:
-\enumerate{
-\item \code{"CAUSABAS"} - Underlying cause (primary cause of death in SIM)
-\item \code{"DIAG_PRINC"} - Main diagnosis (SIH hospitalizations)
-\item \code{"DIAG_SECUN"} - Secondary diagnosis
-\item \code{"CAUSAOBITO"} - Cause of death (alternative SIM field)
-\item \code{"DIAGNOSTIC"} - Diagnosis (SINAN notifiable diseases)
-\item \code{"linha_a"} through \code{"linha_f"} - Multiple cause lines (SIM)
+\item Single or multiple codes: \code{"J18"}, \code{c("I10", "I11", "I21")}. Codes are
+compared as written (DATASUS stores them without the dot, e.g. \code{"J189"};
+use 3-character categories or prefixes such as \code{"J18"} with
+\code{match_type = "starts_with"}).
+\item Letter-number ranges: \code{"J00-J99"}, \code{"J09-J18"}, \code{"C00-D48"},
+\code{"V01-Y98"}; ranges may span several letters and are expanded to
+3-character categories (e.g. \code{J09}, \code{J10}, ..., \code{J18}).
+\item A single letter for a whole chapter: \code{"I"} (all \code{I...} codes, with
+\code{match_type = "starts_with"}).
 }}
 
-\item{match_type}{Character. Type of matching algorithm:
+\item{disease_group}{Character scalar or vector with names of predefined
+disease groups, or \code{NULL} (default). Examples: \code{"dengue"}, \code{"malaria"},
+\code{"respiratory"}, \code{"cardiovascular"}, \code{"diarrheal"}, \code{"heat_related"},
+\code{"climate_sensitive_all"}, \code{"pediatric_respiratory"},
+\code{c("dengue", "chikungunya")} (union of codes). There are 58 groups
+(defined in the internal \code{.icd_disease_groups} list; inspect them with
+\code{names(climasus4r:::.icd_disease_groups)}). Unknown names abort and list
+suggestions. Takes precedence over \code{icd_codes}.}
+
+\item{icd_column}{Character scalar, name of the column with ICD-10 codes,
+e.g. \code{"causa_basica"}. \code{NULL} (default) auto-detects it from the system
+and \code{lang} (column names depend on \code{lang} used in
+\code{\link[=sus_data_standardize]{sus_data_standardize()}}): SIM \code{causa_basica} / \code{underlying_cause} / \code{causa_basica}
+then the cause lines; SIH \code{diagnostico_principal} / \code{primary_diagnosis}
+and secondary diagnoses; SIA \code{cid_principal} / \code{primary_icd}; otherwise any
+column matching known ICD names.}
+
+\item{match_type}{Character scalar, how codes are matched:
 \itemize{
-\item \code{"exact"}: Exact code match (e.g., "I10" matches only "I10")
-\item \code{"starts_with"}: Match codes starting with pattern (default, e.g., "I10" matches "I10", "I10.0", "I10.9")
-\item \code{"range"}: Match codes within specified ranges (e.g., "I10-I15" matches I10-I15.9)
-\item \code{"chapter"}: Match entire ICD-10 chapter (e.g., "I" matches I00-I99.9)
-\item \code{"fuzzy"}: Allow for common SUS coding variations (e.g., "I10" matches "I10", "I10 ", "I10X")
+\item \code{"starts_with"} (default): the column value begins with any code
+(\code{"I10"} matches \code{"I10"}, \code{"I100"}, \code{"I109"}).
+\item \code{"exact"}: the value equals one of the codes.
+\item \code{"range"}: unanchored regex match of the (expanded) codes anywhere in the value.
+Any other value (including \code{"chapter"} and \code{"fuzzy"}) is \strong{not
+implemented}: a warning is issued and \code{"starts_with"} is used.
 }}
 
-\item{backend}{Character string specifying the data processing backend.
-Use \code{"arrow"} for out-of-memory, lazy processing (recommended for large datasets),
-or \code{"tibble"} for in-memory processing (recommended for small to medium datasets).
-\itemize{
-\item \code{"arrow"}: operations are performed lazily using the Apache Arrow engine,
-avoiding loading the full dataset into memory. Ideal for large files
-(e.g., Parquet, Feather) and high-performance workflows.
-\item \code{"tibble"}: data is fully loaded into memory as a tibble and processed eagerly
-using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
-}
+\item{backend}{Character scalar, \code{"arrow"} (default) or \code{"tibble"}.
+\code{"arrow"} filters lazily and falls back to \code{"tibble"} (in memory) with a
+warning if it fails; \code{"tibble"} processes in memory.}
 
-If not specified, the function may automatically choose the backend based on
-the input data type.}
+\item{lang}{Character scalar, \code{"pt"} (default), \code{"en"} or \code{"es"}. Language of
+messages and of the standardized column names looked up for ICD
+auto-detection.}
 
-\item{lang}{Character. Language for user interface messages, warnings, and
-documentation. Options:
-\itemize{
-\item \code{"en"}: English
-\item \code{"pt"}: Portuguese (default, recommended for Brazilian users)
-\item \code{"es"}: Spanish
-Affects all console output and documentation of matched codes.
-}}
-
-\item{verbose}{Logical. If TRUE (default), prints detailed filtering
-information including: records processed, match statistics, common
-coding issues detected, and time elapsed.}
+\item{verbose}{Logical scalar, default \code{TRUE}. Print records before/after
+and percentage retained.}
 }
 \value{
-A filtered \code{data.frame} or \code{tibble} containing only records matching
-the specified ICD-10 codes or disease group. The output preserves all original columns
+The input rows whose ICD column matches, all columns preserved (a
+\code{climasus_df}; lazy if the input was lazy and arrow succeeded).
+\code{sus_meta}: \code{stage = "filter_cid"}, \code{type = "filter_cid"}, with a history
+entry describing the filter.
 }
 \description{
 Filters Brazilian Unified Health System (SUS) data based on ICD-10 codes.
@@ -129,32 +91,15 @@ Includes specialized support for SUS-specific coding practices and
 multilingual interface (English, Portuguese, Spanish).
 }
 \details{
-\subsection{Automatic ICD Column Detection}{
+Pipeline position: after \code{\link[=sus_data_standardize]{sus_data_standardize()}}; next
+\code{\link[=sus_data_filter_demographics]{sus_data_filter_demographics()}} and \code{\link[=sus_data_create_variables]{sus_data_create_variables()}}.
+\subsection{Disease groups}{
 
-The function automatically identifies the appropriate ICD column based on the
-health system
-}
-
-\subsection{Disease Groups}{
-
-The function includes 50+ predefined epidemiological groups organized by:
-\itemize{
-\item \strong{ICD Chapters}: All major disease categories (A00-Y98)
-\item \strong{Climate-Sensitive Diseases}: Vector-borne, waterborne, heat-related, etc.
-\item \strong{Specific Conditions}: Dengue, malaria, cardiovascular, respiratory, etc.
-\item \strong{Syndromic Groups}: Fever, respiratory, diarrheal syndromes
-\item \strong{Age-Specific Groups}: Pediatric, elderly populations
-}
-
-Each group includes:
-\itemize{
-\item ICD code ranges
-\item Multilingual labels and descriptions
-\item Climate sensitivity flag
-\item Associated climate factors
-}
-
-Use \code{list_disease_groups()} to see all available groups and their details.
+The predefined groups cover ICD chapters, climate-sensitive diseases
+(vector-borne, waterborne, heat/cold related), specific conditions (dengue,
+malaria, cardiovascular, respiratory, ...), syndromic groups and
+age-specific groups. Each group stores ICD code ranges, multilingual labels
+and a climate-sensitivity flag.
 }
 }
 \examples{
@@ -194,14 +139,6 @@ df_pediatric <- sus_data_filter_cid(
   lang = "pt"
 )
 
-# List all available disease groups
-list_disease_groups(lang = "pt")
-
-# List only climate-sensitive groups
-list_disease_groups(climate_sensitive_only = TRUE, lang = "en")
-
-# Get details about a specific group
-get_disease_group_details("dengue", lang = "pt")
 }
 
 }
@@ -213,4 +150,8 @@ Classification of Diseases and Related Health Problems. 10th Revision.
 Internacional de Doencas e Problemas Relacionados a Saude - CID-10.
 DATASUS. \url{http://datasus.saude.gov.br/cid10}
 }
+}
+\seealso{
+\code{\link[=sus_data_standardize]{sus_data_standardize()}}, \code{\link[=sus_data_filter_demographics]{sus_data_filter_demographics()}},
+\code{\link[=sus_data_create_variables]{sus_data_create_variables()}}, \code{\link[=sus_data_cid_select]{sus_data_cid_select()}}
 }

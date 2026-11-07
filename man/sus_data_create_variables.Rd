@@ -21,227 +21,174 @@ sus_data_create_variables(
 )
 }
 \arguments{
-\item{df}{A data frame containing health data from any SUS system.}
+\item{df}{A \code{climasus_df} (or tibble/data frame, Arrow dataset or DuckDB
+table) produced by the pipeline, standardized with \code{\link[=sus_data_standardize]{sus_data_standardize()}}.
+Must have at least one row.}
 
-\item{create_age_groups}{Logical. If \code{TRUE}, derives age-based variables.
-When enabled, the function will attempt to determine age using the following
-hierarchy (in order of preference):
-\enumerate{
-\item An existing age column supplied via \code{age_col}.
-\item Calculation from birth date and event date columns (gold standard).
-\item Decoding of DATASUS age code variables (fallback method).
-}
-
-If age is successfully determined, the following variables may be created:
-
+\item{create_age_groups}{Logical scalar, default \code{TRUE}. If \code{TRUE}, derives
+\code{age_years} (see Details for the 3-tier age logic) and the age-group
+variables:
 \itemize{
-\item \strong{User-defined age groups}:
-A categorical variable based on \code{age_breaks} and \code{age_labels},
-created using \code{cut()}. This variable is always created when
-\code{create_age_groups = TRUE}.
-
-\item \strong{Climate risk age group}:
-A coarse age classification designed for climate–health analyses,
-with three categories:
-\describe{
-\item{0–4}{High risk}
-\item{5–64}{Standard risk}
-\item{65+}{High risk}
+\item \code{age_group}: factor from \code{age_breaks}/\code{age_labels}
+(\code{cut(right = FALSE)}).
+\item Climate risk group (0-4 and 65+ "high risk", 5-64 "standard
+risk"): \code{climate_risk_group} (en), \code{grupo_risco_climatico} (pt),
+\code{grupo_riesgo_climatico} (es).
+\item IBGE quinquennial groups \verb{0-4, 5-9, ..., 75-79, 80+}:
+\code{ibge_age_group} (en), \code{faixa_etaria_ibge} (pt), \code{grupo_edad_ibge} (es).
 }
-The variable name depends on the selected language:
-\itemize{
-\item English: \code{climate_risk_group}
-\item Portuguese: \code{grupo_risco_climatico}
-\item Spanish: \code{grupo_riesgo_climatico}
-}
+If age cannot be determined the function aborts with an error. With
+\code{FALSE} no age variable is created.}
 
-\item \strong{IBGE quinquennial age groups}:
-A standardized 17-group age classification following the Brazilian
-Institute of Geography and Statistics (IBGE) quinquennial structure:
-\code{0–4, 5–9, ..., 75–79, 80+}.
-    This variable ensures national and international comparability and is
-particularly useful for demographic and epidemiological analyses.
-Variable names by language:
-\itemize{
-\item English: \code{ibge_age_group}
-\item Portuguese: \code{faixa_etaria_ibge}
-\item Spanish: \code{grupo_edad_ibge}
-}
-}
+\item{age_breaks}{Numeric vector (at least 2 values, increasing; \code{Inf}
+allowed) of age-group breakpoints in years, e.g. \code{c(0, 5, 15, 60, Inf)}
+(default) gives 0-4, 5-14, 15-59, 60+; \code{c(0, 18, 60, Inf)} gives 3 groups.
+Intervals are closed on the left (\verb{[0,5)}). Must be numeric, otherwise
+the function aborts.}
 
-All age group variables are created only if age can be reliably determined.
-If age cannot be inferred, the function will stop with an informative error.}
+\item{age_labels}{Character vector of length \code{length(age_breaks) - 1}, e.g.
+\code{c("0-4", "5-14", "15-59", "60+")}. \code{NULL} (default) generates labels
+from the breaks, in \code{lang}. A wrong length aborts.}
 
-\item{age_breaks}{Numeric vector specifying the breakpoints for age groups.
-Default is \code{c(0, 5, 15, 65, Inf)} for standard epidemiological categories.}
+\item{create_calendar_vars}{Logical scalar, default \code{TRUE}. If \code{TRUE},
+creates calendar variables from \code{date_col}. If no date column can be found
+(and \code{date_col} was not supplied) the calendar variables are skipped with
+a warning. See Details for the variable set per backend.}
 
-\item{age_labels}{Character vector with labels for age groups. If \code{NULL}
-(default), generates labels automatically from breaks.}
+\item{create_climate_vars}{Logical scalar, default \code{TRUE}. If \code{TRUE},
+creates seasonal variables from the month; \strong{requires
+\code{create_calendar_vars = TRUE}} (aborts otherwise, and also when no date
+column was found). Without \code{climate_region}: one astronomical season
+(\code{astronomical_season} / \code{estacao_astronomica} / \code{estacion_astronomica}),
+using \code{hemisphere}. With \code{climate_region}: a climatic season
+(\code{climatic_season} / \code{estacao_climatica} / \code{estacion_climatica}) and a
+dry/rainy season (\code{dry_rainy_season} / \code{estacao_seca_chuvosa} /
+\code{estacion_seca_lluviosa}).}
 
-\item{create_calendar_vars}{Logical. If \code{TRUE}, creates calendar variables
-(day of week, month, season, etc.). Default is \code{FALSE}.}
+\item{climate_region}{Character scalar or \code{NULL} (default). Brazilian
+climate region used for climatic seasons: \code{"norte"}, \code{"nordeste"},
+\code{"centro-oeste"} (also \code{"centro_oeste"}, \code{"centrooeste"}, \code{"Centro Oeste"}),
+\code{"sudeste"}, \code{"sul"}. Case- and accent-insensitive; only the first
+element is used. \code{NULL} produces the astronomical season instead.}
 
-\item{create_climate_vars}{Logical. Se \code{TRUE}, cria variaveis climaticas e sazonais.}
+\item{date_col}{Character scalar, name of the date column used for the
+calendar and season variables. \code{NULL} (default) auto-detects it by
+system (e.g. \code{data_internacao} for SIH, \code{data_obito} for SIM,
+\code{data_notificacao} for SINAN, \code{data_nascimento} for SINASC, plus common
+names such as \code{date}/\code{data}/\code{fecha} and \verb{DT*} columns). A supplied name
+that is not in \code{df} aborts.}
 
-\item{climate_region}{Character. Regiao climatica para calculos sazonais.
-Opcoes: "norte", "nordeste", "centro-oeste", "sudeste", "sul".}
+\item{age_col}{Character scalar, name of an existing column with age \strong{in
+years}. \code{NULL} (default) triggers auto-detection (see Details). If the
+name is not in \code{df}, a warning is shown and auto-detection is used.}
 
-\item{date_col}{Character string with the name of the date column. If \code{NULL}
-(default), auto-detects the date column.}
+\item{hemisphere}{Character scalar, \code{"south"} (default, Brazil) or
+\code{"north"}; defines the astronomical seasons. Other values abort.}
 
-\item{age_col}{Character string with the name of the age column (in years).
-If \code{NULL} (default), auto-detects and calculates age using hierarchical logic:
-\enumerate{
-\item Direct age column (if exists)
-\item Calculate from dates (event_date - birth_date)
-\item Decode DATASUS age codes (NU_IDADE_N, IDADE)
-}}
+\item{backend}{Character scalar, \code{"arrow"} (default) or \code{"tibble"}.
+\code{"arrow"} processes Arrow/DuckDB inputs lazily (nothing is collected,
+except that decoding a composite DATASUS age code materialises the data)
+and falls back to \code{"tibble"} with a warning if it fails. \code{"tibble"}
+processes in memory. Any other value uses the tibble path.}
 
-\item{hemisphere}{Character string specifying the hemisphere for season
-calculation. Options: \code{"south"} (default, for Brazil), \code{"north"}.}
+\item{lang}{Character scalar, \code{"pt"} (default), \code{"en"} or \code{"es"}. Language
+of messages, labels and of the names of the created variables; other
+values abort.}
 
-\item{backend}{Character string specifying the data processing backend.
-Use \code{"arrow"} for out-of-memory, lazy processing (recommended for large datasets),
-or \code{"tibble"} for in-memory processing (recommended for small to medium datasets).
-\itemize{
-\item \code{"arrow"}: operations are performed lazily using the Apache Arrow engine,
-avoiding loading the full dataset into memory. Ideal for large files
-(e.g., Parquet, Feather) and high-performance workflows.
-\item \code{"tibble"}: data is fully loaded into memory as a tibble and processed eagerly
-using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
-}
-
-If not specified, the function may automatically choose the backend based on
-the input data type.}
-
-\item{lang}{Character string specifying the language for variable labels and
-messages. Options: \code{"en"} (English), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}
-
-\item{verbose}{Logical. If \code{TRUE} (default), prints progress messages.}
+\item{verbose}{Logical scalar, default \code{TRUE}. Print progress messages.}
 }
 \value{
-The input data frame with additional columns for the created variables.
+A \code{climasus_df} (tibble; lazy Arrow table/DuckDB table if the input
+was lazy) with the input columns plus the created variables. \code{sus_meta}: \code{stage = "derive"}, \code{type = "derive"}, \code{system}
+preserved, and a history entry added.
 }
 \description{
-Creates commonly used derived variables from health data across ALL SUS systems
-(SIM, SINAN, SIH, SIA, SINASC, CNES), including age groups, calendar variables,
-and other epidemiologically relevant categorizations. Features age
-calculation that handles different data formats across systems.
+Derives age groups, calendar variables and seasonal (climate) variables
+from standardized DATASUS data.
 }
 \details{
-\strong{Age Calculation} (Hierarchical Logic):
+Pipeline position: stage \code{"stand"} or later is required (run
+\code{\link[=sus_data_standardize]{sus_data_standardize()}} first); the output has \code{stage = "derive"}. Next
+steps: \code{\link[=sus_data_aggregate]{sus_data_aggregate()}}, \code{\link[=sus_data_filter_demographics]{sus_data_filter_demographics()}}.
 
-The function uses a 3-tier hierarchy to ensure age is calculated correctly
-across all SUS systems:
+Supported systems: SIM, SINAN, SINASC, SIA and \strong{SIH-RD}. The SIH
+sub-systems SIH-SP, SIH-RJ and SIH-ER and all CNES systems are blocked and
+abort early with an informative error (they lack age/date columns).
+
+\strong{Age (\code{age_years})}: age in completed years, resolved per row with a
+3-tier logic (skipped if \code{age_col} is valid, or a direct age column such as
+\code{age_years}/\code{idade_mae} exists):
 \enumerate{
-\item \strong{Direct Age Column} (Fastest): If a column with age in years already exists
-(common in SIM after microdatasus processing), uses it directly.
-\item \strong{Date Calculation} (Gold Standard): If birth date and event date are available,
-calculates exact age as: \code{interval(birth_date, event_date) / years(1)}.
-This is the most accurate method and works for:
-\itemize{
-\item SINAN: Has \code{DTNASC} and \code{DT_NOTIFIC}
-\item SIH: Has \code{NASC} and \code{DT_INTER}
-\item SINASC: Has \code{DTNASC} (mother) and \code{DTNASC} (newborn)
+\item \strong{Dates} (gold standard): from the birth-date column
+(\code{data_nascimento}/\code{birth_date}/\code{fecha_nacimiento}/\code{DTNASC}) and the
+event-date column (e.g. \code{data_internacao}, \code{data_obito},
+\code{data_notificacao}), as completed years. Negative or >120 ages become \code{NA}.
+\item \strong{Value + unit pair} (per row, used where tier 1 is \code{NA}, or for all
+rows when no birth-date column exists): the age value (\code{idade}) plus its
+unit code (\code{codigo_unidade_idade}; raw \code{IDADE} + \code{COD_IDADE}). Units:
+1 = hours and 2 = days (age 0), 3 = months (\code{floor(value / 12)}),
+4 = years (value), 5 = 100+ years (\code{value + 100}). This is how SIH-RD
+gets its age, because it has no birth-date column. Implausible values
+(<0 or >120) become \code{NA}.
+\item \strong{Composite DATASUS code} (fallback, e.g. SINAN \code{NU_IDADE_N},
+\code{codigo_idade}): first digit is the unit (1 hours, 2 days, 3 months,
+4 years, 5 100+) and the remaining digits the value, e.g. \code{4035} =
+35 years, \code{5105} = 105 years.
 }
-\item \strong{DATASUS Code Decoder} (Fallback): If dates are missing (common in anonymized
-data), decodes the composite age code used by DATASUS:
-\itemize{
-\item Codes starting with \code{1}: Hours (converted to 0 years)
-\item Codes starting with \code{2}: Days (converted to 0 years)
-\item Codes starting with \code{3}: Months (converted to 0 years for <12 months)
-\item Codes starting with \code{4}: Years (e.g., 4035 = 35 years)
-\item Codes starting with \code{5}: 100+ years (e.g., 5105 = 105 years)
-}
-}
+Age groups are created only when \code{create_age_groups = TRUE}.
 
-\strong{Age Groups}: Creates a factor variable \code{age_group} based on the specified
-breaks and labels. Common epidemiological categories:
+\strong{Calendar variables} (when \code{create_calendar_vars = TRUE}; the date column
+is coerced with \code{as.Date()}):
 \itemize{
-\item Pediatric: 0-4, 5-14, 15-19
-\item Adult: 20-39, 40-59, 60+
-\item Elderly: 65-74, 75-84, 85+
-\item Climate-Health: 0-4, 5-64, 65+ (vulnerable populations)
+\item In-memory (tibble) path, full set, names by \code{lang}: year, month,
+month name, day of week (Monday = 1), day-of-week name, day of year,
+quarter, epidemiological week, weekend flag, semester. Names: en
+\verb{year, month, month_name, day_of_week, day_of_week_name, day_of_year, quarter, epidemiological_week, is_weekend, semester}; pt \verb{ano, mes, nome_mes, dia_semana, nome_dia_semana, dia_ano, trimestre, semana_epidemiologica, fim_semana, semestre}; es \verb{anio, mes, nombre_mes, dia_semana, nombre_dia_semana, dia_anio, trimestre, semana_epidemiologica, fin_semana, semestre}.
+\item Arrow path (default backend, including in-memory input that is
+processed by it, and Arrow/DuckDB inputs): only \code{ano}, \code{mes} and
+\code{trimestre} (Portuguese names whatever \code{lang} is).
 }
+To get the full calendar set from an in-memory data frame use
+\code{backend = "tibble"}.
 
-\strong{Calendar Variables} (when \code{create_calendar_vars = TRUE}):
-\itemize{
-\item \code{day_of_week}: Day of the week (1 = Monday, 7 = Sunday)
-\item \code{day_of_week_name}: Day name (e.g., "Monday", "Segunda-feira")
-\item \code{month}: Month number (1-12)
-\item \code{month_name}: Month name (e.g., "January", "Janeiro")
-\item \code{year}: Year
-\item \code{quarter}: Quarter (1-4)
-\item \code{season}: Season (Summer, Autumn, Winter, Spring)
-\item \code{is_weekend}: Logical indicating if date is weekend
-\item \code{day_of_year}: Day of year (1-365/366)
-\item \code{semester}: Semester (1 or 2)
-}
-
-\strong{Seasons} are calculated based on hemisphere:
-\itemize{
-\item \strong{Southern Hemisphere} (Brazil): Summer (Dec-Feb), Autumn (Mar-May),
-Winter (Jun-Aug), Spring (Sep-Nov)
-\item \strong{Northern Hemisphere}: Summer (Jun-Aug), Autumn (Sep-Nov),
-Winter (Dec-Feb), Spring (Mar-May)
-}
+\strong{Seasons} (astronomical, by \code{hemisphere}): southern = Summer (Dec-Feb),
+Autumn (Mar-May), Winter (Jun-Aug), Spring (Sep-Nov); northern is the
+reverse.
 }
 \examples{
 \dontrun{
-library(climasus4r)
-
-# ===== EXAMPLE 1: SIM (Mortality) - Age already calculated =====
+# SIM: age is already available
 df_sim <- sus_data_import(uf = "SP", year = 2023, system = "SIM-DO") |>
+  sus_data_clean_encoding() |>
   sus_data_standardize(lang = "en") |>
   sus_data_create_variables(
-    create_age_groups = TRUE,
     age_breaks = c(0, 5, 65, Inf),
     age_labels = c("0-4", "5-64", "65+"),
-    create_calendar_vars = TRUE,
     lang = "en"
   )
-# Uses direct age column (fastest)
 
-# ===== EXAMPLE 2: SINAN (Dengue) - Calculate from dates =====
-df_sinan <- sus_data_import(uf = "RJ", year = 2023, system = "SINAN-DENGUE") |>
+# SIH-RD: age from value + unit code (idade + codigo_unidade_idade)
+df_sih <- sus_data_import(uf = "MG", year = 2023, month = 1:3,
+                          system = "SIH-RD") |>
+  sus_data_clean_encoding() |>
   sus_data_standardize(lang = "pt") |>
   sus_data_create_variables(
-    create_age_groups = TRUE,
-    age_breaks = c(0, 15, 60, Inf),
-    create_calendar_vars = TRUE,
-    lang = "pt"
-  )
-# Calculates age from DTNASC and DT_NOTIFIC (gold standard)
-
-# ===== EXAMPLE 3: SIH (Hospitalizations) - Decode age codes =====
-df_sih <- sus_data_import(uf = "MG", year = 2023, system = "SIH-RD") |>
-  sus_data_standardize(lang = "es") |>
-  sus_data_create_variables(
-    create_age_groups = TRUE,
     age_breaks = c(0, 18, 60, Inf),
     age_labels = c("0-17", "18-59", "60+"),
-    create_calendar_vars = TRUE,
-    lang = "es"
+    backend = "tibble"   # full calendar set
   )
-# Decodes DATASUS age codes if dates are missing (fallback)
 
-# ===== EXAMPLE 4: Custom age groups for elderly analysis =====
-df_elderly <- sus_data_create_variables(
-  df,
-  create_age_groups = TRUE,
-  age_breaks = c(60, 70, 80, 90, Inf),
-  age_labels = c("60-69", "70-79", "80-89", "90+"),
-  lang = "pt"
-)
+# Seasons for the Amazon (Norte) region
+df_n <- sus_data_create_variables(df_sih, climate_region = "norte")
 
-# ===== EXAMPLE 5: Calendar variables and climate variables =====
-df_calendar_climate <- sus_data_create_variables(
-  df,
-  create_calendar_vars = TRUE,
-  create_semester = TRUE,
-  create_climate_vars = TRUE,
-  climate_region = "Norte"
+# Only age variables
+df_age <- sus_data_create_variables(
+  df_sih, create_calendar_vars = FALSE, create_climate_vars = FALSE
 )
 }
 
+}
+\seealso{
+\code{\link[=sus_data_standardize]{sus_data_standardize()}}, \code{\link[=sus_data_aggregate]{sus_data_aggregate()}},
+\code{\link[=sus_data_filter_demographics]{sus_data_filter_demographics()}}, \code{\link[=sus_data_filter_cid]{sus_data_filter_cid()}}
 }

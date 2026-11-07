@@ -19,18 +19,22 @@ sus_climate_compute_spei(
 )
 }
 \arguments{
-\item{df}{A \code{climasus_df} at \code{stage = "climate"} with monthly data.
-Must contain \code{code_muni} (character), \code{date} (Date, first day of each
-month), and the precipitation column named by \code{rain_var}.}
+\item{df}{A \code{climasus_df} at \code{stage = "climate"} (any other stage or a plain
+tibble errors; Arrow objects are collected) with monthly data.
+Must contain \code{code_muni} (character), \code{date} (Date or coercible, first day
+of each month), and the precipitation column named by \code{rain_var}.}
 
-\item{rain_var}{Character. Name of the monthly precipitation column (mm).
-Default \code{"rainfall_chirps_mm"}. Other common value: \code{"rainfall_mm"}.}
+\item{rain_var}{Single character string. Name of the monthly precipitation
+column (mm). Default \code{"rainfall_chirps_mm"}. Other common value:
+\code{"rainfall_mm"}. Errors if not found.}
 
-\item{pet_var}{Character. Name of the monthly potential evapotranspiration
-column (mm). Used when \code{pet_method = "column"}. Default \code{"pet_mm"}.
-Ignored when \code{pet_method = "thornthwaite"}.}
+\item{pet_var}{Single character string. Name of the monthly potential
+evapotranspiration column (mm). Used (and required) when
+\code{pet_method = "column"}. Default \code{"pet_mm"}. Ignored when
+\code{pet_method = "thornthwaite"}.}
 
-\item{pet_method}{Character. How to obtain PET values. One of:
+\item{pet_method}{Single character string, \code{"column"} (default) or
+\code{"thornthwaite"}. How to obtain PET values:
 \itemize{
 \item \code{"column"} (default): use the column named by \code{pet_var} directly.
 \item \code{"thornthwaite"}: compute Thornthwaite (1948) PET from monthly
@@ -39,26 +43,31 @@ temperature; less accurate than energy-balance methods but practical
 when only INMET or ERA5 T2m is available.
 }}
 
-\item{temp_var}{Character. Name of the monthly mean temperature column (°C).
-Used only when \code{pet_method = "thornthwaite"}. Default \code{"tair_dry_bulb_c"}.}
+\item{temp_var}{Single character string. Name of the monthly mean
+temperature column (degC). Used (and required) only when
+\code{pet_method = "thornthwaite"}. Default \code{"tair_dry_bulb_c"}.}
 
-\item{scales}{Integer vector. SPEI timescales in months. Default
-\code{c(1L, 3L, 6L, 12L)}.}
+\item{scales}{Positive integer vector of SPEI timescales in months, e.g.
+\code{3}, \code{c(3, 6)} or \code{1:12}. Default \code{c(1L, 3L, 6L, 12L)}. Duplicates dropped,
+sorted. Values below 1 or non-numeric input error.}
 
-\item{ref_start}{Date or \code{NULL}. Start of the calibration period for
-log-logistic distribution fitting. \code{NULL} uses all available data.
-WMO recommends at least 30 years.}
+\item{ref_start}{\code{Date}, date string (\code{"1991-01-01"}) or \code{NULL}. Start of
+the calibration period. \code{NULL} (default) uses all available data. WMO
+recommends at least 30 years. Must be earlier than \code{ref_end} if both
+are given.}
 
-\item{ref_end}{Date or \code{NULL}. End of the calibration period. \code{NULL} uses
-all available data.}
+\item{ref_end}{\code{Date}, date string (\code{"2020-12-31"}) or \code{NULL}. End of the
+calibration period. \code{NULL} (default) uses all available data.}
 
-\item{min_n}{Integer. Minimum number of non-NA values required to fit the
-log-logistic distribution per location. Default \code{24L} (2 years).
-Locations with fewer values receive \code{NA}.}
+\item{min_n}{Single integer >= 2. Minimum number of non-NA values of the
+accumulated water balance in the calibration period required per
+location. Default \code{24L} (2 years). Locations with fewer values receive
+\code{NA}.}
 
-\item{lang}{Character. Message language: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Single character string. Message language: \code{"pt"} (default),
+\code{"en"}, \code{"es"}; other values error.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
 The input \code{climasus_df} with additional columns:
@@ -67,7 +76,9 @@ The input \code{climasus_df} with additional columns:
 dimensionless). For example, \code{scales = c(3, 6, 12)} adds
 \code{spei_3mo}, \code{spei_6mo}, \code{spei_12mo}.
 }
-Metadata: \code{stage = "climate"}, \code{type = "spei"}.
+The first \code{s - 1} months of each location are \code{NA} (incomplete window).
+Output is a tibble-based \code{climasus_df} sorted by \code{code_muni} and \code{date}.
+\code{sus_meta()}: \code{stage = "climate"}, \code{type = "spei"} (other fields kept).
 }
 \description{
 \code{sus_climate_compute_spei()} calculates the Standardized Precipitation-
@@ -77,9 +88,13 @@ already aggregated to municipalities.
 
 SPEI extends \code{\link[=sus_climate_compute_spi]{sus_climate_compute_spi()}} by accounting for atmospheric water
 demand (temperature-driven evapotranspiration) in addition to precipitation
-supply. It uses the climatic water balance \code{D = P - PET} and fits a
-3-parameter log-logistic distribution, making it sensitive to warming-
-amplified drought. Health applications in Brazil:
+supply. It uses the climatic water balance \code{D = P - PET}, accumulated over
+\code{s} months and standardised with an empirical distribution function
+(see \strong{Algorithm}), making it sensitive to warming-
+amplified drought. Use it after \code{\link[=sus_grid_chirps]{sus_grid_chirps()}} / \code{\link[=sus_grid_era5]{sus_grid_era5()}}
+(monthly, per municipality, \code{stage = "climate"}); rows must be consecutive
+months per municipality (missing months present as \code{NA}) because rolling sums
+use the previous \code{s} rows. Health applications in Brazil:
 \itemize{
 \item Drought (SPEI-3 to SPEI-12): malnutrition, diarrhoeal disease,
 heat-amplified mortality, vector-borne diseases in the semi-arid
@@ -112,10 +127,12 @@ For each municipality and timescale \code{s}:
 \enumerate{
 \item Compute climate water balance: \code{D = P - PET} (monthly).
 \item Accumulate over \code{s} months via rolling sum.
-\item Fit 3-parameter log-logistic distribution via L-moments
-(Vicente-Serrano et al., 2010). Falls back to empirical ECDF for
-numerically unstable cases.
-\item Transform to standard normal.
+\item Transform the calibration-period distribution to standard normal
+using the empirical CDF with Hazen plotting positions (non-parametric;
+this is a simplification of the 3-parameter log-logistic fit of
+Vicente-Serrano et al., 2010). The distribution pools all calendar
+months of the location.
+\item Map every value of the series through that distribution.
 }
 }
 
@@ -165,6 +182,6 @@ Thornthwaite, C.W. (1948). An approach toward a rational classification
 of climate. \emph{Geographical Review}, 38(1), 55–94.
 }
 \seealso{
-\code{\link[=sus_climate_compute_spi]{sus_climate_compute_spi()}}, \code{\link[=sus_grid_chirps]{sus_grid_chirps()}}, \code{\link[=sus_grid_era5]{sus_grid_era5()}},
-\code{\link[=sus_grid_join]{sus_grid_join()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
+\code{\link[=sus_climate_compute_spi]{sus_climate_compute_spi()}}, \code{\link[=sus_climate_uniplu]{sus_climate_uniplu()}},
+\code{\link[=sus_grid_chirps]{sus_grid_chirps()}}, \code{\link[=sus_grid_era5]{sus_grid_era5()}}, \code{\link[=sus_grid_join]{sus_grid_join()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
 }

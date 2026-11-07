@@ -6,6 +6,17 @@
 \usage{
 sus_chat()
 }
+\value{
+Called for its side effect of opening the page; the return value is not meaningful.
+}
 \description{
-Launch the climasus4r AI Assistant
+Opens the climasus4r web assistant (\url{https://climasus4r.manus.space/}) in
+the RStudio/Positron viewer when available, otherwise in the default web
+browser. Requires an internet connection and the \code{rstudioapi} package
+(you are prompted to install it if missing).
+}
+\examples{
+\dontrun{
+sus_chat()
+}
 }

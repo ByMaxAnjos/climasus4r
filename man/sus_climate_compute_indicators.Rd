@@ -23,51 +23,86 @@ sus_climate_compute_indicators(
 )
 }
 \arguments{
-\item{df}{Data frame or tibble from \code{sus_climate_inmet()} or \code{sus_climate_fill_inmet()}.}
+\item{df}{A \code{climasus_df} at stage \code{"climate"} or later, typically from
+\code{\link[=sus_climate_inmet]{sus_climate_inmet()}} or \code{\link[=sus_climate_fill_inmet]{sus_climate_fill_inmet()}} (a plain tibble or a
+lower-stage object errors). Needs a datetime column, a station column
+(\code{station_code}) and the input columns listed in the table above.}
 
-\item{indicators}{Character vector of indicator codes or \code{"all"} (default).}
+\item{indicators}{Character vector of indicator codes (case-insensitive),
+e.g. \code{"wbgt"} or \code{c("wbgt", "hi", "utci")}, or \code{"all"} (default) for the
+15 codes in the table. Unknown codes error and list the valid ones.}
 
-\item{region}{Character. \code{"auto"} (default, standard thresholds) or a
-Brazilian biome: \code{"amazon"}, \code{"cerrado"}, \code{"caatinga"},
-\code{"atlantic_forest"}, \code{"pampa"}, \code{"pantanal"}, \code{"southeast"}, \code{"south"}.}
+\item{region}{Single character string selecting regional thresholds and
+parameters. \code{"auto"} (default) detects the biome from the \code{UF} column (most
+frequent UF) or, failing that, from mean latitude. Otherwise one of
+\code{"amazon"}, \code{"cerrado"}, \code{"caatinga"}, \code{"atlantic_forest"}, \code{"pampa"},
+\code{"pantanal"}, \code{"southeast"}, \code{"south"}. \code{"none"} disables regional
+adaptation (standard thresholds, no confidence flags by default). An
+unknown value gives a warning and falls back to \code{"southeast"}.}
 
-\item{datetime_col}{Character or \code{NULL} (auto-detected).}
+\item{datetime_col}{Single character string or \code{NULL} (default,
+auto-detected): name of the datetime column.}
 
-\item{station_col}{Character or \code{NULL} (auto-detected).}
+\item{station_col}{Single character string or \code{NULL} (default,
+auto-detected): name of the station identifier column.}
 
-\item{apply_validity_mask}{Logical (default \code{TRUE}). When \code{region=="none"},
-masks HI, WCET, WCT outside their valid meteorological domains with \code{NA}.}
+\item{apply_validity_mask}{Logical scalar (default \code{TRUE}). Only effective
+when \code{region = "none"}: masks HI, WCET and WCT outside their valid
+meteorological domains with \code{NA}.}
 
-\item{confidence_flags}{Logical. Add \verb{_flag_extreme}, \verb{_flag_high},
-\verb{_flag_low} columns. Default \code{TRUE} when region is set, \code{FALSE} otherwise.}
+\item{confidence_flags}{Logical scalar or \code{NULL} (default). Add
+\verb{<indicator>_flag_extreme}, \verb{_flag_high}, \verb{_flag_low} columns. \code{NULL}
+means \code{TRUE} when a region is used (any \code{region} except \code{"none"},
+including \code{"auto"}) and \code{FALSE} for \code{region = "none"}.}
 
-\item{custom_thresholds}{Named list to override regional defaults.}
+\item{custom_thresholds}{Named list overriding the regional parameter
+values (merged with \code{utils::modifyList()}), or \code{NULL} (default). Names
+must match the entries of the regional parameter table. Ignored for
+\code{region = "none"}.}
 
-\item{keep_source_vars}{Logical (default \code{FALSE}).}
+\item{keep_source_vars}{Logical scalar (default \code{FALSE}). If \code{TRUE}, also
+returns the input columns required by the requested indicators.}
 
-\item{verify_physics}{Logical (default \code{TRUE}). Check solar radiation
-against extraterrestrial limits; requires \code{latitude} column.}
+\item{verify_physics}{Logical scalar (default \code{TRUE}). Check solar
+radiation against extraterrestrial limits; requires a \code{latitude} column
+and \code{sr_kj_m2}.}
 
-\item{compute_uncertainty}{Logical (default \code{FALSE}). Monte Carlo 95\% CI.}
+\item{compute_uncertainty}{Logical scalar (default \code{FALSE}). Adds
+\verb{<indicator>_ci_low} / \verb{_ci_high} columns (Monte Carlo, 200 simulations,
+95\% interval) for indicators that define input uncertainties.}
 
-\item{verbose}{Logical (default \code{TRUE}).}
+\item{verbose}{Logical scalar (default \code{TRUE}).}
 
-\item{lang}{Character: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Single character string: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
 
-\item{use_cache}{Logical. If \code{TRUE} (default), uses cached spatial data to avoid
-re-downloads and improve performance.}
+\item{use_cache}{Logical scalar. If \code{TRUE} (default), the station metadata
+table (downloaded once from the climasus4r GitHub repository, so a network
+connection is needed the first time) is read from and saved to
+\code{cache_dir}. If \code{FALSE} it is downloaded every call.}
 
-\item{cache_dir}{Character string specifying the directory to store cached files.
-Default is \code{"~/.climasus4r_cache/spatial"}.}
+\item{cache_dir}{Single character string, directory for the cached station
+metadata. Default \code{"~/.climasus4r_cache/spatial"}.}
 }
 \value{
-A \code{tibble} of class \code{climasus_df} containing indicator columns,
-optional flag/CI columns, and a \code{sus_meta} attribute.
+A \code{climasus_df} with one row per input row containing \code{date}, the
+station column, one column per computed indicator (names in the table
+above, \code{NA} when skipped), optional flag/CI columns, optional source
+variables and the station metadata columns joined by \code{station_code}.
+\code{sus_meta()}: \code{stage = "climate"}, \code{type = "indicators"}, \code{system = NULL},
+with the requested indicators in \code{temporal$indicators_requested}.
 }
 \description{
 \code{sus_climate_compute_indicators()} calculates a comprehensive set of
 bioclimatic and thermal-stress indices from INMET station data (output of
 \code{sus_climate_inmet()} or \code{sus_climate_fill_inmet()}).
+
+Use it after \code{\link[=sus_climate_inmet]{sus_climate_inmet()}} / \code{\link[=sus_climate_fill_inmet]{sus_climate_fill_inmet()}} and before
+\code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}}, \code{\link[=sus_climate_compute_heatwaves]{sus_climate_compute_heatwaves()}} or
+\code{\link[=sus_climate_compute_coldwaves]{sus_climate_compute_coldwaves()}} (which use \code{wbgt_c}, \code{utci_c}, \code{hi_c}).
+The output keeps the temporal resolution of the input (hourly for INMET)
+and contains only the identifier columns and the computed indicators (plus
+station metadata), unless \code{keep_source_vars = TRUE}. Indicators whose input
+columns are missing are returned as \code{NA} with a warning.
 
 \strong{Scientific robustness highlights:}
 \itemize{
@@ -146,4 +181,9 @@ df_clima |>
   sus_climate_fill_inmet(target_var = "all") |>
   sus_climate_compute_indicators(indicators = c("wbgt", "hi", "utci"))
 }
+}
+\seealso{
+\code{\link[=sus_climate_inmet]{sus_climate_inmet()}}, \code{\link[=sus_climate_fill_inmet]{sus_climate_fill_inmet()}},
+\code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}}, \code{\link[=sus_climate_compute_heatwaves]{sus_climate_compute_heatwaves()}},
+\code{\link[=sus_climate_compute_coldwaves]{sus_climate_compute_coldwaves()}}
 }

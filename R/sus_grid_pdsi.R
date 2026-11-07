@@ -34,18 +34,26 @@ utils::globalVariables(c(
 #'     (~40 MB). Coarser but longer record.
 #' }
 #'
-#' @param years Integer vector. Years to download.
-#'   TerraClimate: 1950-2025. NOAA PSL: 1850-2018.
-#'   `NULL` (default) = last two complete years.
+#' @param years Numeric vector of years (character values error). Accepted forms:
+#'   scalar (`2020`), range (`2015:2022`) or explicit vector
+#'   (`c(2015, 2018, 2022)`). `c(2015, 2022)` means exactly those two years, NOT
+#'   the range -- use `2015:2022`. De-duplicated, sorted, coerced with
+#'   `as.integer()`. Valid range by `source`: TerraClimate 1950-2025; NOAA PSL
+#'   1850-2018 (values outside error). `NULL` (default) = the last two complete
+#'   years (shifted back to the source's last year if needed).
 #'
-#' @param months Integer vector (1-12). Months to include. Default `1:12`.
+#' @param months Numeric vector of months (1-12), e.g. `1:12` (default), `6:9`,
+#'   `c(1, 7)` (exactly January and July). Values outside 1-12 or `NA` error.
 #'
-#' @param source Character. Data source: `"terraclimate"` (default) or
-#'   `"noaa_psl"`.
+#' @param source Character scalar, `"terraclimate"` (default) or `"noaa_psl"`;
+#'   validated with `match.arg()`. With `"noaa_psl"` one global file is downloaded
+#'   and `years` selects the period within it.
 #'
-#' @param municipalities An `sf` POLYGON object (e.g., from
-#'   [geobr::read_municipality()]). When provided, rasters are aggregated and a
-#'   `climasus_df` is returned. If `NULL`, returns cached NetCDF file paths.
+#' @param municipalities An `sf` polygon object (e.g. from [geobr::read_municipality()])
+#'   or `NULL` (default). Non-`sf` input errors. When provided, requires `terra`
+#'   and `exactextractr`; rasters are aggregated per polygon (ID column
+#'   auto-detected) and a `climasus_df` is returned. If `NULL`, file paths or a
+#'   `SpatRaster` are returned (see `raster_area`).
 #'
 #' @param raster_area Only used when `municipalities = NULL`. One of:
 #'   \itemize{
@@ -60,21 +68,24 @@ utils::globalVariables(c(
 #'   }
 #'   Ignored (silently) if `municipalities` is provided.
 #'
-#' @param agg_fun Character. Spatial aggregation for
-#'   `exactextractr::exact_extract()`. Default `"mean"` (area-weighted).
+#' @param agg_fun Character scalar. Spatial aggregation for
+#'   `exactextractr::exact_extract()`: `"mean"` (default, area-weighted),
+#'   `"sum"`, `"median"`, `"min"` or `"max"`; other values error. Only used when
+#'   `municipalities` is provided.
 #'
-#' @param crop_brazil Logical. Crop global rasters to Brazil's bounding box.
-#'   Default `TRUE`.
+#' @param crop_brazil Logical scalar. Crop global rasters to Brazil's bounding box
+#'   before aggregation / raster construction. Default `TRUE`.
 #'
-#' @param use_cache Logical. Reuse cached NetCDF files and Parquet results.
-#'   Default `TRUE`.
+#' @param use_cache Logical scalar. Reuse cached NetCDF files and Parquet results
+#'   (`FALSE` re-downloads / recomputes). Default `TRUE`.
 #'
-#' @param cache_dir Character. Root cache directory.
-#'   Default `"~/.climasus4r_cache/pdsi"`.
+#' @param cache_dir Character scalar. Root cache directory. Default
+#'   `"~/.climasus4r_cache/pdsi"`.
 #'
-#' @param lang Character. Message language: `"pt"` (default), `"en"`, `"es"`.
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"` or
+#'   `"es"`; other values error.
 #'
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
 #' @return
 #' \itemize{
@@ -139,6 +150,7 @@ utils::globalVariables(c(
 #' )
 #'
 #' # Join to health data for DLNM
+#' # sih_mt: a climasus_df at stage "spatial" or "aggregate"
 #' combined <- sus_grid_join(sih_mt, pdsi_mt)
 #' }
 #'
@@ -222,6 +234,11 @@ sus_grid_pdsi <- function(
   if (!is.character(cache_dir) || nchar(trimws(cache_dir)) == 0) cli::cli_abort(msg$invalid_cache_dir)
   cache_dir <- normalizePath(cache_dir, mustWork = FALSE)
 
+  # Parquet cache key: municipalities + months + agg + crop (see .grid_cache_key)
+  ckey <- paste0("_", .grid_cache_key(
+    if (!is.null(municipalities)) municipalities[[.pdsi_detect_muni_col(municipalities)]],
+    months = months, agg_fun = agg_fun, crop_brazil = crop_brazil))
+
   # \u2500\u2500 2. Build manifest (one entry per year for TerraClimate; single file for NOAA PSL) \u2500\u2500
 
   if (source == "terraclimate") {
@@ -234,7 +251,7 @@ sus_grid_pdsi <- function(
       cache_path = file.path(cache_dir, source,
                              sprintf("TerraClimate_PDSI_%04d.nc", years)),
       cache_pq   = file.path(cache_dir, "parquet",
-                             sprintf("pdsi_terraclimate_%04d.parquet", years)),
+                             sprintf("pdsi_terraclimate_%04d%s.parquet", years, ckey)),
       stringsAsFactors = FALSE
     )
   } else {
@@ -245,7 +262,7 @@ sus_grid_pdsi <- function(
       url        = "https://downloads.psl.noaa.gov/Datasets/dai_pdsi/pdsi.mon.mean.selfcalibrated.nc",
       cache_path = file.path(cache_dir, source, "pdsi.mon.mean.selfcalibrated.nc"),
       cache_pq   = file.path(cache_dir, "parquet",
-                             sprintf("pdsi_noaa_psl_%d_%d.parquet", min(years), max(years))),
+                             sprintf("pdsi_noaa_psl_%d_%d%s.parquet", min(years), max(years), ckey)),
       stringsAsFactors = FALSE
     )
   }
@@ -590,6 +607,17 @@ sus_grid_pdsi <- function(
   )
   base_classes <- setdiff(class(result), "climasus_df")
   structure(result, sus_meta = meta, class = c("climasus_df", base_classes))
+}
+
+#' Stable short hash for Parquet/CSV cache keys of the sus_grid_* functions
+#'
+#' Atomic inputs are de-duplicated and sorted, so the key is order-insensitive
+#' (e.g. for municipality code sets); `NULL` inputs are kept as `NULL`.
+#' @keywords internal
+#' @noRd
+.grid_cache_key <- function(muni_ids = NULL, ...) {
+  norm <- function(x) if (is.atomic(x) && !is.null(x)) sort(unique(as.character(x))) else x
+  substr(digest::digest(lapply(c(list(muni_ids = muni_ids), list(...)), norm)), 1, 10)
 }
 
 #' Auto-detect municipality identifier column

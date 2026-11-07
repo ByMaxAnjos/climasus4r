@@ -141,35 +141,51 @@ utils::globalVariables(c(
 #' | `"lorenz"` | Lorenz concentration curve showing burden inequality across cities |
 #' | `"stacked"` | Stacked heat/cold bar by city (only for AF input with `component = "all"`) |
 #'
-#' @param x A `climasus_burden` object produced by [sus_mod_burden()].
-#' @param type Character. Plot type: `"lollipop"` (default), `"lorenz"`, or
-#'   `"stacked"`.
-#' @param output_type Character. `"plot"` (default), `"table"`, or `"all"`
-#'   (named list `$plot`, `$table`, `$data`).
-#' @param interactive Logical. `TRUE` converts the ggplot2 output to an
-#'   interactive \pkg{plotly} widget. Default `FALSE`.
-#' @param base_size Numeric. ggplot2 base font size. Default `12`.
-#' @param save_plot Character or `NULL`. File path to save the plot.
-#' @param lang Character. Language for labels: `"pt"` (default), `"en"`, `"es"`.
-#' @param verbose Logical. Print progress messages. Default `FALSE`.
+#' @param x A `climasus_burden` object produced by [sus_mod_burden()]. Other
+#'   classes error.
+#' @param type Character scalar: `"lollipop"` (default; cities ranked by AN or
+#'   excess, with CI when available), `"lorenz"` (Lorenz concentration curve
+#'   from `$concentration`) or `"stacked"` (heat vs cold AN per city). `"stacked"`
+#'   errors unless `x` was built from AF/DLNM inputs with
+#'   `component = "all"`. `"lollipop"` uses the `"total"` rows, so it needs
+#'   `component = "total"` or `"all"` in [sus_mod_burden()]. Partial matching
+#'   applies; other values error.
+#' @param output_type Character scalar: `"plot"` (default), `"table"` (the
+#'   plotted data) or `"all"` (list with `$plot`, `$table`, `$data`).
+#' @param interactive Logical scalar. `TRUE` converts the ggplot to a
+#'   \pkg{plotly} widget (requires \pkg{plotly}). Default `FALSE`.
+#' @param base_size Numeric scalar. Base font size in points for the ggplot2
+#'   theme. Default `12L`.
+#' @param save_plot Character scalar or `NULL` (default). Output path, e.g.
+#'   `"burden.png"` / `"burden.pdf"` (saved with [ggplot2::ggsave()], 9 x 5 in);
+#'   with `interactive = TRUE` use an `.html` path (needs \pkg{htmlwidgets}).
+#'   `NULL` does not save.
+#' @param lang Character scalar: `"pt"` (default), `"en"`, `"es"`. Language of
+#'   labels; unsupported values warn and fall back to `"pt"`.
+#' @param verbose Logical scalar. If `TRUE` prints progress messages. Default
+#'   `FALSE`.
 #'
 #' @return Depending on `output_type`:
-#'   - `"plot"` -> a `ggplot` or `plotly` object.
-#'   - `"table"` -> a `tibble` of the plotted data.
-#'   - `"all"` -> a named list: `$plot`, `$table`, `$data`.
+#'   - `"plot"`: a `ggplot` (or `plotly` when `interactive = TRUE`) object.
+#'   - `"table"`: a tibble of the plotted data (`"total"` rows of
+#'     `$burden_table` for `"lollipop"`, `$concentration` for `"lorenz"`,
+#'     heat/cold rows for `"stacked"`).
+#'   - `"all"`: a named list with `$plot`, `$table` and `$data` (identical to
+#'     `$table`).
 #'
 #' @examples
 #' \dontrun{
-#' burden <- sus_mod_burden(af_list, lang = "pt")
+#' burden <- sus_mod_burden(af_list, component = "all", lang = "pt")
 #'
 #' sus_mod_plot_burden(burden, type = "lollipop", lang = "pt")
 #' sus_mod_plot_burden(burden, type = "lorenz",   lang = "en")
-#' sus_mod_plot_burden(burden, type = "stacked",  lang = "es")
+#' sus_mod_plot_burden(burden, type = "stacked",  lang = "es")  # needs component = "all"
 #' out <- sus_mod_plot_burden(burden, output_type = "all")
 #' out$table
 #' }
 #'
-#' @seealso [sus_mod_burden()], [sus_mod_af()], [sus_mod_excess()]
+#' @seealso [sus_mod_burden()], [sus_mod_af()], [sus_mod_excess()],
+#'   [sus_mod_plot_af()]
 #'
 #' @export
 #' @importFrom cli cli_h1 cli_alert_success cli_alert_warning cli_abort

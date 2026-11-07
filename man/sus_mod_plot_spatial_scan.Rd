@@ -18,28 +18,35 @@ sus_mod_plot_spatial_scan(
 \item{x}{A \code{climasus_spatial_scan} object returned by
 \code{\link[=sus_mod_spatial_scan]{sus_mod_spatial_scan()}}.}
 
-\item{municipalities}{An \code{sf} object with POLYGON or MULTIPOLYGON geometry
-containing a \code{code_muni} column that matches the identifiers stored in
-\code{x$most_likely_cluster$location_ids} and \code{x$secondary_clusters}.}
+\item{municipalities}{An \code{sf} object (required; no default) with POLYGON or
+MULTIPOLYGON geometry and a \code{code_muni} column (numeric or character;
+coerced to character) matching the identifiers in
+\code{x$most_likely_cluster$location_ids} and each
+\code{x$secondary_clusters[[i]]$location_ids}. Errors if not \code{sf} or if
+\code{code_muni} is missing. Municipalities outside every cluster are
+background.}
 
-\item{show_rr}{Logical.  \code{TRUE} (default) colours municipalities by
-Relative Risk using a continuous diverging scale.  \code{FALSE} uses
-categorical cluster-membership colours.}
+\item{show_rr}{Logical scalar. \code{TRUE} (default) fills by cluster Relative
+Risk (diverging scale centred on RR = 1) and outlines significant
+clusters; \code{FALSE} fills by categorical cluster label (most likely,
+secondary clusters, background).}
 
-\item{alpha}{Numeric in (0, 1).  Significance threshold used to decide
-which cluster borders to emphasise.  Must match the value used when
-running \code{\link[=sus_mod_spatial_scan]{sus_mod_spatial_scan()}}.  Default \code{0.05}.}
+\item{alpha}{Numeric scalar in (0, 1). Cluster p-value threshold for the
+thick border (\code{show_rr = TRUE}) and for the "no significant cluster"
+warning. Should match the value used in \code{\link[=sus_mod_spatial_scan]{sus_mod_spatial_scan()}}.
+Default \code{0.05}.}
 
-\item{title}{Character or \code{NULL}.  Plot title.  If \code{NULL} (default) a
-localised default title is used.}
+\item{title}{Character scalar or \code{NULL}. Plot title; \code{NULL} (default) uses
+the translated default title.}
 
-\item{lang}{Character.  Output language: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar. Output language: \code{"pt"} (default), \code{"en"},
+or \code{"es"}. Any other value triggers a warning and falls back to \code{"pt"}.}
 
-\item{...}{Currently unused; reserved for future extensions.}
+\item{...}{Currently unused (ignored).}
 }
 \value{
-A \code{ggplot} object.  Assign to a variable to modify further or pass
-to \code{\link[ggplot2:ggsave]{ggplot2::ggsave()}}.
+A \code{ggplot} object. Assign it to modify further or pass to
+\code{\link[ggplot2:ggsave]{ggplot2::ggsave()}}.
 }
 \description{
 Renders a choropleth map from a \code{climasus_spatial_scan} object produced by

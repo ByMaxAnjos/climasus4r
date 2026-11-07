@@ -21,49 +21,60 @@ sus_grid_fires(
 )
 }
 \arguments{
-\item{years}{Numeric vector of years. INPE: 1998–present.
-FIRMS MODIS: 2000–present. FIRMS VIIRS: 2012–present.}
+\item{years}{Numeric vector of years (required, no default; character values
+error). Accepted forms: scalar (\code{2022}), range (\code{2018:2022}) or explicit
+vector (\code{c(2019, 2021)}). \code{c(2018, 2022)} means exactly those two years,
+NOT the range -- use \code{2018:2022}. De-duplicated, sorted, coerced with
+\code{as.integer()}. Valid range depends on \code{source}: INPE 1998 to current year;
+FIRMS MODIS 2000 to current year; FIRMS VIIRS 2012 to current year (values
+outside error).}
 
-\item{months}{Integer vector (1–12). Default \code{1:12}.}
+\item{months}{Numeric vector of months (1-12), e.g. \code{7:10}, \code{c(1, 7)} (exactly
+January and July). Default \code{1:12}. Values outside 1-12 or \code{NA} error.}
 
-\item{uf}{Character vector of state codes (e.g., \code{c("MT", "PA")}).
-Case-insensitive. \code{NULL} = all Brazil. Used to filter INPE queries and
-as a shortcut to define \code{bbox} for FIRMS.}
+\item{uf}{Character vector of 2-letter state codes, e.g. \code{"MT"} or
+\code{c("MT", "PA")}; case-insensitive, whitespace trimmed; invalid codes error.
+\code{NULL} (default) = all Brazil. For INPE it is sent as a query filter; for
+FIRMS it is used only to derive \code{bbox} when \code{bbox} is \code{NULL}.}
 
-\item{bbox}{Numeric vector \code{c(xmin, ymin, xmax, ymax)} in WGS84 longitude/
-latitude. Used by FIRMS for spatial subsetting. If \code{NULL} and \code{uf} is
-provided, the bbox is computed from Brazilian state centroids. If both
-are \code{NULL}, Brazil's bounding box is used.}
+\item{bbox}{Numeric vector \code{c(xmin, ymin, xmax, ymax)} in WGS84 lon/lat.
+Used only for FIRMS sources (ignored for INPE). If \code{NULL}: derived from
+\code{uf} when given, otherwise Brazil's box \code{c(-75, -35, -28, 6)}.}
 
-\item{source}{Character. Data source: \code{"inpe"} (default), \code{"firms_modis"},
-or \code{"firms_viirs"}.}
+\item{source}{Character scalar, one of \code{"inpe"} (default), \code{"firms_modis"},
+\code{"firms_viirs"}. Validated with \code{match.arg()} (partial matching allowed).}
 
-\item{municipalities}{An \code{sf} POLYGON object (e.g., from
-\code{\link[geobr:read_municipality]{geobr::read_municipality()}}). When provided, fire points are spatially
-joined to polygons and aggregated to daily municipality-level counts.
-If \code{NULL}, the raw fire point data are returned as a \code{climasus_df}.}
+\item{municipalities}{An \code{sf} polygon object (e.g. from \code{\link[geobr:read_municipality]{geobr::read_municipality()}})
+or \code{NULL} (default). Non-\code{sf} input errors. When provided, points are
+reprojected to WGS84, joined (\code{st_within}) and aggregated to daily
+municipality counts; the ID column is auto-detected and truncated to 7
+digits. If \code{NULL}, raw fire points are returned.}
 
-\item{agg_fun}{Character. Aggregation strategy when \code{municipalities} is
-provided. Currently \code{"count"} is supported (count of fire hotspots per
-municipality per day). Future versions may support \code{"frp_sum"}.}
+\item{agg_fun}{Character scalar. Reserved; currently NOT used by the code (the
+municipality aggregation always returns \code{n_fires} and \code{frp_mean}). Default
+\code{"count"}.}
 
-\item{biome}{Character vector. INPE biome filter. Allowed values:
-\code{"Amazonia"}, \code{"Cerrado"}, \code{"Mata Atlantica"}, \code{"Caatinga"},
-\code{"Pampa"}, \code{"Pantanal"}. \code{NULL} = no filter.}
+\item{biome}{Character vector. INPE biome filter, any of \code{"Amazonia"},
+\code{"Cerrado"}, \code{"Mata Atlantica"}, \code{"Caatinga"}, \code{"Pampa"}, \code{"Pantanal"}
+(exact spelling, no accents; other values error). \code{NULL} (default) = no
+filter. Only applied to INPE requests.}
 
-\item{use_cache}{Logical. Reuse previously downloaded CSV/JSON files.
-Default \code{TRUE}.}
+\item{use_cache}{Logical scalar. Reuse previously downloaded monthly files (one
+CSV per source/year/month under \code{cache_dir}). Default \code{TRUE}. The
+file name carries a hash of the filters sent to the API (\code{uf}/\code{biome} for
+INPE, \code{bbox} for FIRMS), so changing them never reuses an older file.}
 
-\item{cache_dir}{Character. Root cache directory.
-Default \code{"~/.climasus4r_cache/fires"}.}
+\item{cache_dir}{Character scalar. Root cache directory. Default
+\code{"~/.climasus4r_cache/fires"}.}
 
-\item{firms_key}{Character. NASA FIRMS MAP KEY.
-Defaults to \code{Sys.getenv("FIRMS_MAP_KEY")}. Required when
-\code{source \%in\% c("firms_modis", "firms_viirs")}.}
+\item{firms_key}{Character scalar or \code{NULL}. NASA FIRMS MAP KEY. If \code{NULL} or
+empty, falls back to \code{Sys.getenv("FIRMS_MAP_KEY")}. Required (error if
+empty) for \code{"firms_modis"}/\code{"firms_viirs"}; ignored for INPE.}
 
-\item{lang}{Character. Message language: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"} or
+\code{"es"}; other values error.}
 
-\item{verbose}{Logical. Print progress. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress. Default \code{TRUE}.}
 }
 \value{
 \itemize{
@@ -73,7 +84,8 @@ hotspots), and \code{frp_mean} (mean Fire Radiative Power in MW,
 \code{NA} when not available). Metadata: \code{stage = "climate"},
 \code{type = "fires"}.
 \item If \code{municipalities = NULL}: a \code{climasus_df} with raw fire point
-columns: \code{date}, \code{lat}, \code{lon}, \code{frp}, \code{biome}, \code{estado}, \code{source}.
+columns (those available from the source): \code{date}, \code{lat}, \code{lon},
+\code{frp}, \code{biome}, \code{estado}, \code{source}. Same metadata.
 }
 }
 \description{
@@ -151,6 +163,6 @@ fires_firms <- sus_grid_fires(
 
 }
 \seealso{
-\code{\link[=sus_grid_pollution_cams]{sus_grid_pollution_cams()}}, \code{\link[=sus_climate_anomaly]{sus_climate_anomaly()}},
-\code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
+\code{\link[=sus_grid_pollution_cams]{sus_grid_pollution_cams()}}, \code{\link[=sus_grid_smvi]{sus_grid_smvi()}}, \code{\link[=sus_grid_prodes]{sus_grid_prodes()}},
+\code{\link[=sus_grid_join]{sus_grid_join()}}, \code{\link[=sus_climate_anomaly]{sus_climate_anomaly()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
 }

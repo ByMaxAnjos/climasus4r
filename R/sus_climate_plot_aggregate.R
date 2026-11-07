@@ -19,20 +19,31 @@ utils::globalVariables(c(
 #' diagnostics, RR tables) are deliberately excluded to avoid duplication with
 #' the dedicated `sus_mod_plot_*` family.
 #'
-#' @param df A `climasus_df` at `stage = "climate"` produced by
-#'   [sus_climate_aggregate()]. Must contain at least `date`, `code_muni`, a
-#'   health outcome column, and one or more climate exposure columns.
+#' Use it right after [sus_climate_aggregate()] (stage `"climate"`) and before
+#' modelling. No stage check is made: any data frame (or `sf`, whose geometry
+#' is dropped) with a `date` column, an outcome column and climate columns
+#' works.
 #'
-#' @param outcome_col Character. Name of the health-outcome column
-#'   (e.g. `"n_obitos"`, `"n_internacoes"`). If `NULL` (default) the first
-#'   integer column that is not a climate variable is used.
+#' @param df A data frame, typically a `climasus_df` at `stage = "climate"`
+#'   produced by [sus_climate_aggregate()]. Must contain at least `date`
+#'   (Date or coercible), a health outcome column, and one or more climate
+#'   exposure columns (`code_muni` is not required).
 #'
-#' @param climate_cols Character vector of climate column names to visualise.
-#'   If `NULL` (default) all columns that match the naming conventions of
-#'   [sus_climate_aggregate()] are detected automatically (`lag*`, `mvwin*`,
-#'   `off*to*`, `gdd*`, `_lag*`, or known INMET variable names).
+#' @param outcome_col Single character string, name of the health-outcome
+#'   column (e.g. `"n_obitos"`, `"n_internacoes"`). If `NULL` (default) a
+#'   numeric column is auto-detected, preferring names starting with `n_` or
+#'   containing obito/internac/caso/morte/hospitaliz/death/case/admission;
+#'   otherwise the first numeric non-climate column. Errors if not found.
 #'
-#' @param plot_type Character. One of:
+#' @param climate_cols Character vector of climate column names to visualise,
+#'   e.g. `"tair_dry_bulb_c"` or `c("lag7_tair_dry_bulb_c", "lag14_tair_dry_bulb_c")`.
+#'   If `NULL` (default) columns are detected automatically from the naming
+#'   conventions of [sus_climate_aggregate()] (`lag*`, `mvwin*`, `off*to*`,
+#'   `gdd*`, `*_lag*`, known INMET/indicator names, `spi_*`, `spei_*`);
+#'   errors if none is found or if a given name is missing. `"ccf"` and
+#'   (single-panel) `"scatter"` use only the first column.
+#'
+#' @param plot_type Single character string. One of:
 #'   \describe{
 #'     \item{`"timeseries"`}{Dual-axis time-series: rescaled climate exposure
 #'       (ribbon) overlaid on health outcome (line + points). When multiple
@@ -42,10 +53,11 @@ utils::globalVariables(c(
 #'     \item{`"scatter"`}{Scatter plot with loess/GAM smooth: climate exposure
 #'       on x-axis, health outcome on y-axis. Shows the marginal association
 #'       ignoring temporal structure.}
-#'     \item{`"ccf"`}{Cross-Correlation Function bars from \eqn{-30} to
-#'       `+max_lag` days. Highlights lags with significant correlation
-#'       (|r| > 2/sqrt(n)) in a contrasting colour. Useful for identifying
-#'       the optimal lag before modelling.}
+#'     \item{`"ccf"`}{Cross-Correlation Function bars from `-max_lag` to
+#'       `+max_lag` (in observations, i.e. days for daily data), computed for
+#'       the first climate column only. Highlights lags with significant
+#'       correlation (|r| > 2/sqrt(n)) in a contrasting colour. Useful for
+#'       identifying the optimal lag before modelling.}
 #'     \item{`"distribution"`}{Histogram + density overlay of each climate
 #'       column. For `discrete_lag` outputs the multiple lag columns are
 #'       overlaid for comparison.}
@@ -57,34 +69,39 @@ utils::globalVariables(c(
 #'   }
 #'   Default `"timeseries"`.
 #'
-#' @param smooth_method Character. Smoothing method for the scatter plot:
-#'   `"loess"` (default) or `"gam"`.
+#' @param smooth_method Single character string. Smoothing method passed to
+#'   `ggplot2::geom_smooth()` in the scatter plot: `"loess"` (default) or
+#'   `"gam"` (needs \pkg{mgcv}); not validated otherwise.
 #'
-#' @param max_lag Integer. Maximum lag (days) shown in the CCF plot.
-#'   Default `30L`.
+#' @param max_lag Single integer. Maximum lag (observations, i.e. days for
+#'   daily data) on each side in the CCF plot, e.g. `21L`. Default `30L`.
 #'
-#' @param alpha Numeric. Confidence level for CCF significance bounds
-#'   (default `0.05`; bounds drawn at \eqn{\pm 2/\sqrt{n}}).
+#' @param alpha Numeric scalar in (0, 1). Significance level for the
+#'   confidence band of the scatter smoother (`level = 1 - alpha`; default
+#'   `0.05`). It does not change the CCF bounds, which are always drawn at
+#'   \eqn{\pm 2/\sqrt{n}}.
 #'
-#' @param interactive Logical. If `TRUE`, returns a `plotly` interactive
+#' @param interactive Logical scalar. If `TRUE`, returns a `plotly` interactive
 #'   version built with `plotly::plot_ly()` for proper dual-axis support
 #'   (`plotly::ggplotly()` is avoided as it breaks secondary axes for
 #'   `"timeseries"`). Requires `plotly` to be installed. Default `FALSE`.
 #'
-#' @param lang Character. Language for axis labels and titles:
-#'   `"pt"` (default), `"en"`, `"es"`.
+#' @param lang Single character string. Language for axis labels and titles:
+#'   `"pt"` (default), `"en"`, `"es"`; other values error.
 #'
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
-#' @param title Character or `NULL`. Override the auto-generated plot title.
-#'   Default `NULL` uses the built-in multilingual title.
+#' @param title Single character string or `NULL`. Override the
+#'   auto-generated plot title. Default `NULL` uses the built-in multilingual
+#'   title.
 #'
-#' @param source Character or `NULL`. Data source attribution prepended to the
-#'   plot caption. Default `NULL`.
+#' @param source Single character string or `NULL`. Data source attribution
+#'   prepended to the plot caption. Default `NULL`.
 #'
 #' @return A `ggplot2` object, a `patchwork` object (when multiple climate
-#'   columns are supplied and `patchwork` is installed for `"timeseries"` or
-#'   `"scatter"` plot types), or a `plotly` object when `interactive = TRUE`.
+#'   columns are supplied and `patchwork` is installed for the `"timeseries"`
+#'   plot type), or a `plotly` object when `interactive = TRUE`. The input data
+#'   are not modified; no `sus_meta` is returned.
 #'
 #' @seealso [sus_climate_aggregate()], [sus_climate_plot_fill()],
 #'   [sus_climate_plot_heatwaves()], [sus_mod_plot_dlnm()]
@@ -114,6 +131,12 @@ utils::globalVariables(c(
 #'
 #' # Cross-correlation
 #' sus_climate_plot_aggregate(df_agg, plot_type = "ccf", max_lag = 21L)
+#'
+#' # Explicit columns and interactive output
+#' sus_climate_plot_aggregate(
+#'   df_agg, outcome_col = "n_obitos",
+#'   climate_cols = "tair_dry_bulb_c", interactive = TRUE
+#' )
 #' }
 #'
 #' @export

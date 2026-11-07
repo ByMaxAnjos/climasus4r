@@ -19,63 +19,85 @@ sus_mod_casecrossover(
 )
 }
 \arguments{
-\item{data}{A \code{climasus_df} at stage \code{"aggregate"} or \code{"climate"} (produced
-by \code{sus_climate_aggregate()}), or any \code{data.frame} containing at minimum a
-\code{date} column (Date), an outcome count column, and an exposure column.}
+\item{data}{A \code{climasus_df}, tibble or \code{data.frame} with one row per day
+for a single location/series (typically the output of
+\code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}} or \code{\link[=sus_data_aggregate]{sus_data_aggregate()}} joined with climate
+data). Must contain a column named exactly \code{date} (Date or coercible),
+the outcome column and the exposure column. Rows are sorted by date and
+lags are taken by row position, so the series must be complete (no
+missing days) and must not stack several cities. Other classes error.}
 
-\item{outcome_col}{Character. Name of the daily health outcome count column
-(e.g., \code{"n_obitos"}, \code{"n_internacoes"}). Default: \code{"n_obitos"}.}
+\item{outcome_col}{Character scalar. Name of the daily outcome count
+column (e.g. \code{"n_obitos"}, \code{"n_internacoes"}). Default \code{"n_obitos"}.
+Errors if absent or if it has no value > 0.}
 
-\item{exposure_col}{Character. Name of the exposure column. Required; no
-auto-detection is performed (unlike \code{sus_mod_dlnm()}). Examples:
-\code{"tair_dry_bulb_c"}, \code{"pm25_mean"}, \code{"precip_mm"}.}
+\item{exposure_col}{Character scalar. Name of the exposure column. Required
+(no default, no auto-detection, unlike \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}); errors if
+missing or absent. Examples: \code{"tair_dry_bulb_c"}, \code{"pm25_mean"},
+\code{"precip_mm"}.}
 
-\item{covariates}{Character vector or \code{NULL}. Names of additional columns to
-include as linear confounders. These should be time-varying within strata
-(e.g., day-of-week dummy, holiday indicator, relative humidity). Long-term
-trends are already controlled by the strata. Default: \code{NULL}.}
+\item{covariates}{Character vector or \code{NULL} (default). Names of extra
+columns entered linearly, e.g. \code{c("rh_mean", "holiday")}. They should vary
+within strata (day-of-week dummies, holidays, humidity); long-term trend
+and seasonality are already handled by the strata. Errors if any name is
+not in \code{data}. Rows with \code{NA} in any used column are dropped.}
 
-\item{stratum}{Character. Time stratum type or name of an existing column:
+\item{stratum}{Character scalar. Defines the matching strata:
 \itemize{
-\item \code{"month"} (default): year-month strata (e.g., \code{"2021-07"}).
-\item \code{"week"}: ISO year-week strata (e.g., \code{"2021-W27"}).
-\item Any column name in \code{data}: uses that column's values as stratum IDs.
-}}
+\item \code{"month"} (default): calendar year-month (e.g. \code{"2021-07"}).
+\item \code{"week"}: ISO year-week (e.g. \code{"2021-W27"}).
+\item the name of any column in \code{data}: its values are used as stratum IDs
+(e.g. \code{"month_dow"} for month x day-of-week strata).
+}
 
-\item{lag}{Integer or integer vector. Lag(s) to apply to the exposure before
-fitting. A single integer uses that specific lag; a vector uses the mean
-of exposures at all specified lags. Default: \code{0L} (same-day exposure).}
+A value that is neither keyword nor column errors. A warning is issued
+when fewer than 12 strata remain.}
 
-\item{method}{Character. Fitting method:
+\item{lag}{Non-negative integer scalar or vector, default \code{0L}.
 \itemize{
-\item \code{"conditional_poisson"} (default): GLM with stratum fixed effects.
-Preferred for aggregate count data; uses \code{stats::glm()} with the
-specified \code{family}.
-\item \code{"clogit"}: conditional logistic regression via \code{survival::clogit()}.
-Requires the \code{survival} package. Treats outcome as binary
-(\code{is_case = count > 0}); best for rare events.
-}}
+\item Scalar (\code{0}, \code{3L}): exposure \code{lag} days before the outcome day.
+\item Vector (\code{0:6}, \code{c(0, 1, 2)}): the arithmetic mean of the exposure at all
+listed lags (moving average, e.g. \code{0:6} = lag 0-6). A vector is a set,
+not a range: \code{c(0, 6)} averages only lags 0 and 6.
+}
 
-\item{family}{Character. GLM family for \code{method = "conditional_poisson"}:
-\code{"quasipoisson"} (default, robust to overdispersion) or \code{"poisson"}.
-Ignored for \code{method = "clogit"}.}
+The first \code{max(lag)} days become \code{NA} and are dropped. Negative values
+error. Values are coerced with \code{as.integer()}.}
 
-\item{alpha}{Numeric. Significance level for confidence intervals.
-Default: \code{0.05} (95\% CI).}
+\item{method}{Character scalar. Fitting method:
+\itemize{
+\item \code{"conditional_poisson"} (default): GLM with stratum fixed effects
+(\code{stats::glm()} with \code{family}); preferred for aggregate counts. The
+returned \code{or} columns are rate ratios (RR).
+\item \code{"clogit"}: conditional logistic regression with
+\code{survival::clogit()} (requires \pkg{survival}; errors if missing).
+Outcome is binarised (\code{count > 0}); suited to rare events. A warning
+about the binarisation is always issued.
+}
 
-\item{lang}{Character. Language for messages: \code{"pt"} (default), \code{"en"},
-\code{"es"}.}
+Other values error.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{family}{Character scalar. GLM family for \code{"conditional_poisson"}:
+\code{"quasipoisson"} (default; handles overdispersion) or \code{"poisson"}. Any
+other value silently falls back to quasi-Poisson. Ignored for \code{"clogit"}.}
+
+\item{alpha}{Numeric scalar in (0, 1). Significance level; CI use
+\code{qnorm(1 - alpha / 2)} on the log scale. Default \code{0.05} (95\% CI).}
+
+\item{lang}{Character scalar: \code{"pt"} (default), \code{"en"}, \code{"es"}. Language of
+messages; unsupported values warn and fall back to \code{"pt"}.}
+
+\item{verbose}{Logical scalar. If \code{TRUE} (default) prints progress messages.}
 }
 \value{
 A \code{climasus_casecrossover} list with:
 \describe{
 \item{\verb{$model}}{The fitted model object: a \code{glm} for
 \code{"conditional_poisson"} or a \code{clogit} object for \code{"clogit"}.}
-\item{\verb{$or_table}}{Tibble with one row per exposure term:
-\code{term}, \code{lag_spec}, \code{estimate} (log-OR), \code{or}, \code{or_lo}, \code{or_hi},
-\code{p_value}.}
+\item{\verb{$or_table}}{One-row tibble for the exposure term:
+\code{term}, \code{lag_spec}, \code{estimate} (log scale), \code{or} (odds ratio for
+\code{"clogit"}, rate ratio for \code{"conditional_poisson"}) per 1-unit increase
+of exposure, \code{or_lo}, \code{or_hi}, \code{p_value}.}
 \item{\verb{$data}}{The analysis dataset after lag creation and NA removal:
 columns \code{date}, \code{outcome_val}, \code{exposure_val}, \code{stratum_id}, and
 any covariates.}
@@ -173,5 +195,6 @@ crossover analysis. \emph{BMC Medical Research Methodology}, 14, 122.
 \doi{10.1186/1471-2288-14-122}
 }
 \seealso{
-\code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, \code{\link[=sus_mod_excess]{sus_mod_excess()}}, \code{\link[=sus_mod_af]{sus_mod_af()}}
+\code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, \code{\link[=sus_mod_its]{sus_mod_its()}}, \code{\link[=sus_mod_excess]{sus_mod_excess()}},
+\code{\link[=sus_mod_af]{sus_mod_af()}}, \code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}}
 }

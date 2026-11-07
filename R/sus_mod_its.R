@@ -134,30 +134,38 @@ utils::globalVariables(c(
 #' through the study period. The difference `observed - counterfactual` is the
 #' estimated total attributable change.
 #'
-#' @param data A `climasus_df` at stage `"aggregate"` or `"climate"`, or any
-#'   `data.frame` with a date column and an integer count column.
-#' @param outcome_col Character. Name of the daily health outcome count column.
-#'   Default: `"n_obitos"`.
-#' @param date_col Character. Name of the date column. Default: `"date"`.
-#' @param interruption_dates Date or character vector of at least one
-#'   interruption date (ISO `"YYYY-MM-DD"` format). Must lie strictly within
-#'   the data range. For a single interruption pass a scalar;
-#'   for multiple, pass a vector.
-#' @param harmonics Integer. Number of sinusoidal harmonic pairs for seasonal
-#'   control (\eqn{H} in the model above). `0` suppresses seasonal terms.
-#'   Default: `2L`.
-#' @param family Character. GLM family: `"quasipoisson"` (default, robust to
-#'   overdispersion) or `"poisson"`.
-#' @param covariates Character vector or `NULL`. Names of additional columns to
-#'   include as linear confounders (e.g., `"rh_pct"`, `"holiday"`). Must be
-#'   numeric or dummy-coded. Default: `NULL`.
-#' @param alpha Numeric. Significance level for confidence intervals.
-#'   Default: `0.05` (95% CI).
-#' @param counterfactual Logical. Compute and return counterfactual predictions.
-#'   Default: `TRUE`.
-#' @param lang Character. Language for messages: `"pt"` (default), `"en"`,
-#'   `"es"`.
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param data A `climasus_df`, tibble or `data.frame` with one row per day
+#'   (single series; rows are not aggregated, so aggregate multi-city data first
+#'   with [sus_data_aggregate()]). Needs a date column and a numeric count
+#'   column. The pipeline stage is not checked. Other classes error. Rows with
+#'   `NA` date or outcome are dropped.
+#' @param outcome_col Character scalar. Name of the daily outcome count column.
+#'   Default `"n_obitos"`. Errors if absent.
+#' @param date_col Character scalar. Name of the date column (coerced with
+#'   `as.Date()`). Default `"date"`. Errors if absent.
+#' @param interruption_dates Required. One or more dates, as `Date` or ISO
+#'   character: scalar (`"2020-03-17"`, `as.Date("2020-03-17")`) or vector
+#'   (`c("2020-03-17", "2021-01-18")`) for several interruptions (sorted
+#'   internally; each adds its own level and slope terms). Every date must lie
+#'   strictly inside the data range (after the first and before the last
+#'   day), otherwise the call errors; a warning is issued if fewer than 90 days
+#'   precede the first interruption.
+#' @param harmonics Non-negative integer. Number of sine/cosine pairs for
+#'   seasonality (\eqn{H}); `2L` (default) = annual + semi-annual cycles,
+#'   `0` removes seasonal terms.
+#' @param family Character scalar: `"quasipoisson"` (default, handles
+#'   overdispersion) or `"poisson"`. Other values error.
+#' @param covariates Character vector or `NULL` (default). Names of extra numeric
+#'   or dummy-coded columns entered linearly (e.g. `c("rh_pct", "holiday")`).
+#'   Errors if any is absent from `data`.
+#' @param alpha Numeric scalar in (0, 1). Significance level; CI use
+#'   `qnorm(1 - alpha / 2)`. Default `0.05` (95% CI).
+#' @param counterfactual Logical scalar. If `TRUE` (default) computes the
+#'   counterfactual series (`$counterfactual`); `FALSE` skips it and returns
+#'   `NULL` there.
+#' @param lang Character scalar: `"pt"` (default), `"en"`, `"es"`. Language of
+#'   messages; unsupported values warn and fall back to `"pt"`.
+#' @param verbose Logical scalar. If `TRUE` (default) prints progress messages.
 #'
 #' @return A `climasus_its` list with:
 #'   \describe{
@@ -207,7 +215,8 @@ utils::globalVariables(c(
 #' )
 #' }
 #'
-#' @seealso [sus_mod_excess()], [sus_mod_casecrossover()], [sus_mod_dlnm()]
+#' @seealso [sus_mod_excess()], [sus_mod_casecrossover()], [sus_mod_dlnm()],
+#'   [sus_data_aggregate()]
 #'
 #' @export
 #' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_alert_warning cli_abort

@@ -1,46 +1,57 @@
 #' Interactive Census Variables Explorer
 #'
-#' Opens an interactive HTML interface to explore Brazilian Census variables
-#' and copy codes for use with sus_census_join().
-#'
-#' @param dataset Character string specifying the census dataset. Options:
-#'   \itemize{
-#'     \item `"all"` - All datasets (default)
-#'     \item `"population"` - Population microdata
-#'     \item `"households"` - Household microdata
-#'     \item `"families"` - Family microdata
-#'     \item `"mortality"` - Mortality microdata
-#'     \item `"emigration"` - Emigration microdata
-#'     \item `"tracts"` - Census tract aggregate data
-#'   }
-#' @param year Integer specifying census year. Options: `2010` (default) or `2000`.
-#' @param lang Character string specifying language. Options: `"pt"` (Portuguese,
-#'   default), `"en"` (English), `"es"` (Spanish).
-#' @param output Character string specifying output format. Options:
-#'   \itemize{
-#'     \item `"browser"` - Interactive HTML in web browser (default)
-#'     \item `"console"` - Simple list in R console
-#'     \item `"codes"` - Returns only variable codes as character vector
-#'   }
-#' @param verbose Logical. If `TRUE` (default), prints informative messages.
-#'
-#' @return Depending on `output`:
-#'   - `"browser"`: Opens HTML interface, returns invisible data.frame
-#'   - `"console"`: Prints summary, returns invisible data.frame
-#'   - `"codes"`: Returns character vector of variable codes
+#' @description
+#' Lists the Brazilian Census variables (code, label, dataset, category) that
+#' can be requested from [sus_census_join()], either in an interactive HTML
+#' page, as a console summary, or as a character vector of codes. Use it before
+#' [sus_census_join()] to choose `census_vars`. It does not need or change any
+#' `climasus_df`.
 #'
 #' @details
-#' This function helps users discover which census variables are available.
-#' The interactive interface allows easy copying of variable codes for use
-#' in `sus_census_join(vars = ...)`.
+#' Variables come from the package's bundled dictionaries (population,
+#' households, families, mortality, emigration), in the requested `lang`. The
+#' dictionaries do not depend on `year`, which only labels the output. Codes
+#' starting with `"M"` are flagged as imputation markers. The `"tracts"` value
+#' is accepted by validation but no tract dictionary is bundled, so
+#' `dataset = "tracts"` currently errors ("No variables found"); for tract
+#' tables see `censobr::read_tracts()` and the `tracts_dataset` argument of
+#' [sus_census_join()]. With `dataset = "all"` only the five microdata
+#' datasets are listed.
+#'
+#' @param dataset Character scalar, one of `"all"` (default; the five
+#'   microdata datasets), `"population"`, `"households"`, `"families"`,
+#'   `"mortality"`, `"emigration"`, `"tracts"` (see Details: currently
+#'   unsupported). Other values error.
+#' @param year Numeric scalar, `2010` (default) or `2000` (`2022` is not
+#'   accepted here; other values error). Only labels the output.
+#' @param lang Character scalar. Language of variable labels and messages:
+#'   `"pt"` (default), `"en"` or `"es"`; other values error.
+#' @param output Character scalar. `"browser"` (default) opens an interactive
+#'   HTML page (temporary file) and returns the table invisibly; `"console"`
+#'   prints a summary per dataset and returns the table invisibly; `"codes"`
+#'   returns the unique variable codes. Other values error.
+#' @param verbose Logical scalar. If `TRUE` (default), prints informative
+#'   messages (for `output = "codes"` also a short preview).
+#'
+#' @return Depending on `output`:
+#'   \itemize{
+#'     \item `"browser"` and `"console"`: invisibly, a `data.frame` with columns
+#'       `code`, `name`, `dataset`, `type` (`"regular_variable"` or
+#'       `"imputation_marker"`), `category`, `has_categories`, `n_categories`
+#'       and `year`.
+#'     \item `"codes"`: a character vector of unique variable codes, to pass to
+#'       `census_vars` in [sus_census_join()].
+#'   }
+#'
+#' @seealso [sus_census_join()], [sus_socio_compute_indicators()]
 #'
 #' @examples
 #' \dontrun{
 #' # Open interactive explorer for all datasets
 #' sus_census_select()
 #'
-#' # Explore only population variables
-#' sus_census_select(dataset = "population")
+#' # Explore only population variables in the console
+#' sus_census_select(dataset = "population", output = "console")
 #'
 #' # Get variable codes for programmatic use
 #' vars <- sus_census_select(
@@ -49,10 +60,10 @@
 #'   lang = "en"
 #' )
 #'
-#' # Use in sus_census_join
+#' # Use them in sus_census_join() (df: climasus_df at stage "spatial")
 #' data <- sus_census_join(
 #'   df = my_data,
-#'   vars = vars,
+#'   census_vars = vars[1:2],
 #'   dataset = "population",
 #'   year = 2010
 #' )

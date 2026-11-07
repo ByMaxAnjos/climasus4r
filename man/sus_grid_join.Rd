@@ -14,29 +14,39 @@ sus_grid_join(
 )
 }
 \arguments{
-\item{health_data}{A \code{climasus_df} at stage \code{"spatial"}, \code{"aggregate"}, or
-\code{"census"}. Must contain \code{code_muni} (character) and \code{date} (Date) columns.}
+\item{health_data}{A \code{climasus_df} with \code{sus_meta} stage \code{"spatial"}, \code{"aggregate"}
+or \code{"census"} (other stages error). Must contain every column named in \code{by}
+(by default \code{code_muni} and \code{date}, a Date). Any geometry column is dropped
+before joining.}
 
-\item{grid_data}{A \code{climasus_df} at stage \code{"climate"} produced by any
-\verb{sus_grid_*()} function. Must contain \code{code_muni} and \code{date} columns and
-at least one environmental variable column.}
+\item{grid_data}{A \code{climasus_df} at stage \code{"climate"} produced by a \verb{sus_grid_*()}
+function (non-\code{climasus_df} or other stages error). Must contain every column
+in \code{by} plus at least one other (environmental) column; \code{geometry}/\code{geom}
+columns are ignored.}
 
-\item{by}{Character vector. Join key columns. Default \code{c("code_muni", "date")}.
-Change to \code{c("code_muni")} if joining annual grid data (e.g., PRODES) to
-monthly health data — the join will broadcast the annual value to all months.}
+\item{by}{Character vector of join key columns present in BOTH inputs.
+Default \code{c("code_muni", "date")}. Use \code{"code_muni"} alone to join
+time-invariant or annual grid data (e.g. PRODES) to health data: the grid
+value is repeated for every health row of that municipality, so make sure
+\code{grid_data} has one row per municipality (otherwise rows are duplicated).
+Empty or non-character input errors.}
 
-\item{type_out}{Character. Overrides \code{sus_meta$type} in the result.
-\code{NULL} (default) inherits the type from \code{grid_data}.}
+\item{type_out}{Character scalar or \code{NULL} (default). Overrides \code{sus_meta$type} in
+the result; \code{NULL} inherits the type of \code{grid_data} (or \code{"grid"} if none).}
 
-\item{lang}{Character. Message language: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"} or
+\code{"es"}; other values error.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
 A \code{climasus_df} with all columns from \code{health_data} plus the
 environmental variable columns from \code{grid_data}. Metadata:
-\code{stage = "climate"}, \code{type} inherited from \code{grid_data} (or \code{type_out}).
-Rows from \code{health_data} with no matching grid row receive \code{NA} for grid
+\code{stage = "climate"}, \code{type} inherited from \code{grid_data} (or \code{type_out});
+the rest of \code{health_data}'s metadata is kept and a history entry is added.
+It is a left join: every \code{health_data} row is kept. Columns present in
+both inputs (other than \code{by}) are not overwritten but get dplyr's
+\code{.x}/\code{.y} suffixes (a warning is printed). Rows from \code{health_data} with no matching grid row receive \code{NA} for grid
 columns.
 }
 \description{
@@ -67,12 +77,12 @@ library(geobr)
 mt_mun <- read_municipality(code_muni = "MT", year = 2020)
 
 # Health data (SIH respiratory hospitalisations)
-sih_agg <- sus_data_import(system = "SIH", years = 2020, uf = "MT") |>
+sih_agg <- sus_data_import(uf = "MT", year = 2020, system = "SIH") |>
   sus_data_clean_encoding() |>
   sus_data_standardize() |>
-  sus_data_filter_cid(cid_group = "respiratorio") |>
-  sus_data_aggregate() |>
-  sus_spatial_join(municipalities = mt_mun)
+  sus_data_filter_cid(icd_codes = "J") |>
+  sus_data_aggregate(time_unit = "day") |>
+  sus_spatial_join(level = "munic")
 
 # Gridded climate data
 era5 <- sus_grid_era5(

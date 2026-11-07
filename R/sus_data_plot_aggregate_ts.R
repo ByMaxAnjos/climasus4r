@@ -865,16 +865,12 @@ utils::globalVariables(c(
 #'   `n_obitos`, `n_internacoes`, `n_nascimentos`, `n_casos`,
 #'   `n_procedimentos`, `n_estabelecimentos`, and their English / Spanish
 #'   equivalents.
-#' @param group_col Character. Optional column used for colour-grouping in
+#' @param group_col Character scalar, column name, default `NULL`. Optional column used for colour-grouping in
 #'   `"epidemic"` and `"seasonal"` plots.
 #' @param facet_col Character. Optional column for `facet_wrap()` panels.
 #' @param facet_ncol Integer. Number of facet columns. Default `3L`.
-#' @param city Character vector of municipality names or 6-/7-digit IBGE codes.
-#'   When supplied, the plot is filtered to those municipalities before
-#'   rendering. Names are resolved through `municipio_meta`, with accent
-#'   tolerance, using the same cache as [sus_data_filter_demographics()].
-#' @param plot_type Character. One or more of `"epidemic"`, `"seasonal"`,
-#'   `"heatmap"`, `"trend"`. When multiple types are supplied, plots are
+#' @param plot_type Character scalar or vector, one or more of `"epidemic"`,
+#'   `"seasonal"`, `"heatmap"`, `"trend"`, e.g. `c("epidemic", "trend")`. When multiple types are supplied, plots are
 #'   assembled with [patchwork] (one per row). Default: `"epidemic"`.
 #' @param smooth_method Character. Smoothing method for the `"epidemic"` plot:
 #'   `"loess"` (default), `"gam"`, or `"lm"`.
@@ -900,6 +896,11 @@ utils::globalVariables(c(
 #' @param base_size Numeric. Base font size for the ggplot2 theme. Default `11`.
 #' @param interactive Logical. Return a [plotly::ggplotly()] widget instead of
 #'   a static ggplot2 object. Default `FALSE`.
+#' @param city Character vector of municipality names (e.g. `"Natal"`,
+#'   `c("Natal", "Mossoro")`) or 6-/7-digit IBGE codes. `NULL` (default) = all.
+#'   When supplied, the plot is filtered to those municipalities before
+#'   rendering. Names are resolved through `municipio_meta`, with accent
+#'   tolerance, using the same cache as [sus_data_filter_demographics()].
 #' @param use_cache Logical. Cache municipality metadata to disk when city
 #'   filtering or municipality labels are needed. Default `TRUE`.
 #' @param cache_dir Character. Directory for municipality metadata cache.
@@ -915,6 +916,9 @@ utils::globalVariables(c(
 #' @section Supported systems:
 #' Automatically adapts y-axis labels and titles to SINAN, SIM, SIH, SINASC,
 #' SIA, and CNES via outcome column auto-detection.
+#'
+#' @seealso [sus_data_aggregate()], [sus_data_plot_aggregate_map()],
+#'   [sus_data_plot_demographics()]
 #'
 #' @examples
 #' \dontrun{

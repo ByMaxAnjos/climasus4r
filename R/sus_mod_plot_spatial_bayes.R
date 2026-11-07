@@ -271,7 +271,7 @@ utils::globalVariables(c(
 
 #' Visualizations for Bayesian Spatial Disease Mapping Results
 #'
-#' Produces three types of visualization for a `climasus_spatial_bayes` object
+#' Produces four types of visualization for a `climasus_spatial_bayes` object
 #' returned by [sus_mod_spatial_bayes()]: a relative risk choropleth map,
 #' a credible interval width (uncertainty) choropleth, a forest plot of fixed
 #' effects, or a combined panel of both maps.
@@ -280,16 +280,16 @@ utils::globalVariables(c(
 #' \describe{
 #'   \item{`"rr"`}{Choropleth map of the smoothed posterior mean relative risk
 #'     (`rr_mean`). Uses a diverging colour scale centred at 1.0 (navy = below,
-#'     white = 1.0, red = above). Municipalities where the entire 95\% credible
+#'     white = 1.0, red = above). Municipalities where the entire 95% credible
 #'     interval lies above 1 (`rr_lower95 > 1`) receive a black border to flag
 #'     significantly elevated risk.}
-#'   \item{`"uncertainty"`}{Choropleth of the 95\% credible interval width
+#'   \item{`"uncertainty"`}{Choropleth of the 95% credible interval width
 #'     (`rr_upper95 - rr_lower95`), rendered with the plasma palette from
 #'     [ggplot2::scale_fill_viridis_c()]. Highlights areas with high posterior
 #'     uncertainty, often due to small populations or sparse data.}
 #'   \item{`"coef"`}{Horizontal forest plot of the fixed-effect posterior
 #'     summaries stored in `x$fixed`. A dashed vertical reference line marks
-#'     zero. Points show the posterior mean; horizontal bars show the 95\%
+#'     zero. Points show the posterior mean; horizontal bars show the 95%
 #'     credible interval.}
 #'   \item{`"both"`}{Side-by-side panel combining the `"rr"` and
 #'     `"uncertainty"` maps. Uses \pkg{patchwork} when available; falls back to
@@ -297,18 +297,22 @@ utils::globalVariables(c(
 #' }
 #'
 #' @param x A `climasus_spatial_bayes` object from [sus_mod_spatial_bayes()].
-#' @param municipalities An `sf` object containing municipality polygons with a
-#'   `code_muni` column (7-digit IBGE code). Required for `type = "rr"`,
-#'   `"uncertainty"`, and `"both"`. Typically obtained via
-#'   [geobr::read_municipality()].
-#' @param type Character. One of `"rr"` (default), `"uncertainty"`, `"coef"`,
-#'   or `"both"`. See **Plot types**.
-#' @param title Character or `NULL`. Custom plot title. When `NULL` (default),
-#'   a multilingual default is used.
-#' @param base_size Numeric. Base font size passed to ggplot2 themes. Default
-#'   `12`.
-#' @param lang Character. Language for axis labels and titles: `"pt"` (default),
-#'   `"en"`, or `"es"`.
+#'   Other classes error. Uses `x$rr` (maps) and `x$fixed` (`"coef"`).
+#' @param municipalities An `sf` polygon object with a `code_muni` column
+#'   (IBGE municipality code; compared as character with `x$rr$code_muni`),
+#'   e.g. from `geobr::read_municipality()`. Required for `type = "rr"`,
+#'   `"uncertainty"` and `"both"` (errors if `NULL`, not `sf`, or without
+#'   `code_muni`; needs \pkg{sf}); ignored by `"coef"`. Polygons without a
+#'   matching estimate are drawn in grey.
+#' @param type Character scalar: `"rr"` (default), `"uncertainty"`, `"coef"` or
+#'   `"both"`. See **Plot types**. Partial matching applies; other values error.
+#' @param title Character scalar or `NULL` (default). Custom title; `NULL` uses a
+#'   translated default. For `type = "both"` it is the title of the combined
+#'   panel (not of the individual maps).
+#' @param base_size Numeric scalar. Base font size in points for the ggplot2
+#'   themes. Default `12`.
+#' @param lang Character scalar: `"pt"` (default), `"en"`, `"es"`. Language of
+#'   axis labels and titles; unsupported values warn and fall back to `"pt"`.
 #' @param ... Currently unused; reserved for future arguments.
 #'
 #' @return
@@ -345,7 +349,8 @@ utils::globalVariables(c(
 #' sus_mod_plot_spatial_bayes(result, municipalities = shp, type = "both")
 #' }
 #'
-#' @seealso [sus_mod_spatial_bayes()], [sus_mod_spatial_weights()]
+#' @seealso [sus_mod_spatial_bayes()], [sus_mod_spatial_weights()],
+#'   [sus_mod_plot_spacetime()]
 #'
 #' @export
 #' @importFrom cli cli_abort cli_alert_warning

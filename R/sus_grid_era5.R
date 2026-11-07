@@ -14,32 +14,36 @@
 #' `stage = "climate"`, `type = "era5_land"` -- directly compatible with
 #' [sus_climate_anomaly()], [sus_climate_aggregate()], and [sus_mod_dlnm()].
 #'
-#' @param years Numeric vector of years to import. Must be between 1950 and 2025.
-#'   Example: `2010:2023`, `c(2019, 2021)`.
+#' @param years Numeric vector of years (required, no default; character values
+#'   error). Accepted forms: scalar (`2020`), range (`2010:2023`) or explicit
+#'   vector (`c(2019, 2021)`). `c(2010, 2023)` means exactly those two years,
+#'   NOT the range -- use `2010:2023`. Values are de-duplicated, sorted and
+#'   coerced with `as.integer()`. Valid range 1950-2025; values outside error.
 #'
-#' @param months Integer vector of months to import (1-12). Default: `1:12`
-#'   (all months).
+#' @param months Numeric vector of months (1-12), e.g. `1:3`, `c(1, 7)` (exactly
+#'   January and July), `1:12`. Default `1:12`. De-duplicated and sorted;
+#'   values outside 1-12 or `NA` error.
 #'
-#' @param vars Character vector of variable aliases to download. Allowed values:
+#' @param vars Character vector of variable aliases (any subset), or the single
+#'   string `"all"` for every alias below. Default `c("t2m", "tp")`. Unknown
+#'   aliases error. Aliases (-> output column, unit):
 #'   \itemize{
-#'     \item `"t2m"` -- 2 m temperature mean (-> `tair_dry_bulb_c`, degC)
-#'     \item `"t2m_max"` -- 2 m temperature maximum (-> `tair_max_c`, degC)
-#'     \item `"t2m_min"` -- 2 m temperature minimum (-> `tair_min_c`, degC)
-#'     \item `"td2m"` -- 2 m dewpoint temperature mean (-> `dew_point_c`, degC)
-#'     \item `"u10"` -- 10 m u-component of wind mean (-> `ws_10m_u_m_s`, m/s)
-#'     \item `"v10"` -- 10 m v-component of wind mean (-> `ws_10m_v_m_s`, m/s)
-#'     \item `"sp"` -- surface pressure mean (-> `patm_hpa`, hPa)
-#'     \item `"tp"` -- total precipitation daily sum (-> `rainfall_mm`, mm)
-#'     \item `"all"` -- all variables above
+#'     \item `"t2m"` -- 2 m temperature mean (`tair_dry_bulb_c`, degC)
+#'     \item `"t2m_max"` -- 2 m temperature maximum (`tair_max_c`, degC)
+#'     \item `"t2m_min"` -- 2 m temperature minimum (`tair_min_c`, degC)
+#'     \item `"td2m"` -- 2 m dewpoint temperature mean (`dew_point_c`, degC)
+#'     \item `"u10"` -- 10 m u-wind component mean (`ws_10m_u_m_s`, m/s)
+#'     \item `"v10"` -- 10 m v-wind component mean (`ws_10m_v_m_s`, m/s)
+#'     \item `"sp"` -- surface pressure mean (`patm_hpa`, hPa)
+#'     \item `"tp"` -- total precipitation daily sum (`rainfall_mm`, mm)
 #'   }
-#'   Default: `c("t2m", "tp")`.
 #'
-#' @param municipalities An `sf` object with polygon geometries representing the
-#'   areas to which raster data will be aggregated (typically Brazilian
-#'   municipalities from [geobr::read_municipality()]). Must contain a column
-#'   identifying each polygon -- the function auto-detects `code_muni`, `CD_MUN`,
-#'   or `CD_GEOCMU`. If `NULL`, returns a named list of downloaded NetCDF file
-#'   paths instead of a `climasus_df`.
+#' @param municipalities An `sf` object with polygon geometries (typically from
+#'   [geobr::read_municipality()]) or `NULL` (default). Needs an ID column,
+#'   auto-detected among `code_muni`, `CD_MUN`, `CD_GEOCMU`. Non-`sf` input
+#'   errors. When provided, rasters are aggregated per polygon and a
+#'   `climasus_df` is returned. If `NULL`, file paths or a `SpatRaster` are
+#'   returned instead (see `raster_area`).
 #'
 #' @param raster_area Only used when `municipalities = NULL`. One of:
 #'   \itemize{
@@ -55,29 +59,30 @@
 #'   }
 #'   Ignored (silently) when `municipalities` is provided.
 #'
-#' @param agg_fun Character. Spatial aggregation function applied over raster
-#'   pixels within each polygon. Any function supported by
-#'   `exactextractr::exact_extract()`: `"mean"` (default, area-weighted),
-#'   `"sum"`, `"median"`, `"min"`, `"max"`. For precipitation, `"mean"` gives
-#'   the representative areal value.
+#' @param agg_fun Character scalar. Spatial aggregation applied to pixels within
+#'   each polygon via `exactextractr::exact_extract()`. One of `"mean"`
+#'   (default, area-weighted), `"sum"`, `"median"`, `"min"`, `"max"`,
+#'   `"majority"`, `"minority"`, `"count"`, `"variety"`; other values error.
+#'   Only used when `municipalities` is provided.
 #'
-#' @param use_cache Logical. If `TRUE` (default), downloaded NetCDF files are
-#'   stored in `cache_dir` and reused on subsequent calls.
+#' @param use_cache Logical scalar. If `TRUE` (default), downloaded NetCDF files are
+#'   stored in `cache_dir` and reused on later calls; `FALSE` re-downloads.
 #'
-#' @param cache_dir Character. Directory for cached NetCDF files.
-#'   Default: `"~/.climasus4r_cache/era5"`. Created automatically if needed.
+#' @param cache_dir Character scalar. Directory for cached NetCDF files (files are
+#'   stored under `cache_dir/<year>/`). Default `"~/.climasus4r_cache/era5"`;
+#'   created automatically.
 #'
-#' @param parallel Logical. If `TRUE`, downloads run in parallel using the
-#'   active [future::plan()]. Do not set a plan inside this function; configure
-#'   it beforehand. Default: `FALSE`.
+#' @param parallel Logical scalar. If `TRUE`, downloads run in parallel with
+#'   `future::multisession` (requires `furrr`) and only when more than one file is
+#'   needed. Default `FALSE`.
 #'
-#' @param workers Integer. Number of parallel workers when `parallel = TRUE`.
-#'   Default: `2`.
+#' @param workers Positive integer scalar. Number of parallel workers when
+#'   `parallel = TRUE`; ignored otherwise. Default `2`.
 #'
-#' @param lang Character. Language for messages: `"pt"` (default), `"en"`,
-#'   or `"es"`.
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"` or
+#'   `"es"`; other values error.
 #'
-#' @param verbose Logical. If `TRUE` (default), prints progress messages.
+#' @param verbose Logical scalar. If `TRUE` (default), prints progress messages.
 #'
 #' @return
 #' \itemize{
@@ -125,7 +130,8 @@
 #' paths <- sus_grid_era5(years = 2020, months = 1, vars = "all")
 #' }
 #'
-#' @seealso [sus_climate_anomaly()], [sus_climate_aggregate()], [sus_mod_dlnm()]
+#' @seealso [sus_grid_chirps()], [sus_grid_join()], [sus_grid_plot()],
+#'   [sus_climate_anomaly()], [sus_climate_aggregate()], [sus_mod_dlnm()]
 #'
 #' @export
 #' @importFrom rlang .data

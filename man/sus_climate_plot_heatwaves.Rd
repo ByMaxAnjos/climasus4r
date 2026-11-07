@@ -17,35 +17,72 @@ sus_climate_plot_heatwaves(
 )
 }
 \arguments{
-\item{hw_result}{List. The output from \code{sus_climate_compute_heatwaves()}.}
+\item{hw_result}{A \code{climasus_hw} list (with elements \code{events}, \code{daily},
+\code{summary}) returned by \code{\link[=sus_climate_compute_heatwaves]{sus_climate_compute_heatwaves()}}. Anything else
+errors.}
 
-\item{type}{Character. Type of plot to generate:
+\item{type}{Single character string (partial matching allowed). Type of
+plot to generate; default \code{"timeline"}:
 \itemize{
 \item \code{"timeline"}: Gantt-style timeline of heatwave events.
-\item \code{"calendar"}: Calendar heatmap showing days with heatwaves.
-\item \code{"intensity"}: Scatter plot of duration vs. intensity (EHF peak).
+\item \code{"calendar"}: Calendar heatmap of heatwave days (all methods combined
+via \code{hw_any} when \code{method = NULL}, otherwise the first method given).
+\item \code{"intensity"}: Scatter plot of duration vs. peak temperature (\code{temp_peak}), coloured by
+intensity class.
 \item \code{"trend"}: Bar chart of number of events per year.
 }}
 
-\item{station_code}{Character. Optional. Filter by a specific station code.}
+\item{station_code}{Character vector or \code{NULL} (default, all stations).
+One or more station codes, e.g. \code{"A101"} or \code{c("A101", "A122")}.}
 
-\item{method}{Character. Optional. Filter by a specific method (e.g., "EHF", "INMET").}
+\item{method}{Character vector or \code{NULL} (default, all methods). Method
+name(s) as in the result, e.g. \code{"EHF"} or \code{c("WHO", "INMET")}. For
+\code{type = "calendar"} only the first value is used.}
 
-\item{year}{Numeric. Optional. Filter by a specific year (useful for calendar plots).}
+\item{year}{Numeric vector or \code{NULL} (default, all years). A single year
+(\code{2023}), a range (\code{2020:2023}) or explicit years (\code{c(2019, 2023)}; exactly
+those years, not the span). Useful for calendar plots.}
 
-\item{interactive}{Logical. If \code{TRUE}, returns an interactive Plotly chart. If \code{FALSE}, returns a static ggplot2 chart. Default is \code{TRUE}.}
+\item{interactive}{Logical scalar. If \code{TRUE} (default), returns an
+interactive Plotly chart (requires \pkg{plotly}); if \code{FALSE}, a static
+ggplot2 chart.}
 
-\item{color_palette}{Character. Name of the ggsci color palette to use. Default is \code{"npg"}.}
+\item{color_palette}{Single character string. Name of a \pkg{ggsci} palette
+without the \code{pal_} prefix (e.g. \code{"npg"}, \code{"lancet"}, \code{"jco"}). Default
+\code{"npg"}; an unknown name warns and falls back to \code{"npg"}.}
 
-\item{lang}{Character. Language for labels and titles: \code{"en"} (English), \code{"pt"} (Portuguese), or \code{"es"} (Spanish). Default is \code{"en"}.}
+\item{lang}{Single character string: \code{"en"} (English, default), \code{"pt"}
+(Portuguese) or \code{"es"} (Spanish) for labels and titles; other values error.}
 
-\item{save_plot}{Character. Optional file path to save the plot (e.g., "plot.html" or "plot.png").}
+\item{save_plot}{Single character string or \code{NULL} (default, do not save).
+File path to save the plot: use \code{".html"} when \code{interactive = TRUE}
+(needs \pkg{htmlwidgets}) or an image extension such as \code{".png"} when
+\code{interactive = FALSE} (saved at 10 x 6 inches, 300 dpi).}
 }
 \value{
-A ggplot or plotly object.
+A \code{ggplot} object (\code{interactive = FALSE}) or a \code{plotly} object
+(\code{interactive = TRUE}). If no events remain after filtering, a warning is
+issued and \code{NULL} is returned.
 }
 \description{
 Visualizes and analyzes the results from \code{sus_climate_compute_heatwaves()}.
 It provides multiple visualization types including time series of events,
 calendar heatmaps, intensity distributions, and annual summaries.
+
+Use it after \code{\link[=sus_climate_compute_heatwaves]{sus_climate_compute_heatwaves()}}; data can be restricted to
+stations, methods and years before plotting.
+}
+\examples{
+\dontrun{
+hw <- sus_climate_compute_heatwaves(df_indicators, method = c("WHO", "EHF"))
+sus_climate_plot_heatwaves(hw, type = "timeline", interactive = FALSE)
+sus_climate_plot_heatwaves(hw, type = "calendar", method = "EHF",
+                           year = 2023, lang = "pt")
+sus_climate_plot_heatwaves(hw, type = "trend", save_plot = "trend.html")
+}
+
+}
+\seealso{
+\code{\link[=sus_climate_compute_heatwaves]{sus_climate_compute_heatwaves()}}, \code{\link[=sus_climate_plot_coldwaves]{sus_climate_plot_coldwaves()}},
+\code{\link[=hw_get_events]{hw_get_events()}}
 }

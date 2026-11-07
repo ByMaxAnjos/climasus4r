@@ -16,31 +16,35 @@ sus_grid_smvi(
 )
 }
 \arguments{
-\item{years}{Integer vector. Years to include. Must be within 1990–2021.
-\code{NULL} (default) returns all available years.}
+\item{years}{Numeric vector or \code{NULL}. Accepted forms: scalar (\code{2015}), range
+(\code{2000:2021}) or explicit vector (\code{c(2010, 2020)} = exactly those two years,
+NOT the range -- use \code{2010:2020}). Valid range 1990-2021 (outside values
+error; character values error). De-duplicated, sorted, coerced with
+\code{as.integer()}. \code{NULL} (default) = all available years.}
 
-\item{municipalities}{An \code{sf} POLYGON object (e.g., from
-\code{\link[geobr:read_municipality]{geobr::read_municipality()}}). When provided, flash drought events are
-spatially assigned to municipalities and statistics are aggregated.
-If \code{NULL}, returns the raw event data frame for Brazil filtered to
-the requested years.}
+\item{municipalities}{An \code{sf} polygon object (e.g. from \code{\link[geobr:read_municipality]{geobr::read_municipality()}})
+or \code{NULL} (default). Non-\code{sf} input errors. When provided, events are
+assigned to municipalities and aggregated. If \code{NULL}, the raw event table
+(Brazil bounding box if \code{brazil_only = TRUE}) for the requested years is
+returned.}
 
-\item{aggregate_by}{Character. Temporal resolution of the output when
-\code{municipalities} is provided. One of \code{"year"} (default) or \code{"month"}.
-Annual aggregation counts flash drought events and their total duration
-per municipality per year.}
+\item{aggregate_by}{Character scalar, \code{"year"} (default) or \code{"month"}
+(validated with \code{match.arg()}, partial matching allowed). Temporal resolution
+of the municipality output; ignored when \code{municipalities = NULL}.}
 
-\item{brazil_only}{Logical. Filter the global dataset to Brazil's bounding
-box (-75 to -28 lon, -35 to 6 lat) before processing. Default \code{TRUE}.}
+\item{brazil_only}{Logical scalar. Restrict the global grid to Brazil's bounding box
+(lon -75 to -28, lat -35 to 6) before processing. Default \code{TRUE}.}
 
-\item{use_cache}{Logical. Reuse cached files. Default \code{TRUE}.}
+\item{use_cache}{Logical scalar. Reuse the downloaded \code{LONLAT.csv} and events
+archive (~109 MB). Default \code{TRUE}.}
 
-\item{cache_dir}{Character. Root cache directory.
-Default \code{"~/.climasus4r_cache/smvi"}.}
+\item{cache_dir}{Character scalar. Root cache directory. Default
+\code{"~/.climasus4r_cache/smvi"}.}
 
-\item{lang}{Character. Message language: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"} or
+\code{"es"}; other values error.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
 \itemize{
@@ -148,7 +152,8 @@ smvi_mo <- sus_grid_smvi(
 )
 
 # Join to health data for DLNM
-combined <- sus_grid_join(sih_mt, smvi_mt)
+# sih_mt: a climasus_df at stage "spatial" or "aggregate"
+combined <- sus_grid_join(sih_mt, smvi_mt, by = c("code_muni", "date"))
 }
 
 }

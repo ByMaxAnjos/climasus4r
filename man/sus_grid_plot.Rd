@@ -26,71 +26,74 @@ sus_grid_plot(
 )
 }
 \arguments{
-\item{x}{A \code{SpatRaster} (\code{terra}), a single file path (\code{.tif}, \code{.tif.gz},
-\code{.nc}), or a named character vector of file paths as returned by a
-\verb{sus_grid_*()} function.}
+\item{x}{A \code{terra::SpatRaster}; a single file path (\code{"file.tif"},
+\code{"file.tif.gz"}, \code{"file.nc"}); or a (named) character vector of file paths,
+as returned by \verb{sus_grid_*()} with \code{municipalities = NULL} (layers are
+stacked and named by the vector names). Any other class errors; an empty
+vector errors; missing files error.}
 
-\item{layer}{Integer index, layer name, or \code{"all"}. Selects which layer to
-plot when \code{x} has multiple layers/dates. \code{"all"} facets over every
-layer (capped at \code{max_layers}). Default \code{1} (first layer).}
+\item{layer}{Single layer selector, or \code{"all"}. Forms: integer index (\code{1},
+\code{3}), layer name (\code{"2022-01-01"}; must match \code{names(x)}), or \code{"all"} to facet
+every layer (capped at \code{max_layers}). Default \code{1}. A single value only
+(vectors such as \code{1:3} are not supported); index outside \code{1:nlyr} or unknown
+name errors.}
 
-\item{max_layers}{Integer. Maximum number of layers plotted when
-\code{layer = "all"}; extra layers are dropped with a message. Default \code{12}.}
+\item{max_layers}{Positive integer. Maximum layers drawn when \code{layer = "all"}; the
+first \code{max_layers} are kept and a warning is printed. Default \code{12}.}
 
-\item{municipalities}{An optional \code{sf} POLYGON object (e.g. one or more
-rows from \code{\link[geobr:read_municipality]{geobr::read_municipality()}}, or a state/region polygon).
-When supplied, the raster is cropped and masked to this area (values
-outside the polygon(s) become \code{NA} and are dropped from the plot), and
-its boundary is drawn as a thin overlay. Default \code{NULL} (full raster
-extent, no cropping).}
+\item{municipalities}{An \code{sf} polygon object (e.g. rows from \code{\link[geobr:read_municipality]{geobr::read_municipality()}}
+or a state polygon) or \code{NULL} (default). When supplied, the raster is
+reprojected-to-match, cropped and masked to it (cells outside become \code{NA} and
+are not drawn) and its boundary is overlaid. \code{NULL} = full raster extent.}
 
-\item{state_borders}{Logical. Overlay Brazilian state boundaries
-(downloaded via \code{geobr}, cached). Default \code{TRUE}.}
+\item{state_borders}{Logical scalar. Overlay Brazilian state boundaries (needs \code{geobr}
+and \code{sf}, cached on disk; if unavailable a warning is issued and borders are
+omitted). Default \code{TRUE}.}
 
-\item{diverging}{Logical. Use a diverging blue-white-red scale centered
-on 0 (for anomalies, indices, etc.) instead of the sequential
+\item{diverging}{Logical scalar. If \code{TRUE}, use a blue-white-red scale centered on
+0 with symmetric limits (for anomalies/indices such as PDSI) and ignore
 \code{palette}. Default \code{FALSE}.}
 
-\item{palette}{Character. Sequential colour palette used when
-\code{diverging = FALSE}. One of \code{"viridis"}, \code{"plasma"}, \code{"magma"},
-\code{"inferno"}, or any \code{\link[RColorBrewer:ColorBrewer]{RColorBrewer::brewer.pal()}} sequential name
-(e.g. \code{"YlOrRd"}, \code{"Blues"}). Default \code{"viridis"}.}
+\item{palette}{Character scalar. Sequential palette used when \code{diverging = FALSE}:
+\code{"viridis"} (default), \code{"plasma"}, \code{"magma"}, \code{"inferno"}, \code{"cividis"}, or any
+\code{\link[RColorBrewer:ColorBrewer]{RColorBrewer::brewer.pal()}} palette name (e.g. \code{"YlOrRd"}, \code{"Blues"}).
+Unknown names fall back to \code{"YlOrRd"} with a warning.}
 
-\item{name}{Character. Legend title. \code{NULL} (default) uses the layer
-name.}
+\item{name}{Character scalar or \code{NULL} (default). Legend title; \code{NULL} uses
+the (first) layer name.}
 
-\item{max_cells}{Integer. Rasters with more cells than this are
-regularly resampled before plotting to keep rendering fast.
-Default \code{500000}.}
+\item{max_cells}{Numeric scalar. If the number of cells x layers exceeds this, the
+raster is regularly subsampled before plotting. Default \code{500000}.}
 
-\item{title}{Character. Map title. \code{NULL} uses a built-in multilingual
-default.}
+\item{title}{Character scalar or \code{NULL} (default, built-in title in \code{lang}).}
 
-\item{subtitle}{Character. Map subtitle. \code{NULL} auto-generates one from
-the layer name and resolution.}
+\item{subtitle}{Character scalar or \code{NULL} (default, auto-generated from the layer
+name / number of layers).}
 
-\item{caption}{Character. Figure caption. \code{NULL} uses a generic
-\code{climasus4r} source line.}
+\item{caption}{Character scalar or \code{NULL} (default, a generic \code{climasus4r} line).}
 
-\item{base_size}{Numeric. Base font size for \code{theme_void()}. Default \code{11}.}
+\item{base_size}{Numeric scalar. Base font size for \code{ggplot2::theme_void()}.
+Default \code{11}.}
 
-\item{interactive}{Logical. If \code{TRUE}, wraps the \code{ggplot2} object with
-\code{plotly::ggplotly()}. Requires \code{plotly}. Default \code{FALSE}.}
+\item{interactive}{Logical scalar. If \code{TRUE}, return \code{plotly::ggplotly()} of the map
+(requires \code{plotly}). Default \code{FALSE}.}
 
-\item{use_cache}{Logical. Cache state-boundary metadata to disk.
+\item{use_cache}{Logical scalar. Cache the downloaded state boundaries on disk.
 Default \code{TRUE}.}
 
-\item{cache_dir}{Character. Directory for the disk cache.
-Default \code{"~/.climasus4r_cache/spatial"}.}
+\item{cache_dir}{Character scalar. Directory of the boundary cache. Default
+\code{"~/.climasus4r_cache/spatial"}.}
 
-\item{lang}{Character. Language for messages and axis labels:
-\code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar. Message and label language: \code{"pt"} (default),
+\code{"en"} or \code{"es"} (validated with \code{match.arg()}; other values error).}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
-A \code{ggplot2} object (class \code{"gg"} / \code{"ggplot"}), or a \code{plotly}
-object when \code{interactive = TRUE}.
+A \code{ggplot} object (a raster layer in lon/lat with optional state and
+municipality outlines; faceted by layer when \code{layer = "all"}), or a
+\code{plotly} object when \code{interactive = TRUE}. Not a \code{climasus_df}; \code{sus_meta}
+is not involved.
 }
 \description{
 \code{sus_grid_plot()} renders a raster surface -- a \code{SpatRaster}, a single
@@ -101,9 +104,10 @@ returned by the \verb{sus_grid_*()} family (e.g. \code{\link[=sus_grid_chirps]{s
 or \code{raster_area != FALSE} -- as a \code{ggplot2} map, following the same
 publication style used across the other \verb{sus_*_plot_*()} functions.
 
+Use it after any \verb{sus_grid_*()} call that returns rasters/paths (stage 8,
+gridded climate/environment) to inspect a surface before aggregating it.
 Large rasters are automatically downsampled for plotting (see
-\code{max_cells}); the returned object always reflects the full data range
-of the (possibly downsampled) layer shown.
+\code{max_cells}).
 }
 \examples{
 \dontrun{
@@ -126,5 +130,5 @@ sus_grid_plot(r, diverging = TRUE, name = "Anomaly (mm)")
 \seealso{
 \code{\link[=sus_grid_chirps]{sus_grid_chirps()}}, \code{\link[=sus_grid_era5]{sus_grid_era5()}}, \code{\link[=sus_grid_pdsi]{sus_grid_pdsi()}},
 \code{\link[=sus_grid_pollution_ghap]{sus_grid_pollution_ghap()}}, \code{\link[=sus_grid_pollution_merra2]{sus_grid_pollution_merra2()}},
-\code{\link[=sus_data_plot_aggregate_map]{sus_data_plot_aggregate_map()}}
+\code{\link[=sus_grid_join]{sus_grid_join()}}, \code{\link[=sus_data_plot_aggregate_map]{sus_data_plot_aggregate_map()}}
 }

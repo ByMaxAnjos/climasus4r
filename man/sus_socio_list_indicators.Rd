@@ -7,16 +7,21 @@
 sus_socio_list_indicators(lang = "pt", category = NULL)
 }
 \arguments{
-\item{lang}{Language for indicator names: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar. Language of indicator names: \code{"pt"}
+(default), \code{"en"} or \code{"es"}; any other value silently falls back to \code{"pt"}.}
 
-\item{category}{Optional character vector to filter by category (e.g.
-\code{"demographic"}, \code{"socioeconomic"}, \code{"mortality"}, \code{"morbidity"},
-\code{"maternal_child"}, \code{"health_resources"}, \code{"heat_vulnerability"}). Use
-\code{NULL} (default) to return all.}
+\item{category}{Character vector of categories to keep, e.g. \code{"mortality"}
+or \code{c("demographic", "socioeconomic")}. Valid values: \code{"demographic"},
+\code{"socioeconomic"}, \code{"mortality"}, \code{"morbidity"}, \code{"maternal_child"},
+\code{"health_resources"}, \code{"heat_vulnerability"}. \code{NULL} (default) returns all;
+unknown values return zero rows.}
 }
 \value{
-A \code{tibble} with columns \code{id}, \code{name}, \code{category}, \code{required_cols},
-\code{unit}, \code{uncertainty_method}, \code{source}.
+A \code{tibble} with one row per indicator and columns \code{id} (value for
+\code{indicators} in \code{\link[=sus_socio_compute_indicators]{sus_socio_compute_indicators()}}), \code{name}, \code{category},
+\code{required_cols} (comma-separated formula-space names to map with
+\code{col_mapping}), \code{formula}, \code{multiplier}, \code{unit}, \code{uncertainty_method}
+(\code{"none"}, \code{"poisson"} or \code{"binomial"}), \code{source}.
 }
 \description{
 Returns a data frame describing all indicators available in
@@ -27,4 +32,7 @@ categories, required columns, and uncertainty method.
 sus_socio_list_indicators(lang = "pt")
 sus_socio_list_indicators(lang = "en", category = "mortality")
 
+}
+\seealso{
+\code{\link[=sus_socio_compute_indicators]{sus_socio_compute_indicators()}}, \code{\link[=sus_census_join]{sus_census_join()}}
 }

@@ -116,25 +116,29 @@ utils::globalVariables(c(
 #'
 #' a combined measure of total climate-attributable vulnerability (heat + cold).
 #'
-#' @param fits A named list of `climasus_dlnm` objects, one per stratum.
-#'   All fits must use the same `climate_col` and were produced by
-#'   `sus_mod_dlnm()`. If the list is unnamed, strata are labelled
-#'   `"Stratum 1"`, `"Stratum 2"`, etc.
-#' @param hot_percentile Numeric in (0, 1). Quantile of the observed exposure
-#'   distribution used as the "hot" comparison point. Default: `0.99` (99th
-#'   percentile — extreme heat). Must be greater than `cold_percentile`.
-#' @param cold_percentile Numeric in (0, 1). Quantile of the observed exposure
-#'   distribution used as the "cold" comparison point. Default: `0.01` (1st
-#'   percentile — extreme cold). Must be less than `hot_percentile`.
-#' @param stratum_labels Named character vector or `NULL`. Custom display labels
-#'   for the strata, with names matching `names(fits)`. If `NULL`, the list
-#'   names are used as-is. Useful for plotting (e.g.,
-#'   `c(age_65plus = "65+ years", age_1864 = "18-64 years")`).
-#' @param alpha Numeric. Significance level for confidence intervals.
-#'   Default: `0.05`.
-#' @param lang Character. Language for messages: `"pt"` (default), `"en"`,
-#'   `"es"`.
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param fits A list of at least 2 `climasus_dlnm` objects from
+#'   [sus_mod_dlnm()], one per stratum, e.g.
+#'   `list(elderly = fit1, adults = fit2)`. All must use the same
+#'   `climate_col` (error otherwise). If unnamed, strata are labelled
+#'   `"Stratum 1"`, `"Stratum 2"`, ... Errors if fewer than 2 fits or any
+#'   element is not a `climasus_dlnm`.
+#' @param hot_percentile Numeric scalar in (0, 1). Percentile of each
+#'   stratum's observed exposure used as the "hot" point, e.g. `0.95`.
+#'   Default `0.99`. Must be greater than `cold_percentile` (error otherwise).
+#' @param cold_percentile Numeric scalar in (0, 1). Percentile used as the
+#'   "cold" point, e.g. `0.05`. Default `0.01`. Must be smaller than
+#'   `hot_percentile`.
+#' @param stratum_labels Named character vector or `NULL`. Display labels,
+#'   with names matching `names(fits)`, e.g.
+#'   `c(elderly = "65+ years", adults = "18-64 years")`. Strata not named
+#'   keep their list name; unmatched names are ignored. `NULL` (default) uses
+#'   the list names.
+#' @param alpha Numeric scalar in (0, 1). Significance level of the
+#'   confidence intervals (`1 - alpha` level, normal approximation). Default
+#'   `0.05` (95% CI).
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"`,
+#'   or `"es"`; anything else warns and falls back to `"pt"`.
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
 #' @return A `climasus_sensitivity` list with:
 #'   \describe{
@@ -150,7 +154,8 @@ utils::globalVariables(c(
 #'       `stratum`, `label`, `exposure`, `rr`, `rr_lo`, `rr_hi`. Suitable
 #'       for overlaid ERC plots.}
 #'     \item{`$meta`}{List: `climate_col`, `n_strata`, `stratum_names`,
-#'       `hot_percentile`, `cold_percentile`, `alpha`, `call_time`.}
+#'       `stratum_labels`, `hot_percentile`, `cold_percentile`, `alpha`,
+#'       `call_time`.}
 #'   }
 #'
 #' @references
@@ -180,7 +185,8 @@ utils::globalVariables(c(
 #' tidy(sens)           # one-row-per-stratum tibble
 #' }
 #'
-#' @seealso [sus_mod_dlnm()], [sus_mod_af()], [sus_mod_pool()]
+#' @seealso [sus_mod_dlnm()], [sus_mod_af()], [sus_mod_pool()],
+#'   [sus_mod_plot_dlnm()]
 #'
 #' @export
 #' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_alert_warning cli_abort

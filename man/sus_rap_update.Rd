@@ -9,16 +9,19 @@ sus_rap_update(rap, ..., backup = TRUE, lang = "pt")
 \arguments{
 \item{rap}{A \code{rap_object} returned by \code{\link[=sus_rap_read]{sus_rap_read()}}.}
 
-\item{...}{Named parameters to update (e.g. \verb{uf = "\\"RJ\\""},
-\code{years = "2021:2024"}). Values are treated as raw R code strings.}
+\item{...}{Named parameters to update, each value a \strong{string of R code}
+written into the file, e.g. \code{uf = '"RJ"'} (note the inner quotes),
+\code{uf = 'c("RJ", "SP")'}, \code{years = "2021:2024"}. Names not found as
+\code{name = value} lines in the file are ignored with a warning. No arguments:
+nothing is changed.}
 
-\item{backup}{\code{logical(1)}  - Create a \code{.bak} backup before writing.
-Default \code{TRUE}.}
+\item{backup}{\code{logical(1)}, default \code{TRUE}. Save \verb{<file>.bak} before writing.}
 
-\item{lang}{\code{character(1)}  - Language for messages.}
+\item{lang}{\code{character(1)}, \code{"pt"} (default), \code{"en"} or \code{"es"}.}
 }
 \value{
-Invisibly, the updated \code{rap_object} (re-read from the patched file).
+Invisibly, the updated \code{rap_object} (re-read from the patched file;
+the unchanged input if there was nothing to patch).
 }
 \description{
 Applies targeted patches to the editable \code{params <- list(...)} block of an
@@ -30,4 +33,7 @@ created before any modification.
 rap    <- sus_rap_read("pipeline_sp.R")
 rap_rj <- sus_rap_update(rap, uf = '"RJ"', years = "2021:2024")
 }
+}
+\seealso{
+\code{\link[=sus_rap_read]{sus_rap_read()}}, \code{\link[=sus_rap_run]{sus_rap_run()}}
 }

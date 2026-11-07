@@ -9,18 +9,22 @@ sus_rap_run(rap, ..., envir = parent.frame(), dry_run = FALSE, lang = "pt")
 \arguments{
 \item{rap}{A \code{rap_object} returned by \code{\link[=sus_rap_read]{sus_rap_read()}}.}
 
-\item{...}{Name-value pairs overriding fields in \code{rap$params} (e.g.
-\code{uf = "RJ"}, \code{years = 2021:2023}).}
+\item{...}{Name-value pairs (R values, not code strings) overriding fields in
+\code{rap$params}, e.g. \code{uf = "RJ"}, \code{uf = c("RJ", "SP")}, \code{years = 2021:2023}
+(the RAP parameter is called \code{years}; it is passed to the \code{year} argument
+of \code{\link[=sus_data_import]{sus_data_import()}}), \code{system = "SIM-DO"}, \code{time_unit = "week"}.}
 
-\item{envir}{\code{environment}  - Execution environment. Default \code{parent.frame()}.}
+\item{envir}{\code{environment}, default \code{parent.frame()}. Where the pipeline code
+is evaluated.}
 
-\item{dry_run}{\code{logical(1)}  - Print the reconstructed code without executing.
-Default \code{FALSE}.}
+\item{dry_run}{\code{logical(1)}, default \code{FALSE}. Print the reconstructed code
+without executing it (returns \code{NULL}).}
 
-\item{lang}{\code{character(1)}  - Language for messages.}
+\item{lang}{\code{character(1)}, \code{"pt"} (default), \code{"en"} or \code{"es"}.}
 }
 \value{
-Invisibly, the \code{data.frame} produced by the pipeline.
+Invisibly, the result of the pipeline (normally a data frame /
+\code{climasus_df}), or \code{NULL} when \code{dry_run = TRUE}.
 }
 \description{
 Reconstructs and executes the pipeline contained in a \code{rap_object}. Any
@@ -33,4 +37,7 @@ rap <- sus_rap_read("pipeline_sp.R")
 df  <- sus_rap_run(rap, uf = "RJ", years = 2021:2023)
 sus_rap_run(rap, dry_run = TRUE)
 }
+}
+\seealso{
+\code{\link[=sus_rap_read]{sus_rap_read()}}, \code{\link[=sus_rap_update]{sus_rap_update()}}
 }

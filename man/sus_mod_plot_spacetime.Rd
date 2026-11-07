@@ -23,47 +23,64 @@ sus_mod_plot_spacetime(
 \arguments{
 \item{x}{A \code{climasus_spacetime_bayes} object from \code{\link[=sus_mod_spacetime_bayes]{sus_mod_spacetime_bayes()}}
 or a \code{climasus_spacetime_exceedance} object from
-\code{\link[=sus_mod_spacetime_exceedance]{sus_mod_spacetime_exceedance()}}.}
+\code{\link[=sus_mod_spacetime_exceedance]{sus_mod_spacetime_exceedance()}}. Other classes error. \code{type = "exceedance"}
+needs an \verb{$exceedance} slot (otherwise error).}
 
-\item{type}{Character. One of \code{"rr_map"} (default), \code{"temporal"},
-\code{"interaction"}, \code{"exceedance"}, \code{"coef"}. See \strong{Plot types}.}
+\item{type}{Character scalar: \code{"rr_map"} (default), \code{"temporal"},
+\code{"interaction"}, \code{"exceedance"} or \code{"coef"}. See \strong{Plot types}. Partial
+matching applies; other values error.}
 
 \item{municipalities}{An \code{sf} polygon object with a \code{code_muni} column
-(7-digit IBGE code). Required for \code{type = "rr_map"} and
-\code{type = "exceedance"}. Typically from \code{\link[geobr:read_municipality]{geobr::read_municipality()}}.}
+(IBGE municipality code, matched as character to the codes in the model
+results), e.g. from \code{geobr::read_municipality()}. Required for
+\code{type = "rr_map"} and \code{"exceedance"} (errors if \code{NULL}, not \code{sf}, or
+without \code{code_muni}); ignored by other types. Needs \pkg{sf} and
+\pkg{RColorBrewer} for those types.}
 
-\item{time_point}{Integer or \code{NULL}. Single time index to display in
-\code{type = "rr_map"}. Ignored when \code{facet_time = TRUE} or for other types.
-Default \code{NULL} (aggregate mean across all periods).}
+\item{time_point}{Integer scalar or \code{NULL} (default). Time index (value of
+\code{time_idx}, 1 = first period, e.g. \code{3L}) shown by \code{type = "rr_map"}.
+\code{NULL} shows the mean over all periods. Ignored when \code{facet_time = TRUE}
+and by other types.}
 
-\item{time_range}{Integer vector of length 2 (\code{c(t_start, t_end)}) to
-restrict the time axis in \code{type = "temporal"} and \code{type = "interaction"}.
-Default \code{NULL} (all periods).}
+\item{time_range}{Integer vector of length 2, \code{c(t_start, t_end)} (time
+indices, inclusive, e.g. \code{c(2L, 6L)}), or \code{NULL} (default = all periods).
+Restricts the periods used by \code{"temporal"} and \code{"interaction"}; it is also
+applied to \code{"rr_map"} (when \code{facet_time = FALSE}) although a warning says it
+is ignored for types other than \code{"temporal"}/\code{"interaction"}. Not used by
+\code{"exceedance"} and \code{"coef"} (warning issued).}
 
-\item{threshold}{Numeric. RR threshold used to select the exceedance layer
-from \code{x$exceedance} when \code{type = "exceedance"}. Default \code{1.0}.}
+\item{threshold}{Numeric scalar. RR threshold selecting the layer of
+\code{x$exceedance} for \code{type = "exceedance"} (e.g. \code{1.5}). It is matched by
+name against the thresholds computed in
+\code{\link[=sus_mod_spacetime_exceedance]{sus_mod_spacetime_exceedance()}} (\code{thresholds} argument) and errors if not
+available. Default \code{1.0}.}
 
-\item{facet_time}{Logical. When \code{TRUE} and \code{type = "rr_map"}, produces a
-faceted map with one panel per time period. Default \code{FALSE}.}
+\item{facet_time}{Logical scalar. If \code{TRUE} and \code{type = "rr_map"}, draws one
+facet per time period. Default \code{FALSE}.}
 
-\item{palette}{Character. Name of a diverging RColorBrewer palette for RR
-maps (e.g. \code{"RdYlBu"}, \code{"RdBu"}, \code{"PuOr"}). Default \code{"RdYlBu"}.}
+\item{palette}{Character scalar. Name of a diverging RColorBrewer palette with
+11 classes for \code{type = "rr_map"}: \code{"RdYlBu"} (default), \code{"RdBu"},
+\code{"PuOr"}, \code{"PiYG"}, \code{"PRGn"}, \code{"BrBG"}, \code{"RdGy"}, \code{"Spectral"}. Scale is
+centred at RR = 1.}
 
-\item{title}{Character or \code{NULL}. Custom plot title. \code{NULL} uses a
-multilingual default.}
+\item{title}{Character scalar or \code{NULL} (default). Custom plot title; \code{NULL}
+uses a translated default.}
 
-\item{base_size}{Numeric. Base font size for ggplot2 themes. Default \code{11}.}
+\item{base_size}{Numeric scalar. Base font size in points for the ggplot2
+theme. Default \code{11}.}
 
-\item{interactive}{Logical. \code{TRUE} wraps the ggplot object with
-\code{\link[plotly:ggplotly]{plotly::ggplotly()}} (requires \pkg{plotly}). Default \code{FALSE}.}
+\item{interactive}{Logical scalar. \code{TRUE} wraps the plot with
+\code{\link[plotly:ggplotly]{plotly::ggplotly()}} (requires \pkg{plotly}; if missing, a warning is
+issued and the static ggplot is returned). Default \code{FALSE}.}
 
-\item{lang}{Character. Language for axis labels and titles: \code{"pt"}
-(default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar: \code{"pt"} (default), \code{"en"}, \code{"es"}. Language of
+axis labels and titles; unsupported values warn and fall back to \code{"pt"}.}
 
 \item{...}{Currently unused; reserved for future arguments.}
 }
 \value{
 A \code{ggplot} object (or \code{plotly} object when \code{interactive = TRUE}).
+The function does not return the underlying table or save files.
 }
 \description{
 Produces five types of visualization for \code{climasus_spacetime_bayes} and
@@ -80,12 +97,12 @@ plots. Static ggplot2 output is returned by default; set
 \item{\code{"rr_map"}}{Choropleth map of the posterior mean relative risk
 (\code{rr_mean}) merged with the \code{municipalities} sf polygon layer.
 Uses a diverging colour scale centred at 1.0. Municipalities where
-the entire 95\\% credible interval lies above 1 receive a black border.
+the entire 95\% credible interval lies above 1 receive a black border.
 Supply \code{time_point} to show a single period; set \code{facet_time = TRUE}
 to produce one facet per period; leave both as defaults to display the
 mean across all periods. Requires \code{municipalities}.}
 \item{\code{"temporal"}}{Line chart of the population-averaged posterior mean
-RR (aggregated across municipalities) with a shaded 95\\% credible
+RR (aggregated across municipalities) with a shaded 95\% credible
 interval ribbon over time. Supply \code{time_range} to restrict the
 displayed periods.}
 \item{\code{"interaction"}}{Tile heatmap of the space-time interaction term
@@ -108,9 +125,11 @@ library(geobr)
 
 shp <- geobr::read_municipality(code_muni = "all", year = 2022)
 
+# W: spatial weights, e.g. from sus_mod_spatial_weights()
 fit <- sus_mod_spacetime_bayes(
   df         = agg,
   outcome    = "deaths",
+  W          = W,
   covariates = c("temp_mean", "prec_total"),
   offset     = "expected"
 )

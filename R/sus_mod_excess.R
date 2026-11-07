@@ -140,52 +140,79 @@ utils::globalVariables(c(
 #' `dlnm::crosspred()`. This yields the Gasparrini & Armstrong (2013)
 #' temperature-attributable excess.
 #'
-#' @param data A `climasus_dlnm` object (for `method = "from_dlnm"`), a
-#'   `climasus_df` at stage `"aggregate"` or later, or any `data.frame` with
-#'   a date column and an integer count column.
-#' @param outcome_col Character. Name of the outcome count column. Required
-#'   when `data` is a data frame; inferred from `fit$meta$outcome_col` when
-#'   `data` is a `climasus_dlnm`.
-#' @param date_col Character. Name of the date column. Default `"date"`.
-#' @param control_period Date vector of length 2 specifying the reference
-#'   period used to fit the baseline model, e.g.
-#'   `c(as.Date("2018-01-01"), as.Date("2019-12-31"))`. Default `NULL` uses
-#'   all available data before `study_period`, or all data when both are `NULL`.
-#' @param study_period Date vector of length 2 specifying the period for which
-#'   excess is reported. Default `NULL` uses the full data range.
-#' @param method Character. Baseline estimation method:
-#'   - `"from_dlnm"` — counterfactual from DLNM (requires `climasus_dlnm`).
-#'   - `"spline"` (default for data frames) — quasi-Poisson with ns().
-#'   - `"serfling"` — Serfling harmonic regression.
-#' @param dof_per_year Integer. Degrees of freedom per year for the spline
-#'   baseline. Default `8L`.
-#' @param harmonics Integer. Number of sinusoidal harmonics in the Serfling
-#'   model. Default `2L`.
-#' @param family Character. GLM family: `"quasipoisson"` (default) or
-#'   `"poisson"`. Ignored for `method = "from_dlnm"`.
-#' @param threshold_z Numeric. Z-score threshold for flagging excess events.
-#'   Default `1.96` (95th percentile).
-#' @param by Character or `NULL`. Temporal breakdown variable for the period
-#'   summary: `"year"`, `"month"`, or `"season"`. Default `NULL`.
-#' @param alpha Numeric. Significance level for confidence intervals.
-#'   Default `0.05`.
-#' @param lang Character. Language for messages: `"pt"` (default), `"en"`,
-#'   `"es"`.
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param data A `climasus_dlnm` object from [sus_mod_dlnm()] (required for
+#'   `method = "from_dlnm"`; its `$data_daily` is used), or any `data.frame` /
+#'   `climasus_df` / tibble with one row per day: a date column and a numeric
+#'   count column. Rows are sorted by date; the code does not check the
+#'   pipeline stage, but daily aggregated data (see [sus_data_aggregate()]) is
+#'   expected. Other classes error.
+#' @param outcome_col Character scalar. Name of the outcome count column
+#'   (e.g. `"n_obitos"`). Required for data frames (errors if `NULL` or
+#'   absent). For a `climasus_dlnm`, `NULL` (default) uses
+#'   `data$meta$outcome_col`.
+#' @param date_col Character scalar. Name of the date column in `data`
+#'   (coerced with `as.Date()`). Default `"date"`. Ignored for
+#'   `climasus_dlnm` (always `"date"`).
+#' @param control_period Length-2 vector of dates `c(from, to)` (inclusive),
+#'   `Date` or coercible by `as.Date()` (e.g. `c("2018-01-01", "2019-12-31")`).
+#'   Days used to fit the baseline model. `NULL` (default): all days before
+#'   `study_period[1]` if `study_period` is given, otherwise the whole series
+#'   (baseline is then fitted on the same days it is evaluated on). Errors when
+#'   no day falls in the period. The control period is not required to precede
+#'   the study period.
+#' @param study_period Length-2 vector of dates `c(from, to)` (inclusive),
+#'   `Date` or coercible. Days for which expected/excess are reported.
+#'   `NULL` (default) uses the full date range of `data`. If `study_period`
+#'   starts at the first day of the data and `control_period` is `NULL`, there
+#'   are no control days and the call errors.
+#' @param method Character scalar or `NULL` (default). Baseline method, one of:
+#'   - `"from_dlnm"`: counterfactual from a DLNM fit (`data` must be a
+#'     `climasus_dlnm`; falls back to `"spline"` with a warning if \pkg{dlnm}
+#'     is missing).
+#'   - `"spline"`: quasi-Poisson GLM with a natural spline on calendar date.
+#'   - `"serfling"`: Serfling harmonic regression.
 #'
-#' @return A `climasus_excess` list with:
+#'   `NULL` picks `"from_dlnm"` for a `climasus_dlnm` and `"spline"` for a data
+#'   frame. Other values error.
+#' @param dof_per_year Positive integer. Spline degrees of freedom per year
+#'   of series (total df = `max(dof_per_year, round(dof_per_year * years))`).
+#'   Default `8L`. Used only by `method = "spline"`, but the series-length
+#'   check (at least `2 * df` control days, otherwise error) applies to both
+#'   `"spline"` and `"serfling"`.
+#' @param harmonics Positive integer. Number of sine/cosine pairs of the Serfling
+#'   model (e.g. `2L` = annual + semi-annual). Default `2L`. Used only by
+#'   `method = "serfling"`.
+#' @param family Character scalar. GLM family of the baseline model:
+#'   `"quasipoisson"` (default) or `"poisson"`. Ignored for
+#'   `method = "from_dlnm"`.
+#' @param threshold_z Numeric scalar. A day is flagged `is_excess = TRUE` when
+#'   its z-score `(observed - expected) / sqrt(expected)` exceeds this value.
+#'   Default `1.96` (one-sided ~97.5th percentile of N(0,1)). Independent of
+#'   `alpha`.
+#' @param by Character scalar or `NULL` (default). Temporal grouping of
+#'   `$by_period`: `"year"`, `"month"` (year x month) or `"season"`
+#'   (year x DJF/MAM/JJA/SON). `NULL` skips it. Other values error.
+#' @param alpha Numeric scalar in (0, 1). Significance level for the CI of the
+#'   expected counts (default `0.05` = 95% CI).
+#' @param lang Character scalar: `"pt"` (default), `"en"`, `"es"`. Language of
+#'   messages; unsupported values warn and fall back to `"pt"`.
+#' @param verbose Logical scalar. If `TRUE` (default) prints progress messages.
+#'
+#' @return A `climasus_excess` object (named list) with:
 #'   \describe{
-#'     \item{`$daily`}{Tibble with one row per day: `date`, `observed`,
+#'     \item{`$daily`}{Tibble with one row per study day: `date`, `observed`,
 #'       `expected`, `expected_lo`, `expected_hi`, `excess`, `excess_lo`,
-#'       `excess_hi`, `z_score`, `is_excess`.}
-#'     \item{`$total`}{One-row tibble: total observed, expected, excess,
-#'       excess percentage, and their confidence bounds.}
-#'     \item{`$by_period`}{Temporal breakdown tibble (when `by` is not `NULL`).}
-#'     \item{`$model`}{The fitted baseline GLM object (`NULL` for
+#'       `excess_hi`, `z_score`, `is_excess`, `cum_excess`.}
+#'     \item{`$total`}{One-row tibble: `n_days`, `observed`, `expected` (+
+#'       `_lo`/`_hi`), `excess` (+ `_lo`/`_hi`), `excess_pct`,
+#'       `n_excess_days`, `peak_excess`, `peak_date`.}
+#'     \item{`$by_period`}{Temporal breakdown tibble; `NULL` when `by = NULL`.}
+#'     \item{`$model`}{The fitted baseline GLM (`NULL` for
 #'       `method = "from_dlnm"`).}
-#'     \item{`$meta`}{Metadata list: `method`, `outcome_col`, `date_col`,
+#'     \item{`$meta`}{Named list: `method`, `outcome_col`, `date_col`,
 #'       `control_period`, `study_period`, `family`, `dof_per_year`,
-#'       `harmonics`, `threshold_z`, `n_obs`, `call_time`.}
+#'       `harmonics`, `threshold_z`, `n_obs`, `n_study`, `n_control`,
+#'       `call_time`.}
 #'   }
 #'
 #' @examples
@@ -206,7 +233,8 @@ utils::globalVariables(c(
 #' tidy(exc)
 #' }
 #'
-#' @seealso [sus_mod_dlnm()], [sus_mod_af()], [sus_mod_plot_dlnm()]
+#' @seealso [sus_mod_dlnm()], [sus_mod_af()], [sus_mod_burden()],
+#'   [sus_mod_its()], [sus_mod_plot_dlnm()]
 #'
 #' @export
 #' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_alert_warning cli_abort

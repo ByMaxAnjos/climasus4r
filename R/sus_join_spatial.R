@@ -1,91 +1,105 @@
 #' @title Spatially Link SUS Data to Brazilian Geographic Units
-#' @description Performs a spatial join between a data.frame containing SUS data
-#' and official Brazilian geographic boundaries (state, municipality, census tract)
-#' or geocodes postal codes (CEP). This function is the core spatial engine for the
-#' entire climasus4r package and serves as the foundation for all spatial analyses.
+#' @description Joins a standardized SUS `climasus_df` to official Brazilian
+#' geographic boundaries (municipality, health region, biome, census-related
+#' and environmental layers, neighborhoods) or geocodes postal codes (CEP), and
+#' returns an `sf` object. Run it after [sus_data_standardize()] (stage
+#' `"stand"` or later, e.g. after filtering/derivation/aggregation steps) and
+#' before [sus_census_join()] / the `sus_grid_*()` + [sus_grid_join()]
+#' steps and the spatial models (`sus_mod_spatial_*()`). It works for all
+#' DATASUS systems with a municipality column (SIM, SIH, SINAN, SIA, CNES,
+#' SINASC); `level = "cep"` needs SIH or CNES, `"health_facilities"` needs CNES
+#' and `"neighborhood"` needs CNES or SIH.
 #'
-#' @param df A `data.frame` containing health data with a geographic identifier column.
-#'   The data frame should have a `system` column created by `detect_health_system()`.
-#' @param level Character string specifying the geographic aggregation level. Default is `"munic"`.
-#'   Options: 
+#' @param df A `climasus_df` (non-`climasus_df` input, including a plain
+#'   `data.frame`, errors) whose `sus_meta` stage is `"stand"` or later, with
+#'   at least one row. It needs a geographic identifier column (see
+#'   `join_col`); a `date` column is expected when the result is stored in the
+#'   metadata. Created by [sus_data_import()] -> [sus_data_clean_encoding()] ->
+#'   [sus_data_standardize()] (optionally followed by filtering/aggregation).
+#' @param level Character scalar. Geographic unit to join; default `"munic"`.
+#'   Invalid values error. Options:
 #'   \itemize{
-#'     \item \strong{Administrative:} "munic" (municipality). Default. 
-#'     \item \strong{Health:} "health_region", "health_facilities", "school"
-#'     \item \strong{Environmental:} "amazon", "biomes", "conservation_units", 
-#'           "disaster_risk_area", "semiarid", "indigenous_land"
-#'     \item \strong{Urban:} "neighborhood", "urban_area", "metro_area", 
-#'           "urban_concentrations", "pop_arrangements",
-#'     \item \strong{Miscellaneous:} "cep" (postal code)
+#'     \item Administrative: `"munic"` (municipality polygons, default).
+#'     \item Health: `"health_region"`, `"health_facilities"` (CNES only,
+#'       joined by CNES code), `"schools"`.
+#'     \item Environmental: `"amazon"`, `"biomes"`, `"conservation_units"`,
+#'       `"disaster_risk_area"`, `"semiarid"`, `"indigenous_land"`.
+#'     \item Urban: `"neighborhood"` (SIH or CNES), `"urban_area"`,
+#'       `"metro_area"`, `"urban_concentrations"`, `"pop_arrangements"`.
+#'     \item Postal code: `"cep"` (SIH or CNES only; geocoded to POINTs with
+#'       `geocodebr`).
 #'   }
-#'   **Note**: `"cep"` level is only available for SIH and CNES systems.
-#' @param join_col Character string with the name of the column in `df` containing
-#'   the geographic identifier. If `NULL` (default), the function will automatically
-#'   detect the appropriate column based on the `level` and common SUS column patterns.
-#' @param lang Character string specifying the language for messages.
-#'   Options: `"pt"` (Portuguese, default), `"en"` (English), `"es"` (Spanish).
-#' @param use_cache Logical. If `TRUE` (default), uses cached spatial data to avoid
-#'   re-downloads and improve performance.
-#' @param cache_dir Character string specifying the directory to store cached files.
-#'   Default is `"~/.climasus4r_cache/spatial"`.
-#' @param verbose Logical. If `TRUE` (default), prints detailed progress information
-#'   including cache status, download progress, and join statistics.
+#'   Except for `"cep"`, `"health_facilities"` and `"neighborhood"`, the link
+#'   is made through the municipality code; municipality codes of 6 or 7 digits
+#'   are matched against the 6-digit IBGE code. Rows with no match in the
+#'   boundary layer are dropped (inner join) and rows can be repeated when a
+#'   municipality falls in several units (many-to-many).
+#' @param join_col Character scalar naming the column of `df` that holds the
+#'   geographic identifier (municipality code, or CEP for `level = "cep"`).
+#'   `NULL` (default) auto-detects: for `"munic"` the first present of
+#'   `codigo_municipio_ocorrencia`, `codigo_municipio_residencia`,
+#'   `codigo_municipio`, `codigo_municipio_nascimento`,
+#'   `codigo_municipio_paciente`, `uf_municipio_estabelecimento`,
+#'   `CODMUNRES` (and their English/Spanish equivalents) in that priority;
+#'   for `"cep"` the CEP/zip-code column. A name not in `df` errors; if
+#'   auto-detection fails an error lists the expected columns. The column is
+#'   coerced to character (CEPs are zero-padded to 8 digits) and renamed to
+#'   `code_muni` (or `cep`) in the result.
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"` or
+#'   `"es"`; other values fall back to `"pt"` with a warning.
+#' @param use_cache Logical scalar. If `TRUE` (default), boundary layers are
+#'   cached on disk in `cache_dir` (Parquet/GeoPackage) and reused; `FALSE`
+#'   downloads them again.
+#' @param cache_dir Character scalar. Directory for the cache; created if
+#'   missing. Default `"~/.climasus4r_cache/spatial"`.
+#' @param verbose Logical scalar. If `TRUE` (default), prints progress, cache
+#'   status and join statistics.
 #'
-#' @return An `sf` object (Simple Features data.frame) with all original columns from
-#'   `df` plus a `geometry` column containing the spatial geometries:
-#'   \itemize{
-#'     \item **/munic/neighborhood**: POLYGON or MULTIPOLYGON geometries
-#'     \item **/cnes/cep**: POINT geometries (geocoded locations)
-#'   }
+#' @return An `sf` object that is also a `climasus_df`: all columns of `df`
+#'   plus the attributes of the joined layer and a `geometry` column
+#'   (POLYGON/MULTIPOLYGON for areal levels, POINT for `"cep"` and
+#'   `"health_facilities"`). For `level = "munic"` it adds `code_muni` (6
+#'   digits), `code_muni_7` (7 digits), `name_muni`, etc. `sus_meta` is
+#'   updated to `stage = "spatial"`, `type = <level>`, `spatial = TRUE`; the
+#'   `system` is preserved and a history entry is appended.
 #'
 #' @details
-#' **Caching Strategy**:
-#' Spatial data is cached as Parquet files in `~/.climasus4r_cache/spatial` to:
-#' \itemize{
-#'   \item Avoid repeated downloads
-#'   \item Improve performance (10-100x faster)
-#'   \item Enable offline reuse
-#' }
+#' **Caching**: boundary layers are downloaded once (via `geobr` and related
+#' sources) and cached in `cache_dir`, which makes repeated calls much faster
+#' and allows offline reuse.
 #'
-#' **Code Normalization**:
-#' \itemize{
-#'   \item **Municipality codes**: Accepts 6 or 7 digits; 7-digit codes have the
-#'     verification digit removed automatically
-#'   \item **CEP**: Always zero-padded to 8 characters
-#'   \item All join columns are coerced to character type
-#' }
+#' **Code normalization**: all join columns become character; 7-digit
+#' municipality codes are matched on their first 6 digits; CEPs are
+#' left-padded with zeros to 8 characters.
+#'
 #' @references
 #' Pereira, R.H.M.; Goncalves, C.N.; et. all (2019) geobr: Loads Shapefiles of Official Spatial Data Sets of Brazil. GitHub repository - https://github.com/ipeaGIT/geobr.
 #' Pereira, Rafael H. M.; Barbosa, Rogerio J. (2023) censobr: Download Data from Brazil's Population Census. R package version v0.4.0, https://CRAN.R-project.org/package=censobr. DOI: 10.32614/CRAN.package.censobr.
+#'
+#' @seealso [sus_data_standardize()], [sus_data_aggregate()],
+#'   [sus_census_join()], [sus_grid_join()], [sus_data_plot_aggregate_map()]
 #'
 #' @examples
 #' \dontrun{
 #' library(climasus4r)
 #'
-#' # Example 1: Link mortality data to municipalities
-#' df_sim <- sus_data_import(uf = "SP", year = 2023, system = "SIM-DO") %>%
+#' # Example 1: link mortality data to municipalities
+#' df_sim <- sus_data_import(uf = "SP", year = 2023, system = "SIM-DO") |>
 #'   sus_data_standardize(lang = "pt")
 #'
-#' sf_sim <- sus_spatial_join(
-#'   df = df_sim,
-#'   level = "munic",
-#'   lang = "pt"
-#' )
+#' sf_sim <- sus_spatial_join(df = df_sim, level = "munic", lang = "pt")
 #'
-#' # Example 3: Geocode CEP for hospitalization data (SIH only)
-#' df_sih <- sus_data_import(uf = "RJ", year = 2023, system = "SIH-RD") %>%
+#' # Example 2: geocode CEP for hospitalization data (SIH/CNES only)
+#' df_sih <- sus_data_import(uf = "RJ", year = 2023, system = "SIH-RD") |>
 #'   sus_data_standardize(lang = "pt")
 #'
-#' sf_cep <- sus_spatial_join(
-#'   df = df_sih,
-#'   level = "cep",
-#'   lang = "pt"
-#' )
+#' sf_cep <- sus_spatial_join(df = df_sih, level = "cep", lang = "pt")
 #'
-#' # Example 4: Census tract level analysis
-#' sf_census <- sus_spatial_join(
-#'   df = df_sim,
-#'   level = "schools",
-#'   lang = "pt"
+#' # Example 3: link to health regions, naming the municipality column
+#' sf_reg <- sus_spatial_join(
+#'   df       = df_sim,
+#'   level    = "health_region",
+#'   join_col = "codigo_municipio_residencia"
 #' )
 #' }
 #' @export

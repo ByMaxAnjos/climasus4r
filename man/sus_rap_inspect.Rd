@@ -7,17 +7,20 @@
 sus_rap_inspect(rap, rap2 = NULL, verbose = TRUE, lang = "pt")
 }
 \arguments{
-\item{rap}{A \code{rap_object} returned by \code{\link[=sus_rap_read]{sus_rap_read()}}.}
+\item{rap}{A \code{rap_object} returned by \code{\link[=sus_rap_read]{sus_rap_read()}}; other objects abort.}
 
 \item{rap2}{A second \code{rap_object} for comparison, or \code{NULL} (default) for
 single-object summary only.}
 
-\item{verbose}{\code{logical(1)}  - Show detailed step list. Default \code{TRUE}.}
+\item{verbose}{\code{logical(1)}, default \code{TRUE}. Show the detailed step list.}
 
-\item{lang}{\code{character(1)}  - Language for messages.}
+\item{lang}{\code{character(1)}, \code{"pt"} (default), \code{"en"} or \code{"es"}.}
 }
 \value{
-Invisibly, a list with \verb{$summary} (and \verb{$diff} when \code{rap2} is given).
+Invisibly, a list with \verb{$summary} (and \verb{$diff}, with changed
+parameters, added/removed steps and version drift, when \code{rap2} is given).
+Note that the printed \code{years} are joined with \code{":"} (so \code{c(2020, 2024)}
+is displayed as \code{2020:2024}).
 }
 \description{
 Prints a structured summary of a \code{rap_object}. When two objects are
@@ -32,4 +35,7 @@ sus_rap_inspect(rap)
 rap_v2 <- sus_rap_read("pipeline_sp_v2.R")
 sus_rap_inspect(rap, rap_v2)
 }
+}
+\seealso{
+\code{\link[=sus_rap_read]{sus_rap_read()}}
 }

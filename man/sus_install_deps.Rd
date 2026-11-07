@@ -7,15 +7,18 @@
 sus_install_deps(features = "all", force = FALSE, lang = "pt")
 }
 \arguments{
-\item{features}{Character vector. Feature groups to install.
-One or more of \code{"parquet"}, \code{"spatial"}, \code{"plot"}, \code{"models"}, \code{"all"}.
-Default \code{"all"}.}
+\item{features}{Character scalar or vector of feature groups: \code{"all"}
+(default), \code{"parquet"}, \code{"spatial"}, \code{"plot"}, \code{"models"}; e.g.
+\code{c("parquet", "plot")}. Other values abort.}
 
-\item{force}{Logical. Re-install even if the package is already available.
-Default \code{FALSE}.}
+\item{force}{Logical scalar, default \code{FALSE}. Re-install even if the package
+is already available.}
 
-\item{lang}{Character. Language for messages: \code{"pt"} (default), \code{"en"},
-\code{"es"}.}
+\item{lang}{Character scalar, \code{"pt"} (default), \code{"en"} or \code{"es"}. Language of
+messages.}
+}
+\value{
+Called for its side effect of installing packages; the return value is not meaningful.
 }
 \description{
 Installs optional packages needed for specific feature groups.

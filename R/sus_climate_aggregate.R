@@ -6,14 +6,28 @@
 #' health record to the nearest climate station (by Euclidean distance) and applies
 #' the requested temporal window.
 #'
-#' @param health_data A `climasus_df` object produced by `sus_spatial_join()`.
-#'   Must contain columns `date` (Date), `code_muni` (character), and geometry
-#'   column `geom`.
-#' @param climate_data A `climasus_df` object produced by `sus_climate_fill_inmet()`.
+#' This is the climate-health integration step. Run it after
+#' [sus_spatial_join()] (health side, stage `"spatial"`) and after
+#' [sus_climate_inmet()] / [sus_climate_fill_inmet()] /
+#' [sus_climate_compute_indicators()] (climate side, stage `"climate"`).
+#' Hourly climate data are first aggregated to daily resolution. Windows are
+#' retroactive (see Details). It is built for INMET-style columns; UNIPLU data
+#' ([sus_climate_uniplu()]) only provide `rainfall_mm`.
+#'
+#' @param health_data A `climasus_df` at stage `"spatial"` produced by
+#'   [sus_spatial_join()] (other stages raise an error; a plain tibble is
+#'   rejected). Must contain columns `date` (Date), `code_muni` (character), and
+#'   geometry column `geom`.
+#' @param climate_data A `climasus_df` at stage `"climate"` (e.g. from
+#'   [sus_climate_fill_inmet()] or [sus_climate_compute_indicators()]).
 #'   Must contain `date` (Date or POSIXct), `station_code`, `latitude`, `longitude`,
-#'   and climate variables.
-#' @param climate_var Character vector with climate variables to aggregate.
-#'   Use `"all"` (default) to include all available variables.
+#'   and climate variables. Its date range must overlap the health data
+#'   (no overlap is an error; partial overlap is a warning).
+#' @param climate_var Character vector of climate columns to aggregate, e.g.
+#'   `"tair_max_c"` or `c("tair_max_c", "rh_mean_porc")`, or `"all"` (default;
+#'   `NULL` is treated as `"all"`) to use every known variable present in
+#'   `climate_data`. Names not available are dropped with a warning; an error
+#'   is raised if none remain.
 #'
 #'   Available variables are grouped as follows:
 #'
@@ -59,16 +73,22 @@
 #'   - `"diurnal_range_c"` (daily temperature range)
 #'   - `"vapor_pressure_kpa"` (saturation vapor pressure)
 #'
-#'   @section Notes:
+#'   **Notes:**
 #'   - Not all variables may be available in `climate_data`. Use `names(climate_data)`
 #'     to inspect available columns.
 #'   - When `"all"` is used, only existing variables in the dataset are selected.
 #'   - Derived and index variables depend on prior processing with
 #'     `sus_climate_fill_inmet()` or feature engineering steps.
-#' @param time_unit Temporal aggregation unit for raw climate data before join.
-#'   Options: `"day"` (default), `"week"`, `"month"`, `"quarter"`, `"year"`,
-#'   `"season"`. Relevant only when input data are hourly resolution.
-#' @param temporal_strategy Temporal matching strategy. Options:
+#' @param time_unit Single character string: temporal unit to which climate
+#'   data are aggregated before the join. Default `"day"`. Other values:
+#'   `"week"`, `"month"`, `"year"`, `"season"` (Brazilian DJF/MAM/JJA/SON), or a
+#'   lubridate unit string such as `"2 months"`. Hourly input is always
+#'   aggregated to day first. Note that the health `date` is still matched
+#'   against the start date of each period; `"quarter"` is not implemented and
+#'   silently falls back to daily resolution.
+#' @param temporal_strategy Single character string, temporal matching
+#'   strategy (partial matching allowed; invalid values error). Default
+#'   `"exact"`. Options:
 #'   \describe{
 #'     \item{`"exact"`}{Exact date match (same-day temperature for acute heat-related mortality).}
 #'     \item{`"discrete_lag"`}{Climate value exactly L days before event.}
@@ -81,36 +101,63 @@
 #'     \item{`"cold_wave_exceedance"`}{Counts days below threshold (e.g., cold extremes in southern regions).}
 #'     \item{`"weighted_window"`}{Weighted mean with decay function.}
 #'   }
-#' @param climate_region Character. Climate classification for parameter adaptation.
-#'   Options: `"auto"` (default, auto-detect by latitude), `"tropical"` (North, Northeast),
-#'   `"subtropical"` (Center-West, Southeast), `"temperate"` (South).
-#' @param window_days Integer. Number of days in window for `moving_window`,
-#'   `offset_window`, `degree_days`, `threshold_exceedance`, `cold_wave_exceedance`,
-#'   or `weighted_window`. Required for these strategies.
-#' @param lag_days Integer vector. Specific lags for `discrete_lag` or maximum lag
-#'   for `distributed_lag`. Required for these strategies.
-#' @param offset_days Integer vector of length 2 for `offset_window`.
-#'   Defines historical interval: `c(W1, W2)` aggregates from t-W2 to t-W1.
-#' @param temp_base Numeric. Temperature base for `degree_days` calculation.
-#'   If `NULL` (default), uses region-specific default: 20degC (tropical), 18degC (subtropical),
-#'   15degC (temperate). Use 11 degC for *Aedes aegypti* development, 10degC for *Plasmodium*.
-#' @param gdd_temp_var Character. Temperature column for `degree_days`.
-#'   Default: `"tair_dry_bulb_c"`.
-#' @param min_obs Numeric (0 to 1). Minimum proportion of valid observations required
-#'   within window. Default: 0.7 (70%).
-#' @param threshold_value Numeric. Threshold for `threshold_exceedance` or
-#'   `cold_wave_exceedance`. If `NULL`, uses region-specific default.
-#' @param threshold_direction Character: `"above"` (default, > threshold) or
-#'   `"below"` (< threshold). For `cold_wave_exceedance`, automatically set to `"below"`.
-#' @param weights Numeric vector (optional) for `weighted_window`. Defines weight
-#'   for each day within window, from most recent (position 1) to oldest (position W+1).
-#'   If `NULL`, linear decreasing weights are generated automatically.
-#' @param lang Language for messages: `"pt"` (Portuguese), `"en"` (English), or
-#'   `"es"` (Spanish). Default: `"pt"`.
-#' @param verbose Logical. If `TRUE`, displays progress messages. Default: `TRUE`.
+#' @param climate_region Single character string, climate classification used to
+#'   adapt defaults. `"auto"` (default) detects it from the mean station latitude
+#'   (> -5 tropical; -5 to -20 subtropical; < -20 temperate). Or one of
+#'   `"tropical"` (North, Northeast), `"subtropical"` (Center-West, Southeast),
+#'   `"temperate"` (South); anything else errors.
+#' @param window_days Single positive integer (e.g. `7`, `14`): window length
+#'   in days, covering `t-window_days` to `t`. Required for `moving_window`,
+#'   `degree_days`, `threshold_exceedance`, `weighted_window` (and
+#'   `cold_wave_exceedance`, see note below); ignored by the other strategies.
+#' @param lag_days Non-negative integer vector. For `discrete_lag`: the lags in
+#'   days, e.g. `7` or `c(0, 7, 14)` (sorted, duplicates dropped; each lag
+#'   creates its own column). For `distributed_lag`: the maximum lag `L`; a
+#'   vector uses `max(lag_days)` and lags `0:L` are created (use `0:14` or `14`
+#'   alike). Required for these two strategies, ignored otherwise.
+#' @param offset_days Numeric vector of length 2 (non-negative integers), e.g.
+#'   `c(7, 14)`, for `offset_window`. The pair is sorted, so `c(14, 7)` is
+#'   equivalent; it aggregates from `t-14` to `t-7`. Required for
+#'   `offset_window`, ignored otherwise.
+#' @param temp_base Single non-negative number (degC), base for `degree_days`.
+#'   If `NULL` (default), uses the region default: 20 (tropical), 18
+#'   (subtropical), 15 (temperate). Use 11 for *Aedes aegypti* development, 10
+#'   for *Plasmodium*. A warning is shown if it differs by more than 3 degC
+#'   from the regional default.
+#' @param gdd_temp_var Single character string. Temperature column used by
+#'   `degree_days`. Default `"tair_dry_bulb_c"`.
+#' @param min_obs Numeric scalar in `[0, 1]`. Minimum proportion of valid
+#'   (non-NA) daily observations required within a window for the result to be
+#'   computed (otherwise `NA`). Used by the window strategies. Default `0.7`.
+#' @param threshold_value Single number (degC) used by `threshold_exceedance`
+#'   and `cold_wave_exceedance`. If `NULL`, uses the regional heat-wave
+#'   threshold (tropical 35, subtropical 32, temperate 30) for both strategies,
+#'   so supply an explicit value (e.g. `5`) for `cold_wave_exceedance`.
+#' @param threshold_direction Single character string, `"above"` (default,
+#'   value > threshold) or `"below"` (value < threshold). Only used by
+#'   `threshold_exceedance`; `cold_wave_exceedance` always counts days below
+#'   the threshold.
+#' @param weights Numeric vector (optional, non-negative) for `weighted_window`,
+#'   of length `window_days + 1`, from the event day (position 1) to the oldest
+#'   day (position `window_days + 1`). If `NULL`, linearly decreasing weights
+#'   from 1.0 to 0.1 are generated. Ignored for other strategies.
+#' @param lang Single character string. Message language: `"pt"`
+#'   (Portuguese, default), `"en"` (English), or `"es"` (Spanish).
+#' @param verbose Logical scalar. If `TRUE` (default), displays progress messages.
 #'
-#' @return A `climasus_df` (tibble) with original health data and integrated climate
-#'   variables as new columns. Geometry is preserved if input is `sf`.
+#' @return A `climasus_df` (tibble) with the original health data and the
+#'   integrated climate variables as new columns (names depend on the strategy,
+#'   e.g. threshold/lag/window suffixes; strategies other than `"exact"` also
+#'   add the same-day value of each variable). Whether the `geom` column
+#'   is preserved depends on the strategy. `sus_meta()`: `system` kept from the health data, `stage` set
+#'   to `"climate"`, `type` set to the `temporal_strategy`, and a history entry
+#'   describing the parameters.
+#'
+#' @seealso
+#' * [sus_spatial_join()] to prepare `health_data`
+#' * [sus_climate_inmet()], [sus_climate_fill_inmet()] and
+#'   [sus_climate_compute_indicators()] to prepare `climate_data`
+#' * [sus_climate_plot_aggregate()] to visualise the result
 #'
 #' @details
 #' ## Temporal Strategies Epidemiological Foundations
@@ -141,6 +188,16 @@
 #' **Temperate (South):** Mean temperature 12-24degC, recommended temp_base 15degC,
 #' heatwave threshold Tmax > 30degC, **coldwave threshold Tmin < 5degC** (critical),
 #' low autocorrelation.
+#'
+#' ## Caveats
+#'
+#' - `cold_wave_exceedance` needs `window_days` internally, but the argument
+#'   validation currently only enforces/returns it for the four strategies
+#'   listed under `window_days`; check the result when using this strategy.
+#' - Variables are collapsed to one value per municipality and day using
+#'   variable-specific rules (sum for rainfall/radiation/degree-days, max for
+#'   Tmax and heat indices, min for Tmin and cold indices, circular mean for
+#'   wind direction, mean otherwise).
 #'
 #' ## Causal Inference & Look-Ahead Bias
 #'

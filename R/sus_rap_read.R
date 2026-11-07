@@ -63,14 +63,21 @@ utils::globalVariables(character(0L))
 #' pipeline step list. The result can be inspected with [sus_rap_inspect()],
 #' re-executed with [sus_rap_run()], or patched with [sus_rap_update()].
 #'
-#' @param file_path `character(1)`  - Path to an `.R`, `.Rmd`, or `.qmd` file
-#'   exported by [sus_rap_export()].
-#' @param lang `character(1)`  - Language for messages: `"pt"` (default),
-#'   `"en"`, or `"es"`.
-#' @param validate `logical(1)`  - Check structural integrity. Default `TRUE`.
+#' @param file_path `character(1)`, path to an existing `.R`, `.Rmd` or `.qmd`
+#'   file exported by [sus_rap_export()], e.g. `"pipeline_sp.R"`. Aborts if the
+#'   file does not exist.
+#' @param lang `character(1)`, `"pt"` (default), `"en"` or `"es"`.
+#' @param validate `logical(1)`, default `TRUE`. Check structural integrity and
+#'   warn about problems found.
 #'
-#' @return A `rap_object` list with fields `$metadata`, `$params`, `$steps`,
-#'   `$structure`, `$source`, `$format`, and `$raw`.
+#' @return A `rap_object` (list) with fields `$metadata` (session info),
+#'   `$params` (editable parameters; the year parameter is named `years`),
+#'   `$steps` (pipeline steps), `$structure`, `$source` (normalised path),
+#'   `$format` (detected `"script"`, `"rmarkdown"`, `"quarto"` or `"function"`)
+#'   and `$raw` (file lines).
+#'
+#' @seealso [sus_rap_export()], [sus_rap_inspect()], [sus_rap_run()],
+#'   [sus_rap_update()]
 #'
 #' @export
 #' @importFrom cli cli_alert_info cli_alert_warning cli_alert_success cli_abort
@@ -159,13 +166,18 @@ sus_rap_read <- function(file_path, lang = "pt", validate = TRUE) {
 #' supplied, performs a side-by-side diff showing changed parameters, added or
 #' removed pipeline steps, and package version drift.
 #'
-#' @param rap A `rap_object` returned by [sus_rap_read()].
+#' @param rap A `rap_object` returned by [sus_rap_read()]; other objects abort.
 #' @param rap2 A second `rap_object` for comparison, or `NULL` (default) for
 #'   single-object summary only.
-#' @param verbose `logical(1)`  - Show detailed step list. Default `TRUE`.
-#' @param lang `character(1)`  - Language for messages.
+#' @param verbose `logical(1)`, default `TRUE`. Show the detailed step list.
+#' @param lang `character(1)`, `"pt"` (default), `"en"` or `"es"`.
 #'
-#' @return Invisibly, a list with `$summary` (and `$diff` when `rap2` is given).
+#' @return Invisibly, a list with `$summary` (and `$diff`, with changed
+#'   parameters, added/removed steps and version drift, when `rap2` is given).
+#'   Note that the printed `years` are joined with `":"` (so `c(2020, 2024)`
+#'   is displayed as `2020:2024`).
+#'
+#' @seealso [sus_rap_read()]
 #' @export
 #'
 #' @examples
@@ -258,14 +270,20 @@ sus_rap_inspect <- function(rap, rap2 = NULL, verbose = TRUE, lang = "pt") {
 #' it easy to replay an analysis for a different state or year range.
 #'
 #' @param rap A `rap_object` returned by [sus_rap_read()].
-#' @param ... Name-value pairs overriding fields in `rap$params` (e.g.
-#'   `uf = "RJ"`, `years = 2021:2023`).
-#' @param envir `environment`  - Execution environment. Default `parent.frame()`.
-#' @param dry_run `logical(1)`  - Print the reconstructed code without executing.
-#'   Default `FALSE`.
-#' @param lang `character(1)`  - Language for messages.
+#' @param ... Name-value pairs (R values, not code strings) overriding fields in
+#'   `rap$params`, e.g. `uf = "RJ"`, `uf = c("RJ", "SP")`, `years = 2021:2023`
+#'   (the RAP parameter is called `years`; it is passed to the `year` argument
+#'   of [sus_data_import()]), `system = "SIM-DO"`, `time_unit = "week"`.
+#' @param envir `environment`, default `parent.frame()`. Where the pipeline code
+#'   is evaluated.
+#' @param dry_run `logical(1)`, default `FALSE`. Print the reconstructed code
+#'   without executing it (returns `NULL`).
+#' @param lang `character(1)`, `"pt"` (default), `"en"` or `"es"`.
 #'
-#' @return Invisibly, the `data.frame` produced by the pipeline.
+#' @return Invisibly, the result of the pipeline (normally a data frame /
+#'   `climasus_df`), or `NULL` when `dry_run = TRUE`.
+#'
+#' @seealso [sus_rap_read()], [sus_rap_update()]
 #' @export
 #'
 #' @importFrom utils modifyList
@@ -346,13 +364,17 @@ sus_rap_run <- function(rap, ..., envir = parent.frame(),
 #' created before any modification.
 #'
 #' @param rap A `rap_object` returned by [sus_rap_read()].
-#' @param ... Named parameters to update (e.g. `uf = "\"RJ\""`,
-#'   `years = "2021:2024"`). Values are treated as raw R code strings.
-#' @param backup `logical(1)`  - Create a `.bak` backup before writing.
-#'   Default `TRUE`.
-#' @param lang `character(1)`  - Language for messages.
+#' @param ... Named parameters to update, each value a **string of R code**
+#'   written into the file, e.g. `uf = '"RJ"'` (note the inner quotes),
+#'   `uf = 'c("RJ", "SP")'`, `years = "2021:2024"`. Names not found as
+#'   `name = value` lines in the file are ignored with a warning. No arguments:
+#'   nothing is changed.
+#' @param backup `logical(1)`, default `TRUE`. Save `<file>.bak` before writing.
+#' @param lang `character(1)`, `"pt"` (default), `"en"` or `"es"`.
 #'
-#' @return Invisibly, the updated `rap_object` (re-read from the patched file).
+#' @return Invisibly, the updated `rap_object` (re-read from the patched file;
+#'   the unchanged input if there was nothing to patch).
+#' @seealso [sus_rap_read()], [sus_rap_run()]
 #' @export
 #'
 #' @examples

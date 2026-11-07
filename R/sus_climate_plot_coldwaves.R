@@ -6,27 +6,43 @@
 #' events, a calendar heatmap, an intensity-vs-duration scatter plot, and an
 #' annual trend bar chart.
 #'
-#' @param cw_result List. The output from `sus_climate_compute_coldwaves()`.
-#' @param type Character. Type of plot to generate:
+#' Use it after [sus_climate_compute_coldwaves()]; data can be restricted to
+#' stations, methods and years before plotting.
+#'
+#' @param cw_result A `climasus_cw` list (with elements `events`, `daily`,
+#'   `summary`) returned by [sus_climate_compute_coldwaves()]. Anything else
+#'   errors.
+#' @param type Single character string (partial matching allowed). Type of
+#'   plot to generate; default `"timeline"`:
 #'   * `"timeline"`: Gantt-style timeline of coldwave events.
-#'   * `"calendar"`: Calendar heatmap showing days with coldwaves.
+#'   * `"calendar"`: Calendar heatmap of coldwave days (all methods combined
+#'     via `cw_any` when `method = NULL`, otherwise the first method given).
 #'   * `"intensity"`: Scatter plot of duration vs. coldest temperature.
 #'   * `"trend"`: Bar chart of number of events per year.
-#' @param station_code Character. Optional. Filter by a specific station code.
-#' @param method Character. Optional. Filter by a specific method (e.g.,
-#'   `"EHF"`, `"INMET"`).
-#' @param year Numeric. Optional. Filter by a specific year (useful for
-#'   calendar plots).
-#' @param interactive Logical. If `TRUE`, returns an interactive Plotly chart.
-#'   If `FALSE`, returns a static ggplot2 chart. Default is `TRUE`.
-#' @param color_palette Character. Name of the ggsci palette to use. Default
-#'   is `"npg"`. Blue tones are extracted for cold-event emphasis.
-#' @param lang Character. Language for labels: `"pt"` (default), `"en"`,
-#'   `"es"`.
-#' @param save_plot Character. Optional file path to save the plot
-#'   (e.g., `"plot.html"` or `"plot.png"`).
+#' @param station_code Character vector or `NULL` (default, all stations).
+#'   One or more station codes, e.g. `"A101"` or `c("A101", "A122")`.
+#' @param method Character vector or `NULL` (default, all methods). Method
+#'   name(s) as in the result, e.g. `"EHF"` or `c("WHO", "INMET")`. For
+#'   `type = "calendar"` only the first value is used.
+#' @param year Numeric vector or `NULL` (default, all years). A single year
+#'   (`2023`), a range (`2020:2023`) or explicit years (`c(2019, 2023)`; exactly
+#'   those years, not the span). Useful for calendar plots.
+#' @param interactive Logical scalar. If `TRUE` (default), returns an
+#'   interactive Plotly chart (requires \pkg{plotly}); if `FALSE`, a static
+#'   ggplot2 chart.
+#' @param color_palette Single character string. Name of a \pkg{ggsci} palette
+#'   without the `pal_` prefix (e.g. `"npg"`, `"lancet"`, `"jco"`). Default
+#'   `"npg"`; blue tones are extracted for cold-event emphasis.
+#' @param lang Single character string: `"pt"` (default), `"en"` or `"es"`
+#'   for labels and titles; other values error.
+#' @param save_plot Single character string or `NULL` (default, do not save).
+#'   File path to save the plot: use `".html"` when `interactive = TRUE`
+#'   (needs \pkg{htmlwidgets}) or an image extension such as `".png"` when
+#'   `interactive = FALSE` (saved at 10 x 6 inches, 300 dpi).
 #'
-#' @return A ggplot or plotly object.
+#' @return A `ggplot` object (`interactive = FALSE`) or a `plotly` object
+#'   (`interactive = TRUE`). If no events remain after filtering, a warning is
+#'   issued and `NULL` is returned.
 #'
 #' @examples
 #' \dontrun{
@@ -35,7 +51,8 @@
 #' sus_climate_plot_coldwaves(cw, type = "trend", interactive = FALSE)
 #' }
 #'
-#' @seealso [sus_climate_compute_coldwaves()]
+#' @seealso [sus_climate_compute_coldwaves()], [sus_climate_plot_heatwaves()],
+#'   [cw_get_events()]
 #'
 #' @export
 #' @importFrom dplyr filter mutate group_by summarise select

@@ -218,50 +218,65 @@ utils::globalVariables(c(
 #' - `ns_df = NULL` with `dof_per_year = 0`: suppress time control
 #'   (use only when exposure is already an anomaly from climatology).
 #'
-#' @param df A `climasus_df` at stage `"climate"` and type `"distributed_lag"`,
-#'   produced by `sus_climate_aggregate(temporal_strategy = "distributed_lag")`.
-#'   Must contain a `date` column (Date), the outcome column, and lag columns
-#'   `{climate_col}_lag0`, ..., `{climate_col}_lag{L}`. Geometry columns
-#'   (sf) are automatically dropped before modelling.
-#' @param outcome_col Character. Name of the daily health count column
-#'   (e.g., `"n_obitos"`, `"n_internacoes"`, `"n_dengue"`). Default:
-#'   `"n_obitos"`.
-#' @param climate_col Character or `NULL`. Base name of the climate exposure
-#'   (without `_lagN` suffix, e.g., `"tair_dry_bulb_c"`). `NULL` auto-detects
-#'   by priority: air temperature > rainfall > humidity > other known variables.
-#' @param lag_max Integer or `NULL`. Maximum lag to include in the crossbasis.
-#'   `NULL` auto-detects from the highest `N` present in `{climate_col}_lagN`
-#'   columns.
-#' @param covariates Character vector or `NULL`. Names of additional columns in
-#'   `df` to include as linear confounders in the GLM formula (e.g.,
-#'   `c("rainfall_mm", "rh_mean_porc")`). These are averaged across
-#'   municipalities before fitting. Default: `NULL`.
-#' @param argvar Named list. Arguments for the exposure dimension of the
-#'   `crossbasis` (passed to `dlnm::crossbasis(argvar = ...)`). Default:
-#'   `list(fun = "ns", df = 4)`. See **Basis selection** section.
-#' @param arglag Named list. Arguments for the lag dimension of the
-#'   `crossbasis` (passed to `dlnm::crossbasis(arglag = ...)`). Default:
-#'   `list(fun = "ns", df = 3)`. See **Basis selection** section.
-#' @param family Character. GLM family: `"quasipoisson"` (default, recommended),
-#'   `"poisson"`, or `"negbin"` (redirected to `"quasipoisson"` with warning).
-#' @param ns_df Integer or `NULL`. Degrees of freedom for the natural spline
-#'   time trend (`splines::ns(date, df = ns_df)`). `NULL` (default) triggers
-#'   automatic computation based on `dof_per_year`. Set to `0` to suppress
-#'   time control entirely.
-#' @param dof_per_year Integer. Degrees of freedom per year of data used for
-#'   automatic `ns_df` computation. Default: `4L`. Ignored when `ns_df` is
-#'   explicitly set.
-#' @param ref_value Numeric or `NULL`. Exposure value where RR = 1 (the
-#'   centring value for `dlnm::crosspred()`). `NULL` (default) uses the
-#'   sample median of lag-0 exposure values.
-#' @param pred_at Numeric vector of quantile probabilities (0-1) at which to
-#'   report the cumulative exposure-response curve in `$exposure_response`.
-#'   Default: `c(0.25, 0.50, 0.75, 0.90, 0.95, 0.99)`.
-#' @param alpha Numeric (0-1). Confidence level for intervals:
-#'   CI = \eqn{(1 - \alpha)}. Default: `0.05` (95% CI).
-#' @param lang Character. Language for messages: `"pt"` (default), `"en"`,
-#'   `"es"`.
-#' @param verbose Logical. Print progress steps and warnings. Default `TRUE`.
+#' @param df A `climasus_df` (Arrow-backed inputs are collected) at stage
+#'   `"climate"`, normally with type `"distributed_lag"`, produced by
+#'   `sus_climate_aggregate(temporal_strategy = "distributed_lag")`. A plain
+#'   tibble, or a stage other than `"climate"`, errors; a type other than
+#'   `"distributed_lag"` only warns. Must contain a `date` column, the outcome
+#'   column, and the lag columns `{climate_col}_lag0`, ..., `{climate_col}_lag{L}`.
+#'   Geometry (sf) is dropped. Rows are aggregated by `date` (outcome summed,
+#'   exposure and covariates averaged across municipalities), so multi-city
+#'   input is modelled as one pooled series.
+#' @param outcome_col Character scalar. Name of the daily health count column
+#'   (e.g. `"n_obitos"`, `"n_internacoes"`). Default `"n_obitos"`. Errors if
+#'   absent.
+#' @param climate_col Character scalar or `NULL`. Base name of the exposure
+#'   without the `_lagN` suffix (e.g. `"tair_dry_bulb_c"`). `NULL` (default)
+#'   auto-detects among the `*_lagN` columns, preferring (in order) air
+#'   temperature, rainfall, humidity and other known variables, else the first
+#'   one found. Errors if no `{climate_col}_lagN` column exists.
+#' @param lag_max Non-negative integer scalar or `NULL`. Maximum lag of the
+#'   crossbasis (lags `0:lag_max` are used), e.g. `21`. `NULL` (default) uses
+#'   the highest `N` among the `{climate_col}_lagN` columns. A value smaller than
+#'   the available maximum truncates the lags; a larger one errors (missing
+#'   columns). At least `lag_max + 10` complete days are required.
+#' @param covariates Character vector or `NULL` (default). Names of extra
+#'   columns in `df` added linearly to the GLM, e.g.
+#'   `c("rainfall_mm", "rh_mean_porc")`; averaged across municipalities per
+#'   date. Errors if any is absent.
+#' @param argvar Named list. Exposure-dimension basis passed to
+#'   `dlnm::crossbasis(argvar = )` (any `dlnm::onebasis()` spec, e.g.
+#'   `list(fun = "ns", df = 4)`, `list(fun = "bs", degree = 2, knots = ...)`,
+#'   `list(fun = "lin")`, `list(fun = "thr", thr.value = 25)`). Default
+#'   `list(fun = "ns", df = 4)`. See **Basis selection**.
+#' @param arglag Named list. Lag-dimension basis passed to
+#'   `dlnm::crossbasis(arglag = )`, e.g. `list(fun = "ns", df = 3)` (default),
+#'   `list(fun = "poly", degree = 2)`, `list(fun = "integer")`. See
+#'   **Basis selection**.
+#' @param family Character scalar: `"quasipoisson"` (default, recommended),
+#'   `"poisson"` or `"negbin"` (the latter is redirected to `"quasipoisson"`
+#'   with a warning). Matched with `match.arg()`; anything else errors.
+#' @param ns_df Integer scalar or `NULL`. Degrees of freedom of the natural
+#'   spline on date (`splines::ns(as.integer(date), df = ns_df)`) controlling
+#'   trend/seasonality. `NULL` (default) computes it from `dof_per_year`;
+#'   `0` removes the time control entirely.
+#' @param dof_per_year Non-negative integer. Used only when `ns_df = NULL`:
+#'   `ns_df = max(dof_per_year, round(dof_per_year * years_of_data))`. Default
+#'   `4L`; `0` (with `ns_df = NULL`) also suppresses time control. See
+#'   **Temporal confounding**.
+#' @param ref_value Numeric scalar or `NULL`. Exposure value with RR = 1
+#'   (centring value of `dlnm::crosspred()`), in the units of `climate_col`,
+#'   e.g. `24`. `NULL` (default) uses the median of the lag-0 exposure.
+#' @param pred_at Numeric vector of probabilities in (0, 1) (scalar or
+#'   vector, e.g. `c(0.50, 0.95)`). Exposure percentiles reported in
+#'   `$exposure_response`. Default `c(0.25, 0.50, 0.75, 0.90, 0.95, 0.99)`.
+#'   Values outside the 1st-99th percentile grid are matched to the nearest
+#'   grid point.
+#' @param alpha Numeric scalar in (0, 1). Significance level; confidence
+#'   intervals have level `1 - alpha`. Default `0.05` (95% CI).
+#' @param lang Character scalar: `"pt"` (default), `"en"`, `"es"`. Language of
+#'   messages; unsupported values warn and fall back to `"pt"`.
+#' @param verbose Logical scalar. If `TRUE` (default) prints progress steps.
 #'
 #' @return A `climasus_dlnm` list with the following components:
 #'   \describe{
@@ -273,14 +288,14 @@ utils::globalVariables(c(
 #'       grid from the 1st to 99th percentile of exposure. Contains
 #'       `allRRfit`, `allRRlow`, `allRRhigh` (cumulative overall effect)
 #'       and `matRRfit`, `matRRlow`, `matRRhigh` (lag-specific effects).}
-#'     \item{`$exposure_response`}{Tibble with cumulative RR at the
-#'       percentiles specified in `pred_at`: columns `pct`, `exposure`,
+#'     \item{`$exposure_response`}{Tibble with cumulative RR (vs `ref_value`)
+#'       at the exposure percentiles in `pred_at`: columns `pct`, `exposure`,
 #'       `rr`, `lo`, `hi`.}
 #'     \item{`$lag_response`}{Tibble with lag-specific RR at the 75th
-#'       percentile of exposure (for `dlnm_lag` plots): columns `lag`,
+#'       percentile of exposure (used by `sus_mod_plot_dlnm(type = "lag")`): columns `lag`,
 #'       `rr`, `lo`, `hi`, `rr_cum`.}
 #'     \item{`$models`}{One-row summary tibble for integration with
-#'       `plot_climate_health(fit = ...)`: `variable`, `n`, `family`,
+#'       [sus_mod_plot_dlnm()]: `variable`, `n`, `family`,
 #'       `lag_max`, `ref_value`, `exposure_p75`, `rr`, `lo`, `hi`,
 #'       `lag_peak`, `disp_ratio`, `aic_poisson`.}
 #'     \item{`$data_daily`}{Aggregated daily tibble used for model
@@ -347,14 +362,14 @@ utils::globalVariables(c(
 #' fit$lag_response        # RR by lag at p75
 #' fit$diagnostics$disp_ratio
 #'
-#' # Step 3: visualise (requires plot_climate_health)
-#' # plots <- plot_climate_health(
-#' #   data = df_dl, fit = fit,
-#' #   plot_type = c("dlnm_surface", "dlnm_overall", "dlnm_lag")
-#' # )
+#' # Step 3: visualise
+#' sus_mod_plot_dlnm(fit, type = "overall")
+#' sus_mod_plot_dlnm(fit, type = "lag")
 #' }
 #'
-#' @seealso [sus_climate_aggregate()], [sus_climate_compute_heatwaves()]
+#' @seealso [sus_climate_aggregate()], [sus_mod_af()], [sus_mod_excess()],
+#'   [sus_mod_pool()], [sus_mod_sensitivity()], [sus_mod_plot_dlnm()],
+#'   [sus_climate_compute_heatwaves()]
 #'
 #' @export
 #' @importFrom dplyr mutate select filter arrange summarise across any_of

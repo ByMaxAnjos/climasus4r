@@ -17,39 +17,43 @@ sus_mod_spacetime_predict(
 }
 \arguments{
 \item{fit}{A \code{climasus_spacetime_bayes} object from
-\code{\link[=sus_mod_spacetime_bayes]{sus_mod_spacetime_bayes()}}.}
+\code{\link[=sus_mod_spacetime_bayes]{sus_mod_spacetime_bayes()}}. Must contain a \verb{$fixed} data frame
+(\code{term}, \code{mean}, \code{sd}); \verb{$spatial_re} and \verb{$temporal_re} are used when
+present. Errors otherwise.}
 
-\item{newdata}{A \code{data.frame} with at least columns \code{code_muni} (7-digit
-IBGE code) and \code{time_idx} (integer period index, 1-based, matching the
-encoding used in the original fit) plus any covariate columns required
-by the model. If \code{NULL} and \code{horizon > 0}, a synthetic grid is constructed
-by crossing all fitted municipalities with the next \code{horizon} time steps,
-using covariate values from the last observed period (stored in
-\code{fit$data_last_obs}, if available).}
+\item{newdata}{A \code{data.frame} with columns \code{code_muni} (IBGE code as used
+in the fit) and \code{time_idx} (integer period index, 1-based, same encoding
+as \code{fit$rr$time_idx}), plus one column per covariate term in
+\code{fit$fixed} (unless supplied through \code{covariates_new}); missing columns
+error. \code{NULL} (default) requires \code{horizon > 0}: a grid is built by
+crossing all fitted municipalities with the next \code{horizon} periods,
+carrying covariates forward from \code{fit$data_last_obs} (stored by \code{\link[=sus_mod_spacetime_bayes]{sus_mod_spacetime_bayes()}}).}
 
-\item{horizon}{Non-negative integer. Number of periods ahead to predict when
-\code{newdata} is \code{NULL}. If \code{newdata} is provided, \code{horizon} must be \code{0L}
-(default).}
+\item{horizon}{Non-negative integer scalar. Periods ahead to predict when
+\code{newdata} is \code{NULL}, e.g. \code{6L}. Must be \code{0L} (default) when \code{newdata}
+is supplied (error otherwise); negative or \code{NA} errors.}
 
-\item{covariates_new}{Named list of covariate overrides for scenario
-analysis. Each element must be a scalar (applied to all rows) or a vector
-of length \code{nrow(newdata)}. Applied after \code{newdata} columns are extracted.
+\item{covariates_new}{Named list of covariate overrides for scenarios, e.g.
+\code{list(temp_mean = newdata$temp_mean + 2)}. Each element is a scalar
+(recycled) or a vector of length \code{nrow(newdata)}; applied after
+\code{newdata} columns are read and may stand in for missing columns.
 Default \code{NULL} (no overrides).}
 
-\item{include_ci}{Logical. If \code{TRUE} (default), compute 95\\% approximate
-credible intervals via variance propagation from posterior standard
-deviations in \code{fit$fixed}, \code{fit$spatial_re}, and \code{fit$temporal_re}.}
+\item{include_ci}{Logical scalar. \code{TRUE} (default) adds 95\% approximate
+credible limits (\code{pred_lower95}, \code{pred_upper95}) using a diagonal
+variance propagation of \code{fit$fixed}, \code{fit$spatial_re} and
+\code{fit$temporal_re} standard deviations.}
 
-\item{return_samples}{Logical. If \code{TRUE}, attempt to draw posterior
-predictive samples from the stored INLA fit object (\code{fit$inla_fit}).
-Requires the model to have been fitted with \code{return_inla_fit = TRUE} and
-the \strong{INLA} package to be installed. Default \code{FALSE}.}
+\item{return_samples}{Logical scalar. \code{TRUE} requests raw INLA posterior
+samples (1000 draws) and adds \verb{$samples}. It requires \code{fit$inla_fit},
+which \code{\link[=sus_mod_spacetime_bayes]{sus_mod_spacetime_bayes()}} does not currently store, so it
+errors for fits from that function. Needs \pkg{INLA}. Default \code{FALSE}.}
 
-\item{lang}{Character. Language for CLI messages: \code{"pt"} (default),
-\code{"en"}, or \code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"},
+or \code{"es"}; anything else errors (\code{match.arg}).}
 
-\item{verbose}{Logical. If \code{TRUE} (default), print progress messages via
-\strong{cli}.}
+\item{verbose}{Logical scalar. Print progress messages via \pkg{cli}.
+Default \code{TRUE}.}
 }
 \value{
 A named list of class \code{c("climasus_spacetime_pred", "list")} with:
@@ -64,6 +68,9 @@ A named list of class \code{c("climasus_spacetime_pred", "list")} with:
 If \code{return_samples = TRUE} and INLA is available, an additional
 \verb{$samples} slot contains raw INLA posterior samples (list from
 \code{INLA::inla.posterior.sample()}).
+
+The likelihood family is read from \code{fit$family} or \code{fit$model_spec$family}
+(default \code{"poisson"} when absent).
 }
 \description{
 Produces approximate predictions at new or future space-time points from a
@@ -85,8 +92,9 @@ contribution: \eqn{\eta^{(f)} = X_{\text{new}} \hat{\beta}}.
 \item Spatial random effect: reuse \code{fit$spatial_re} for municipalities present
 in the fitted model. For municipalities not in the training data, the
 spatial random effect is set to \code{NA} with a warning.
-\item Temporal random effect: for in-sample time points, reuse \code{fit$temporal_re}
-directly. For future periods (\code{horizon > 0}), extrapolate using the last
+\item Temporal random effect: for in-sample time points, reuse the
+\code{psi_mean} (or \code{gamma_mean}) column of \code{fit$temporal_re}. For future
+periods (\code{horizon > 0}), extrapolate using the last
 observed increment (RW1: repeat last increment; RW2: project second
 differences) with uncertainty propagation.
 \item Full linear predictor: \eqn{\hat{\eta} = \eta^{(f)} + \phi_i + \gamma_t}.
@@ -95,7 +103,7 @@ differences) with uncertainty propagation.
 where \eqn{V_\beta = \text{diag}(\sigma_\beta^2)} (diagonal approximation).
 \item Point prediction: \eqn{\hat{\mu} = \exp(\hat{\eta})} (Poisson / NB) or
 \eqn{\hat{\mu} = \hat{\eta}} (Gaussian).
-\item 95\\% credible interval:
+\item 95\% credible interval:
 \eqn{\exp(\hat{\eta} \pm 1.96 \sqrt{\text{Var}(\hat{\eta})})}.
 }
 
@@ -163,6 +171,8 @@ checks: a comparison of MCMC and INLA. In \emph{Statistical Modelling and
 Regression Structures} (pp. 91-110). Physica-Verlag HD.
 }
 \seealso{
+\code{\link[=sus_mod_spacetime_bayes]{sus_mod_spacetime_bayes()}} to fit the model,
+\code{\link[=sus_mod_spacetime_exceedance]{sus_mod_spacetime_exceedance()}} for exceedance probabilities,
 \code{\link[=sus_mod_spatial_bayes]{sus_mod_spatial_bayes()}} for cross-sectional Bayesian disease mapping,
 \code{\link[=sus_mod_spatial_weights]{sus_mod_spatial_weights()}} to build the spatial adjacency object,
 \code{\link[=sus_mod_spatial_moran]{sus_mod_spatial_moran()}} for exploratory spatial autocorrelation analysis.

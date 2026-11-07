@@ -51,23 +51,68 @@
 #'   \item Residuals vs observed (heteroscedasticity diagnostic).
 #' }
 #'
-#' @param df_filled Output of `sus_climate_fill_inmet()`. In production mode this is a
-#'   `<climasus_df>` tibble; in evaluation mode it is the named list returned by
-#'   `sus_climate_fill_inmet(evaluation = TRUE)`.
-#' @param df_original Raw data before gap filling, e.g. from `sus_climate_inmet()`.
-#'   Required in production mode; ignored in evaluation mode.
-#' @param target_var Character vector of variable(s) to visualise.
-#' @param interactive Logical. `TRUE` → plotly; `FALSE` → ggplot2 (default: `TRUE`).
-#' @param output_type What to return: `"plot"`, `"table"`, `"metrics"`, or `"all"`
-#'   (default: `"all"`).
-#' @param save_plot Optional file path to save the plot (e.g. `"plot.png"` or
-#'   `"plot.html"`).
-#' @param lang Language: `"en"`, `"pt"`, or `"es"` (default: `"en"`).
-#' @param color_palette ggsci palette name (default: `"npg"`).
-#' @param verbose Print diagnostic information (default: `FALSE`).
+#' Use it after [sus_climate_fill_inmet()], with either the filled data
+#' (production mode) or the evaluation list (`run_evaluation = TRUE`). All of
+#' \pkg{ggplot2}, \pkg{ggsci}, \pkg{DT}, \pkg{patchwork} and \pkg{htmltools}
+#' must be installed (plus \pkg{plotly} if `interactive = TRUE`).
 #'
-#' @return Depending on `output_type`, returns the plot, table, metrics, or a
-#'   named list containing all four components: `plot`, `table`, `metrics`, `data`.
+#' @param df_filled Output of [sus_climate_fill_inmet()]. In production mode
+#'   this is a `climasus_df` (stage `"climate"`, type `"filled"`); in
+#'   evaluation mode it is the named list returned by
+#'   `sus_climate_fill_inmet(run_evaluation = TRUE)`. The mode is detected
+#'   automatically from the first `target_var`.
+#' @param df_original A `climasus_df` of the raw data before gap filling
+#'   (stage `"climate"`, type `"inmet"`), e.g. from [sus_climate_inmet()].
+#'   Required in production mode (errors if `NULL` or of another type);
+#'   ignored in evaluation mode.
+#' @param target_var Character vector (required) of variable(s) to visualise,
+#'   e.g. `"tair_dry_bulb_c"` or `c("tair_dry_bulb_c", "rh_mean_porc")`. In
+#'   evaluation mode the names must be elements of the evaluation list. With
+#'   several variables the plots are stacked in one combined figure.
+#' @param interactive Logical scalar. `TRUE` returns plotly; `FALSE` (default)
+#'   returns ggplot2.
+#' @param output_type Single character string, what to return: `"plot"`
+#'   (default), `"table"`, `"metrics"`, or `"all"` (named list).
+#' @param save_plot Single character string or `NULL` (default, do not save).
+#'   File path to save the plot: `".html"` when `interactive = TRUE` (needs
+#'   \pkg{htmlwidgets}), an image path such as `".png"` when
+#'   `interactive = FALSE` (12 x 5 inches, 150 dpi).
+#' @param lang Single character string: `"en"` (default), `"pt"`, or `"es"`
+#'   (message and label language).
+#' @param color_palette Single character string, name of a \pkg{ggsci} palette
+#'   (without `pal_`). One of `"npg"` (default), `"aaas"`, `"nejm"`,
+#'   `"lancet"`, `"jama"`, `"bmj"`, `"jco"`, `"frontiers"`, `"gsea"`,
+#'   `"uchicago"`, `"primer"`, `"atlassian"`, `"observable"`, `"d3"`, `"igv"`,
+#'   `"cosmic"`, `"locuszoom"`, `"ucscgb"`, `"startrek"`, `"tron"`,
+#'   `"futurama"`, `"rickandmorty"`, `"simpsons"`, `"flatui"`, `"bs5"`,
+#'   `"material"`, `"tw3"`.
+#' @param verbose Logical scalar. Print diagnostic information (default
+#'   `FALSE`).
+#'
+#' @return Returned invisibly. Depending on `output_type`: the plot (ggplot or
+#'   plotly), the DT table (`DT::datatable`), the metrics tibble (per-station
+#'   evaluation metrics, or imputation summary in production mode), or, for
+#'   `"all"`, a named list with `plot`, `table`, `metrics` and `data`.
+#'
+#' @seealso [sus_climate_fill_inmet()], [sus_climate_inmet()],
+#'   [sus_climate_plot_aggregate()]
+#'
+#' @examples
+#' \dontrun{
+#' raw    <- sus_climate_inmet(years = 2023, uf = "SP")
+#' filled <- sus_climate_fill_inmet(raw, target_var = "tair_dry_bulb_c")
+#'
+#' # Production mode: observed vs imputed
+#' sus_climate_plot_fill(filled, df_original = raw,
+#'                       target_var = "tair_dry_bulb_c", interactive = FALSE)
+#'
+#' # Evaluation mode: diagnostics of artificial gaps
+#' ev <- sus_climate_fill_inmet(raw, target_var = "tair_dry_bulb_c",
+#'                              run_evaluation = TRUE)
+#' res <- sus_climate_plot_fill(ev, target_var = "tair_dry_bulb_c",
+#'                              output_type = "all")
+#' res$metrics
+#' }
 #'
 #' @export
 sus_climate_plot_fill <- function(

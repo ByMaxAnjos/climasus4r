@@ -16,26 +16,36 @@ sus_mod_spacetime_exceedance(
 \arguments{
 \item{fit}{A \code{climasus_spacetime_bayes} object produced by
 \code{\link[=sus_mod_spacetime_bayes]{sus_mod_spacetime_bayes()}}. Must contain a \verb{$rr} data frame with
-columns \code{code_muni}, \code{time_idx}, \code{rr_mean}, \code{rr_lower95}, \code{rr_upper95}.}
+columns \code{code_muni}, \code{time_idx}, \code{rr_mean}, \code{rr_lower95}, \code{rr_upper95}
+(errors otherwise). Rows with \code{NA} or non-positive RR are dropped with a
+warning.}
 
-\item{thresholds}{Numeric vector of positive RR thresholds for which
-\eqn{P(RR > t)} is computed. Default \code{c(1.0, 1.5, 2.0)}.}
+\item{thresholds}{Numeric vector of positive RR thresholds, e.g. \code{1.5} or
+\code{c(1.0, 1.5, 2.0)} (default). Duplicates are removed and values sorted;
+non-numeric, \code{NA} or values \verb{<= 0} error. One \verb{p_gt_*} column is created
+per threshold (decimal point replaced by \verb{_}, and \code{1.0} prints as \code{1},
+so the defaults give \code{p_gt_1}, \code{p_gt_1_5}, \code{p_gt_2}).}
 
-\item{aggregate_time}{Character or \code{NULL}. If \code{"year"} or \code{"month"},
-aggregate the temporal dimension before reporting exceedances. Requires
-that \code{time_idx} be coercible to \code{Date} (formats \code{"YYYY-MM-DD"} or
-\code{"YYYY-MM"}). Default \code{NULL} (no aggregation).}
+\item{aggregate_time}{Character scalar or \code{NULL}. \code{"year"} or \code{"month"}
+averages \eqn{\log(RR)} and \eqn{\sigma_{\log}} within municipality x
+period before computing exceedances (output column \code{time_period},
+formatted \code{"YYYY"} or \code{"YYYY-MM"}). Any other string errors. \code{time_idx}
+must be parseable as a date (\code{"YYYY-MM-DD"} or \code{"YYYY-MM"}) or, for
+\code{\link[=sus_mod_spacetime_bayes]{sus_mod_spacetime_bayes()}} objects, an integer index \verb{1..T} that is
+mapped to calendar periods through \code{fit$time_keys} / \code{fit$time_unit}.
+Without that calendar information, a numeric \code{time_idx} is accepted only
+if it looks like a calendar year (>= 1000); otherwise it errors.
+Default \code{NULL} (no aggregation).}
 
-\item{municipalities}{An \code{sf} object with at least a \code{code_muni} column
-and geometry. If provided, geometry is joined to the exceedance table
-so the result can be mapped directly. Requires the \strong{sf} package.
-Default \code{NULL}.}
+\item{municipalities}{An \code{sf} object (must inherit \code{sf}, otherwise error)
+containing \code{code_muni} and geometry, joined to the exceedance table so
+it can be mapped. Requires \pkg{sf}. Default \code{NULL}.}
 
-\item{lang}{Character. Language for CLI messages: \code{"pt"} (default),
-\code{"en"}, or \code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"},
+or \code{"es"}; anything else errors (\code{match.arg}).}
 
-\item{verbose}{Logical. If \code{TRUE} (default), print progress messages via
-\strong{cli}.}
+\item{verbose}{Logical scalar. Print progress messages via \pkg{cli}.
+Default \code{TRUE}.}
 }
 \value{
 A named list of class \code{c("climasus_spacetime_exceedance", "list")}
@@ -44,8 +54,8 @@ with the following slots:
 \describe{
 \item{\verb{$exceedance}}{\code{data.frame} with columns \code{code_muni},
 \code{time_idx} (or \code{time_period} if aggregated), \code{rr_mean}, and one
-\code{p_gt_X} column per threshold (e.g. \code{p_gt_1_0}, \code{p_gt_1_5},
-\code{p_gt_2_0}).}
+\verb{p_gt_*} column per threshold (see \code{thresholds}). When
+\code{municipalities} is given, geometry is attached.}
 \item{\verb{$thresholds}}{Numeric vector of thresholds used.}
 \item{\verb{$n_exceed}}{\code{data.frame} with columns \code{threshold} and
 \code{n_cells_exceed} counting how many cells have
@@ -69,7 +79,7 @@ understate uncertainty.
 
 
 Exact computation requires access to the full MCMC sample or INLA posterior
-marginals. When only the posterior mean and 95\\% credible interval are
+marginals. When only the posterior mean and 95\% credible interval are
 stored (as in the \verb{$rr} slot), exceedance probabilities are approximated
 via a \strong{log-normal approximation}:
 

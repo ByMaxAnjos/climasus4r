@@ -20,32 +20,36 @@ sus_grid_era5(
 )
 }
 \arguments{
-\item{years}{Numeric vector of years to import. Must be between 1950 and 2025.
-Example: \code{2010:2023}, \code{c(2019, 2021)}.}
+\item{years}{Numeric vector of years (required, no default; character values
+error). Accepted forms: scalar (\code{2020}), range (\code{2010:2023}) or explicit
+vector (\code{c(2019, 2021)}). \code{c(2010, 2023)} means exactly those two years,
+NOT the range -- use \code{2010:2023}. Values are de-duplicated, sorted and
+coerced with \code{as.integer()}. Valid range 1950-2025; values outside error.}
 
-\item{months}{Integer vector of months to import (1-12). Default: \code{1:12}
-(all months).}
+\item{months}{Numeric vector of months (1-12), e.g. \code{1:3}, \code{c(1, 7)} (exactly
+January and July), \code{1:12}. Default \code{1:12}. De-duplicated and sorted;
+values outside 1-12 or \code{NA} error.}
 
-\item{vars}{Character vector of variable aliases to download. Allowed values:
+\item{vars}{Character vector of variable aliases (any subset), or the single
+string \code{"all"} for every alias below. Default \code{c("t2m", "tp")}. Unknown
+aliases error. Aliases (-> output column, unit):
 \itemize{
-\item \code{"t2m"} -- 2 m temperature mean (-> \code{tair_dry_bulb_c}, degC)
-\item \code{"t2m_max"} -- 2 m temperature maximum (-> \code{tair_max_c}, degC)
-\item \code{"t2m_min"} -- 2 m temperature minimum (-> \code{tair_min_c}, degC)
-\item \code{"td2m"} -- 2 m dewpoint temperature mean (-> \code{dew_point_c}, degC)
-\item \code{"u10"} -- 10 m u-component of wind mean (-> \code{ws_10m_u_m_s}, m/s)
-\item \code{"v10"} -- 10 m v-component of wind mean (-> \code{ws_10m_v_m_s}, m/s)
-\item \code{"sp"} -- surface pressure mean (-> \code{patm_hpa}, hPa)
-\item \code{"tp"} -- total precipitation daily sum (-> \code{rainfall_mm}, mm)
-\item \code{"all"} -- all variables above
-}
-Default: \code{c("t2m", "tp")}.}
+\item \code{"t2m"} -- 2 m temperature mean (\code{tair_dry_bulb_c}, degC)
+\item \code{"t2m_max"} -- 2 m temperature maximum (\code{tair_max_c}, degC)
+\item \code{"t2m_min"} -- 2 m temperature minimum (\code{tair_min_c}, degC)
+\item \code{"td2m"} -- 2 m dewpoint temperature mean (\code{dew_point_c}, degC)
+\item \code{"u10"} -- 10 m u-wind component mean (\code{ws_10m_u_m_s}, m/s)
+\item \code{"v10"} -- 10 m v-wind component mean (\code{ws_10m_v_m_s}, m/s)
+\item \code{"sp"} -- surface pressure mean (\code{patm_hpa}, hPa)
+\item \code{"tp"} -- total precipitation daily sum (\code{rainfall_mm}, mm)
+}}
 
-\item{municipalities}{An \code{sf} object with polygon geometries representing the
-areas to which raster data will be aggregated (typically Brazilian
-municipalities from \code{\link[geobr:read_municipality]{geobr::read_municipality()}}). Must contain a column
-identifying each polygon -- the function auto-detects \code{code_muni}, \code{CD_MUN},
-or \code{CD_GEOCMU}. If \code{NULL}, returns a named list of downloaded NetCDF file
-paths instead of a \code{climasus_df}.}
+\item{municipalities}{An \code{sf} object with polygon geometries (typically from
+\code{\link[geobr:read_municipality]{geobr::read_municipality()}}) or \code{NULL} (default). Needs an ID column,
+auto-detected among \code{code_muni}, \code{CD_MUN}, \code{CD_GEOCMU}. Non-\code{sf} input
+errors. When provided, rasters are aggregated per polygon and a
+\code{climasus_df} is returned. If \code{NULL}, file paths or a \code{SpatRaster} are
+returned instead (see \code{raster_area}).}
 
 \item{raster_area}{Only used when \code{municipalities = NULL}. One of:
 \itemize{
@@ -61,29 +65,30 @@ the state boundary via \code{geobr} (cached) and crop/mask to it.
 }
 Ignored (silently) when \code{municipalities} is provided.}
 
-\item{agg_fun}{Character. Spatial aggregation function applied over raster
-pixels within each polygon. Any function supported by
-\code{exactextractr::exact_extract()}: \code{"mean"} (default, area-weighted),
-\code{"sum"}, \code{"median"}, \code{"min"}, \code{"max"}. For precipitation, \code{"mean"} gives
-the representative areal value.}
+\item{agg_fun}{Character scalar. Spatial aggregation applied to pixels within
+each polygon via \code{exactextractr::exact_extract()}. One of \code{"mean"}
+(default, area-weighted), \code{"sum"}, \code{"median"}, \code{"min"}, \code{"max"},
+\code{"majority"}, \code{"minority"}, \code{"count"}, \code{"variety"}; other values error.
+Only used when \code{municipalities} is provided.}
 
-\item{use_cache}{Logical. If \code{TRUE} (default), downloaded NetCDF files are
-stored in \code{cache_dir} and reused on subsequent calls.}
+\item{use_cache}{Logical scalar. If \code{TRUE} (default), downloaded NetCDF files are
+stored in \code{cache_dir} and reused on later calls; \code{FALSE} re-downloads.}
 
-\item{cache_dir}{Character. Directory for cached NetCDF files.
-Default: \code{"~/.climasus4r_cache/era5"}. Created automatically if needed.}
+\item{cache_dir}{Character scalar. Directory for cached NetCDF files (files are
+stored under \verb{cache_dir/<year>/}). Default \code{"~/.climasus4r_cache/era5"};
+created automatically.}
 
-\item{parallel}{Logical. If \code{TRUE}, downloads run in parallel using the
-active \code{\link[future:plan]{future::plan()}}. Do not set a plan inside this function; configure
-it beforehand. Default: \code{FALSE}.}
+\item{parallel}{Logical scalar. If \code{TRUE}, downloads run in parallel with
+\code{future::multisession} (requires \code{furrr}) and only when more than one file is
+needed. Default \code{FALSE}.}
 
-\item{workers}{Integer. Number of parallel workers when \code{parallel = TRUE}.
-Default: \code{2}.}
+\item{workers}{Positive integer scalar. Number of parallel workers when
+\code{parallel = TRUE}; ignored otherwise. Default \code{2}.}
 
-\item{lang}{Character. Language for messages: \code{"pt"} (default), \code{"en"},
-or \code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"} or
+\code{"es"}; other values error.}
 
-\item{verbose}{Logical. If \code{TRUE} (default), prints progress messages.}
+\item{verbose}{Logical scalar. If \code{TRUE} (default), prints progress messages.}
 }
 \value{
 \itemize{
@@ -151,5 +156,6 @@ paths <- sus_grid_era5(years = 2020, months = 1, vars = "all")
 
 }
 \seealso{
+\code{\link[=sus_grid_chirps]{sus_grid_chirps()}}, \code{\link[=sus_grid_join]{sus_grid_join()}}, \code{\link[=sus_grid_plot]{sus_grid_plot()}},
 \code{\link[=sus_climate_anomaly]{sus_climate_anomaly()}}, \code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
 }

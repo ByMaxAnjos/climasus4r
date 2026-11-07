@@ -45,28 +45,34 @@ utils::globalVariables(c(
 #' After registering, activate GES DISC access at
 #' <https://disc.gsfc.nasa.gov/earthdata-login>.
 #'
-#' @param pollutants Character vector. Variables to download.
-#'   Allowed: `"pm25"`, `"aod"`, `"so2"`. Default: `c("pm25", "aod")`.
+#' @param pollutants Character vector of variables, any of `"pm25"`, `"aod"`, `"so2"`
+#'   (e.g. `"pm25"`, `c("pm25", "aod")`). Default `c("pm25", "aod")`. Other values
+#'   (including `"all"`) error. `"so2"` is monthly-only: with
+#'   `resolution = "daily"` it is dropped with a warning.
 #'
-#' @param resolution Character. Temporal resolution of source files.
-#'   One of:
+#' @param resolution Character scalar, `"monthly"` (default) or `"daily"`; other values
+#'   error.
 #'   \itemize{
-#'     \item `"monthly"` (default) -- uses `M2TMNXAER`, one file per month,
-#'       already monthly-averaged. Recommended for most analyses.
-#'     \item `"daily"` -- uses `M2T1NXAER` (hourly), one file per day; 24
-#'       hourly layers are aggregated to a single daily value using `agg_fun`.
-#'       Note: `so2` only available in monthly resolution.
+#'     \item `"monthly"` -- `M2TMNXAER`, one file per month (already monthly mean).
+#'       Recommended for most analyses.
+#'     \item `"daily"` -- `M2T1NXAER` (hourly), one file per day; the 24 hourly
+#'       layers are aggregated to a daily value with `agg_fun`. Not available for
+#'       `"so2"`.
 #'   }
 #'
-#' @param years Integer vector. Years to download (1980 to current year).
-#'   `NULL` defaults to the last two complete years.
+#' @param years Numeric vector or `NULL`. Accepted forms: scalar (`2020`), range
+#'   (`2000:2010`) or explicit vector (`c(2000, 2010)` = exactly those two years,
+#'   NOT the range -- use `2000:2010`). Valid range 1980 to the current year
+#'   (outside values error; character values error); the current year triggers a
+#'   data-latency warning. `NULL` (default) = last two complete years.
 #'
-#' @param months Integer vector (1-12). Months to include. Default `1:12`.
+#' @param months Numeric vector of months (1-12), e.g. `1:3`, `c(1, 7)`. Default
+#'   `1:12`. Values outside 1-12 or `NA` error.
 #'
-#' @param municipalities An `sf` POLYGON object (e.g., from
-#'   [geobr::read_municipality()]). If provided, raster data are aggregated
-#'   and a `climasus_df` is returned. If `NULL`, returns cached NetCDF paths
-#'   (or a `SpatRaster` per `raster_area`).
+#' @param municipalities An `sf` polygon object (e.g. from [geobr::read_municipality()])
+#'   or `NULL` (default). Non-`sf` input errors. When provided, requires `terra`
+#'   and `exactextractr`; a `climasus_df` is returned. If `NULL`, cached NetCDF
+#'   paths (or a `SpatRaster`, see `raster_area`) are returned.
 #'
 #' @param raster_area Only used when `municipalities = NULL`. One of:
 #'   \itemize{
@@ -91,31 +97,34 @@ utils::globalVariables(c(
 #'   layers themselves, or use the normal `municipalities`-based tabular
 #'   workflow, which already computes the derived value correctly.
 #'
-#' @param agg_fun Character. Spatial aggregation function for
-#'   `exactextractr::exact_extract()`. Default `"mean"` (area-weighted).
+#' @param agg_fun Character scalar. Spatial aggregation for
+#'   `exactextractr::exact_extract()` (and daily aggregation of the hourly layers
+#'   for `resolution = "daily"`): `"mean"` (default, area-weighted), `"sum"`,
+#'   `"median"`, `"min"` or `"max"`; other values error.
 #'
-#' @param earthdata_user Character. Earthdata username. Defaults to
+#' @param earthdata_user Character scalar. NASA Earthdata username. Default
 #'   `Sys.getenv("EARTHDATA_USER")`.
 #'
-#' @param earthdata_pass Character. Earthdata password. Defaults to
+#' @param earthdata_pass Character scalar. NASA Earthdata password. Default
 #'   `Sys.getenv("EARTHDATA_PASSWORD")`.
 #'
-#' @param netrc_path Character. Path to a `.netrc` file with Earthdata
-#'   credentials. If provided, takes precedence over `earthdata_user` /
-#'   `earthdata_pass`.
+#' @param netrc_path Character scalar or `NULL` (default). Path to a `.netrc` file with
+#'   Earthdata credentials; if given, it takes precedence over `earthdata_user` /
+#'   `earthdata_pass`. Missing credentials error.
 #'
-#' @param crop_brazil Logical. Crop rasters to Brazil's bounding box before
+#' @param crop_brazil Logical scalar. Crop rasters to Brazil's bounding box before
 #'   extraction to save memory. Default `TRUE`.
 #'
-#' @param use_cache Logical. Reuse previously downloaded NetCDF files and
-#'   previously computed Parquet caches. Default `TRUE`.
+#' @param use_cache Logical scalar. Reuse downloaded NetCDF files and computed Parquet
+#'   caches (`FALSE` recomputes). Default `TRUE`.
 #'
-#' @param cache_dir Character. Root cache directory.
-#'   Default `"~/.climasus4r_cache/merra2"`.
+#' @param cache_dir Character scalar. Root cache directory. Default
+#'   `"~/.climasus4r_cache/merra2"`.
 #'
-#' @param lang Character. Message language: `"pt"` (default), `"en"`, `"es"`.
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"` or
+#'   `"es"`; other values error.
 #'
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
 #' @return
 #' \itemize{
@@ -161,7 +170,7 @@ utils::globalVariables(c(
 #' sus_meta(merra2, "stage")  # "climate"
 #' sus_meta(merra2, "type")   # "pollution_merra2"
 #'
-#' # Historical PM2.5 trend 2000-2010, annual summary
+#' # Historical PM2.5 trend 2000-2010 (monthly values)
 #' merra2_hist <- sus_grid_pollution_merra2(
 #'   pollutants = "pm25", resolution = "monthly",
 #'   years = 2000:2010, municipalities = mt_mun, lang = "en"
@@ -169,7 +178,8 @@ utils::globalVariables(c(
 #' }
 #'
 #' @seealso [sus_grid_pollution_cams()], [sus_grid_pollution_ghap()],
-#'   [sus_climate_anomaly()], [sus_mod_dlnm()]
+#'   [sus_grid_join()], [sus_grid_plot()], [sus_climate_anomaly()],
+#'   [sus_mod_dlnm()]
 #'
 #' @export
 #' @importFrom rlang .data is_installed
@@ -284,6 +294,10 @@ sus_grid_pollution_merra2 <- function(
 
   # \u2500\u2500 3. Build download manifest \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   manifest_rows <- list()
+  # Parquet cache key: municipalities + agg + crop (see .grid_cache_key)
+  ckey <- .grid_cache_key(
+    if (!is.null(municipalities)) municipalities[[.merra2_detect_muni_col(municipalities)]],
+    agg_fun = agg_fun, crop_brazil = crop_brazil)
 
   for (p in pollutants) {
     vmap <- .merra2_var_map[[p]]
@@ -304,7 +318,7 @@ sus_grid_pollution_merra2 <- function(
           cache_nc   = file.path(cache_dir, "nc", info$filename),
           cache_pq   = file.path(cache_dir, "parquet",
                                  paste0(p, "_", p_res, "_",
-                                        yr, sprintf("%02d", mo), ".parquet"))
+                                        yr, sprintf("%02d", mo), "_", ckey, ".parquet"))
         )
       }
     }

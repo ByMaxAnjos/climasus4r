@@ -193,7 +193,9 @@ utils::globalVariables(c(
 #' broadcast to all detected entities and treated as shared context.
 #'
 #' @param vulnerability A `climasus_vi` object from
-#'   [sus_mod_vulnerability_index()], or `NULL`. Provides per-city VI scores,
+#'   [sus_mod_vulnerability_index()], or `NULL` (default). At least one of
+#'   `vulnerability`, `af`, `burden`, `dlnm`, `sensitivity` must be supplied
+#'   (error otherwise); a wrong class errors. Provides per-city VI scores,
 #'   exposure, sensitivity, and adaptive capacity indicators.
 #' @param af A `climasus_af` object from [sus_mod_af()], or `NULL`. Provides
 #'   total, heat, and cold attributable fraction percentages.
@@ -205,21 +207,25 @@ utils::globalVariables(c(
 #' @param sensitivity A `climasus_sensitivity` object from
 #'   [sus_mod_sensitivity()], or `NULL`. Provides stratum-level RR inequality
 #'   and the maximum hot RR across strata.
-#' @param score_type Character. Which score types to compute:
-#'   `"numeric"` (0–100), `"categorical"` (cut-point labels), or
-#'   `"both"` (default).
-#' @param breaks Numeric vector. Strictly increasing cut-points in (0, 100)
-#'   used to convert numeric scores into categories. Default `c(33, 66)`
-#'   produces three categories. Generates `length(breaks) + 1` categories.
-#' @param labels Character vector or `NULL`. Category labels with length
-#'   `length(breaks) + 1`. `NULL` (default) uses language-appropriate defaults:
-#'   Portuguese `c("Baixo", "Médio", "Alto")`, English `c("Low", "Medium",
-#'   "High")`, Spanish `c("Bajo", "Medio", "Alto")`.
-#' @param city_col Character. Column name of the city/entity identifier in the
-#'   `vulnerability$vi_table`. Defaults to `"city"`. Overridden by
-#'   `vulnerability$meta$city_col` when available.
-#' @param lang Character. Language for labels: `"pt"` (default), `"en"`, `"es"`.
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param score_type Character scalar. Which scores to return: `"both"`
+#'   (default), `"numeric"` (0-100 scores only), or `"categorical"`
+#'   (category labels based on `breaks`).
+#' @param breaks Numeric vector of strictly increasing cut-points in (0, 100)
+#'   used to bin numeric scores, e.g. `c(25, 50, 75)` for four categories.
+#'   Default `c(33, 66)` gives three categories. Produces
+#'   `length(breaks) + 1` categories; invalid values error.
+#' @param labels Character vector of length `length(breaks) + 1`, ordered from
+#'   lowest to highest, e.g. `c("Low", "Medium", "High")`, or `NULL`
+#'   (default): language defaults are `c("Baixo", "Medio", "Alto")` (`"pt"`),
+#'   `c("Low", "Medium", "High")` (`"en"`), `c("Bajo", "Medio", "Alto")`
+#'   (`"es"`) when there are 3 categories, otherwise `"Cat1"`, `"Cat2"`, ...
+#'   A wrong length errors.
+#' @param city_col Character scalar. Name of the city/entity column in
+#'   `vulnerability$vi_table`. Default `"city"`. Overridden by
+#'   `vulnerability$meta$city_col` when present and found in the table.
+#' @param lang Character scalar. Label language: `"pt"` (default), `"en"`, or
+#'   `"es"`. An unsupported single string warns and falls back to `"pt"`.
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
 #' @return A `climasus_swot` list with:
 #'   \describe{

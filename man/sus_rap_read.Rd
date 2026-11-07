@@ -7,17 +7,21 @@
 sus_rap_read(file_path, lang = "pt", validate = TRUE)
 }
 \arguments{
-\item{file_path}{\code{character(1)}  - Path to an \code{.R}, \code{.Rmd}, or \code{.qmd} file
-exported by \code{\link[=sus_rap_export]{sus_rap_export()}}.}
+\item{file_path}{\code{character(1)}, path to an existing \code{.R}, \code{.Rmd} or \code{.qmd}
+file exported by \code{\link[=sus_rap_export]{sus_rap_export()}}, e.g. \code{"pipeline_sp.R"}. Aborts if the
+file does not exist.}
 
-\item{lang}{\code{character(1)}  - Language for messages: \code{"pt"} (default),
-\code{"en"}, or \code{"es"}.}
+\item{lang}{\code{character(1)}, \code{"pt"} (default), \code{"en"} or \code{"es"}.}
 
-\item{validate}{\code{logical(1)}  - Check structural integrity. Default \code{TRUE}.}
+\item{validate}{\code{logical(1)}, default \code{TRUE}. Check structural integrity and
+warn about problems found.}
 }
 \value{
-A \code{rap_object} list with fields \verb{$metadata}, \verb{$params}, \verb{$steps},
-\verb{$structure}, \verb{$source}, \verb{$format}, and \verb{$raw}.
+A \code{rap_object} (list) with fields \verb{$metadata} (session info),
+\verb{$params} (editable parameters; the year parameter is named \code{years}),
+\verb{$steps} (pipeline steps), \verb{$structure}, \verb{$source} (normalised path),
+\verb{$format} (detected \code{"script"}, \code{"rmarkdown"}, \code{"quarto"} or \code{"function"})
+and \verb{$raw} (file lines).
 }
 \description{
 Reads a file produced by \code{\link[=sus_rap_export]{sus_rap_export()}} and reconstructs a live
@@ -30,4 +34,8 @@ re-executed with \code{\link[=sus_rap_run]{sus_rap_run()}}, or patched with \cod
 rap <- sus_rap_read("pipeline_sp.R")
 print(rap)
 }
+}
+\seealso{
+\code{\link[=sus_rap_export]{sus_rap_export()}}, \code{\link[=sus_rap_inspect]{sus_rap_inspect()}}, \code{\link[=sus_rap_run]{sus_rap_run()}},
+\code{\link[=sus_rap_update]{sus_rap_update()}}
 }

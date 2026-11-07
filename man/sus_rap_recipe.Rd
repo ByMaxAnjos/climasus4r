@@ -13,20 +13,24 @@ sus_rap_recipe(
 )
 }
 \arguments{
-\item{rap}{A \code{rap_object} returned by \code{\link[=sus_rap_read]{sus_rap_read()}} or \code{\link[=sus_rap_export]{sus_rap_export()}}.}
+\item{rap}{A \code{rap_object} returned by \code{\link[=sus_rap_read]{sus_rap_read()}} (not the character
+vector returned by \code{\link[=sus_rap_export]{sus_rap_export()}}; read the exported file first).}
 
-\item{file_path}{\code{character(1)}  - Output path for the \code{.yaml} file. If
-\code{NULL}, a timestamped file is created in the working directory.}
+\item{file_path}{\code{character(1)}, output \code{.yaml} path, e.g.
+\code{"pipeline_sp.yaml"}. \code{NULL} (default) creates a timestamped
+\verb{rap_recipe_<date>_<time>.yaml} in the working directory. Aborts if it
+exists and \code{overwrite = FALSE}.}
 
-\item{include_data_hash}{\code{logical(1)}  - Compute and embed a hash of the
-input parameters for traceability. Default \code{TRUE}.}
+\item{include_data_hash}{\code{logical(1)}, default \code{TRUE}. Embed an xxhash32 of
+the input parameters (uf/years/system) for traceability; needs the
+\code{digest} package.}
 
-\item{lang}{\code{character(1)}  - Language for messages.}
+\item{lang}{\code{character(1)}, \code{"pt"} (default), \code{"en"} or \code{"es"}.}
 
-\item{overwrite}{\code{logical(1)}  - Overwrite existing file. Default \code{FALSE}.}
+\item{overwrite}{\code{logical(1)}, default \code{FALSE}. Overwrite an existing file.}
 }
 \value{
-Invisibly, the path of the created \code{.yaml} file.
+Invisibly, the path (character) of the created \code{.yaml} file.
 }
 \description{
 Serialises the essential information of a \code{rap_object}  - parameters,
@@ -39,4 +43,7 @@ with \code{\link[=sus_rap_from_recipe]{sus_rap_from_recipe()}}.
 rap <- sus_rap_read("pipeline_sp.R")
 sus_rap_recipe(rap, "pipeline_sp.yaml")
 }
+}
+\seealso{
+\code{\link[=sus_rap_from_recipe]{sus_rap_from_recipe()}}, \code{\link[=sus_rap_read]{sus_rap_read()}}
 }

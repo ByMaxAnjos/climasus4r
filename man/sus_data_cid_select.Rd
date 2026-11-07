@@ -12,25 +12,27 @@ sus_data_cid_select(
 )
 }
 \arguments{
-\item{lang}{Character string specifying language. Options: \code{"pt"} (Portuguese,
-default), \code{"en"} (English), \code{"es"} (Spanish).}
+\item{lang}{Character scalar, \code{"pt"} (default), \code{"en"} or \code{"es"}. Language
+of the interface; other values abort.}
 
-\item{output}{Character string specifying output format. Options:
+\item{output}{Character scalar, \code{"browser"} (default) or \code{"console"}:
 \itemize{
-\item \code{"browser"} - Interactive HTML in web browser (default)
-\item \code{"console"} - Simple list in R console
-}}
+\item \code{"browser"}: writes a temporary HTML page and opens it in the web
+browser
+\item \code{"console"}: prints a summary by category (only if \code{verbose = TRUE})
+}
+Any other value aborts.}
 
-\item{filter_climate}{Logical. If \code{TRUE}, shows only climate-sensitive diseases.}
+\item{filter_climate}{Logical scalar, default \code{FALSE}. If \code{TRUE}, only
+climate-sensitive groups are listed.}
 
-\item{verbose}{Logical. If \code{TRUE} (default), prints informative messages.}
+\item{verbose}{Logical scalar, default \code{TRUE}. Print informative messages
+(required for the console summary to be printed).}
 }
 \value{
-Depending on \code{output}:
-\itemize{
-\item \code{"browser"}: Opens HTML interface, returns invisible data.frame
-\item \code{"console"}: Prints summary, returns invisible data.frame
-}
+Invisibly, a data frame with one row per disease group (columns
+include \code{name}, \code{category} and \code{climate_sensitive}), after applying
+\code{filter_climate}, for both values of \code{output}.
 }
 \description{
 Opens an interactive HTML interface to explore disease groups and climate factors
@@ -54,16 +56,17 @@ sus_data_cid_select()
 # Explore only climate-sensitive diseases
 sus_data_cid_select(filter_climate = TRUE)
 
-# Get disease group names for programmatic use
-groups <- sus_data_cid_select(
-  lang = "pt"
-)
+# Console summary; the returned data frame has the group names
+groups <- sus_data_cid_select(output = "console", lang = "pt")
 
-# Use in sus_data_filter_cid
+# Use a group name in sus_data_filter_cid()
 data <- sus_data_filter_cid(
   df = my_data,
-  disease_group = groups[1]
+  disease_group = groups$name[1]
 )
 }
 
+}
+\seealso{
+\code{\link[=sus_data_filter_cid]{sus_data_filter_cid()}}
 }

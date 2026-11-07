@@ -20,42 +20,35 @@ sus_grid_pollution_ghap(
 )
 }
 \arguments{
-\item{pollutants}{Character vector. Pollutants to download.
-Accepted: \code{"pm25"}, \code{"o3"}, \code{"co"}. Default: \code{"pm25"}.
-Note: \code{"no2"} is not yet publicly available.}
+\item{pollutants}{Character vector, or the single string \code{"all"} (= all three below).
+Accepted: \code{"pm25"} (default), \code{"o3"}, \code{"co"}; e.g. \code{c("pm25", "o3")}.
+\code{"no2"} is dropped with a warning (not released); other values error, and
+error if nothing valid remains.}
 
-\item{resolution}{Character. Temporal aggregation of source files.
-One of \code{"daily"}, \code{"monthly"}, or \code{"annual"}. Default: \code{"monthly"}.
-\itemize{
-\item \code{"daily"} -- no longer served by Zenodo for any pollutant; falls
-back to \code{"annual"}. (Legacy PM2.5 behavior: each monthly
-ZIP (~3 GB) is downloaded, extracted to a temp directory, each daily
-NetCDF is aggregated, and the result is cached as Parquet. Subsequent
-calls read from Parquet without re-extracting.)
-\item \code{"monthly"} -- the PM2.5 monthly files were removed from Zenodo;
-falls back to \code{"annual"} with a warning.
-\item \code{"annual"} -- PM2.5 (2000-2022), O3 (2000-2020), CO (2019-2022).
-}
-All pollutants currently fall back to \code{"annual"} regardless of this
-parameter; the annual value is assigned to January 1st of each year.}
+\item{resolution}{Character scalar: \code{"daily"}, \code{"monthly"} (default) or \code{"annual"}
+(other values error). Currently every supported pollutant is only served
+annually, so \code{"daily"} and \code{"monthly"} fall back to \code{"annual"} with a warning;
+the annual value is assigned to January 1st of each year. (Legacy daily/monthly
+PM2.5 ZIP handling remains in the code but is not reachable.)}
 
-\item{years}{Integer vector. Years to download. Availability depends on
-pollutant and resolution:
-\itemize{
-\item PM2.5 annual: 2000-2022
-\item O3 annual: 2000-2020
-\item CO annual: 2019-2022
-}
-\code{NULL} (default) returns all available years for the selected pollutant.}
+\item{years}{Numeric vector or \code{NULL}. Accepted forms: scalar (\code{2020}), range
+(\code{2018:2022}) or explicit vector (\code{c(2019, 2022)} = exactly those two
+years, NOT the range -- use \code{2019:2022}). Per pollutant (annual): PM2.5
+2000-2022, O3 2000-2020, CO 2019-2022. Years unavailable for a pollutant are
+NOT an error: a warning is issued and they are dropped (a pollutant with no
+valid year is skipped). \code{NULL} (default) = all available years of each
+pollutant.}
 
-\item{months}{Integer vector (1-12). Months to include when
-\code{resolution = "monthly"}. Ignored for annual data. Default: \code{1:12}.}
+\item{months}{Numeric vector of months (1-12), e.g. \code{1:3}, \code{c(1, 7)}. Default
+\code{1:12}. Only relevant for monthly/daily source files, which are not served
+currently (annual fallback), so it has no practical effect. Values outside
+1-12 or \code{NA} error.}
 
-\item{municipalities}{An \code{sf} object with polygon geometries
-(e.g., from \code{\link[geobr:read_municipality]{geobr::read_municipality()}}). If provided, raster data are
-aggregated to these polygons and a \code{climasus_df} is returned.
-If \code{NULL}, a named character vector of cached NetCDF file paths is
-returned instead (see \code{raster_area}).}
+\item{municipalities}{An \code{sf} polygon object (e.g. from \code{\link[geobr:read_municipality]{geobr::read_municipality()}})
+or \code{NULL} (default). Non-\code{sf} input errors. When provided, requires \code{terra}
+and \code{exactextractr}; rasters are aggregated per polygon and a \code{climasus_df} is
+returned. If \code{NULL}, file paths or a \code{SpatRaster} are returned (see
+\code{raster_area}).}
 
 \item{raster_area}{Only used when \code{municipalities = NULL}. One of:
 \itemize{
@@ -86,23 +79,24 @@ pollutant/month/year for the same reason: to keep this option
 lightweight and predictable rather than silently building a large
 multi-day stack.}
 
-\item{agg_fun}{Character. Spatial aggregation function applied by
-\code{exactextractr::exact_extract()}. Default: \code{"mean"} (area-weighted).
-Other options: \code{"sum"}, \code{"median"}, \code{"min"}, \code{"max"}.}
+\item{agg_fun}{Character scalar. Spatial aggregation for
+\code{exactextractr::exact_extract()}: \code{"mean"} (default, area-weighted), \code{"sum"},
+\code{"median"}, \code{"min"} or \code{"max"}; other values error. Also names the output
+column (\verb{<pollutant>_<agg_fun>}, e.g. \code{pm25_mean}).}
 
-\item{crop_brazil}{Logical. Crop global rasters to Brazil's bounding box
-before extraction, significantly reducing memory use. Default \code{TRUE}.}
+\item{crop_brazil}{Logical scalar. Crop global rasters to Brazil's bounding box
+before extraction (lower memory). Default \code{TRUE}.}
 
-\item{use_cache}{Logical. If \code{TRUE} (default), reuse previously downloaded
-NetCDF files and previously computed municipality-level Parquet caches.}
+\item{use_cache}{Logical scalar. If \code{TRUE} (default), reuse downloaded NetCDF files
+and municipality-level Parquet caches; \code{FALSE} recomputes.}
 
-\item{cache_dir}{Character. Root directory for all cached files.
-Default \code{"~/.climasus4r_cache/ghap"}. Sub-directories are created per
-pollutant.}
+\item{cache_dir}{Character scalar. Root cache directory, with one sub-directory per
+pollutant. Default \code{"~/.climasus4r_cache/ghap"}.}
 
-\item{lang}{Character. Message language: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"} or
+\code{"es"}; other values error.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
 \itemize{
@@ -188,6 +182,7 @@ ghap_o3 <- sus_grid_pollution_ghap(
 
 }
 \seealso{
-\code{\link[=sus_climate_anomaly]{sus_climate_anomaly()}}, \code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}},
-\code{\link[=sus_grid_era5]{sus_grid_era5()}}, \code{\link[=sus_grid_pollution_cams]{sus_grid_pollution_cams()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
+\code{\link[=sus_grid_pollution_cams]{sus_grid_pollution_cams()}}, \code{\link[=sus_grid_pollution_merra2]{sus_grid_pollution_merra2()}},
+\code{\link[=sus_grid_era5]{sus_grid_era5()}}, \code{\link[=sus_grid_join]{sus_grid_join()}}, \code{\link[=sus_grid_plot]{sus_grid_plot()}},
+\code{\link[=sus_climate_anomaly]{sus_climate_anomaly()}}, \code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
 }

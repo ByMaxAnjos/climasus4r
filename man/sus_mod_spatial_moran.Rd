@@ -17,39 +17,44 @@ sus_mod_spatial_moran(
 )
 }
 \arguments{
-\item{df}{A \code{data.frame} or \code{climasus_df} containing at least the columns
-\code{code_muni} (7-digit IBGE municipality code) and the outcome column
-named by \code{outcome}. The row order must correspond to the spatial units
-encoded in \code{W} unless \code{municipalities} is supplied to subset and reorder.}
+\item{df}{A \code{data.frame} or \code{climasus_df} (typically after
+\code{\link[=sus_data_aggregate]{sus_data_aggregate()}}) with one row per spatial unit, containing
+\code{code_muni} (IBGE code) and the \code{outcome} column. Rows are NOT sorted
+internally: row order must match the region order of \code{W}, unless
+\code{municipalities} is given (which reorders \code{df}). \code{nrow(df)} must equal
+the number of units in \code{W$listw} (error otherwise); fewer than 30 units
+only warns.}
 
-\item{outcome}{Character. Name of the numeric outcome column in \code{df}
-(e.g. \code{"deaths"}, \code{"rate_100k"}, \code{"hospitalization_rate"}).}
+\item{outcome}{Character scalar. Name of the numeric outcome column in
+\code{df} (e.g. \code{"deaths"}, \code{"rate_100k"}). \code{NA} values are replaced by the
+column mean with a warning; an all-\code{NA} column errors.}
 
-\item{W}{A \code{climasus_weights} object produced by
-\code{sus_mod_spatial_weights()}. Must contain a \code{listw} element (a
-\code{listw}-class object from \strong{spdep}) whose length matches \code{nrow(df)} after
-any filtering by \code{municipalities}.}
+\item{W}{A \code{climasus_weights} object from \code{\link[=sus_mod_spatial_weights]{sus_mod_spatial_weights()}}
+containing a \code{listw} element (spdep \code{listw}). Errors otherwise.}
 
-\item{municipalities}{Optional character or integer vector of \code{code_muni}
-values to include. When supplied the function subsets and reorders \code{df}
-to match this vector before computation. Default \code{NULL} (use all rows).}
+\item{municipalities}{Character or numeric vector of \code{code_muni} values,
+e.g. \code{c("1100015", "1100023")}, or \code{NULL} (default, use all rows). When
+given, \code{df} is subset to these codes AND reordered to this vector's
+order, so it must be in the same order as the units of \code{W}. Codes not
+found in \code{df} are silently dropped.}
 
-\item{permutations}{Positive integer. Number of Monte Carlo permutations
-for both global and local inference. Default \code{999}.}
+\item{permutations}{Positive integer scalar. Monte Carlo permutations for
+the global (\code{moran.mc}) and local (\code{localmoran_perm}) tests, e.g. \code{499L}.
+Default \code{999L}. The local test uses a fixed internal seed, so results
+are reproducible.}
 
-\item{alpha}{Numeric in (0, 1). Significance threshold applied to
-p-adjusted local Moran p-values when assigning quadrant labels.
-Default \code{0.05}.}
+\item{alpha}{Numeric scalar in (0, 1). Significance threshold applied to
+the adjusted local p-values (\code{p_adj < alpha}) to assign quadrants; the
+rest are \code{"NS"}. Default \code{0.05}.}
 
-\item{adjust_p}{Character. Method passed to \code{\link[stats:p.adjust]{stats::p.adjust()}} for
-multiple-testing correction of local Moran p-values. One of \code{"fdr"}
-(default), \code{"bonferroni"}, or \code{"none"}.}
+\item{adjust_p}{Character scalar. Multiple-testing correction passed to
+\code{\link[stats:p.adjust]{stats::p.adjust()}}: \code{"fdr"} (default), \code{"bonferroni"}, or \code{"none"}.}
 
-\item{lang}{Character. Output language for messages: \code{"pt"} (default),
-\code{"en"}, or \code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"},
+or \code{"es"}; anything else errors (\code{match.arg}).}
 
-\item{verbose}{Logical. If \code{TRUE} (default), print progress messages via
-\strong{cli}.}
+\item{verbose}{Logical scalar. Print progress messages via \pkg{cli}.
+Default \code{TRUE}.}
 }
 \value{
 An object of class \code{c("climasus_spatial_moran", "list")} with the
@@ -138,5 +143,6 @@ Bivand, R. S., Pebesma, E., & Gomez-Rubio, V. (2013).
 \emph{Applied Spatial Data Analysis with R} (2nd ed.). Springer.
 }
 \seealso{
-\code{\link[=sus_mod_spatial_weights]{sus_mod_spatial_weights()}}, \code{\link[=sus_spatial_join]{sus_spatial_join()}}
+\code{\link[=sus_mod_spatial_weights]{sus_mod_spatial_weights()}}, \code{\link[=sus_spatial_join]{sus_spatial_join()}},
+\code{\link[=sus_mod_plot_spatial_moran]{sus_mod_plot_spatial_moran()}}, \code{\link[=sus_mod_spatial_scan]{sus_mod_spatial_scan()}}
 }

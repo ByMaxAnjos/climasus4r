@@ -35,7 +35,7 @@ sus_data_plot_demographics(
 \item{df}{A \code{climasus_df} object at stage \code{"filter_demo"} or later (output
 of \code{\link[=sus_data_filter_demographics]{sus_data_filter_demographics()}}).}
 
-\item{type}{Character. Visualisation type. One of:
+\item{type}{Character scalar, default \code{"table"}. Visualisation type; any other value aborts. One of:
 \itemize{
 \item \code{"table"}      -- Frequency table (gt / DT).
 \item \code{"bar"}        -- Horizontal bar chart for one variable.
@@ -47,16 +47,17 @@ of \code{\link[=sus_data_filter_demographics]{sus_data_filter_demographics()}}).
 \item \code{"dashboard"}  -- Composite Lancet-layout panel.
 }}
 
-\item{var}{Character. Demographic variable (required for \code{"bar"} and
-single-variable \code{"table"}). One of \code{"sex"}, \code{"race"}, \code{"age_group"},
+\item{var}{Character scalar or \code{NULL} (default). Demographic variable
+(required for \code{"bar"}; for \code{"table"} \code{NULL} summarises several variables). One of \code{"sex"}, \code{"race"}, \code{"age_group"},
 \code{"education"}, \code{"climate_risk"}, \code{"region"}.}
 
 \item{time_unit}{Character. Temporal resolution for \code{type = "temporal"}.
 One of \code{"month"} (default), \code{"epi_week"}, \code{"year"}, \code{"quarter"},
 \code{"semester"}.}
 
-\item{fill_var}{Character. Optional stratification variable for temporal
-plots (e.g., \code{"sex"}, \code{"age_group"}, \code{"climate_risk_group"}).}
+\item{fill_var}{Character scalar, column name, default \code{NULL} (no
+stratification). Stratification variable for \code{type = "temporal"} (e.g.
+\code{"sex"}, \code{"age_group"}, \code{"climate_risk_group"}).}
 
 \item{palette}{Character. Colour palette powered by \link[ggsci:ggsci-package]{ggsci::ggsci}. One of
 \code{"lancet"} (default), \code{"nature"}, \code{"nejm"}, \code{"jco"}, \code{"aaas"},
@@ -77,9 +78,10 @@ column), \code{"pct_total"} (\% of all records), \code{"count"} (raw count).}
 \item{show_ci}{Logical. Add 95\% Poisson confidence intervals in temporal
 plots. Default \code{FALSE}.}
 
-\item{benchmark}{Numeric named vector. Reference proportions for the
-race-equity plot. If \code{NULL} (default), IBGE 2022 Census proportions
-are used where available.}
+\item{benchmark}{Named numeric vector of reference proportions per race
+category for \code{type = "race_equity"}, e.g.
+\code{c(Branca = 0.436, Parda = 0.452)}. If \code{NULL} (default), IBGE 2022 Census
+proportions are used where available.}
 
 \item{interactive}{Logical. Return interactive \code{\link[plotly:ggplotly]{plotly::ggplotly()}} widget
 instead of static ggplot2/gt objects. Default \code{FALSE}.}
@@ -103,8 +105,8 @@ caption (e.g., study period, DOI). Default \code{NULL}.}
 \item{save_path}{Character. File path to save output (PNG, PDF, SVG, or
 HTML). Default \code{NULL} (no file saved).}
 
-\item{width, height}{Numeric. Output dimensions in inches. Defaults: \verb{7 x 5}
-for single plots; \verb{12 x 9} for dashboards.}
+\item{width, height}{Numeric, inches; \code{NULL} (default) uses \verb{7 x 5} for
+single plots and \verb{12 x 9} for dashboards.}
 
 \item{dpi}{Numeric. Resolution for raster output. Default \code{300}.}
 
@@ -188,4 +190,8 @@ sus_data_plot_demographics(
 )
 }
 
+}
+\seealso{
+\code{\link[=sus_data_filter_demographics]{sus_data_filter_demographics()}}, \code{\link[=sus_data_create_variables]{sus_data_create_variables()}},
+\code{\link[=sus_data_plot_aggregate_ts]{sus_data_plot_aggregate_ts()}}
 }

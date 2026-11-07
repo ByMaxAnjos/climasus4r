@@ -22,7 +22,7 @@ utils::globalVariables(c(
 #'
 #' No authentication is required.
 #'
-#' @param resolution Character. Temporal resolution of source files:
+#' @param resolution Character scalar. Temporal resolution of source files:
 #'   \itemize{
 #'     \item `"monthly"` (default) -- one file per month (~5-20 MB each);
 #'       returns mm/month.
@@ -31,17 +31,26 @@ utils::globalVariables(c(
 #'     \item `"annual"` -- one file per year; returns mm/year.
 #'   }
 #'
-#' @param years Integer vector. Years to download. Coverage: 1981 to present
-#'   for daily/monthly; 1981-2024 for annual. `NULL` defaults to the last
-#'   two complete years.
+#' @param years Numeric vector of years to download (character values error).
+#'   Accepted forms: scalar (`2023`), range (`2020:2025`) or explicit vector
+#'   (`c(2020, 2022, 2024)`). `c(2020, 2024)` means exactly those two years,
+#'   NOT the range 2020-2024 -- use `2020:2024` for a range. Values are
+#'   de-duplicated, sorted and coerced with `as.integer()`. Valid range:
+#'   1981 to the current year for daily/monthly; 1981-2024 for annual (values
+#'   outside error). `NULL` (default) uses the last two complete years
+#'   (`current_year - 2` and `current_year - 1`).
 #'
-#' @param months Integer vector (1-12). Months to include for daily and monthly
-#'   resolutions. Ignored for annual. Default `1:12`.
+#' @param months Numeric vector of months (1-12), e.g. `1:12`, `7:9`,
+#'   `c(1, 7)` (exactly January and July). Default `1:12`. Used for daily and
+#'   monthly resolutions; ignored for `"annual"`. Values outside 1-12 or `NA`
+#'   error.
 #'
 #' @param municipalities An `sf` POLYGON object (e.g., from
-#'   [geobr::read_municipality()]). When provided, rasters are aggregated and a
-#'   `climasus_df` is returned. If `NULL`, a named character vector of cached
-#'   file paths is returned instead (see `raster_area`).
+#'   [geobr::read_municipality()]) with a municipality-code column (detected
+#'   automatically, e.g. `code_muni`). Non-`sf` input errors. When provided,
+#'   rasters are aggregated and a `climasus_df` is returned. If `NULL`
+#'   (default), cached file paths or a `SpatRaster` are returned instead (see
+#'   `raster_area`). Aggregated results are cached per set of municipalities.
 #'
 #' @param raster_area Controls what is returned when `municipalities = NULL`.
 #'   One of:
@@ -60,22 +69,25 @@ utils::globalVariables(c(
 #'   Ignored (with the file-path/tibble behavior taking precedence) if
 #'   `municipalities` is provided.
 #'
-#' @param agg_fun Character. Spatial aggregation function for
-#'   `exactextractr::exact_extract()`. Default `"mean"` (area-weighted mean).
-#'   For rainfall totals over a municipality use `"sum"`.
+#' @param agg_fun Character scalar. Spatial aggregation function for
+#'   `exactextractr::exact_extract()`; one of `"mean"` (default,
+#'   area-weighted mean), `"sum"`, `"median"`, `"min"`, `"max"`. Other values
+#'   error. Only used when `municipalities` is provided.
 #'
-#' @param crop_brazil Logical. Crop global rasters to Brazil's bounding box
-#'   before aggregation. Reduces memory usage significantly. Default `TRUE`.
+#' @param crop_brazil Logical scalar. Crop global rasters to Brazil's bounding
+#'   box before aggregation or before building the `SpatRaster`. Reduces
+#'   memory usage significantly. Default `TRUE`.
 #'
-#' @param use_cache Logical. Reuse previously downloaded raster files and
-#'   aggregated Parquet caches. Default `TRUE`.
+#' @param use_cache Logical scalar. Reuse previously downloaded raster files and
+#'   aggregated Parquet caches (`FALSE` forces re-download). Default `TRUE`.
 #'
 #' @param cache_dir Character. Root cache directory.
 #'   Default `"~/.climasus4r_cache/chirps"`.
 #'
-#' @param lang Character. Message language: `"pt"` (default), `"en"`, `"es"`.
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"`
+#'   or `"es"`; other values error.
 #'
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
 #' @return
 #' \itemize{
@@ -138,7 +150,8 @@ utils::globalVariables(c(
 #' )
 #' }
 #'
-#' @seealso [sus_grid_era5()], [sus_climate_anomaly()], [sus_mod_dlnm()]
+#' @seealso [sus_grid_era5()], [sus_grid_join()], [sus_grid_plot()],
+#'   [sus_climate_anomaly()], [sus_mod_dlnm()]
 #'
 #' @export
 #' @importFrom rlang .data is_installed

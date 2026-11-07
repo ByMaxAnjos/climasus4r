@@ -22,26 +22,40 @@ sus_data_filter_demographics(
 )
 }
 \arguments{
-\item{df}{A \code{climasus_df} object containing health data (output of the
-\code{climasus4r} pipeline).}
+\item{df}{A \code{climasus_df} at stage \code{"stand"} or later (see
+\code{\link[=sus_data_standardize]{sus_data_standardize()}}), or a lazy Arrow/DuckDB table. Must be
+standardized so that the demographic columns can be found.}
 
-\item{sex}{Character vector specifying sex categories to include. Accepts
-values in English, Portuguese, or Spanish (e.g., \code{"Male"}, \code{"Masculino"},
-\code{"Masculino"}). If \code{NULL} (default), includes all sexes.}
+\item{sex}{Character scalar or vector of sex labels to keep, e.g. \code{"Female"},
+\code{c("Masculino", "Feminino")}. Must match the labels of the standardized
+column in the language used in \code{\link[=sus_data_standardize]{sus_data_standardize()}} (English
+\code{Male}/\code{Female}; Portuguese \code{Masculino}/\code{Feminino}; Spanish
+\code{Masculino}/\code{Femenino}); input is converted to title case. \code{NULL}
+(default) keeps all. If no sex column is found, a warning is issued and the
+filter is skipped.}
 
-\item{race}{Character vector specifying race/color categories to include.
-Accepts IBGE standard categories in multiple languages. If \code{NULL} (default),
-includes all races.}
+\item{race}{Character scalar or vector of race/color labels to keep, e.g.
+\code{"Parda"}, \code{c("Branca", "Preta")} (IBGE categories, see Details), matched
+against the standardized column in the same way as \code{sex}. \code{NULL} (default)
+keeps all. Skipped with a warning if no race column is found.}
 
-\item{age_range}{Numeric vector of length 2 specifying the age range
-\code{c(min_age, max_age)}. Use \code{Inf} for no upper limit. If \code{NULL} (default),
-includes all ages.}
+\item{age_range}{Numeric vector of length 2, \code{c(min_age, max_age)} in years,
+both ends inclusive, e.g. \code{c(0, 4)}, \code{c(65, Inf)} (\code{Inf} = no upper
+limit). \code{NULL} (default) keeps all ages. \strong{Requires an \code{age_years}
+column}, created by \code{\link[=sus_data_create_variables]{sus_data_create_variables()}}; the function aborts if
+it is missing or if the length is not 2.}
 
-\item{education}{Character vector specifying education levels to include.
-If \code{NULL} (default), includes all education levels.}
+\item{education}{Character scalar or vector of education labels to keep (as
+they appear in the standardized column, title-cased). \code{NULL} (default)
+keeps all. Skipped with a warning if no education column is found.}
 
-\item{region}{A string indicating a predefined group of states or regions
-(supports multilingual names PT, EN, ES). See Details.}
+\item{region}{Character or numeric scalar/vector, default \code{NULL}. State(s) to
+keep, given as region/biome names (e.g. \code{"norte"}, \code{"amazonia_legal"},
+\code{"matopiba"}; PT/EN/ES aliases such as \code{"north"} accepted; see Details),
+UF abbreviations (\code{"SP"}, \code{c("RJ", "ES")}) or IBGE state codes (\code{35}).
+The elements are combined (union). Matching uses the state column of the
+data (e.g. manager/notification UF), not municipality of residence.
+Aborts if no valid state results.}
 
 \item{city}{Character vector of municipality names (e.g., \code{"Sao Paulo"},
 \code{"Natal"}) or IBGE codes (6 or 7-digit, e.g., \code{"3550308"}, \code{"2408102"}).
@@ -49,42 +63,35 @@ Case-insensitive; accents are normalised for matching. Partial typos trigger
 fuzzy suggestions. If \code{NULL} (default), no additional municipality filter is
 applied. Results are merged (union) with any codes in \code{municipality_code}.}
 
-\item{municipality_code}{Character or numeric vector specifying municipality
-codes (IBGE 6 or 7-digit codes) to include. If \code{NULL} (default), includes
-all municipalities.}
+\item{municipality_code}{Character or numeric vector of IBGE municipality
+codes (6 or 7 digits), e.g. \code{c(3550308, 3304557)}. Combined (union) with
+\code{city}. \code{NULL} (default) keeps all municipalities.}
 
-\item{drop_ignored}{Logical. If \code{TRUE}, explicitly removes rows where
-demographic variables (sex, race, education) contain missing values (\code{NA})
-or DATASUS ignored codes (e.g., \code{"9"}, \code{"Ignorado"}). Default is \code{FALSE}.}
+\item{drop_ignored}{Logical scalar, default \code{FALSE}. If \code{TRUE}, rows with
+\code{NA} or DATASUS "ignored" codes (\code{"Ignorado"}, \code{"9"}, \code{"99"}, \code{"unknown"},
+...) in the columns of the requested \code{sex}/\code{race}/\code{education} filters are
+removed.}
 
-\item{backend}{Character string specifying the data processing backend.
-Use \code{"arrow"} for out-of-memory, lazy processing (recommended for large datasets),
-or \code{"tibble"} for in-memory processing (recommended for small to medium datasets).
-\itemize{
-\item \code{"arrow"}: operations are performed lazily using the Apache Arrow engine,
-avoiding loading the full dataset into memory. Ideal for large files
-(e.g., Parquet, Feather) and high-performance workflows.
-\item \code{"tibble"}: data is fully loaded into memory as a tibble and processed eagerly
-using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
-}
+\item{backend}{Character scalar, \code{"arrow"} (default) or \code{"tibble"}.
+\code{"arrow"} filters lazily and falls back to \code{"tibble"} (in memory) with a
+warning if it fails; \code{"tibble"} processes in memory.}
 
-If not specified, the function may automatically choose the backend based on
-the input data type.}
+\item{use_cache}{Logical scalar, default \code{TRUE}. Cache the municipality
+metadata used to resolve \code{city}/\code{municipality_code}; only relevant then.}
 
-\item{use_cache}{Logical. If \code{TRUE} (default), uses cached spatial data to
-avoid re-downloads and improve performance. Only relevant when \code{city} is
-provided.}
+\item{cache_dir}{Character scalar, directory of the cache, default
+\code{"~/.climasus4r_cache/spatial"}.}
 
-\item{cache_dir}{Character string specifying the directory to store cached
-files. Default is \code{"~/.climasus4r_cache/spatial"}.}
+\item{lang}{Character scalar, \code{"pt"} (default), \code{"en"} or \code{"es"}. Language of
+messages; other values abort.}
 
-\item{lang}{Character string specifying the language for messages.
-Options: \code{"en"} (English), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}
-
-\item{verbose}{Logical. If \code{TRUE} (default), prints filtering summary.}
+\item{verbose}{Logical scalar, default \code{TRUE}. Print the filtering summary.}
 }
 \value{
-A \code{climasus_df} filtered by all specified demographic criteria.
+A \code{climasus_df} with only the rows meeting \strong{all} the given
+criteria (lazy if the input was lazy and arrow succeeded); columns are
+unchanged. \code{sus_meta}: \code{stage = "filter_demo"}, \code{type = "filter_demo"},
+with the applied filters recorded in the history.
 }
 \description{
 Filters health data based on demographic characteristics such as sex, race,
@@ -92,6 +99,10 @@ age range, education level, region, and municipality. This function complements
 \code{sus_data_filter_cid()} by enabling stratified analyses by population subgroups.
 }
 \details{
+Pipeline position: after \code{\link[=sus_data_filter_cid]{sus_data_filter_cid()}} (or directly after
+\code{\link[=sus_data_standardize]{sus_data_standardize()}}); \code{age_range} needs \code{\link[=sus_data_create_variables]{sus_data_create_variables()}}
+first. All filters are combined with AND; \code{NULL} arguments are skipped.
+
 The function automatically detects column names in different languages and
 standardisations. It handles both original DATASUS column names and
 standardised names from \code{sus_data_standardize()}.
@@ -109,6 +120,8 @@ standardised names from \code{sus_data_standardize()}.
 \item Portuguese: \code{"Branca"}, \code{"Preta"}, \code{"Amarela"}, \code{"Parda"}, \code{"Indigena"}
 \item Spanish: \code{"Blanca"}, \code{"Negra"}, \code{"Amarilla"}, \code{"Parda"}, \code{"Indigena"}
 }
+
+\strong{Regions accepted by \code{region}:}
 
 \strong{IBGE Macro-regions:}
 \itemize{
@@ -151,10 +164,11 @@ standardised names from \code{sus_data_standardize()}.
 \dontrun{
 library(climasus4r)
 
-# Filter by sex only
-df_women <- sus_data_filter_demographics(df, sex = "Female")
+# Filter by sex only (labels follow the language used in standardize)
+df_women <- sus_data_filter_demographics(df, sex = "Feminino", lang = "pt")
 
-# Filter by age range (elderly, 65+)
+# Filter by age range (elderly, 65+); needs age_years from
+# sus_data_create_variables()
 df_elderly <- sus_data_filter_demographics(df, age_range = c(65, Inf))
 
 # Filter by city name (with accent tolerance)
@@ -179,9 +193,13 @@ df_subset <- sus_data_filter_demographics(
 df_children <- sus_data_filter_demographics(
   df,
   age_range = c(0, 5),
-  region    = "Norte",
+  region    = "norte",
   lang      = "pt"
 )
 }
 
+}
+\seealso{
+\code{\link[=sus_data_filter_cid]{sus_data_filter_cid()}}, \code{\link[=sus_data_create_variables]{sus_data_create_variables()}},
+\code{\link[=sus_data_standardize]{sus_data_standardize()}}
 }

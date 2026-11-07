@@ -20,7 +20,9 @@ sus_mod_swot(
 }
 \arguments{
 \item{vulnerability}{A \code{climasus_vi} object from
-\code{\link[=sus_mod_vulnerability_index]{sus_mod_vulnerability_index()}}, or \code{NULL}. Provides per-city VI scores,
+\code{\link[=sus_mod_vulnerability_index]{sus_mod_vulnerability_index()}}, or \code{NULL} (default). At least one of
+\code{vulnerability}, \code{af}, \code{burden}, \code{dlnm}, \code{sensitivity} must be supplied
+(error otherwise); a wrong class errors. Provides per-city VI scores,
 exposure, sensitivity, and adaptive capacity indicators.}
 
 \item{af}{A \code{climasus_af} object from \code{\link[=sus_mod_af]{sus_mod_af()}}, or \code{NULL}. Provides
@@ -37,25 +39,30 @@ temperature.}
 \code{\link[=sus_mod_sensitivity]{sus_mod_sensitivity()}}, or \code{NULL}. Provides stratum-level RR inequality
 and the maximum hot RR across strata.}
 
-\item{score_type}{Character. Which score types to compute:
-\code{"numeric"} (0–100), \code{"categorical"} (cut-point labels), or
-\code{"both"} (default).}
+\item{score_type}{Character scalar. Which scores to return: \code{"both"}
+(default), \code{"numeric"} (0-100 scores only), or \code{"categorical"}
+(category labels based on \code{breaks}).}
 
-\item{breaks}{Numeric vector. Strictly increasing cut-points in (0, 100)
-used to convert numeric scores into categories. Default \code{c(33, 66)}
-produces three categories. Generates \code{length(breaks) + 1} categories.}
+\item{breaks}{Numeric vector of strictly increasing cut-points in (0, 100)
+used to bin numeric scores, e.g. \code{c(25, 50, 75)} for four categories.
+Default \code{c(33, 66)} gives three categories. Produces
+\code{length(breaks) + 1} categories; invalid values error.}
 
-\item{labels}{Character vector or \code{NULL}. Category labels with length
-\code{length(breaks) + 1}. \code{NULL} (default) uses language-appropriate defaults:
-Portuguese \code{c("Baixo", "Médio", "Alto")}, English \code{c("Low", "Medium", "High")}, Spanish \code{c("Bajo", "Medio", "Alto")}.}
+\item{labels}{Character vector of length \code{length(breaks) + 1}, ordered from
+lowest to highest, e.g. \code{c("Low", "Medium", "High")}, or \code{NULL}
+(default): language defaults are \code{c("Baixo", "Medio", "Alto")} (\code{"pt"}),
+\code{c("Low", "Medium", "High")} (\code{"en"}), \code{c("Bajo", "Medio", "Alto")}
+(\code{"es"}) when there are 3 categories, otherwise \code{"Cat1"}, \code{"Cat2"}, ...
+A wrong length errors.}
 
-\item{city_col}{Character. Column name of the city/entity identifier in the
-\code{vulnerability$vi_table}. Defaults to \code{"city"}. Overridden by
-\code{vulnerability$meta$city_col} when available.}
+\item{city_col}{Character scalar. Name of the city/entity column in
+\code{vulnerability$vi_table}. Default \code{"city"}. Overridden by
+\code{vulnerability$meta$city_col} when present and found in the table.}
 
-\item{lang}{Character. Language for labels: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar. Label language: \code{"pt"} (default), \code{"en"}, or
+\code{"es"}. An unsupported single string warns and falls back to \code{"pt"}.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
 A \code{climasus_swot} list with:

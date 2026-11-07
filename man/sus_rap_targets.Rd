@@ -16,23 +16,28 @@ sus_rap_targets(
 }
 \arguments{
 \item{pipeline}{A \code{rap_object} (from \code{\link[=sus_rap_read]{sus_rap_read()}}) or a quoted
-pipeline expression (from \code{quote()}).}
+pipeline expression (from \code{quote()}, with literal \code{uf}, \code{year}/\code{years}
+and \code{system} in the import step).}
 
-\item{file_path}{\code{character(1)}  - Output path. Default \code{"_targets.R"}.}
+\item{file_path}{\code{character(1)}, output path, default \code{"_targets.R"}. A
+\verb{data/} folder is also created next to it. Aborts if the file exists and
+\code{overwrite = FALSE}.}
 
-\item{branching}{\code{character(1)}  - Branching strategy: \code{"none"} (default),
-\code{"uf"}, \code{"year"}, or \code{"cross"}.}
+\item{branching}{\code{character(1)}, one of \code{"none"} (default), \code{"uf"},
+\code{"year"} or \code{"cross"} (all UF x year combinations); partial matching is
+allowed.}
 
-\item{workers}{\code{integer(1)}  - Number of parallel workers. Default \code{1}.}
+\item{workers}{\code{integer(1)}, default \code{1}. Number of parallel workers
+written into the pipeline.}
 
-\item{include_qc}{\code{logical(1)}  - Add a quality-control target. Default \code{TRUE}.}
+\item{include_qc}{\code{logical(1)}, default \code{TRUE}. Add a quality-control target.}
 
-\item{lang}{\code{character(1)}  - Language for messages.}
+\item{lang}{\code{character(1)}, \code{"pt"} (default), \code{"en"} or \code{"es"}.}
 
-\item{overwrite}{\code{logical(1)}  - Overwrite existing file. Default \code{FALSE}.}
+\item{overwrite}{\code{logical(1)}, default \code{FALSE}. Overwrite an existing file.}
 }
 \value{
-Invisibly, the path of the generated \verb{_targets.R} file.
+Invisibly, the path (character) of the generated \verb{_targets.R} file.
 }
 \description{
 Converts a \code{rap_object} or a pipeline expression into a ready-to-use
@@ -55,4 +60,7 @@ rap <- sus_rap_read("pipeline_sp.R")
 sus_rap_targets(rap, "_targets.R", branching = "uf", workers = 4)
 # then run: targets::tar_make()
 }
+}
+\seealso{
+\code{\link[=sus_rap_make]{sus_rap_make()}}, \code{\link[=sus_rap_read]{sus_rap_read()}}, \code{\link[=sus_rap_export]{sus_rap_export()}}
 }

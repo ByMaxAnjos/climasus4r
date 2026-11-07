@@ -17,36 +17,55 @@ sus_mod_af(
 )
 }
 \arguments{
-\item{fit}{A \code{climasus_dlnm} object produced by \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}.}
+\item{fit}{A \code{climasus_dlnm} object produced by \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}. Any other
+class errors. Uses \code{fit$crossbasis}, \code{fit$model}, \code{fit$data_daily} and
+\code{fit$meta}.}
 
-\item{threshold}{Numeric or \code{NULL}. Exposure value splitting heat (above) and
-cold (below) components. \code{NULL} (default) uses \code{fit$meta$ref_value}.}
+\item{threshold}{Numeric scalar or \code{NULL}. Exposure value that (a) splits the
+heat (>= threshold) and cold (<= threshold) components and (b) is used as
+the centring value (\code{cen}) of \code{dlnm::crosspred()}, i.e. the RR = 1
+reference. \code{NULL} (default) uses \code{fit$meta$ref_value} (the reference chosen
+in \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}). Example: \code{threshold = 24.5}.}
 
-\item{range}{Numeric vector \code{c(low, high)} or \code{NULL}. When provided, AF is
-also computed for this custom exposure range.}
+\item{range}{Numeric vector of length 2, \code{c(low, high)}, or \code{NULL}
+(default). When given, AF/AN are also computed for days whose lag-0
+exposure lies in \verb{[low, high]} (both ends inclusive); use \code{-Inf}/\code{Inf} for
+open ends, e.g. \code{c(30, Inf)} or \code{c(-Inf, 10)}. Returned in \verb{$custom}.
+\code{NULL} skips it.}
 
-\item{pred_at}{Numeric vector (0-1). Quantiles defining the percentile-band
-table. For each \code{q}, the AF above the \code{q}-th quantile (hot) and below the
-\code{(1-q)}-th quantile (cold) is reported. Default \code{c(0.75, 0.90, 0.95, 0.99)}.}
+\item{pred_at}{Numeric vector of probabilities in (0, 1), default
+\code{c(0.75, 0.90, 0.95, 0.99)}. Accepts a scalar (\code{0.95}) or vector
+(\code{c(0.90, 0.99)}). For each \code{q}, \verb{$by_quantile} reports the AF of days
+above the \code{q}-th exposure quantile (\code{"hot"}) and of days below the
+\code{(1 - q)}-th quantile (\code{"cold"}). Quantiles are taken from the observed
+lag-0 exposure.}
 
-\item{by}{Character or \code{NULL}. Temporal grouping for the period table:
-\code{"month"}, \code{"year"}, or \code{"season"}. \code{NULL} (default) skips the breakdown.}
+\item{by}{Character scalar or \code{NULL} (default). Temporal grouping of the
+\verb{$by_period} table: \code{"month"} (year x month), \code{"year"}, or \code{"season"}
+(year x DJF/MAM/JJA/SON, Southern-Hemisphere-neutral calendar seasons).
+\code{NULL} skips the breakdown. Any other value errors. Period tables are
+point estimates only (no CI).}
 
-\item{nsim}{Integer. Number of Monte Carlo simulations for CI. Default
-\code{1000L}. Reduce to \code{200L} for quick exploratory runs; increase to \code{5000L}
-for publication-quality CI.}
+\item{nsim}{Integer scalar >= 0. Number of Monte Carlo coefficient draws used
+for the CI. Default \code{1000L}; \code{200L} for quick runs, \code{5000L} for
+publication. \code{0} (or the \pkg{MASS} package being absent, with a warning)
+switches to delta-method bounds from \code{crosspred} (\code{meta$ci_method = "delta"}). Run time grows linearly with \code{nsim} and with the number of
+components/bands computed.}
 
-\item{alpha}{Numeric. Significance level for CI. Default \code{0.05} (95\%).}
+\item{alpha}{Numeric scalar in (0, 1). Significance level; CI covers
+\code{alpha/2} to \code{1 - alpha/2} quantiles. Default \code{0.05} (95\% CI); \code{0.10} gives
+a 90\% CI.}
 
-\item{lang}{Character. Language for messages: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar, one of \code{"pt"} (default), \code{"en"}, \code{"es"}.
+Language of CLI messages. Invalid values error (\code{match.arg}).}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. If \code{TRUE} (default) prints progress messages.}
 }
 \value{
 A \code{climasus_af} object (named list) with:
 \describe{
 \item{\verb{$total}}{One-row-per-component tibble (total/heat/cold) with AF,
-AN, and 95\% CI.}
+AN, and CI at level \code{1 - alpha}.}
 \item{\verb{$by_quantile}}{AF/AN at each percentile band in \code{pred_at}.}
 \item{\verb{$by_period}}{Monthly/yearly/seasonal point estimates; \code{NULL} when
 \code{by = NULL}.}
@@ -101,5 +120,6 @@ across 739 locations. \emph{The Lancet Planetary Health}, 1(9), e360-e367.
 \doi{10.1016/S2542-5196(17)30156-0}
 }
 \seealso{
-\code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, \code{\link[=sus_mod_plot_dlnm]{sus_mod_plot_dlnm()}}
+\code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, \code{\link[=sus_mod_plot_dlnm]{sus_mod_plot_dlnm()}}, \code{\link[=sus_mod_plot_af]{sus_mod_plot_af()}},
+\code{\link[=sus_mod_burden]{sus_mod_burden()}}
 }

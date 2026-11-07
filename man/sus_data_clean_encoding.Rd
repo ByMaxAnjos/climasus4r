@@ -7,29 +7,25 @@
 sus_data_clean_encoding(df, backend = "arrow", lang = "pt", verbose = TRUE)
 }
 \arguments{
-\item{df}{A \code{data.frame} or \code{tibble} to be cleaned.}
+\item{df}{A \code{climasus_df}, tibble or data frame (e.g. from
+\code{\link[=sus_data_import]{sus_data_import()}}), or a lazy Arrow dataset/table (a lazy input is
+collected). Character columns are inspected and fixed.}
 
-\item{backend}{Character string specifying the data processing backend.
-Use \code{"arrow"} for out-of-memory, lazy processing (recommended for large datasets),
-or \code{"tibble"} for in-memory processing (recommended for small to medium datasets).
-\itemize{
-\item \code{"arrow"}: operations are performed lazily using the Apache Arrow engine,
-avoiding loading the full dataset into memory. Ideal for large files
-(e.g., Parquet, Feather) and high-performance workflows.
-\item \code{"tibble"}: data is fully loaded into memory as a tibble and processed eagerly
-using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
-}
+\item{backend}{Character scalar, \code{"arrow"} (default) or \code{"tibble"}.
+\code{"arrow"} uses the Arrow-aware implementation and falls back to
+\code{"tibble"} (in memory) with a warning if it fails; \code{"tibble"} processes in
+memory. Any other value uses the tibble path.}
 
-If not specified, the function may automatically choose the backend based on
-the input data type.}
+\item{lang}{Character scalar, \code{"pt"} (default), \code{"en"} or \code{"es"}. Language of
+messages; other values abort.}
 
-\item{lang}{Character. Language for UI messages. Options: "en" (English),
-"pt" (Portuguese, default), "es" (Spanish).}
-
-\item{verbose}{Logical. If TRUE, prints a report of columns checked and corrected. Default is TRUE.}
+\item{verbose}{Logical scalar, default \code{TRUE}. Print a report of columns
+checked and corrected.}
 }
 \value{
-A \code{data.frame} with corrected text columns.
+A \code{climasus_df} (tibble) with the same rows/columns and corrected
+text columns. \code{sus_meta}: \code{stage = "clean"}, \code{type = "clean"}, system
+preserved, history entry added.
 }
 \description{
 This function scans text columns in a data.frame and corrects common encoding
@@ -37,6 +33,11 @@ problems (e.g., "Sao Paulo") that occur when Latin1 data is
 incorrectly read as UTF-8. It acts as a final auditor to ensure all text data
 is properly encoded, complementing the preprocessing done by \code{microdatasus}.
 Supports multilingual output messages (English, Portuguese, Spanish).
+}
+\details{
+Pipeline position: right after \code{\link[=sus_data_import]{sus_data_import()}} and before
+\code{\link[=sus_data_standardize]{sus_data_standardize()}}. It repairs mojibake (Latin1 text read as UTF-8) and
+invalid UTF-8; columns with no problem are left untouched.
 }
 \examples{
 \dontrun{
@@ -62,7 +63,10 @@ df_clean_pt <- sus_data_clean_encoding(df_problem, lang = "pt")
 df_clean_es <- sus_data_clean_encoding(df_problem, lang = "es")
 
 # Use in a pipeline
-df_clean <- sus_data_import(uf = "RJ", year = 2022, system = "SIM") \%>\%
+df_clean <- sus_data_import(uf = "RJ", year = 2022, system = "SIM-DO") \%>\%
   sus_data_clean_encoding(lang = "pt")
 }
+}
+\seealso{
+\code{\link[=sus_data_import]{sus_data_import()}}, \code{\link[=sus_data_standardize]{sus_data_standardize()}}
 }

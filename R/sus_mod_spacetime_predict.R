@@ -140,9 +140,9 @@ utils::globalVariables(c(
   ),
 
   err_samples_unavailable = list(
-    pt = "{.arg return_samples = TRUE} requer que o objeto {.cls climasus_spacetime_bayes} contenha amostras INLA completas em {.field $inla_fit}. Reajuste com {.code return_inla_fit = TRUE}.",
-    en = "{.arg return_samples = TRUE} requires the {.cls climasus_spacetime_bayes} object to contain full INLA samples in {.field $inla_fit}. Refit with {.code return_inla_fit = TRUE}.",
-    es = "{.arg return_samples = TRUE} requiere que el objeto {.cls climasus_spacetime_bayes} contenga muestras INLA completas en {.field $inla_fit}. Reajuste con {.code return_inla_fit = TRUE}."
+    pt = "{.arg return_samples = TRUE} requer o ajuste INLA completo em {.field $inla_fit}, que {.fn sus_mod_spacetime_bayes} n\u00e3o armazena. Use {.code return_samples = FALSE} (intervalos gaussianos) ou anexe manualmente o objeto INLA como {.code fit$inla_fit}.",
+    en = "{.arg return_samples = TRUE} requires the full INLA fit in {.field $inla_fit}, which {.fn sus_mod_spacetime_bayes} does not store. Use {.code return_samples = FALSE} (Gaussian intervals) or attach the INLA object manually as {.code fit$inla_fit}.",
+    es = "{.arg return_samples = TRUE} requiere el ajuste INLA completo en {.field $inla_fit}, que {.fn sus_mod_spacetime_bayes} no almacena. Use {.code return_samples = FALSE} (intervalos gaussianos) o adjunte manualmente el objeto INLA como {.code fit$inla_fit}."
   )
 )
 
@@ -187,8 +187,9 @@ utils::globalVariables(c(
 #' 3. Spatial random effect: reuse `fit$spatial_re` for municipalities present
 #'    in the fitted model. For municipalities not in the training data, the
 #'    spatial random effect is set to `NA` with a warning.
-#' 4. Temporal random effect: for in-sample time points, reuse `fit$temporal_re`
-#'    directly. For future periods (`horizon > 0`), extrapolate using the last
+#' 4. Temporal random effect: for in-sample time points, reuse the
+#'    `psi_mean` (or `gamma_mean`) column of `fit$temporal_re`. For future
+#'    periods (`horizon > 0`), extrapolate using the last
 #'    observed increment (RW1: repeat last increment; RW2: project second
 #'    differences) with uncertainty propagation.
 #' 5. Full linear predictor: \eqn{\hat{\eta} = \eta^{(f)} + \phi_i + \gamma_t}.
@@ -197,7 +198,7 @@ utils::globalVariables(c(
 #'    where \eqn{V_\beta = \text{diag}(\sigma_\beta^2)} (diagonal approximation).
 #' 7. Point prediction: \eqn{\hat{\mu} = \exp(\hat{\eta})} (Poisson / NB) or
 #'    \eqn{\hat{\mu} = \hat{\eta}} (Gaussian).
-#' 8. 95\% credible interval:
+#' 8. 95% credible interval:
 #'    \eqn{\exp(\hat{\eta} \pm 1.96 \sqrt{\text{Var}(\hat{\eta})})}.
 #'
 #' **Important**: this is an approximation. For exact posterior predictive
@@ -215,32 +216,36 @@ utils::globalVariables(c(
 #' `nrow(newdata)`.
 #'
 #' @param fit A `climasus_spacetime_bayes` object from
-#'   [sus_mod_spacetime_bayes()].
-#' @param newdata A `data.frame` with at least columns `code_muni` (7-digit
-#'   IBGE code) and `time_idx` (integer period index, 1-based, matching the
-#'   encoding used in the original fit) plus any covariate columns required
-#'   by the model. If `NULL` and `horizon > 0`, a synthetic grid is constructed
-#'   by crossing all fitted municipalities with the next `horizon` time steps,
-#'   using covariate values from the last observed period (stored in
-#'   `fit$data_last_obs`, if available).
-#' @param horizon Non-negative integer. Number of periods ahead to predict when
-#'   `newdata` is `NULL`. If `newdata` is provided, `horizon` must be `0L`
-#'   (default).
-#' @param covariates_new Named list of covariate overrides for scenario
-#'   analysis. Each element must be a scalar (applied to all rows) or a vector
-#'   of length `nrow(newdata)`. Applied after `newdata` columns are extracted.
+#'   [sus_mod_spacetime_bayes()]. Must contain a `$fixed` data frame
+#'   (`term`, `mean`, `sd`); `$spatial_re` and `$temporal_re` are used when
+#'   present. Errors otherwise.
+#' @param newdata A `data.frame` with columns `code_muni` (IBGE code as used
+#'   in the fit) and `time_idx` (integer period index, 1-based, same encoding
+#'   as `fit$rr$time_idx`), plus one column per covariate term in
+#'   `fit$fixed` (unless supplied through `covariates_new`); missing columns
+#'   error. `NULL` (default) requires `horizon > 0`: a grid is built by
+#'   crossing all fitted municipalities with the next `horizon` periods,
+#'   carrying covariates forward from `fit$data_last_obs` (stored by [sus_mod_spacetime_bayes()]).
+#' @param horizon Non-negative integer scalar. Periods ahead to predict when
+#'   `newdata` is `NULL`, e.g. `6L`. Must be `0L` (default) when `newdata`
+#'   is supplied (error otherwise); negative or `NA` errors.
+#' @param covariates_new Named list of covariate overrides for scenarios, e.g.
+#'   `list(temp_mean = newdata$temp_mean + 2)`. Each element is a scalar
+#'   (recycled) or a vector of length `nrow(newdata)`; applied after
+#'   `newdata` columns are read and may stand in for missing columns.
 #'   Default `NULL` (no overrides).
-#' @param include_ci Logical. If `TRUE` (default), compute 95\% approximate
-#'   credible intervals via variance propagation from posterior standard
-#'   deviations in `fit$fixed`, `fit$spatial_re`, and `fit$temporal_re`.
-#' @param return_samples Logical. If `TRUE`, attempt to draw posterior
-#'   predictive samples from the stored INLA fit object (`fit$inla_fit`).
-#'   Requires the model to have been fitted with `return_inla_fit = TRUE` and
-#'   the **INLA** package to be installed. Default `FALSE`.
-#' @param lang Character. Language for CLI messages: `"pt"` (default),
-#'   `"en"`, or `"es"`.
-#' @param verbose Logical. If `TRUE` (default), print progress messages via
-#'   **cli**.
+#' @param include_ci Logical scalar. `TRUE` (default) adds 95% approximate
+#'   credible limits (`pred_lower95`, `pred_upper95`) using a diagonal
+#'   variance propagation of `fit$fixed`, `fit$spatial_re` and
+#'   `fit$temporal_re` standard deviations.
+#' @param return_samples Logical scalar. `TRUE` requests raw INLA posterior
+#'   samples (1000 draws) and adds `$samples`. It requires `fit$inla_fit`,
+#'   which [sus_mod_spacetime_bayes()] does not currently store, so it
+#'   errors for fits from that function. Needs \pkg{INLA}. Default `FALSE`.
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"`,
+#'   or `"es"`; anything else errors (`match.arg`).
+#' @param verbose Logical scalar. Print progress messages via \pkg{cli}.
+#'   Default `TRUE`.
 #'
 #' @return A named list of class `c("climasus_spacetime_pred", "list")` with:
 #'   \describe{
@@ -255,6 +260,9 @@ utils::globalVariables(c(
 #'   `$samples` slot contains raw INLA posterior samples (list from
 #'   `INLA::inla.posterior.sample()`).
 #'
+#' The likelihood family is read from `fit$family` or `fit$model_spec$family`
+#' (default `"poisson"` when absent).
+#'
 #' @references
 #' Rue, H., Martino, S., & Chopin, N. (2009). Approximate Bayesian inference
 #' for latent Gaussian models by using integrated nested Laplace approximations.
@@ -268,6 +276,8 @@ utils::globalVariables(c(
 #' Regression Structures} (pp. 91-110). Physica-Verlag HD.
 #'
 #' @seealso
+#' [sus_mod_spacetime_bayes()] to fit the model,
+#' [sus_mod_spacetime_exceedance()] for exceedance probabilities,
 #' [sus_mod_spatial_bayes()] for cross-sectional Bayesian disease mapping,
 #' [sus_mod_spatial_weights()] to build the spatial adjacency object,
 #' [sus_mod_spatial_moran()] for exploratory spatial autocorrelation analysis.
@@ -388,7 +398,8 @@ sus_mod_spacetime_predict <- function(
   }
 
   # Family / link
-  model_family <- if (!is.null(fit[["family"]])) fit[["family"]] else "poisson"
+  model_family <- fit[["family"]] %||% fit[["model_spec"]][["family"]] %||% "poisson"
+  temporal_model <- fit[["temporal_model"]] %||% fit[["model_spec"]][["temporal_model"]]
 
   # -- 2. build prediction grid -------------------------------------------------
   if (!is.null(newdata)) {
@@ -566,6 +577,16 @@ sus_mod_spacetime_predict <- function(
   eta_temporal     <- rep(0, n_pred)
   eta_var_temporal <- rep(0, n_pred)
 
+  # bayes returns psi_mean/psi_sd; older objects use gamma_mean/gamma_sd
+  if (!is.null(temporal_re)) {
+    for (nm in c("mean", "sd")) {
+      if (!paste0("gamma_", nm) %in% names(temporal_re) &&
+          paste0("psi_", nm) %in% names(temporal_re)) {
+        temporal_re[[paste0("gamma_", nm)]] <- temporal_re[[paste0("psi_", nm)]]
+      }
+    }
+  }
+
   if (!is.null(temporal_re) && "time_idx" %in% names(temporal_re) &&
       "gamma_mean" %in% names(temporal_re)) {
     t_vec     <- as.integer(pred_grid[["time_idx"]])
@@ -600,8 +621,8 @@ sus_mod_spacetime_predict <- function(
       }
 
       # Detect RW order from fit$temporal_model (e.g. "rw1", "rw2", "RW2")
-      rw_order <- if (!is.null(fit[["temporal_model"]])) {
-        as.integer(gsub("[^0-9]", "", as.character(fit[["temporal_model"]])))
+      rw_order <- if (!is.null(temporal_model)) {
+        as.integer(gsub("[^0-9]", "", as.character(temporal_model)))
       } else {
         1L
       }

@@ -162,31 +162,36 @@ utils::globalVariables(c(
 #'   \item{`NS`}{Not significant at the specified `alpha` level.}
 #' }
 #'
-#' @param df A `data.frame` or `climasus_df` containing at least the columns
-#'   `code_muni` (7-digit IBGE municipality code) and the outcome column
-#'   named by `outcome`. The row order must correspond to the spatial units
-#'   encoded in `W` unless `municipalities` is supplied to subset and reorder.
-#' @param outcome Character. Name of the numeric outcome column in `df`
-#'   (e.g. `"deaths"`, `"rate_100k"`, `"hospitalization_rate"`).
-#' @param W A `climasus_weights` object produced by
-#'   `sus_mod_spatial_weights()`. Must contain a `listw` element (a
-#'   `listw`-class object from **spdep**) whose length matches `nrow(df)` after
-#'   any filtering by `municipalities`.
-#' @param municipalities Optional character or integer vector of `code_muni`
-#'   values to include. When supplied the function subsets and reorders `df`
-#'   to match this vector before computation. Default `NULL` (use all rows).
-#' @param permutations Positive integer. Number of Monte Carlo permutations
-#'   for both global and local inference. Default `999`.
-#' @param alpha Numeric in (0, 1). Significance threshold applied to
-#'   p-adjusted local Moran p-values when assigning quadrant labels.
-#'   Default `0.05`.
-#' @param adjust_p Character. Method passed to [stats::p.adjust()] for
-#'   multiple-testing correction of local Moran p-values. One of `"fdr"`
-#'   (default), `"bonferroni"`, or `"none"`.
-#' @param lang Character. Output language for messages: `"pt"` (default),
-#'   `"en"`, or `"es"`.
-#' @param verbose Logical. If `TRUE` (default), print progress messages via
-#'   **cli**.
+#' @param df A `data.frame` or `climasus_df` (typically after
+#'   [sus_data_aggregate()]) with one row per spatial unit, containing
+#'   `code_muni` (IBGE code) and the `outcome` column. Rows are NOT sorted
+#'   internally: row order must match the region order of `W`, unless
+#'   `municipalities` is given (which reorders `df`). `nrow(df)` must equal
+#'   the number of units in `W$listw` (error otherwise); fewer than 30 units
+#'   only warns.
+#' @param outcome Character scalar. Name of the numeric outcome column in
+#'   `df` (e.g. `"deaths"`, `"rate_100k"`). `NA` values are replaced by the
+#'   column mean with a warning; an all-`NA` column errors.
+#' @param W A `climasus_weights` object from [sus_mod_spatial_weights()]
+#'   containing a `listw` element (spdep `listw`). Errors otherwise.
+#' @param municipalities Character or numeric vector of `code_muni` values,
+#'   e.g. `c("1100015", "1100023")`, or `NULL` (default, use all rows). When
+#'   given, `df` is subset to these codes AND reordered to this vector's
+#'   order, so it must be in the same order as the units of `W`. Codes not
+#'   found in `df` are silently dropped.
+#' @param permutations Positive integer scalar. Monte Carlo permutations for
+#'   the global (`moran.mc`) and local (`localmoran_perm`) tests, e.g. `499L`.
+#'   Default `999L`. The local test uses a fixed internal seed, so results
+#'   are reproducible.
+#' @param alpha Numeric scalar in (0, 1). Significance threshold applied to
+#'   the adjusted local p-values (`p_adj < alpha`) to assign quadrants; the
+#'   rest are `"NS"`. Default `0.05`.
+#' @param adjust_p Character scalar. Multiple-testing correction passed to
+#'   [stats::p.adjust()]: `"fdr"` (default), `"bonferroni"`, or `"none"`.
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"`,
+#'   or `"es"`; anything else errors (`match.arg`).
+#' @param verbose Logical scalar. Print progress messages via \pkg{cli}.
+#'   Default `TRUE`.
 #'
 #' @return An object of class `c("climasus_spatial_moran", "list")` with the
 #'   following named elements:
@@ -237,7 +242,8 @@ utils::globalVariables(c(
 #' Bivand, R. S., Pebesma, E., & Gomez-Rubio, V. (2013).
 #'   \emph{Applied Spatial Data Analysis with R} (2nd ed.). Springer.
 #'
-#' @seealso [sus_mod_spatial_weights()], [sus_spatial_join()]
+#' @seealso [sus_mod_spatial_weights()], [sus_spatial_join()],
+#'   [sus_mod_plot_spatial_moran()], [sus_mod_spatial_scan()]
 #'
 #' @export
 sus_mod_spatial_moran <- function(

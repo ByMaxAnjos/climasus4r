@@ -32,6 +32,11 @@ utils::globalVariables(c(
     en = "Cross-validation ({nfold} folds) to select optimal nrounds...",
     es = "Validacion cruzada ({nfold} pliegues) para optimizar nrounds..."
   ),
+  nfold_reduced = list(
+    pt = "Menos grupos ({n_grp}) do que folds ({nfold}); usando {n_grp} folds.",
+    en = "Fewer groups ({n_grp}) than folds ({nfold}); using {n_grp} folds.",
+    es = "Menos grupos ({n_grp}) que pliegues ({nfold}); usando {n_grp} pliegues."
+  ),
   step_train = list(
     pt = "Treinando modelo final (nrounds = {best_nrounds}, eta = {eta})...",
     en = "Training final model (nrounds = {best_nrounds}, eta = {eta})...",
@@ -103,48 +108,57 @@ utils::globalVariables(c(
 #'     probabilities ∈ (0, 1).}
 #' }
 #'
-#' @param df A data frame (plain or `climasus_df`) with one row per
-#'   observation (e.g., city × day or city × month). Must contain
-#'   `outcome_col` and at least one numeric feature column.
-#' @param outcome_col Character. Name of the column to predict (the target
-#'   variable). Must be numeric.
-#' @param feature_cols Character vector or `NULL`. Names of columns to use as
-#'   predictors. When `NULL` (default), all numeric columns except
-#'   `outcome_col` and `id_col` are used automatically.
-#' @param id_col Character or `NULL`. City or group identifier column used for
-#'   **group-aware cross-validation**: each group is kept entirely in one fold,
-#'   preventing data leakage across cities. When `NULL`, standard random
-#'   k-fold is used. Strongly recommended when data has a city dimension.
-#' @param objective Character. XGBoost objective function. One of
-#'   `"count:poisson"` (default), `"reg:squarederror"`, or
-#'   `"binary:logistic"`. See Details.
-#' @param nrounds Integer. Maximum number of boosting rounds. The optimal
-#'   value is selected via early stopping during cross-validation. Default
-#'   `500L`.
-#' @param max_depth Integer. Maximum tree depth. Default `6L`. Increase for
-#'   more complex patterns; decrease to reduce overfitting.
-#' @param eta Numeric. Learning rate (step size shrinkage). Default `0.05`.
-#'   Smaller values require more rounds but often generalize better.
-#' @param subsample Numeric ∈ (0, 1\]. Row subsampling ratio per tree.
+#' @param df A `data.frame`, tibble or `climasus_df` (Arrow-backed inputs are
+#'   collected) with one row per observation (e.g. city x day or city x month).
+#'   Must contain `outcome_col` and at least one numeric feature column. Rows
+#'   with `NA` in the outcome or any feature are dropped (reported when
+#'   `verbose = TRUE`); at least `2 * nfold` complete rows are required.
+#'   Non-data-frame input errors.
+#' @param outcome_col Character scalar (no default). Name of the numeric column
+#'   to predict, e.g. `"n_obitos"`. Errors if absent or non-numeric. For
+#'   `objective = "binary:logistic"` it must be coded 0/1.
+#' @param feature_cols Character vector or `NULL` (default). Predictor columns,
+#'   e.g. `c("tair_max_c", "rh_mean_porc")`. All must exist and be numeric
+#'   (error otherwise; encode factors beforehand). `NULL` uses every numeric
+#'   column except `outcome_col` and `id_col`.
+#' @param id_col Character scalar or `NULL` (default). Group identifier (e.g.
+#'   `"name_muni"`) enabling **group-aware CV**: all rows of a group fall in the
+#'   same fold, avoiding leakage across cities. `NULL` uses random k-fold.
+#'   Excluded from the automatic feature set. Errors if absent.
+#' @param objective Character scalar: `"count:poisson"` (default),
+#'   `"reg:squarederror"` or `"binary:logistic"`. Other values error. Sets the
+#'   CV metric (Poisson negative log-likelihood, RMSE or log-loss,
+#'   respectively). See **XGBoost objective**.
+#' @param nrounds Positive integer. Maximum number of boosting rounds for the CV.
+#'   The final number of rounds (`best_nrounds`) is the one minimising the
+#'   CV test metric, subject to `early_stopping`. Default `500L`.
+#' @param max_depth Positive integer. Maximum tree depth. Default `6L`; lower
+#'   values reduce overfitting.
+#' @param eta Numeric in (0, 1]. Learning rate (shrinkage). Default `0.05`;
+#'   smaller values need more rounds but usually generalise better.
+#' @param subsample Numeric in (0, 1]. Row subsampling ratio per tree. Default
+#'   `0.8`.
+#' @param colsample_bytree Numeric in (0, 1]. Column subsampling ratio per tree.
 #'   Default `0.8`.
-#' @param colsample_bytree Numeric ∈ (0, 1\]. Column subsampling ratio per
-#'   tree. Default `0.8`.
-#' @param min_child_weight Numeric. Minimum sum of instance weight in a leaf.
-#'   Default `1`. Increase to prevent learning rare patterns.
-#' @param nfold Integer. Number of cross-validation folds. Default `5L`.
-#' @param early_stopping Integer. Stop training if the CV metric does not
-#'   improve for this many consecutive rounds. Default `50L`.
-#' @param seed Integer. Random seed for reproducibility. Default `42L`.
-#' @param lang Character. Language for messages: `"pt"` (default), `"en"`,
-#'   `"es"`.
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param min_child_weight Numeric >= 0. Minimum sum of instance weight in a
+#'   leaf. Default `1`; larger values prevent learning rare patterns.
+#' @param nfold Integer >= 2. Number of CV folds. Default `5L`. With `id_col`,
+#'   it is reduced (with a warning) to the number of groups if there are fewer
+#'   groups than folds.
+#' @param early_stopping Positive integer. CV stops when the test metric has not
+#'   improved for this many consecutive rounds. Default `50L`.
+#' @param seed Integer. Random seed for fold assignment and XGBoost. Default
+#'   `42L`.
+#' @param lang Character scalar: `"pt"` (default), `"en"`, `"es"`. Language of
+#'   messages; unsupported values warn and fall back to `"pt"`.
+#' @param verbose Logical scalar. If `TRUE` (default) prints progress messages.
 #'
 #' @return A `climasus_ml` object (named list) with:
 #'   \describe{
 #'     \item{`$predictions`}{Tibble with one row per (non-NA) observation:
 #'       `observed`, `fitted` (train-set prediction), `cv_predicted`
 #'       (out-of-fold CV prediction), `residual` (observed - cv_predicted),
-#'       and the `id_col` and `outcome_col` columns if present.}
+#'       preceded by the `id_col` column when `id_col` is given.}
 #'     \item{`$importance`}{Tibble sorted by `Gain` (descending): `Feature`,
 #'       `Gain` (average loss reduction per split), `Cover` (average number
 #'       of samples per split), `Frequency` (proportion of splits using this
@@ -177,12 +191,13 @@ utils::globalVariables(c(
 #' tidy(ml)    # predictions tibble
 #'
 #' # Forecast for a new climate scenario
-#' new_climate <- data.frame(tair_max_c = 36, rh_pct_mean = 60, ...)
+#' # newdata must contain all columns in ml$meta$feature_cols
+#' new_climate <- df_aggregated[1:10, ml$meta$feature_cols]
 #' predict(ml, newdata = new_climate)
 #' }
 #'
 #' @seealso [sus_mod_dlnm()], [sus_mod_vulnerability_index()],
-#'   [sus_climate_aggregate()], [predict.climasus_ml()]
+#'   [sus_climate_aggregate()], [predict.climasus_ml()], [sus_mod_plot_ml()]
 #'
 #' @export
 #' @importFrom cli cli_h1 cli_h2 cli_alert_info cli_alert_success
@@ -317,6 +332,11 @@ sus_mod_ml <- function(
 
   # Build fold IDs: group-aware if id_col provided, random otherwise
   fold_ids <- .ml_make_folds(df, id_col, nfold, seed)
+  if (length(fold_ids) < nfold) {
+    cli::cli_alert_warning(.mrl_ml("nfold_reduced", lang,
+      n_grp = length(fold_ids), nfold = nfold))
+    nfold <- length(fold_ids)  # effective folds (fewer groups than nfold)
+  }
 
   cv_log <- withCallingHandlers(
     xgboost::xgb.cv(
@@ -489,10 +509,6 @@ sus_mod_ml <- function(
     groups   <- as.character(df[[id_col]])
     uniq_grp <- unique(groups)
     n_grp    <- length(uniq_grp)
-    if (n_grp < nfold)
-      cli::cli_alert_warning(
-        "Number of unique groups ({n_grp}) is less than {.arg nfold} ({nfold}). Reducing nfold."
-      )
     nfold     <- min(nfold, n_grp)
     grp_fold  <- sample(rep_len(seq_len(nfold), n_grp))
     names(grp_fold) <- uniq_grp

@@ -35,7 +35,7 @@ utils::globalVariables(c(
 #'
 #' @param df A `climasus_df` object at stage `"filter_demo"` or later (output
 #'   of [sus_data_filter_demographics()]).
-#' @param type Character. Visualisation type. One of:
+#' @param type Character scalar, default `"table"`. Visualisation type; any other value aborts. One of:
 #'   - `"table"`      -- Frequency table (gt / DT).
 #'   - `"bar"`        -- Horizontal bar chart for one variable.
 #'   - `"pyramid"`    -- Age-sex population pyramid.
@@ -44,14 +44,15 @@ utils::globalVariables(c(
 #'   - `"climate"`    -- Climate-risk group distribution (bar + season heatmap).
 #'   - `"race_equity"`-- Race/colour equity diverging plot vs. IBGE 2022 Census.
 #'   - `"dashboard"`  -- Composite Lancet-layout panel.
-#' @param var Character. Demographic variable (required for `"bar"` and
-#'   single-variable `"table"`). One of `"sex"`, `"race"`, `"age_group"`,
+#' @param var Character scalar or `NULL` (default). Demographic variable
+#'   (required for `"bar"`; for `"table"` `NULL` summarises several variables). One of `"sex"`, `"race"`, `"age_group"`,
 #'   `"education"`, `"climate_risk"`, `"region"`.
 #' @param time_unit Character. Temporal resolution for `type = "temporal"`.
 #'   One of `"month"` (default), `"epi_week"`, `"year"`, `"quarter"`,
 #'   `"semester"`.
-#' @param fill_var Character. Optional stratification variable for temporal
-#'   plots (e.g., `"sex"`, `"age_group"`, `"climate_risk_group"`).
+#' @param fill_var Character scalar, column name, default `NULL` (no
+#'   stratification). Stratification variable for `type = "temporal"` (e.g.
+#'   `"sex"`, `"age_group"`, `"climate_risk_group"`).
 #' @param palette Character. Colour palette powered by [ggsci]. One of
 #'   `"lancet"` (default), `"nature"`, `"nejm"`, `"jco"`, `"aaas"`,
 #'   `"sus"`, `"viridis"`, `"colorblind"`.
@@ -66,9 +67,10 @@ utils::globalVariables(c(
 #'   column), `"pct_total"` (% of all records), `"count"` (raw count).
 #' @param show_ci Logical. Add 95% Poisson confidence intervals in temporal
 #'   plots. Default `FALSE`.
-#' @param benchmark Numeric named vector. Reference proportions for the
-#'   race-equity plot. If `NULL` (default), IBGE 2022 Census proportions
-#'   are used where available.
+#' @param benchmark Named numeric vector of reference proportions per race
+#'   category for `type = "race_equity"`, e.g.
+#'   `c(Branca = 0.436, Parda = 0.452)`. If `NULL` (default), IBGE 2022 Census
+#'   proportions are used where available.
 #' @param interactive Logical. Return interactive [plotly::ggplotly()] widget
 #'   instead of static ggplot2/gt objects. Default `FALSE`.
 #' @param base_size Numeric. Base font size for ggplot2 theme. Default `11`.
@@ -83,11 +85,14 @@ utils::globalVariables(c(
 #'   caption (e.g., study period, DOI). Default `NULL`.
 #' @param save_path Character. File path to save output (PNG, PDF, SVG, or
 #'   HTML). Default `NULL` (no file saved).
-#' @param width,height Numeric. Output dimensions in inches. Defaults: `7 x 5`
-#'   for single plots; `12 x 9` for dashboards.
+#' @param width,height Numeric, inches; `NULL` (default) uses `7 x 5` for
+#'   single plots and `12 x 9` for dashboards.
 #' @param dpi Numeric. Resolution for raster output. Default `300`.
 #' @param verbose Logical. Print progress messages. Default `TRUE`.
 #' @param ... Additional arguments passed to underlying plot helpers.
+#'
+#' @seealso [sus_data_filter_demographics()], [sus_data_create_variables()],
+#'   [sus_data_plot_aggregate_ts()]
 #'
 #' @return Invisibly returns the primary plot or list of plots. Side effect:
 #'   renders in the active graphics device (or interactive widget).

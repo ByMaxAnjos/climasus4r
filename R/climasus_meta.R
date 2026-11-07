@@ -1,3 +1,6 @@
+# NOTE: sus_meta() below is shadowed by the definition in R/utils-S3.R (collated
+# later), which is the documented one; this block is @noRd to avoid a merged,
+# contradictory sus_meta.Rd.
 #' Manage climasus_df S3 Class Metadata and Storage Backends
 #'
 #' Unified interface for getting, setting, and managing metadata in
@@ -6,19 +9,26 @@
 #' \pkg{arrow} package, and analytical \strong{DuckDB} databases via the
 #' \pkg{duckdb} package.
 #'
-#' @param x A \code{climasus_df} object. Required for all operations except
-#'   \code{valid_values}.
-#' @param field Character. Specific metadata field to retrieve. One of:
+#' @param x A \code{climasus_df} object (e.g. the output of any pipeline
+#'   function). Required for all operations except \code{valid_values} and
+#'   \code{from_parquet}/\code{from_duckdb}. Default \code{NULL}.
+#' @param field Character scalar, default \code{NULL}. Specific metadata field
+#'   to retrieve, e.g. \code{"stage"}. One of:
 #'   \code{"system"}, \code{"stage"}, \code{"type"}, \code{"spatial"},
 #'   \code{"temporal"}, \code{"backend"}, \code{"created"}, \code{"modified"},
 #'   \code{"history"}, \code{"user"}.
-#' @param add_history Character. A single string appended (with timestamp) to
-#'   the processing history.
-#' @param print_history Logical. If \code{TRUE}, prints the full processing
+#' @param add_history Character scalar (one string), default \code{NULL}.
+#'   Appended with a timestamp to the processing history; returns the updated
+#'   object.
+#' @param print_history Logical scalar, default \code{FALSE}. If \code{TRUE}, prints the full processing
 #'   history to the console and returns \code{invisible(NULL)}.
-#' @param valid_values Character. Query the controlled vocabulary for a field.
-#'   One of: \code{"system"}, \code{"stage"}, \code{"type"}, \code{"backend"}.
-#'   Does not require \code{x}.
+#' @param valid_values Character scalar, default \code{NULL}. Query the
+#'   controlled vocabulary of a field: \code{"system"}, \code{"stage"},
+#'   \code{"type"} or \code{"backend"}. Does not require \code{x}.
+#'   Stages, in pipeline order: \code{import, clean, stand, filter_cid,
+#'   filter_demo, derive, aggregate, spatial, climate, census}; systems:
+#'   \code{SIM, SIH, SIA, SINAN, CNES, SINASC}; backends: \code{tibble, arrow,
+#'   parquet, duckdb}.
 #'
 #' @section Backend Operations:
 #' The following named arguments trigger backend-specific operations when
@@ -57,8 +67,11 @@
 #' }
 #'
 #' @param ... Named arguments for metadata updates (e.g., \code{system = "SIH"},
-#'   \code{stage = "clean"}) or backend operations (see \strong{Backend
-#'   Operations} section above).
+#'   \code{stage = "clean"}, \code{type = "clean"}); values of
+#'   \code{system}, \code{stage}, \code{type} and \code{backend} are checked
+#'   against the controlled vocabularies (see \code{valid_values}). Also takes
+#'   the backend operations described in the \strong{Backend Operations}
+#'   section above.
 #'
 #' @return Depends on the operation:
 #' \itemize{
@@ -121,7 +134,7 @@
 #' sus_meta(df, print_history = TRUE)
 #'
 #' # Query controlled vocabulary
-#' sus_meta(valid_values = "backend")   # "tibble" "parquet" "duckdb"
+#' sus_meta(valid_values = "backend")   # "tibble" "arrow" "parquet" "duckdb"
 #' sus_meta(valid_values = "system")    # "SIM" "SIH" ...
 #'
 #' # ── Arrow / Parquet backend ────────────────────────────────────────────────
@@ -157,6 +170,7 @@
 #' @seealso
 #' \code{\link{write_parquet_climasus}}, \code{\link{write_duckdb_climasus}}
 #'
+#' @noRd
 #' @export
 sus_meta <- function(
     x             = NULL,

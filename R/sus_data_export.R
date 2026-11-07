@@ -4,17 +4,25 @@
 #' to ensure reproducibility. Supports multiple file formats optimized for
 #' different use cases, including GeoArrow/GeoParquet for spatial data.
 #'
-#' @param df A data frame or sf object containing the processed health data to export.
-#' @param file_path Character string specifying the output file path. The file
-#'   extension determines the format if `format` is not explicitly specified.
-#' @param format Character string specifying the output format. Options:
-#'   `"rds"` (default, R binary format), `"arrow"` (Apache Arrow/Parquet),
-#'   `"geoparquet"` (GeoArrow/GeoParquet for spatial data), `"shapefile"` (ESRI Shapefile), `"GeoPackage"`, 
-#'   and `"csv"` (comma-separated values).
-#'   If `NULL`, infers from `file_path` extension and data type (auto-detects sf objects).
-#' @param include_metadata Logical. If `TRUE` (default), saves a companion
-#'   metadata file (`.txt` or `.json`) with processing information.
-#' @param metadata Named list containing custom metadata to save. Common fields:
+#' @param df A data frame, `climasus_df` or `sf` object to export. Lazy
+#'   Arrow/DuckDB tables are not accepted (collect them first).
+#' @param file_path Character scalar, output path, e.g. `"output/data.rds"`.
+#'   Required. The extension is used to infer `format` when `format = NULL`.
+#'   Aborts if the file exists and `overwrite = FALSE`.
+#' @param format Character scalar, one of `"rds"`, `"parquet"`, `"csv"`,
+#'   `"geoparquet"`, `"shapefile"`, `"gpkg"`, `"geojson"`, or `NULL` (default)
+#'   to infer. The spatial formats (`"geoparquet"`, `"shapefile"`, `"gpkg"`,
+#'   `"geojson"`) require an `sf` object. Inference: non-spatial data use the
+#'   extension (`.rds`, `.csv`, `.parquet`; otherwise `"rds"`); `sf` data map
+#'   `.shp`, `.parquet`/`.geoparquet`, `.gpkg`, `.geojson`, `.rds`, `.csv`
+#'   (otherwise `"geoparquet"`). Any other value aborts. For `"parquet"` and
+#'   `"csv"` with `sf` input the geometry is written as WKT text.
+#' @param include_metadata Logical scalar, default `TRUE`. Save a companion
+#'   `<file>_metadata.txt` next to the file (readable with
+#'   [sus_data_read()] `read_metadata = TRUE`).
+#' @param metadata Named list of custom metadata written to the companion file,
+#'   or `NULL` (default) to generate basic metadata (source, size, rows,
+#'   columns, date, compression, spatial flag). Common fields:
 #'   \itemize{
 #'     \item `source_system`: Health system (e.g., "SIM-DO")
 #'     \item `states`: Vector of state codes
@@ -26,20 +34,19 @@
 #'     \item `author`: Analyst name
 #'     \item `notes`: Additional notes
 #'   }
-#'   If `NULL`, generates basic metadata automatically.
-#' @param compress Logical. If `TRUE` (default for RDS and Arrow), compresses
-#'   the output file. Compression level can be specified for some formats.
-#' @param compression_level Integer specifying compression level (1-9). Higher
-#'   values = smaller files but slower. Default is 6. Only applies to formats
-#'   that support compression.
-#' @param overwrite Logical. If `TRUE`, overwrites existing files. If `FALSE`
-#'   (default), stops with an error if file exists.
-#' @param lang Character string specifying the language for messages. Options:
-#'   `"en"` (English, default), `"pt"` (Portuguese), `"es"` (Spanish).
-#' @param verbose Logical. If `TRUE` (default), prints export summary.
+#' @param compress Logical scalar, default `TRUE`. Compress the output: RDS
+#'   compression, Parquet `snappy` (otherwise uncompressed). Ignored by other
+#'   formats.
+#' @param compression_level Integer 1-9, default `6`. Currently **not used** by
+#'   the export code (kept for compatibility).
+#' @param overwrite Logical scalar, default `FALSE`. If `FALSE`, an existing
+#'   file causes an error; if `TRUE` it is replaced.
+#' @param lang Character scalar, `"pt"` (default), `"en"` or `"es"`. Language
+#'   of messages; other values abort.
+#' @param verbose Logical scalar, default `TRUE`. Print the export summary.
 #'
-#' @return Invisibly returns the file path of the exported data. If metadata
-#'   was saved, also returns the metadata file path as an attribute.
+#' @return Invisibly, the exported `file_path` (character); when metadata was
+#'   written, its path is attached as attribute `"metadata_file"`.
 #'
 #' @details
 #' **File Formats**:
@@ -52,7 +59,7 @@
 #'   \item **GeoParquet** (`.geoparquet`, `.parquet` for sf objects): Optimized
 #'     columnar format for spatial data. Combines benefits of Parquet with
 #'     efficient geometry storage. 50-90% smaller than shapefiles, 10-100x faster.
-#'   \item **Shapefile** (`.shp` or `.gpkg`): Traditional GIS format. Widely supported but
+#'   \item **Shapefile** (`.shp`; `format = "gpkg"` for GeoPackage): Traditional GIS format. Widely supported but
 #'     inefficient for large datasets. Multiple files generated (.shp, .shx, .dbf, etc.).
 #'   \item **CSV** (`.csv`): Universal text format. Human-readable, compatible
 #'     with all software. Best for sharing with non-R users. Larger file size.
@@ -62,9 +69,9 @@
 #' **Automatic Format Detection**:
 #' If `format = NULL`, the function automatically detects the best format:
 #' \itemize{
-#'   \item If input is an `sf` object and extension is `.parquet` → `"geoparquet"`
-#'   \item If input is an `sf` object and extension is `.shp` → `"shapefile"`
-#'   \item Otherwise, infers from file extension
+#'   \item If input is an `sf` object and extension is `.parquet` -> `"geoparquet"`
+#'   \item If input is an `sf` object and extension is `.shp` -> `"shapefile"`
+#'   \item Otherwise, infers from file extension (see `format`)
 #' }
 #'
 #' **Spatial Data Export**:
@@ -113,6 +120,7 @@
 #' )
 #' }
 #'
+#' @seealso [sus_data_read()], [sus_spatial_join()]
 #' @export
 #' @importFrom glue glue
 sus_data_export <- function(df,
@@ -183,7 +191,6 @@ sus_data_export <- function(df,
     } else {
       format <- switch(ext,
         "rds" = "rds",
-        "parquet" = "arrow",
         "parquet" = "parquet",
         "csv" = "csv",
         "rds"  # default for non-spatial data

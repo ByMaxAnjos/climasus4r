@@ -14,23 +14,27 @@ sus_climate_normals(
 )
 }
 \arguments{
-\item{period}{Character. Reference climatological period. One of
-\code{"1961-1990"}, \code{"1981-2010"}, or \code{"1991-2020"} (default).}
+\item{period}{Single character string, exactly one of \code{"1961-1990"},
+\code{"1981-2010"}, or \code{"1991-2020"} (default). A vector or any other value
+errors.}
 
-\item{target_var}{Character vector of \code{var_code} values to download
-(e.g. \code{c("t_max", "precipitation")}). \code{NULL} (default) downloads all
-variables available for the selected \code{period}. Run
-\code{sus_climate_normals_meta()} to inspect the catalogue.}
+\item{target_var}{Character vector of \code{var_code} values to download, e.g.
+\code{"t_max"} or \code{c("t_max", "precipitation")}. \code{NULL} (default) downloads
+all variables available for the selected \code{period}. Codes not in the
+catalogue for that period are silently ignored; an error is raised only if
+none match. Run \code{sus_climate_normals_meta()} to inspect valid codes.}
 
-\item{cache_dir}{Character. Local directory for disk-cached files.
-Default: \code{"~/.climasus4r_cache/normals"}.}
+\item{cache_dir}{Single character string. Local directory for disk-cached
+files. Default \code{"~/.climasus4r_cache/normals"}.}
 
-\item{use_cache}{Logical. If \code{TRUE} (default), loads from and saves to
-\code{cache_dir}. Set to \code{FALSE} to force a fresh download.}
+\item{use_cache}{Logical scalar. If \code{TRUE} (default), loads from and saves
+to \code{cache_dir}. Set to \code{FALSE} to force a fresh download.}
 
-\item{lang}{Character. Message language: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Single character string. Message language: \code{"pt"} (default),
+\code{"en"}, \code{"es"} (case-insensitive; others fall back to \code{"pt"} with a
+warning).}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
 A \code{climasus_df} object at stage \code{"climate"} and type \code{"normals"},
@@ -45,8 +49,11 @@ tidy long format with columns:
 \item{\code{var_code}}{Character. Variable identifier from \code{normal_meta}.}
 \item{\code{variable_pt}}{Character. Variable label in Portuguese.}
 \item{\code{variable_en}}{Character. Variable label in English.}
+\item{\code{variable_es}}{Character. Variable label in Spanish.}
 \item{\code{period}}{Character. Reference period (e.g. \code{"1991-2020"}).}
 }
+\code{sus_meta()}: \code{stage = "climate"}, \code{type = "normals"}, \code{system = NULL},
+plus \code{period}, \code{n_stations}, \code{n_variables}.
 }
 \description{
 \code{sus_climate_normals()} retrieves 30-year climatological normals from the
@@ -56,6 +63,12 @@ catalogue from the bundled \code{normal_meta.parquet} dictionary—with transpar
 disk caching and automatic fallback download—then fetches each selected
 variable's Excel file from the INMET portal, parses the decade-level monthly
 structure, and returns a tidy long-format \code{climasus_df}.
+}
+\details{
+Use it as the reference input of \code{\link[=sus_climate_anomaly]{sus_climate_anomaly()}}, alongside observed
+data from \code{\link[=sus_climate_inmet]{sus_climate_inmet()}}. A network connection is needed unless the
+catalogue and files are cached. Normals are station-level (INMET
+conventional stations), not municipality-level.
 }
 \section{Public-health and environmental relevance}{
 
@@ -96,6 +109,6 @@ meta <- sus_climate_normals_meta(period = "1991-2020")
 
 }
 \seealso{
-\code{\link[=sus_climate_normals_meta]{sus_climate_normals_meta()}}, \code{\link[=sus_climate_inmet]{sus_climate_inmet()}},
-\code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, \code{\link[=sus_mod_vulnerability_index]{sus_mod_vulnerability_index()}}
+\code{\link[=sus_climate_normals_meta]{sus_climate_normals_meta()}}, \code{\link[=sus_climate_anomaly]{sus_climate_anomaly()}},
+\code{\link[=sus_climate_inmet]{sus_climate_inmet()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, \code{\link[=sus_mod_vulnerability_index]{sus_mod_vulnerability_index()}}
 }

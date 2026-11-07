@@ -28,72 +28,85 @@ sus_mod_spacetime_bayes(
 )
 }
 \arguments{
-\item{df}{A \code{data.frame} or \code{climasus_df} at the \code{aggregate}, \code{spatial}, or
-\code{climate} pipeline stage. Must contain \code{code_muni} (7-digit IBGE code),
-the \code{outcome} column, the \code{time_col} column, all columns named in
-\code{covariates}, and optionally an \code{offset} column. The data must form a
-panel (one row per area-time combination).}
+\item{df}{A \code{data.frame} or \code{climasus_df} (typically from
+\code{\link[=sus_data_aggregate]{sus_data_aggregate()}} after \code{\link[=sus_spatial_join]{sus_spatial_join()}} / climate joins) with
+one row per area-time cell. Must contain \code{code_muni} (IBGE code), the
+\code{outcome} column, the \code{time_col} column, every column in \code{covariates}
+and \code{offset}. The panel must be (nearly) balanced: a missing-cell
+fraction under 5\% only warns, larger gaps error. The number of unique
+\code{code_muni} must equal \code{W$n_regions}, and sorted \code{code_muni} order must
+match the region order of \code{W}.}
 
-\item{outcome}{Character. Name of the response (count) column in \code{df}.}
+\item{outcome}{Character scalar. Name of the response (count) column in
+\code{df}, e.g. \code{"deaths"}. \code{NA} values are passed to INLA as missing
+(warning).}
 
-\item{W}{A \code{climasus_weights} object produced by
-\code{\link[=sus_mod_spatial_weights]{sus_mod_spatial_weights()}}. Must contain either a \verb{$W} dense matrix or
-a \verb{$nb} neighbour list used to build the INLA graph.}
+\item{W}{A \code{climasus_weights} object from \code{\link[=sus_mod_spatial_weights]{sus_mod_spatial_weights()}}
+with a \verb{$W} matrix or a \verb{$nb} neighbour list (used to build the INLA
+graph). Errors otherwise.}
 
-\item{time_col}{Character. Name of the column containing time information.
-Can be a \code{Date}, \code{integer}, or \code{character} column. Default \code{"date"}.}
+\item{time_col}{Character scalar. Name of the time column in \code{df}: \code{Date}
+or \code{POSIXt} (grouped by \code{time_unit}), numeric/integer (used as-is as the
+time key, \code{time_unit} ignored), or character/factor (each unique value is
+one period, sorted by factor level). Default \code{"date"}.}
 
-\item{time_unit}{Character. Temporal aggregation unit used to build the
-integer time index. One of \code{"year"}, \code{"month"}, \code{"week"}, or \code{"auto"}
-(automatic detection based on date range). Default \code{"auto"}.}
+\item{time_unit}{Character scalar. How \code{Date} values are grouped into
+periods: \code{"year"}, \code{"month"}, \code{"week"}, or \code{"auto"} (year if the range
+exceeds 2 years, month if over 60 days, otherwise week). The signature
+default is the first option, \code{"year"} (not \code{"auto"}). Ignored for
+non-date \code{time_col}.}
 
-\item{covariates}{Character vector of covariate column names in \code{df} to
-include as fixed effects. Default \code{NULL} (intercept-only model).}
+\item{covariates}{Character vector of column names in \code{df} included as
+fixed effects, e.g. \code{c("temp_mean", "prec_total")}. \code{NULL} (default)
+fits an intercept-only fixed part. Missing columns error.}
 
-\item{offset}{Character. Name of a \strong{population or expected counts} column
-in \code{df} (natural scale). Entered as \code{log(offset)} in the linear
-predictor. Default \code{NULL}.}
+\item{offset}{Character scalar or \code{NULL}. Name of a population or expected
+counts column (natural scale, must be positive); entered as \code{log(offset)}.
+Default \code{NULL} (no offset).}
 
-\item{family}{Character. Likelihood family. One of \code{"poisson"} (default),
-\code{"nbinomial"} (negative binomial), \code{"binomial"}, or \code{"gaussian"}.}
+\item{family}{Character scalar. Likelihood: \code{"poisson"} (default),
+\code{"nbinomial"}, \code{"binomial"}, or \code{"gaussian"}. RR and \code{p_exceed} are
+computed on the log-link scale for \code{"poisson"}/\code{"nbinomial"}.}
 
-\item{spatial_model}{Character. Spatial random effect structure. One of
-\code{"bym2"} (default), \code{"bym"}, \code{"besag"}, or \code{"iid"}. See \strong{Spatial model
-options}.}
+\item{spatial_model}{Character scalar. \code{"bym2"} (default), \code{"bym"},
+\code{"besag"}, or \code{"iid"}. See \strong{Spatial model options}.}
 
-\item{temporal_model}{Character. Temporal random effect structure. One of
-\code{"rw1"} (default), \code{"rw2"}, \code{"ar1"}, or \code{"iid_time"}.}
+\item{temporal_model}{Character scalar. \code{"rw1"} (default), \code{"rw2"},
+\code{"ar1"}, or \code{"iid_time"} (INLA \code{iid}).}
 
-\item{interaction_type}{Character. Space-time interaction type following
-Knorr-Held (2000). One of \code{"none"} (default), \code{"I"}, \code{"II"}, \code{"III"},
-or \code{"IV"}. See \strong{Knorr-Held interaction types}.}
+\item{interaction_type}{Character scalar. Knorr-Held (2000) space-time
+interaction: \code{"none"} (default), \code{"I"}, \code{"II"}, \code{"III"}, or \code{"IV"}. See
+\strong{Knorr-Held interaction types}.}
 
-\item{pc_prior_u}{Positive numeric. PC prior parameter \eqn{u} for the
-BYM2 spatial precision: \eqn{P(\sigma > u) = \alpha}. Default \code{0.5}.}
+\item{pc_prior_u}{Positive numeric scalar. PC prior \code{u} in
+\eqn{P(\sigma > u) = \alpha}. Default \code{0.5}.}
 
-\item{pc_prior_alpha}{Numeric in (0, 1). PC prior parameter \eqn{\alpha}
-(tail probability). Default \code{0.01}.}
+\item{pc_prior_alpha}{Numeric scalar in (0, 1). PC prior tail probability
+\eqn{\alpha}. Default \code{0.01}.}
 
-\item{compute_waic}{Logical. If \code{TRUE} (default), compute WAIC via
-\code{control.compute = list(waic = TRUE)}.}
+\item{compute_waic}{Logical scalar. Compute WAIC (\verb{$waic}). Default \code{TRUE}.
+DIC is always computed (\verb{$dic}).}
 
-\item{compute_cpo}{Logical. If \code{TRUE}, compute CPO/PIT values via
-\code{control.compute = list(cpo = TRUE)}. Default \code{FALSE} (slower).}
+\item{compute_cpo}{Logical scalar. Ask INLA to compute CPO/PIT (slower;
+kept in the INLA fit only, not returned as a separate slot). Default
+\code{FALSE}.}
 
-\item{exceedance_threshold}{Positive numeric. Compute \eqn{P(RR > threshold)}
-for each space-time cell using the posterior marginals. Default \code{1.0}.}
+\item{exceedance_threshold}{Positive numeric scalar. RR threshold for
+\code{p_exceed} = \eqn{P(RR > threshold)}, from a normal approximation of the
+linear-predictor posterior. Default \code{1.0}.}
 
-\item{n_samples}{Positive integer. Number of posterior samples drawn via
-\code{INLA::inla.posterior.sample()} to compute RR credible intervals and
-exceedance probabilities. Default \code{1000L}.}
+\item{n_samples}{Positive integer. Reserved and currently unused: no
+posterior sampling is performed (credible intervals come from INLA
+quantiles, exceedance from the normal approximation). Default \code{1000L}.}
 
-\item{seed}{Integer. Random seed for reproducibility. Default \code{42L}.}
+\item{seed}{Integer scalar. Passed to \code{set.seed()} before fitting. Default
+\code{42L}.}
 
-\item{lang}{Character. Language for CLI messages: \code{"pt"} (default),
-\code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"},
+or \code{"es"}; anything else errors (\code{match.arg}).}
 
-\item{verbose}{Logical. If \code{TRUE} (default), emit progress messages via
-\strong{cli}.}
+\item{verbose}{Logical scalar. Emit progress messages via \pkg{cli}.
+Default \code{TRUE}.}
 }
 \value{
 A named list of class \code{c("climasus_spacetime_bayes", "list")} with
@@ -113,6 +126,15 @@ per space-time cell with exceedance probability).}
 \code{interaction_type = "none"}.}
 \item{\verb{$fitted}}{Numeric vector of posterior mean fitted values
 (response scale).}
+\item{\verb{$family}, \verb{$temporal_model}}{Likelihood family and temporal
+model used (also in \verb{$model_spec}); read by
+\code{\link[=sus_mod_spacetime_predict]{sus_mod_spacetime_predict()}}.}
+\item{\verb{$data_last_obs}}{\code{data.frame} with \code{code_muni} and \code{covariates}
+at each area's last observed period.}
+\item{\verb{$time_keys}, \verb{$time_unit}}{Calendar key of each \code{time_idx}
+(\verb{1..T}): year (\code{2019}), \code{YYYYMM}, \code{YYYYWW}, or the raw integer when
+\code{time_col} is not a date; \verb{$time_unit} is \code{"year"}, \code{"month"},
+\code{"week"} or \code{"numeric"}.}
 \item{\verb{$waic}}{Named list with \verb{$waic} (scalar) and \verb{$p_eff} (effective
 number of parameters), or \code{NULL} if \code{compute_waic = FALSE}.}
 \item{\verb{$dic}}{Named list with \verb{$dic} (scalar) and \verb{$p_d} (effective

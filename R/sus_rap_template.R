@@ -29,22 +29,27 @@ utils::globalVariables(character(0L))
 #' `-- README.md
 #' ```
 #'
-#' @param path `character(1)`  - Parent directory where `<name>/` will be
-#'   created (e.g. `"~/projetos"`).
-#' @param name `character(1)`  - Project name; becomes the directory name.
-#' @param system `character(1)`  - DATASUS system for the template pipeline
-#'   (e.g. `"SIM-DO"`, `"SINAN"`, `"SIH"`). Default `"SIM-DO"`.
-#' @param include_renv `logical(1)`  - Initialise `renv` for dependency
-#'   management. Requires the `renv` package. Default `TRUE`.
-#' @param include_targets `logical(1)`  - Create `_targets.R` and `run.R`.
-#'   Default `TRUE`.
-#' @param include_quarto `logical(1)`  - Create `analysis.qmd`. Default `TRUE`.
-#' @param include_github_actions `logical(1)`  - Create
-#'   `.github/workflows/rap.yml`. Default `FALSE`.
-#' @param lang `character(1)`  - Language for generated comments and messages:
-#'   `"pt"` (default), `"en"`, or `"es"`.
+#' @param path `character(1)`, non-empty parent directory where `<name>/` will
+#'   be created, e.g. `"~/projetos"`.
+#' @param name `character(1)`, non-empty project name; becomes the directory
+#'   name.
+#' @param system `character(1)`, DATASUS system code written into the template
+#'   pipeline, default `"SIM-DO"`. Use a code accepted by [sus_data_import()]
+#'   (e.g. `"SIM-DO"`, `"SINAN-DENGUE"`, `"SIH-RD"`); the value is not
+#'   validated here. Monthly systems (SIH, SIA, CNES) also need a `month`
+#'   argument in the generated import call, which you must add.
+#' @param include_renv `logical(1)`, default `TRUE`. Initialise `renv` for
+#'   dependency management (requires the `renv` package).
+#' @param include_targets `logical(1)`, default `TRUE`. Create `_targets.R` and
+#'   `run.R`.
+#' @param include_quarto `logical(1)`, default `TRUE`. Create `analysis.qmd`.
+#' @param include_github_actions `logical(1)`, default `FALSE`. Create
+#'   `.github/workflows/rap.yml`.
+#' @param lang `character(1)`, `"pt"` (default), `"en"` or `"es"`. Language of
+#'   generated comments and messages.
 #'
 #' @return Invisibly, the absolute path of the created project directory.
+#' @seealso [sus_rap_export()], [sus_rap_targets()], [sus_rap_read()]
 #' @export
 #'
 #' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_abort
@@ -55,7 +60,7 @@ utils::globalVariables(character(0L))
 #' sus_rap_template(
 #'   path   = "~/projetos",
 #'   name   = "dengue_am",
-#'   system = "SINAN",
+#'   system = "SINAN-DENGUE",
 #'   lang   = "pt"
 #' )
 #' }

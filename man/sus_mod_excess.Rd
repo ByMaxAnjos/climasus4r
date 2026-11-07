@@ -22,68 +22,95 @@ sus_mod_excess(
 )
 }
 \arguments{
-\item{data}{A \code{climasus_dlnm} object (for \code{method = "from_dlnm"}), a
-\code{climasus_df} at stage \code{"aggregate"} or later, or any \code{data.frame} with
-a date column and an integer count column.}
+\item{data}{A \code{climasus_dlnm} object from \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}} (required for
+\code{method = "from_dlnm"}; its \verb{$data_daily} is used), or any \code{data.frame} /
+\code{climasus_df} / tibble with one row per day: a date column and a numeric
+count column. Rows are sorted by date; the code does not check the
+pipeline stage, but daily aggregated data (see \code{\link[=sus_data_aggregate]{sus_data_aggregate()}}) is
+expected. Other classes error.}
 
-\item{outcome_col}{Character. Name of the outcome count column. Required
-when \code{data} is a data frame; inferred from \code{fit$meta$outcome_col} when
-\code{data} is a \code{climasus_dlnm}.}
+\item{outcome_col}{Character scalar. Name of the outcome count column
+(e.g. \code{"n_obitos"}). Required for data frames (errors if \code{NULL} or
+absent). For a \code{climasus_dlnm}, \code{NULL} (default) uses
+\code{data$meta$outcome_col}.}
 
-\item{date_col}{Character. Name of the date column. Default \code{"date"}.}
+\item{date_col}{Character scalar. Name of the date column in \code{data}
+(coerced with \code{as.Date()}). Default \code{"date"}. Ignored for
+\code{climasus_dlnm} (always \code{"date"}).}
 
-\item{control_period}{Date vector of length 2 specifying the reference
-period used to fit the baseline model, e.g.
-\code{c(as.Date("2018-01-01"), as.Date("2019-12-31"))}. Default \code{NULL} uses
-all available data before \code{study_period}, or all data when both are \code{NULL}.}
+\item{control_period}{Length-2 vector of dates \code{c(from, to)} (inclusive),
+\code{Date} or coercible by \code{as.Date()} (e.g. \code{c("2018-01-01", "2019-12-31")}).
+Days used to fit the baseline model. \code{NULL} (default): all days before
+\code{study_period[1]} if \code{study_period} is given, otherwise the whole series
+(baseline is then fitted on the same days it is evaluated on). Errors when
+no day falls in the period. The control period is not required to precede
+the study period.}
 
-\item{study_period}{Date vector of length 2 specifying the period for which
-excess is reported. Default \code{NULL} uses the full data range.}
+\item{study_period}{Length-2 vector of dates \code{c(from, to)} (inclusive),
+\code{Date} or coercible. Days for which expected/excess are reported.
+\code{NULL} (default) uses the full date range of \code{data}. If \code{study_period}
+starts at the first day of the data and \code{control_period} is \code{NULL}, there
+are no control days and the call errors.}
 
-\item{method}{Character. Baseline estimation method:
+\item{method}{Character scalar or \code{NULL} (default). Baseline method, one of:
 \itemize{
-\item \code{"from_dlnm"} — counterfactual from DLNM (requires \code{climasus_dlnm}).
-\item \code{"spline"} (default for data frames) — quasi-Poisson with ns().
-\item \code{"serfling"} — Serfling harmonic regression.
-}}
+\item \code{"from_dlnm"}: counterfactual from a DLNM fit (\code{data} must be a
+\code{climasus_dlnm}; falls back to \code{"spline"} with a warning if \pkg{dlnm}
+is missing).
+\item \code{"spline"}: quasi-Poisson GLM with a natural spline on calendar date.
+\item \code{"serfling"}: Serfling harmonic regression.
+}
 
-\item{dof_per_year}{Integer. Degrees of freedom per year for the spline
-baseline. Default \code{8L}.}
+\code{NULL} picks \code{"from_dlnm"} for a \code{climasus_dlnm} and \code{"spline"} for a data
+frame. Other values error.}
 
-\item{harmonics}{Integer. Number of sinusoidal harmonics in the Serfling
-model. Default \code{2L}.}
+\item{dof_per_year}{Positive integer. Spline degrees of freedom per year
+of series (total df = \code{max(dof_per_year, round(dof_per_year * years))}).
+Default \code{8L}. Used only by \code{method = "spline"}, but the series-length
+check (at least \code{2 * df} control days, otherwise error) applies to both
+\code{"spline"} and \code{"serfling"}.}
 
-\item{family}{Character. GLM family: \code{"quasipoisson"} (default) or
-\code{"poisson"}. Ignored for \code{method = "from_dlnm"}.}
+\item{harmonics}{Positive integer. Number of sine/cosine pairs of the Serfling
+model (e.g. \code{2L} = annual + semi-annual). Default \code{2L}. Used only by
+\code{method = "serfling"}.}
 
-\item{threshold_z}{Numeric. Z-score threshold for flagging excess events.
-Default \code{1.96} (95th percentile).}
+\item{family}{Character scalar. GLM family of the baseline model:
+\code{"quasipoisson"} (default) or \code{"poisson"}. Ignored for
+\code{method = "from_dlnm"}.}
 
-\item{by}{Character or \code{NULL}. Temporal breakdown variable for the period
-summary: \code{"year"}, \code{"month"}, or \code{"season"}. Default \code{NULL}.}
+\item{threshold_z}{Numeric scalar. A day is flagged \code{is_excess = TRUE} when
+its z-score \code{(observed - expected) / sqrt(expected)} exceeds this value.
+Default \code{1.96} (one-sided ~97.5th percentile of N(0,1)). Independent of
+\code{alpha}.}
 
-\item{alpha}{Numeric. Significance level for confidence intervals.
-Default \code{0.05}.}
+\item{by}{Character scalar or \code{NULL} (default). Temporal grouping of
+\verb{$by_period}: \code{"year"}, \code{"month"} (year x month) or \code{"season"}
+(year x DJF/MAM/JJA/SON). \code{NULL} skips it. Other values error.}
 
-\item{lang}{Character. Language for messages: \code{"pt"} (default), \code{"en"},
-\code{"es"}.}
+\item{alpha}{Numeric scalar in (0, 1). Significance level for the CI of the
+expected counts (default \code{0.05} = 95\% CI).}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{lang}{Character scalar: \code{"pt"} (default), \code{"en"}, \code{"es"}. Language of
+messages; unsupported values warn and fall back to \code{"pt"}.}
+
+\item{verbose}{Logical scalar. If \code{TRUE} (default) prints progress messages.}
 }
 \value{
-A \code{climasus_excess} list with:
+A \code{climasus_excess} object (named list) with:
 \describe{
-\item{\verb{$daily}}{Tibble with one row per day: \code{date}, \code{observed},
+\item{\verb{$daily}}{Tibble with one row per study day: \code{date}, \code{observed},
 \code{expected}, \code{expected_lo}, \code{expected_hi}, \code{excess}, \code{excess_lo},
-\code{excess_hi}, \code{z_score}, \code{is_excess}.}
-\item{\verb{$total}}{One-row tibble: total observed, expected, excess,
-excess percentage, and their confidence bounds.}
-\item{\verb{$by_period}}{Temporal breakdown tibble (when \code{by} is not \code{NULL}).}
-\item{\verb{$model}}{The fitted baseline GLM object (\code{NULL} for
+\code{excess_hi}, \code{z_score}, \code{is_excess}, \code{cum_excess}.}
+\item{\verb{$total}}{One-row tibble: \code{n_days}, \code{observed}, \code{expected} (+
+\verb{_lo}/\verb{_hi}), \code{excess} (+ \verb{_lo}/\verb{_hi}), \code{excess_pct},
+\code{n_excess_days}, \code{peak_excess}, \code{peak_date}.}
+\item{\verb{$by_period}}{Temporal breakdown tibble; \code{NULL} when \code{by = NULL}.}
+\item{\verb{$model}}{The fitted baseline GLM (\code{NULL} for
 \code{method = "from_dlnm"}).}
-\item{\verb{$meta}}{Metadata list: \code{method}, \code{outcome_col}, \code{date_col},
+\item{\verb{$meta}}{Named list: \code{method}, \code{outcome_col}, \code{date_col},
 \code{control_period}, \code{study_period}, \code{family}, \code{dof_per_year},
-\code{harmonics}, \code{threshold_z}, \code{n_obs}, \code{call_time}.}
+\code{harmonics}, \code{threshold_z}, \code{n_obs}, \code{n_study}, \code{n_control},
+\code{call_time}.}
 }
 }
 \description{
@@ -140,5 +167,6 @@ tidy(exc)
 
 }
 \seealso{
-\code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, \code{\link[=sus_mod_af]{sus_mod_af()}}, \code{\link[=sus_mod_plot_dlnm]{sus_mod_plot_dlnm()}}
+\code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, \code{\link[=sus_mod_af]{sus_mod_af()}}, \code{\link[=sus_mod_burden]{sus_mod_burden()}},
+\code{\link[=sus_mod_its]{sus_mod_its()}}, \code{\link[=sus_mod_plot_dlnm]{sus_mod_plot_dlnm()}}
 }

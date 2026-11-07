@@ -18,29 +18,38 @@ utils::globalVariables(c(
 #' hosted on Zenodo (CC-BY) as Parquet and are downloaded once and cached
 #' locally.
 #'
-#' The return value is a `climasus_df` at `stage = "climate"`,
+#' Data are already aggregated per municipality, so no polygons are needed;
+#' join the result to health data with [sus_grid_join()]. The return value is
+#' a `climasus_df` at `stage = "climate"`,
 #' `type = "pollution_cams"`, directly compatible with
 #' [sus_climate_anomaly()], [sus_climate_aggregate()], and [sus_mod_dlnm()].
 #'
-#' @param pollutants Character vector. Pollutants to include. Allowed values:
-#'   `"pm25"`, `"pm10"`, `"co"`, `"o3"`, `"no2"`, `"so2"`, or `"all"`.
-#'   Default: `c("pm25", "pm10")`.
+#' @param pollutants Character vector of pollutant codes, or the single string `"all"`.
+#'   Allowed: `"pm25"`, `"pm10"`, `"co"`, `"o3"`, `"no2"`, `"so2"`. Examples:
+#'   `"pm25"`, `c("pm25", "no2")`, `"all"`. Default `c("pm25", "pm10")`. Unknown
+#'   codes error.
 #'
-#' @param metric Character. Daily aggregation statistic. One of:
-#'   `"mean"` (default), `"max"`, `"min"`, or `"all"` (all three).
+#' @param metric Character vector: any of `"mean"` (default), `"max"`, `"min"`
+#'   (e.g. `c("mean", "max")`), or the single string `"all"` (all three). One output
+#'   column is created per pollutant x metric (`<pollutant>_<metric>`). Other
+#'   values error.
 #'
-#' @param years Integer vector. Years to include (2003–2024). `NULL` (default)
-#'   returns all available years.
+#' @param years Numeric vector of years or `NULL`. Accepted forms: scalar (`2020`),
+#'   range (`2019:2022`) or explicit vector (`c(2019, 2022)` = exactly those two
+#'   years, NOT the range -- use `2019:2022`). Valid range 2003-2024 (values
+#'   outside error; character values error). `NULL` (default) = all available years.
+#'   The whole file is always downloaded; years are filtered after reading.
 #'
-#' @param use_cache Logical. Re-use previously downloaded Parquet files.
-#'   Default `TRUE`.
+#' @param use_cache Logical scalar. Reuse previously downloaded Parquet files
+#'   (`FALSE` re-downloads). Default `TRUE`.
 #'
-#' @param cache_dir Character. Directory for cached Parquet files.
-#'   Default `"~/.climasus4r_cache/cams"`.
+#' @param cache_dir Character scalar. Directory for cached Parquet files. Default
+#'   `"~/.climasus4r_cache/cams"`.
 #'
-#' @param lang Character. Message language: `"pt"` (default), `"en"`, `"es"`.
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"` or
+#'   `"es"`; other values error.
 #'
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
 #' @return A `climasus_df` tibble with columns:
 #'   \itemize{
@@ -88,7 +97,9 @@ utils::globalVariables(c(
 #' )
 #' }
 #'
-#' @seealso [sus_climate_anomaly()], [sus_climate_aggregate()], [sus_mod_dlnm()]
+#' @seealso [sus_grid_pollution_ghap()], [sus_grid_pollution_merra2()],
+#'   [sus_grid_join()], [sus_climate_anomaly()], [sus_climate_aggregate()],
+#'   [sus_mod_dlnm()]
 #'
 #' @export
 #' @importFrom rlang .data is_installed

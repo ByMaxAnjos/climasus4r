@@ -16,61 +16,65 @@ utils::globalVariables(c(
 #' or `raster_area != FALSE` -- as a `ggplot2` map, following the same
 #' publication style used across the other `sus_*_plot_*()` functions.
 #'
+#' Use it after any `sus_grid_*()` call that returns rasters/paths (stage 8,
+#' gridded climate/environment) to inspect a surface before aggregating it.
 #' Large rasters are automatically downsampled for plotting (see
-#' `max_cells`); the returned object always reflects the full data range
-#' of the (possibly downsampled) layer shown.
+#' `max_cells`).
 #'
-#' @param x A `SpatRaster` (`terra`), a single file path (`.tif`, `.tif.gz`,
-#'   `.nc`), or a named character vector of file paths as returned by a
-#'   `sus_grid_*()` function.
-#' @param layer Integer index, layer name, or `"all"`. Selects which layer to
-#'   plot when `x` has multiple layers/dates. `"all"` facets over every
-#'   layer (capped at `max_layers`). Default `1` (first layer).
-#' @param max_layers Integer. Maximum number of layers plotted when
-#'   `layer = "all"`; extra layers are dropped with a message. Default `12`.
-#' @param municipalities An optional `sf` POLYGON object (e.g. one or more
-#'   rows from [geobr::read_municipality()], or a state/region polygon).
-#'   When supplied, the raster is cropped and masked to this area (values
-#'   outside the polygon(s) become `NA` and are dropped from the plot), and
-#'   its boundary is drawn as a thin overlay. Default `NULL` (full raster
-#'   extent, no cropping).
-#' @param state_borders Logical. Overlay Brazilian state boundaries
-#'   (downloaded via `geobr`, cached). Default `TRUE`.
-#' @param diverging Logical. Use a diverging blue-white-red scale centered
-#'   on 0 (for anomalies, indices, etc.) instead of the sequential
+#' @param x A `terra::SpatRaster`; a single file path (`"file.tif"`,
+#'   `"file.tif.gz"`, `"file.nc"`); or a (named) character vector of file paths,
+#'   as returned by `sus_grid_*()` with `municipalities = NULL` (layers are
+#'   stacked and named by the vector names). Any other class errors; an empty
+#'   vector errors; missing files error.
+#' @param layer Single layer selector, or `"all"`. Forms: integer index (`1`,
+#'   `3`), layer name (`"2022-01-01"`; must match `names(x)`), or `"all"` to facet
+#'   every layer (capped at `max_layers`). Default `1`. A single value only
+#'   (vectors such as `1:3` are not supported); index outside `1:nlyr` or unknown
+#'   name errors.
+#' @param max_layers Positive integer. Maximum layers drawn when `layer = "all"`; the
+#'   first `max_layers` are kept and a warning is printed. Default `12`.
+#' @param municipalities An `sf` polygon object (e.g. rows from [geobr::read_municipality()]
+#'   or a state polygon) or `NULL` (default). When supplied, the raster is
+#'   reprojected-to-match, cropped and masked to it (cells outside become `NA` and
+#'   are not drawn) and its boundary is overlaid. `NULL` = full raster extent.
+#' @param state_borders Logical scalar. Overlay Brazilian state boundaries (needs `geobr`
+#'   and `sf`, cached on disk; if unavailable a warning is issued and borders are
+#'   omitted). Default `TRUE`.
+#' @param diverging Logical scalar. If `TRUE`, use a blue-white-red scale centered on
+#'   0 with symmetric limits (for anomalies/indices such as PDSI) and ignore
 #'   `palette`. Default `FALSE`.
-#' @param palette Character. Sequential colour palette used when
-#'   `diverging = FALSE`. One of `"viridis"`, `"plasma"`, `"magma"`,
-#'   `"inferno"`, or any [RColorBrewer::brewer.pal()] sequential name
-#'   (e.g. `"YlOrRd"`, `"Blues"`). Default `"viridis"`.
-#' @param name Character. Legend title. `NULL` (default) uses the layer
-#'   name.
-#' @param max_cells Integer. Rasters with more cells than this are
-#'   regularly resampled before plotting to keep rendering fast.
-#'   Default `500000`.
-#' @param title Character. Map title. `NULL` uses a built-in multilingual
-#'   default.
-#' @param subtitle Character. Map subtitle. `NULL` auto-generates one from
-#'   the layer name and resolution.
-#' @param caption Character. Figure caption. `NULL` uses a generic
-#'   `climasus4r` source line.
-#' @param base_size Numeric. Base font size for `theme_void()`. Default `11`.
-#' @param interactive Logical. If `TRUE`, wraps the `ggplot2` object with
-#'   `plotly::ggplotly()`. Requires `plotly`. Default `FALSE`.
-#' @param use_cache Logical. Cache state-boundary metadata to disk.
+#' @param palette Character scalar. Sequential palette used when `diverging = FALSE`:
+#'   `"viridis"` (default), `"plasma"`, `"magma"`, `"inferno"`, `"cividis"`, or any
+#'   [RColorBrewer::brewer.pal()] palette name (e.g. `"YlOrRd"`, `"Blues"`).
+#'   Unknown names fall back to `"YlOrRd"` with a warning.
+#' @param name Character scalar or `NULL` (default). Legend title; `NULL` uses
+#'   the (first) layer name.
+#' @param max_cells Numeric scalar. If the number of cells x layers exceeds this, the
+#'   raster is regularly subsampled before plotting. Default `500000`.
+#' @param title Character scalar or `NULL` (default, built-in title in `lang`).
+#' @param subtitle Character scalar or `NULL` (default, auto-generated from the layer
+#'   name / number of layers).
+#' @param caption Character scalar or `NULL` (default, a generic `climasus4r` line).
+#' @param base_size Numeric scalar. Base font size for `ggplot2::theme_void()`.
+#'   Default `11`.
+#' @param interactive Logical scalar. If `TRUE`, return `plotly::ggplotly()` of the map
+#'   (requires `plotly`). Default `FALSE`.
+#' @param use_cache Logical scalar. Cache the downloaded state boundaries on disk.
 #'   Default `TRUE`.
-#' @param cache_dir Character. Directory for the disk cache.
-#'   Default `"~/.climasus4r_cache/spatial"`.
-#' @param lang Character. Language for messages and axis labels:
-#'   `"pt"` (default), `"en"`, `"es"`.
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param cache_dir Character scalar. Directory of the boundary cache. Default
+#'   `"~/.climasus4r_cache/spatial"`.
+#' @param lang Character scalar. Message and label language: `"pt"` (default),
+#'   `"en"` or `"es"` (validated with `match.arg()`; other values error).
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
-#' @return A `ggplot2` object (class `"gg"` / `"ggplot"`), or a `plotly`
-#'   object when `interactive = TRUE`.
+#' @return A `ggplot` object (a raster layer in lon/lat with optional state and
+#'   municipality outlines; faceted by layer when `layer = "all"`), or a
+#'   `plotly` object when `interactive = TRUE`. Not a `climasus_df`; `sus_meta`
+#'   is not involved.
 #'
 #' @seealso [sus_grid_chirps()], [sus_grid_era5()], [sus_grid_pdsi()],
 #'   [sus_grid_pollution_ghap()], [sus_grid_pollution_merra2()],
-#'   [sus_data_plot_aggregate_map()]
+#'   [sus_grid_join()], [sus_data_plot_aggregate_map()]
 #'
 #' @examples
 #' \dontrun{

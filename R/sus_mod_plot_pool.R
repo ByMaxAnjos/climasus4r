@@ -114,22 +114,35 @@ utils::globalVariables(c(
 #' | `"forest"` | City-specific RR at exposure p75 with CI (original and BLUP) |
 #' | `"spaghetti"` | Per-city BLUP curves overlaid on the pooled curve |
 #'
-#' @param x A `climasus_pool` object produced by [sus_mod_pool()].
-#' @param type Character. Plot type: `"overall"` (default), `"forest"`, or
-#'   `"spaghetti"`.
-#' @param output_type Character. `"plot"` (default), `"table"`, or `"all"`
-#'   (named list `$plot`, `$table`, `$data`).
-#' @param interactive Logical. `TRUE` converts the ggplot2 output to an
-#'   interactive \pkg{plotly} widget. Default `FALSE`.
-#' @param base_size Numeric. ggplot2 base font size. Default `12`.
-#' @param save_plot Character or `NULL`. File path to save the plot.
-#' @param lang Character. Language for labels: `"pt"` (default), `"en"`, `"es"`.
-#' @param verbose Logical. Print progress messages. Default `FALSE`.
+#' @param x A `climasus_pool` object produced by [sus_mod_pool()]. Other
+#'   classes error.
+#' @param type Character scalar: `"overall"` (default; pooled curve from
+#'   `$exposure_curve`, errors if empty), `"forest"` (per-city RR from
+#'   `$city_table`, raw and BLUP) or `"spaghetti"` (per-city BLUP curves over
+#'   the pooled curve; needs `$blup_preds`, otherwise a warning is issued and
+#'   the `"overall"` plot is returned). Partial matching applies; other values
+#'   error.
+#' @param output_type Character scalar: `"plot"` (default), `"table"` (plotted
+#'   data) or `"all"` (list with `$plot`, `$table`, `$data`).
+#' @param interactive Logical scalar. `TRUE` converts the ggplot to a
+#'   \pkg{plotly} widget (requires \pkg{plotly}). Default `FALSE`.
+#' @param base_size Numeric scalar. Base font size in points for the ggplot2
+#'   theme. Default `12L`.
+#' @param save_plot Character scalar or `NULL` (default). Output path, e.g.
+#'   `"pool.png"` (saved with [ggplot2::ggsave()], 9 x 5 in); with
+#'   `interactive = TRUE` use an `.html` path (needs \pkg{htmlwidgets}).
+#'   `NULL` does not save.
+#' @param lang Character scalar: `"pt"` (default), `"en"`, `"es"`. Language of
+#'   labels; unsupported values warn and fall back to `"pt"`.
+#' @param verbose Logical scalar. If `TRUE` prints progress messages. Default
+#'   `FALSE`.
 #'
 #' @return Depending on `output_type`:
-#'   - `"plot"` -> a `ggplot` or `plotly` object.
-#'   - `"table"` -> a `tibble` of the plotted data.
-#'   - `"all"` -> a named list: `$plot`, `$table`, `$data`.
+#'   - `"plot"`: a `ggplot` (or `plotly` when `interactive = TRUE`) object.
+#'   - `"table"`: the plotted data: `x$exposure_curve` for `"overall"`,
+#'     `x$city_table` for `"forest"` and `"spaghetti"`.
+#'   - `"all"`: a named list with `$plot`, `$table` and `$data` (identical to
+#'     `$table`).
 #'
 #' @examples
 #' \dontrun{
@@ -142,7 +155,8 @@ utils::globalVariables(c(
 #' out$table
 #' }
 #'
-#' @seealso [sus_mod_pool()], [sus_mod_plot_dlnm()]
+#' @seealso [sus_mod_pool()], [sus_mod_metaregression()],
+#'   [sus_mod_plot_dlnm()]
 #'
 #' @export
 #' @importFrom cli cli_h1 cli_alert_success cli_alert_warning cli_abort

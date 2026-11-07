@@ -13,18 +13,19 @@ sus_climate_normals_meta(
 )
 }
 \arguments{
-\item{period}{Character. Filter to a specific period, or \code{NULL} (default)
-to return the full catalogue.}
+\item{period}{Single character string (\code{"1961-1990"}, \code{"1981-2010"},
+\code{"1991-2020"}) to filter the catalogue, or \code{NULL} (default) to return
+all periods. An unknown value returns an empty tibble (no error).}
 
-\item{lang}{Character. Language for the returned label column:
-\code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Single character string. Language for the \code{variable_label}
+column: \code{"pt"} (default), \code{"en"}, \code{"es"} (others fall back to \code{"pt"}).}
 
-\item{cache_dir}{Character. Cache directory. Default:
+\item{cache_dir}{Single character string. Cache directory. Default
 \code{"~/.climasus4r_cache/normals"}.}
 
-\item{use_cache}{Logical. Use cached catalogue. Default \code{TRUE}.}
+\item{use_cache}{Logical scalar. Use cached catalogue. Default \code{TRUE}.}
 
-\item{verbose}{Logical. Print messages. Default \code{FALSE}.}
+\item{verbose}{Logical scalar. Print messages. Default \code{FALSE}.}
 }
 \value{
 A tibble with columns \code{var_code}, \code{variable_label}, \code{period},
@@ -41,4 +42,7 @@ sus_climate_normals_meta()
 sus_climate_normals_meta(period = "1991-2020", lang = "en")
 }
 
+}
+\seealso{
+\code{\link[=sus_climate_normals]{sus_climate_normals()}}
 }

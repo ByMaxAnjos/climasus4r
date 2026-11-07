@@ -135,22 +135,29 @@ utils::globalVariables(c(
 #'
 #' @param x A `climasus_spatial_scan` object returned by
 #'   [sus_mod_spatial_scan()].
-#' @param municipalities An `sf` object with POLYGON or MULTIPOLYGON geometry
-#'   containing a `code_muni` column that matches the identifiers stored in
-#'   `x$most_likely_cluster$location_ids` and `x$secondary_clusters`.
-#' @param show_rr Logical.  `TRUE` (default) colours municipalities by
-#'   Relative Risk using a continuous diverging scale.  `FALSE` uses
-#'   categorical cluster-membership colours.
-#' @param alpha Numeric in (0, 1).  Significance threshold used to decide
-#'   which cluster borders to emphasise.  Must match the value used when
-#'   running [sus_mod_spatial_scan()].  Default `0.05`.
-#' @param title Character or `NULL`.  Plot title.  If `NULL` (default) a
-#'   localised default title is used.
-#' @param lang Character.  Output language: `"pt"` (default), `"en"`, `"es"`.
-#' @param ... Currently unused; reserved for future extensions.
+#' @param municipalities An `sf` object (required; no default) with POLYGON or
+#'   MULTIPOLYGON geometry and a `code_muni` column (numeric or character;
+#'   coerced to character) matching the identifiers in
+#'   `x$most_likely_cluster$location_ids` and each
+#'   `x$secondary_clusters[[i]]$location_ids`. Errors if not `sf` or if
+#'   `code_muni` is missing. Municipalities outside every cluster are
+#'   background.
+#' @param show_rr Logical scalar. `TRUE` (default) fills by cluster Relative
+#'   Risk (diverging scale centred on RR = 1) and outlines significant
+#'   clusters; `FALSE` fills by categorical cluster label (most likely,
+#'   secondary clusters, background).
+#' @param alpha Numeric scalar in (0, 1). Cluster p-value threshold for the
+#'   thick border (`show_rr = TRUE`) and for the "no significant cluster"
+#'   warning. Should match the value used in [sus_mod_spatial_scan()].
+#'   Default `0.05`.
+#' @param title Character scalar or `NULL`. Plot title; `NULL` (default) uses
+#'   the translated default title.
+#' @param lang Character scalar. Output language: `"pt"` (default), `"en"`,
+#'   or `"es"`. Any other value triggers a warning and falls back to `"pt"`.
+#' @param ... Currently unused (ignored).
 #'
-#' @return A `ggplot` object.  Assign to a variable to modify further or pass
-#'   to [ggplot2::ggsave()].
+#' @return A `ggplot` object. Assign it to modify further or pass to
+#'   [ggplot2::ggsave()].
 #'
 #' @examples
 #' \dontrun{

@@ -24,11 +24,16 @@ utils::globalVariables(character(0L))
 #'
 #' @param rap A `rap_object` (from [sus_rap_read()]) to pre-populate the
 #'   interface. Pass `NULL` (default) to start from a blank template.
-#' @param launch.browser `logical(1)`  - Open in the system browser.
-#'   Default `TRUE`.
-#' @param ... Additional arguments forwarded to `shiny::runApp()`.
+#' @param launch.browser `logical(1)`, default `TRUE`. Open the app in the
+#'   system browser; `FALSE` uses the default Shiny launcher (e.g. RStudio
+#'   viewer).
+#' @param ... Additional arguments forwarded to `shiny::runApp()`, e.g.
+#'   `port = 3838`. Requires the `shiny` package (you are prompted to install
+#'   it if missing).
 #'
-#' @return Does not return; runs the Shiny application interactively.
+#' @return Does not return a value; runs the Shiny application until it is
+#'   stopped.
+#' @seealso [sus_rap_read()], [sus_rap_export()], [sus_rap_recipe()]
 #' @export
 #'
 #' @importFrom cli cli_abort

@@ -495,61 +495,70 @@
 
 #' Compute Socioeconomic and Epidemiological Indicators
 #'
-#' Computes a set of standardised indicators from the columns already present
-#' in a `climasus_df` object (typically the output of [sus_census_join()]).
-#' Indicators span demographics, socioeconomic vulnerability, mortality,
-#' morbidity, maternal-child health, and health-resource availability.
-#' Column names from the census aggregation step (e.g. `V003_sum`) can be
-#' mapped to the formula-space names expected by each indicator via
-#' `col_mapping`.
-#'
-#' @param df A `climasus_df` object at stage `>= "spatial"`. Typically the
-#'   output of [sus_census_join()].
-#' @param indicators Character vector of indicator IDs to compute. If `NULL`
-#'   (default), all indicators whose required columns are present in `df`
-#'   are computed automatically.  Use [sus_socio_list_indicators()] to
-#'   inspect the full catalogue.
-#' @param col_mapping Named list mapping formula-space variable names to actual
-#'   column names in `df`.  For example:
-#'   ```r
-#'   list(pop_young = "pop_0_14_sum", total_hh = "V003_sum")
-#'   ```
-#'   Only mappings that override the defaults need to be specified.
-#' @param confidence_level Numeric. Confidence level for Poisson / Binomial
-#'   intervals.  Default `0.95`.
-#' @param add_ci Logical. If `TRUE` (default), adds `*_low` and `*_high`
-#'   columns for indicators that support uncertainty quantification
-#'   (Poisson for rates, Wilson score for proportions).
-#' @param lang Language for messages: `"pt"` (default), `"en"`, `"es"`.
-#' @param verbose Logical. Print progress messages.  Default `TRUE`.
-#'
-#' @return The input `climasus_df` with additional columns prefixed `ind_`:
-#'   \itemize{
-#'     \item `ind_<id>` — computed value
-#'     \item `ind_<id>_low` / `ind_<id>_high` — confidence-interval bounds
-#'       (only for Poisson/Binomial indicators when `add_ci = TRUE`)
-#'   }
-#'   `sus_meta` is updated to `type = "indicators"` with a history entry.
+#' @description
+#' Computes standardised indicators (demographic, socioeconomic, mortality,
+#' morbidity, maternal-child health, health resources, heat vulnerability) from
+#' columns already present in a `climasus_df`. Run it after
+#' [sus_census_join()] (or any step that provides the numerators and
+#' denominators) and before modelling/mapping; it works with any DATASUS
+#' `system`. Column names from the census step (e.g. `V003_sum`) are mapped to
+#' the formula-space names each indicator expects through `col_mapping`. Use
+#' [sus_socio_list_indicators()] to see the catalogue, formulas and required
+#' columns.
 #'
 #' @details
-#' **Formula evaluation**: each indicator formula is evaluated using
-#' `rlang::eval_tidy()` against a named-list environment built from the
-#' resolved column values, so no package-level NSE column names are needed.
+#' **Formula evaluation**: each indicator formula is evaluated with
+#' `rlang::eval_tidy()` against the resolved column values, multiplied by the
+#' indicator's `multiplier` (e.g. 100 for %, 1000 per 1,000). Non-finite
+#' results (zero denominators) become `NA`.
 #'
-#' **Missing columns**: if a requested indicator lacks required columns (after
-#' applying `col_mapping`), a warning is emitted and the indicator is skipped.
-#' The function never aborts due to missing columns.
+#' **Missing columns**: a requested indicator whose required columns are absent
+#' (after `col_mapping`) is skipped with a warning; the function errors only if
+#' no indicator could be computed.
 #'
 #' **Confidence intervals**:
 #' \itemize{
-#'   \item *Poisson (Garwood exact)*: for event-count / population-at-risk
-#'     rates (mortality, incidence, hospitalisation).
-#'   \item *Binomial (Wilson score)*: for proportions (%, coverage indices).
-#'   \item *None*: for ratios with complex numerators or direct index values.
+#'   \item *Poisson (Garwood exact)*: event-count / population-at-risk rates
+#'     (mortality, incidence, hospitalisation).
+#'   \item *Binomial (Wilson score)*: proportions (%, coverage indices).
+#'   \item *None*: ratios with complex numerators or direct index values.
 #' }
+#'
+#' @param df A `climasus_df` whose `sus_meta` stage is `"spatial"` or later,
+#'   typically the output of [sus_census_join()]. Plain data frames and
+#'   earlier stages error.
+#' @param indicators Character vector of indicator IDs, e.g.
+#'   `"dependency_ratio"` or `c("aging_index", "water_connection_rate")`.
+#'   `NULL` (default) computes every indicator whose required columns are
+#'   present (after `col_mapping`); errors if there are none. Unknown IDs give
+#'   a warning and are dropped (error if none is valid). IDs: see
+#'   [sus_socio_list_indicators()].
+#' @param col_mapping Named list mapping formula-space variable names to actual
+#'   column names of `df`, e.g.
+#'   `list(pop_young = "pop_0_14_sum", total_hh = "V003_sum")`. Names not
+#'   mapped are looked up in `df` under their own formula name. Non-list input
+#'   errors. Default `list()`.
+#' @param confidence_level Numeric scalar strictly between 0 and 1: confidence
+#'   level of the Poisson/Binomial intervals (e.g. `0.95`, `0.99`). Other values
+#'   error. Default `0.95`.
+#' @param add_ci Logical scalar. If `TRUE` (default), adds `_low`/`_high`
+#'   columns for indicators with a Poisson or Binomial uncertainty method.
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"` or
+#'   `"es"`; other values fall back to `"pt"` with a warning.
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
+#'
+#' @return The input `climasus_df` with new numeric columns:
+#'   \itemize{
+#'     \item `ind_<id>` - computed value (scaled by the indicator multiplier)
+#'     \item `ind_<id>_low` / `ind_<id>_high` - interval bounds (only for
+#'       Poisson/Binomial indicators when `add_ci = TRUE`)
+#'   }
+#'   `sus_meta` is updated to `stage = "census"`, `type = "indicators"` (the
+#'   `system` is kept) with a history entry.
 #'
 #' @examples
 #' \dontrun{
+#' # df_census: output of sus_census_join()
 #' df_ind <- sus_socio_compute_indicators(
 #'   df_census,
 #'   indicators = c("dependency_ratio", "water_connection_rate"),
@@ -563,7 +572,8 @@
 #' )
 #' }
 #'
-#' @seealso [sus_census_join()], [sus_socio_list_indicators()]
+#' @seealso [sus_census_join()], [sus_census_select()],
+#'   [sus_socio_list_indicators()]
 #' @export
 #' @importFrom rlang parse_expr eval_tidy
 #' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_alert_warning cli_warn
@@ -766,14 +776,21 @@ sus_socio_compute_indicators <- function(
 #' `sus_socio_compute_indicators()`, including their IDs, names,
 #' categories, required columns, and uncertainty method.
 #'
-#' @param lang Language for indicator names: `"pt"` (default), `"en"`, `"es"`.
-#' @param category Optional character vector to filter by category (e.g.
-#'   `"demographic"`, `"socioeconomic"`, `"mortality"`, `"morbidity"`,
-#'   `"maternal_child"`, `"health_resources"`, `"heat_vulnerability"`). Use
-#'   `NULL` (default) to return all.
+#' @param lang Character scalar. Language of indicator names: `"pt"`
+#'   (default), `"en"` or `"es"`; any other value silently falls back to `"pt"`.
+#' @param category Character vector of categories to keep, e.g. `"mortality"`
+#'   or `c("demographic", "socioeconomic")`. Valid values: `"demographic"`,
+#'   `"socioeconomic"`, `"mortality"`, `"morbidity"`, `"maternal_child"`,
+#'   `"health_resources"`, `"heat_vulnerability"`. `NULL` (default) returns all;
+#'   unknown values return zero rows.
 #'
-#' @return A `tibble` with columns `id`, `name`, `category`, `required_cols`,
-#'   `unit`, `uncertainty_method`, `source`.
+#' @return A `tibble` with one row per indicator and columns `id` (value for
+#'   `indicators` in [sus_socio_compute_indicators()]), `name`, `category`,
+#'   `required_cols` (comma-separated formula-space names to map with
+#'   `col_mapping`), `formula`, `multiplier`, `unit`, `uncertainty_method`
+#'   (`"none"`, `"poisson"` or `"binomial"`), `source`.
+#'
+#' @seealso [sus_socio_compute_indicators()], [sus_census_join()]
 #'
 #' @examples
 #' sus_socio_list_indicators(lang = "pt")

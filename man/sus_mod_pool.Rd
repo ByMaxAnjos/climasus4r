@@ -16,28 +16,40 @@ sus_mod_pool(
 )
 }
 \arguments{
-\item{fits}{A named list of \code{climasus_dlnm} objects, one per city or region.
-All fits must have been produced with the same \code{climate_col}, \code{argvar},
-\code{arglag}, and \code{lag_max}.}
+\item{fits}{A list of \code{climasus_dlnm} objects from \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, one per
+city or region, e.g. \code{list(manaus = fit1, belem = fit2)}. Names become the
+city labels; if unnamed (or any name is empty) cities are labelled
+\code{"city_1"}, \code{"city_2"}, ... Errors if empty, not a list, or if any
+element is not a \code{climasus_dlnm}; a single fit only warns (meta-analysis
+needs >= 2). All fits must share the same \code{climate_col}, \code{argvar},
+\code{arglag} and \code{lag_max} (incompatible fits error).}
 
-\item{exposure_range}{Numeric vector of length 2 specifying the exposure
-grid range for the pooled prediction. Default \code{NULL} uses the combined
-range across all city datasets.}
+\item{exposure_range}{Numeric vector of length 2, \code{c(min, max)} in the
+units of the climate variable (e.g. \code{c(15, 40)} degrees C), defining the
+exposure grid of the pooled prediction. \code{NULL} (default) uses the
+combined observed range across all cities.}
 
-\item{n_grid}{Integer. Number of exposure grid points for the pooled
-prediction curve. Default \code{100L}.}
+\item{n_grid}{Integer scalar. Number of equally spaced grid points over
+the exposure range. Default \code{100L}.}
 
-\item{pred_at}{Numeric vector of quantile probabilities (0-1) for the
-pooled exposure-response summary table. Default \code{c(0.75, 0.90, 0.95, 0.99)}.}
+\item{pred_at}{Numeric vector of probabilities in (0, 1), e.g. \code{0.95} or
+\code{c(0.75, 0.95, 0.99)}, giving the percentiles (of the pooled observed
+exposure) reported in \verb{$exposure_response}. Default
+\code{c(0.75, 0.90, 0.95, 0.99)}. \verb{$lag_response} and \verb{$city_table} are
+always evaluated at the 75th percentile.}
 
-\item{blup}{Logical. Compute BLUP city-specific predictions? Default \code{TRUE}.}
+\item{blup}{Logical scalar. Compute city-specific BLUP predictions
+(requires >= 2 cities; skipped otherwise)? Default \code{TRUE}.}
 
-\item{method}{Character. \code{mvmeta} estimation method: \code{"reml"} (default,
-recommended), \code{"ml"}, or \code{"fixed"} (fixed-effects, no heterogeneity).}
+\item{method}{Character scalar. Estimation method passed to
+\code{mvmeta::mvmeta()}: \code{"reml"} (default), \code{"ml"}, or \code{"fixed"}
+(fixed-effects, no between-city heterogeneity). Other \code{mvmeta}
+methods (e.g. \code{"mm"}, \code{"vc"}) are passed through unchecked.}
 
-\item{lang}{Character. Language for messages: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"},
+or \code{"es"}; anything else warns and falls back to \code{"pt"}.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
 A \code{climasus_pool} list with components:
@@ -99,4 +111,7 @@ print(pool)
 plot_pool <- sus_mod_plot_dlnm(pool, lang = "en")
 }
 
+}
+\seealso{
+\code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, \code{\link[=sus_mod_sensitivity]{sus_mod_sensitivity()}}, \code{\link[=sus_mod_plot_dlnm]{sus_mod_plot_dlnm()}}
 }

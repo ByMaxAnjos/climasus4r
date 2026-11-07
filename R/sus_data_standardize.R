@@ -8,28 +8,37 @@
 #' additional layer of standardization specifically designed for climate-health
 #' research workflows.
 #'
-#' @param df A `data.frame` or `tibble` to be standardized (typically output from `sus_data_import()`).
-#' @param lang Character. Output language for column names and values. Options: "en" (English),
-#'   "pt" (Portuguese, Default), "es" (Spanish).
-#' @param translate_columns Logical. If TRUE, translates column names. Default is TRUE.
-#' @param standardize_values Logical. If TRUE, standardizes categorical values. Default is TRUE.
-#' @param keep_original Logical. If TRUE, keeps original columns alongside standardized ones. Default is FALSE.
-#' @param backend Character string specifying the data processing backend.
-#'   Use `"arrow"` for out-of-memory, lazy processing (recommended for large datasets),
-#'   or `"tibble"` for in-memory processing (recommended for small to medium datasets).
+#' @param df A `climasus_df`, tibble or data frame (typically from
+#'   [sus_data_import()] / [sus_data_clean_encoding()]), or a lazy Arrow
+#'   dataset. The health system (SIM, SINAN, SIH, SIA, CNES, SINASC) is
+#'   detected from the column names, or taken from `sus_meta`.
+#' @param lang Character scalar, `"pt"` (default), `"en"` or `"es"`. Language of
+#'   the translated column names, standardized categorical values and
+#'   messages; other values abort.
+#' @param translate_columns Logical scalar, default `TRUE`. Rename the original
+#'   DATASUS columns to descriptive names in `lang`.
+#' @param standardize_values Logical scalar, default `TRUE`. Recode categorical
+#'   values (e.g. sex, race, education) to labels in `lang`.
+#' @param keep_original Logical scalar, default `FALSE`. If `TRUE`, keep the
+#'   original columns alongside the standardized ones.
+#' @param backend Character scalar, `"arrow"` (default) or `"tibble"`.
+#'   `"arrow"` processes lazily and falls back to `"tibble"` (in memory) with a
+#'   warning if it fails; `"tibble"` processes in memory.
+#' @param verbose Logical scalar, default `TRUE`. Print a report of the
+#'   standardization actions.
 #'
-#'   - `"arrow"`: operations are performed lazily using the Apache Arrow engine,
-#'     avoiding loading the full dataset into memory. Ideal for large files
-#'     (e.g., Parquet, Feather) and high-performance workflows.
+#' @return A `climasus_df` with standardized column names and values in `lang`
+#'   (a lazy Arrow table if the input was lazy and the arrow backend succeeded).
+#'   `sus_meta`: `stage = "stand"`, system preserved/detected.
 #'
-#'   - `"tibble"`: data is fully loaded into memory as a tibble and processed eagerly
-#'     using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
+#' @details
+#' Pipeline position: after [sus_data_clean_encoding()], before the filtering
+#' ([sus_data_filter_cid()], [sus_data_filter_demographics()]) and
+#' [sus_data_create_variables()] steps. Column names change with `lang`, so use
+#' the same `lang` in the following steps.
 #'
-#'   If not specified, the function may automatically choose the backend based on
-#'   the input data type.
-#' @param verbose Logical. If TRUE, prints a report of standardization actions. Default is TRUE.
-#'
-#' @return A `data.frame` with standardized column names and values in the specified language.
+#' @seealso [sus_data_clean_encoding()], [sus_data_filter_cid()],
+#'   [sus_data_create_variables()]
 #'
 #' @importFrom dplyr rename mutate case_when
 #' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_alert_warning
@@ -38,7 +47,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' # Standardize to English (default)
+#' # Standardize to English
 #' df_en <- sus_data_standardize(df_raw, lang = "en")
 #'
 #' # Standardize to Portuguese

@@ -106,27 +106,47 @@ utils::globalVariables(c(
 #' yield the CI. When \pkg{MASS} is unavailable the function falls back to
 #' delta-method bounds from the original crosspred object.
 #'
-#' @param fit A `climasus_dlnm` object produced by [sus_mod_dlnm()].
-#' @param threshold Numeric or `NULL`. Exposure value splitting heat (above) and
-#'   cold (below) components. `NULL` (default) uses `fit$meta$ref_value`.
-#' @param range Numeric vector `c(low, high)` or `NULL`. When provided, AF is
-#'   also computed for this custom exposure range.
-#' @param pred_at Numeric vector (0-1). Quantiles defining the percentile-band
-#'   table. For each `q`, the AF above the `q`-th quantile (hot) and below the
-#'   `(1-q)`-th quantile (cold) is reported. Default `c(0.75, 0.90, 0.95, 0.99)`.
-#' @param by Character or `NULL`. Temporal grouping for the period table:
-#'   `"month"`, `"year"`, or `"season"`. `NULL` (default) skips the breakdown.
-#' @param nsim Integer. Number of Monte Carlo simulations for CI. Default
-#'   `1000L`. Reduce to `200L` for quick exploratory runs; increase to `5000L`
-#'   for publication-quality CI.
-#' @param alpha Numeric. Significance level for CI. Default `0.05` (95%).
-#' @param lang Character. Language for messages: `"pt"` (default), `"en"`, `"es"`.
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param fit A `climasus_dlnm` object produced by [sus_mod_dlnm()]. Any other
+#'   class errors. Uses `fit$crossbasis`, `fit$model`, `fit$data_daily` and
+#'   `fit$meta`.
+#' @param threshold Numeric scalar or `NULL`. Exposure value that (a) splits the
+#'   heat (>= threshold) and cold (<= threshold) components and (b) is used as
+#'   the centring value (`cen`) of `dlnm::crosspred()`, i.e. the RR = 1
+#'   reference. `NULL` (default) uses `fit$meta$ref_value` (the reference chosen
+#'   in [sus_mod_dlnm()]). Example: `threshold = 24.5`.
+#' @param range Numeric vector of length 2, `c(low, high)`, or `NULL`
+#'   (default). When given, AF/AN are also computed for days whose lag-0
+#'   exposure lies in `[low, high]` (both ends inclusive); use `-Inf`/`Inf` for
+#'   open ends, e.g. `c(30, Inf)` or `c(-Inf, 10)`. Returned in `$custom`.
+#'   `NULL` skips it.
+#' @param pred_at Numeric vector of probabilities in (0, 1), default
+#'   `c(0.75, 0.90, 0.95, 0.99)`. Accepts a scalar (`0.95`) or vector
+#'   (`c(0.90, 0.99)`). For each `q`, `$by_quantile` reports the AF of days
+#'   above the `q`-th exposure quantile (`"hot"`) and of days below the
+#'   `(1 - q)`-th quantile (`"cold"`). Quantiles are taken from the observed
+#'   lag-0 exposure.
+#' @param by Character scalar or `NULL` (default). Temporal grouping of the
+#'   `$by_period` table: `"month"` (year x month), `"year"`, or `"season"`
+#'   (year x DJF/MAM/JJA/SON, Southern-Hemisphere-neutral calendar seasons).
+#'   `NULL` skips the breakdown. Any other value errors. Period tables are
+#'   point estimates only (no CI).
+#' @param nsim Integer scalar >= 0. Number of Monte Carlo coefficient draws used
+#'   for the CI. Default `1000L`; `200L` for quick runs, `5000L` for
+#'   publication. `0` (or the \pkg{MASS} package being absent, with a warning)
+#'   switches to delta-method bounds from `crosspred` (`meta$ci_method =
+#'   "delta"`). Run time grows linearly with `nsim` and with the number of
+#'   components/bands computed.
+#' @param alpha Numeric scalar in (0, 1). Significance level; CI covers
+#'   `alpha/2` to `1 - alpha/2` quantiles. Default `0.05` (95% CI); `0.10` gives
+#'   a 90% CI.
+#' @param lang Character scalar, one of `"pt"` (default), `"en"`, `"es"`.
+#'   Language of CLI messages. Invalid values error (`match.arg`).
+#' @param verbose Logical scalar. If `TRUE` (default) prints progress messages.
 #'
 #' @return A `climasus_af` object (named list) with:
 #'   \describe{
 #'     \item{`$total`}{One-row-per-component tibble (total/heat/cold) with AF,
-#'       AN, and 95% CI.}
+#'       AN, and CI at level `1 - alpha`.}
 #'     \item{`$by_quantile`}{AF/AN at each percentile band in `pred_at`.}
 #'     \item{`$by_period`}{Monthly/yearly/seasonal point estimates; `NULL` when
 #'       `by = NULL`.}
@@ -161,7 +181,8 @@ utils::globalVariables(c(
 #' dplyr::bind_rows(tidy(af_city1), tidy(af_city2))
 #' }
 #'
-#' @seealso [sus_mod_dlnm()], [sus_mod_plot_dlnm()]
+#' @seealso [sus_mod_dlnm()], [sus_mod_plot_dlnm()], [sus_mod_plot_af()],
+#'   [sus_mod_burden()]
 #'
 #' @export
 #' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_alert_warning cli_abort

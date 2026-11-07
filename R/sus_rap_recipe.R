@@ -17,15 +17,20 @@ utils::globalVariables(character(0L))
 #' under 50 lines). The recipe can be shared with colleagues and re-imported
 #' with [sus_rap_from_recipe()].
 #'
-#' @param rap A `rap_object` returned by [sus_rap_read()] or [sus_rap_export()].
-#' @param file_path `character(1)`  - Output path for the `.yaml` file. If
-#'   `NULL`, a timestamped file is created in the working directory.
-#' @param include_data_hash `logical(1)`  - Compute and embed a hash of the
-#'   input parameters for traceability. Default `TRUE`.
-#' @param lang `character(1)`  - Language for messages.
-#' @param overwrite `logical(1)`  - Overwrite existing file. Default `FALSE`.
+#' @param rap A `rap_object` returned by [sus_rap_read()] (not the character
+#'   vector returned by [sus_rap_export()]; read the exported file first).
+#' @param file_path `character(1)`, output `.yaml` path, e.g.
+#'   `"pipeline_sp.yaml"`. `NULL` (default) creates a timestamped
+#'   `rap_recipe_<date>_<time>.yaml` in the working directory. Aborts if it
+#'   exists and `overwrite = FALSE`.
+#' @param include_data_hash `logical(1)`, default `TRUE`. Embed an xxhash32 of
+#'   the input parameters (uf/years/system) for traceability; needs the
+#'   `digest` package.
+#' @param lang `character(1)`, `"pt"` (default), `"en"` or `"es"`.
+#' @param overwrite `logical(1)`, default `FALSE`. Overwrite an existing file.
 #'
-#' @return Invisibly, the path of the created `.yaml` file.
+#' @return Invisibly, the path (character) of the created `.yaml` file.
+#' @seealso [sus_rap_from_recipe()], [sus_rap_read()]
 #' @export
 #'
 #' @importFrom cli cli_alert_success cli_abort cli_alert_info
@@ -99,16 +104,20 @@ sus_rap_recipe <- function(
 #' `rap_object`. Parameter overrides can be supplied at import time. Passing
 #' `execute = TRUE` immediately re-runs the pipeline using [sus_rap_run()].
 #'
-#' @param recipe_path `character(1)`  - Path to the `.yaml` recipe file.
-#' @param override_params Named list of parameters to override from the recipe
-#'   (e.g. `list(uf = "RJ", years = 2022:2024)`).
-#' @param execute `logical(1)`  - Run the pipeline immediately after loading.
-#'   Default `FALSE`.
-#' @param lang `character(1)`  - Language for messages.
+#' @param recipe_path `character(1)`, path to an existing `.yaml` recipe file
+#'   written by [sus_rap_recipe()]; aborts if not found.
+#' @param override_params Named list of parameter values (R values) replacing
+#'   those of the recipe, e.g. `list(uf = "RJ", years = 2022:2024)` (the RAP
+#'   year parameter is named `years`; `c(2020, 2024)` means exactly those two
+#'   years). Default `list()`.
+#' @param execute `logical(1)`, default `FALSE`. Run the pipeline right after
+#'   loading, via [sus_rap_run()].
+#' @param lang `character(1)`, `"pt"` (default), `"en"` or `"es"`.
 #' @param ... Additional arguments forwarded to [sus_rap_run()] when
-#'   `execute = TRUE`.
+#'   `execute = TRUE` (e.g. `dry_run = TRUE`).
 #'
-#' @return A `rap_object` (or the pipeline result when `execute = TRUE`).
+#' @return A `rap_object`, or the pipeline result when `execute = TRUE`.
+#' @seealso [sus_rap_recipe()], [sus_rap_run()]
 #' @export
 #'
 #' @importFrom cli cli_alert_success cli_abort cli_alert_info

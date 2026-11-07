@@ -143,48 +143,68 @@ utils::globalVariables(c(
 #'   exposures at all specified lags — a moving average common for temperature
 #'   (e.g., `lag = 0:6` is the "lag 0-6" or "mean temperature over 7 days").
 #'
-#' @param data A `climasus_df` at stage `"aggregate"` or `"climate"` (produced
-#'   by `sus_climate_aggregate()`), or any `data.frame` containing at minimum a
-#'   `date` column (Date), an outcome count column, and an exposure column.
-#' @param outcome_col Character. Name of the daily health outcome count column
-#'   (e.g., `"n_obitos"`, `"n_internacoes"`). Default: `"n_obitos"`.
-#' @param exposure_col Character. Name of the exposure column. Required; no
-#'   auto-detection is performed (unlike `sus_mod_dlnm()`). Examples:
-#'   `"tair_dry_bulb_c"`, `"pm25_mean"`, `"precip_mm"`.
-#' @param covariates Character vector or `NULL`. Names of additional columns to
-#'   include as linear confounders. These should be time-varying within strata
-#'   (e.g., day-of-week dummy, holiday indicator, relative humidity). Long-term
-#'   trends are already controlled by the strata. Default: `NULL`.
-#' @param stratum Character. Time stratum type or name of an existing column:
-#'   - `"month"` (default): year-month strata (e.g., `"2021-07"`).
-#'   - `"week"`: ISO year-week strata (e.g., `"2021-W27"`).
-#'   - Any column name in `data`: uses that column's values as stratum IDs.
-#' @param lag Integer or integer vector. Lag(s) to apply to the exposure before
-#'   fitting. A single integer uses that specific lag; a vector uses the mean
-#'   of exposures at all specified lags. Default: `0L` (same-day exposure).
-#' @param method Character. Fitting method:
-#'   - `"conditional_poisson"` (default): GLM with stratum fixed effects.
-#'     Preferred for aggregate count data; uses `stats::glm()` with the
-#'     specified `family`.
-#'   - `"clogit"`: conditional logistic regression via `survival::clogit()`.
-#'     Requires the `survival` package. Treats outcome as binary
-#'     (`is_case = count > 0`); best for rare events.
-#' @param family Character. GLM family for `method = "conditional_poisson"`:
-#'   `"quasipoisson"` (default, robust to overdispersion) or `"poisson"`.
-#'   Ignored for `method = "clogit"`.
-#' @param alpha Numeric. Significance level for confidence intervals.
-#'   Default: `0.05` (95% CI).
-#' @param lang Character. Language for messages: `"pt"` (default), `"en"`,
-#'   `"es"`.
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param data A `climasus_df`, tibble or `data.frame` with one row per day
+#'   for a single location/series (typically the output of
+#'   [sus_climate_aggregate()] or [sus_data_aggregate()] joined with climate
+#'   data). Must contain a column named exactly `date` (Date or coercible),
+#'   the outcome column and the exposure column. Rows are sorted by date and
+#'   lags are taken by row position, so the series must be complete (no
+#'   missing days) and must not stack several cities. Other classes error.
+#' @param outcome_col Character scalar. Name of the daily outcome count
+#'   column (e.g. `"n_obitos"`, `"n_internacoes"`). Default `"n_obitos"`.
+#'   Errors if absent or if it has no value > 0.
+#' @param exposure_col Character scalar. Name of the exposure column. Required
+#'   (no default, no auto-detection, unlike [sus_mod_dlnm()]); errors if
+#'   missing or absent. Examples: `"tair_dry_bulb_c"`, `"pm25_mean"`,
+#'   `"precip_mm"`.
+#' @param covariates Character vector or `NULL` (default). Names of extra
+#'   columns entered linearly, e.g. `c("rh_mean", "holiday")`. They should vary
+#'   within strata (day-of-week dummies, holidays, humidity); long-term trend
+#'   and seasonality are already handled by the strata. Errors if any name is
+#'   not in `data`. Rows with `NA` in any used column are dropped.
+#' @param stratum Character scalar. Defines the matching strata:
+#'   - `"month"` (default): calendar year-month (e.g. `"2021-07"`).
+#'   - `"week"`: ISO year-week (e.g. `"2021-W27"`).
+#'   - the name of any column in `data`: its values are used as stratum IDs
+#'     (e.g. `"month_dow"` for month x day-of-week strata).
+#'
+#'   A value that is neither keyword nor column errors. A warning is issued
+#'   when fewer than 12 strata remain.
+#' @param lag Non-negative integer scalar or vector, default `0L`.
+#'   - Scalar (`0`, `3L`): exposure `lag` days before the outcome day.
+#'   - Vector (`0:6`, `c(0, 1, 2)`): the arithmetic mean of the exposure at all
+#'     listed lags (moving average, e.g. `0:6` = lag 0-6). A vector is a set,
+#'     not a range: `c(0, 6)` averages only lags 0 and 6.
+#'
+#'   The first `max(lag)` days become `NA` and are dropped. Negative values
+#'   error. Values are coerced with `as.integer()`.
+#' @param method Character scalar. Fitting method:
+#'   - `"conditional_poisson"` (default): GLM with stratum fixed effects
+#'     (`stats::glm()` with `family`); preferred for aggregate counts. The
+#'     returned `or` columns are rate ratios (RR).
+#'   - `"clogit"`: conditional logistic regression with
+#'     `survival::clogit()` (requires \pkg{survival}; errors if missing).
+#'     Outcome is binarised (`count > 0`); suited to rare events. A warning
+#'     about the binarisation is always issued.
+#'
+#'   Other values error.
+#' @param family Character scalar. GLM family for `"conditional_poisson"`:
+#'   `"quasipoisson"` (default; handles overdispersion) or `"poisson"`. Any
+#'   other value silently falls back to quasi-Poisson. Ignored for `"clogit"`.
+#' @param alpha Numeric scalar in (0, 1). Significance level; CI use
+#'   `qnorm(1 - alpha / 2)` on the log scale. Default `0.05` (95% CI).
+#' @param lang Character scalar: `"pt"` (default), `"en"`, `"es"`. Language of
+#'   messages; unsupported values warn and fall back to `"pt"`.
+#' @param verbose Logical scalar. If `TRUE` (default) prints progress messages.
 #'
 #' @return A `climasus_casecrossover` list with:
 #'   \describe{
 #'     \item{`$model`}{The fitted model object: a `glm` for
 #'       `"conditional_poisson"` or a `clogit` object for `"clogit"`.}
-#'     \item{`$or_table`}{Tibble with one row per exposure term:
-#'       `term`, `lag_spec`, `estimate` (log-OR), `or`, `or_lo`, `or_hi`,
-#'       `p_value`.}
+#'     \item{`$or_table`}{One-row tibble for the exposure term:
+#'       `term`, `lag_spec`, `estimate` (log scale), `or` (odds ratio for
+#'       `"clogit"`, rate ratio for `"conditional_poisson"`) per 1-unit increase
+#'       of exposure, `or_lo`, `or_hi`, `p_value`.}
 #'     \item{`$data`}{The analysis dataset after lag creation and NA removal:
 #'       columns `date`, `outcome_val`, `exposure_val`, `stratum_id`, and
 #'       any covariates.}
@@ -237,7 +257,8 @@ utils::globalVariables(c(
 #' )
 #' }
 #'
-#' @seealso [sus_mod_dlnm()], [sus_mod_excess()], [sus_mod_af()]
+#' @seealso [sus_mod_dlnm()], [sus_mod_its()], [sus_mod_excess()],
+#'   [sus_mod_af()], [sus_climate_aggregate()]
 #'
 #' @export
 #' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_alert_warning cli_abort

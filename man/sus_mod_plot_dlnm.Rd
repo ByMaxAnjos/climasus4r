@@ -20,46 +20,66 @@ sus_mod_plot_dlnm(
 )
 }
 \arguments{
-\item{fit}{A \code{climasus_dlnm} object produced by \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}.}
+\item{fit}{A \code{climasus_dlnm} object produced by \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}} (must
+contain a \code{crosspred} in \verb{$pred}). Other input errors. Needs \pkg{ggplot2},
+\pkg{ggsci} and \pkg{patchwork} (plus \pkg{plotly} for \code{interactive = TRUE}
+and for \code{type = "surface"}).}
 
-\item{type}{Character. Plot type (see \strong{Plot types} section). Default
-\code{"overall"}.}
+\item{type}{Character scalar, one of \code{"overall"} (default), \code{"lag"},
+\code{"surface"}, \code{"contour"}, \code{"slice"}, \code{"distribution"}, \code{"series"}. See
+\strong{Plot types}. \code{"surface"} always returns a \pkg{plotly} 3-D widget,
+regardless of \code{interactive}. Partial matching applies; other values error.}
 
-\item{output_type}{Character. What to return: \code{"plot"} (default), \code{"table"},
-or \code{"all"} (named list \verb{$plot}, \verb{$table}, \verb{$data}).}
+\item{output_type}{Character scalar: \code{"plot"} (default), \code{"table"} (summary
+table only) or \code{"all"} (list with \verb{$plot}, \verb{$table} and \verb{$data}).}
 
-\item{exposure_at}{Numeric or \code{NULL}. Exposure value used as the focal point
-for the \code{"lag"} plot. \code{NULL} (default) uses the 75th percentile of lag-0
-exposure.}
+\item{exposure_at}{Numeric scalar or \code{NULL} (default). Exposure value (in the
+units of the climate variable, e.g. \code{32}) at which the lag-specific curve of
+\code{type = "lag"} is drawn; the nearest point of the 100-point prediction grid
+is used. \code{NULL} uses the 75th percentile of lag-0 exposure. Ignored by
+other types.}
 
-\item{lags_at}{Integer vector. Lag times shown in the \code{"slice"} plot.
-Default \code{c(0L, 3L, 7L, 14L, 21L)} -- automatically clipped to \code{lag_max}.}
+\item{lags_at}{Integer vector, default \code{c(0L, 3L, 7L, 14L, 21L)}. Lags drawn
+by \code{type = "slice"}, e.g. \code{c(0, 7)} or \code{0:5}. Lags beyond the model's
+\code{lag_max} are dropped; if none remain, five evenly spaced lags are used.
+Ignored by other types.}
 
-\item{pred_at}{Numeric vector (0-1). Quantile probabilities at which to
-report cumulative RR in the statistical table. Default:
-\code{c(0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.99)}.}
+\item{pred_at}{Numeric vector of probabilities in (0, 1) (scalar or vector),
+default \code{c(0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.99)}. Exposure
+percentiles at which cumulative RR is reported in the summary table
+(\code{output_type = "table"} or \code{"all"}). Does not affect plots.}
 
-\item{interactive}{Logical. \code{TRUE} -> \code{\link[plotly:ggplotly]{plotly::ggplotly()}} / plotly 3-D for
-\code{"surface"}; \code{FALSE} (default) -> static ggplot2.}
+\item{interactive}{Logical scalar. \code{TRUE} converts the ggplot to an
+interactive \pkg{plotly} widget; \code{FALSE} (default) returns a static ggplot.}
 
-\item{color_palette}{Character. Name of a \pkg{ggsci} palette. Default
-\code{"npg"}. Other useful options: \code{"lancet"}, \code{"jama"}, \code{"nejm"}, \code{"aaas"}.}
+\item{color_palette}{Character scalar. Name of a \pkg{ggsci} palette,
+i.e. the suffix of \verb{ggsci::pal_<name>}: \code{"npg"} (default), \code{"lancet"},
+\code{"jama"}, \code{"nejm"}, \code{"aaas"}, ... Unknown names warn and fall back to
+\code{"npg"}.}
 
-\item{base_size}{Numeric. ggplot2 base font size. Default \code{12}.}
+\item{base_size}{Numeric scalar. Base font size in points for the ggplot2
+theme. Default \code{12L}.}
 
-\item{save_plot}{Character or \code{NULL}. File path to save the output. PNG/PDF
-for static; HTML for interactive.}
+\item{save_plot}{Character scalar or \code{NULL} (default). Output path. A path
+ending in \code{.html} with \code{interactive = TRUE} is saved as a self-contained
+HTML widget (\pkg{htmlwidgets}); otherwise \code{\link[ggplot2:ggsave]{ggplot2::ggsave()}} is used
+(10 x 7 in, 300 dpi; the extension selects PNG/PDF/...). Not saved when
+\code{output_type = "table"}.}
 
-\item{lang}{Character. Language for labels: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar: \code{"pt"} (default), \code{"en"}, \code{"es"}. Language of
+labels. Invalid values error (\code{match.arg}).}
 
-\item{verbose}{Logical. Print progress messages. Default \code{FALSE}.}
+\item{verbose}{Logical scalar. If \code{TRUE} prints progress messages. Default
+\code{FALSE}.}
 }
 \value{
 Depending on \code{output_type}:
 \itemize{
-\item \code{"plot"} -> a \code{ggplot} or \code{plotly} object.
-\item \code{"table"} -> a \code{gt_tbl} (or \code{tibble} when \pkg{gt} is unavailable).
-\item \code{"all"} -> a named list: \verb{$plot}, \verb{$table}, \verb{$data}.
+\item \code{"plot"}: a \code{ggplot} (or \code{plotly} widget) object.
+\item \code{"table"}: a \code{gt_tbl} (or tibble when \pkg{gt} is unavailable).
+\item \code{"all"}: a named list with \verb{$plot}, \verb{$table} and \verb{$data}, where \verb{$data}
+is a list (\code{exposure_response}, \code{lag_response}, \code{data_daily},
+\code{diagnostics}) taken from \code{fit}.
 }
 }
 \description{
@@ -132,5 +152,6 @@ Bhaskaran, K., Gasparrini, A., Hajat, S., Smeeth, L., & Armstrong, B.
 \doi{10.1093/ije/dyt092}
 }
 \seealso{
-\code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, \code{\link[=sus_climate_plot_heatwaves]{sus_climate_plot_heatwaves()}}
+\code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, \code{\link[=sus_mod_af]{sus_mod_af()}}, \code{\link[=sus_mod_plot_af]{sus_mod_plot_af()}},
+\code{\link[=sus_mod_plot_sensitivity]{sus_mod_plot_sensitivity()}}, \code{\link[=sus_climate_plot_heatwaves]{sus_climate_plot_heatwaves()}}
 }

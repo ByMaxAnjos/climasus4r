@@ -13,21 +13,24 @@ sus_rap_from_recipe(
 )
 }
 \arguments{
-\item{recipe_path}{\code{character(1)}  - Path to the \code{.yaml} recipe file.}
+\item{recipe_path}{\code{character(1)}, path to an existing \code{.yaml} recipe file
+written by \code{\link[=sus_rap_recipe]{sus_rap_recipe()}}; aborts if not found.}
 
-\item{override_params}{Named list of parameters to override from the recipe
-(e.g. \code{list(uf = "RJ", years = 2022:2024)}).}
+\item{override_params}{Named list of parameter values (R values) replacing
+those of the recipe, e.g. \code{list(uf = "RJ", years = 2022:2024)} (the RAP
+year parameter is named \code{years}; \code{c(2020, 2024)} means exactly those two
+years). Default \code{list()}.}
 
-\item{execute}{\code{logical(1)}  - Run the pipeline immediately after loading.
-Default \code{FALSE}.}
+\item{execute}{\code{logical(1)}, default \code{FALSE}. Run the pipeline right after
+loading, via \code{\link[=sus_rap_run]{sus_rap_run()}}.}
 
-\item{lang}{\code{character(1)}  - Language for messages.}
+\item{lang}{\code{character(1)}, \code{"pt"} (default), \code{"en"} or \code{"es"}.}
 
 \item{...}{Additional arguments forwarded to \code{\link[=sus_rap_run]{sus_rap_run()}} when
-\code{execute = TRUE}.}
+\code{execute = TRUE} (e.g. \code{dry_run = TRUE}).}
 }
 \value{
-A \code{rap_object} (or the pipeline result when \code{execute = TRUE}).
+A \code{rap_object}, or the pipeline result when \code{execute = TRUE}.
 }
 \description{
 Reads a YAML recipe exported by \code{\link[=sus_rap_recipe]{sus_rap_recipe()}} and reconstructs a
@@ -43,4 +46,7 @@ print(rap)
 rap_rj <- sus_rap_from_recipe("pipeline_sp.yaml",
                               override_params = list(uf = "RJ"))
 }
+}
+\seealso{
+\code{\link[=sus_rap_recipe]{sus_rap_recipe()}}, \code{\link[=sus_rap_run]{sus_rap_run()}}
 }

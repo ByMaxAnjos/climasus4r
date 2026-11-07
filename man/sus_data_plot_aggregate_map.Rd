@@ -40,15 +40,19 @@ order as \code{\link[=sus_climate_plot_aggregate]{sus_climate_plot_aggregate()}}
 \code{n_procedimentos}, \code{n_estabelecimentos} and their English / Spanish
 equivalents.}
 
-\item{map_type}{Character.  \code{"bubble"} (default), \code{"choropleth"} or \code{"quantile_choropleth"}}
+\item{map_type}{Character scalar, one of \code{"bubble"} (default),
+\code{"choropleth"} or \code{"quantile_choropleth"} (partial matching allowed).}
 
 \item{rate_per_100k}{Logical.  If \code{TRUE}, divides \code{total_cases} by \code{pop_25}
 (from \code{municipio_meta}) and multiplies by 1e5 to compute incidence per
 100,000 inhabitants.  Default \code{FALSE}.}
 
-\item{period}{Date scalar or \code{c(start, end)} vector.  When supplied, rows
-in \code{df} whose \code{date} column falls outside the interval are removed before
-aggregation.  \code{NULL} (default) uses all rows.}
+\item{period}{\code{NULL} (default, all rows), a start date, or \code{c(start, end)};
+\code{Date} or strings coercible by \code{as.Date()} (e.g. \code{"2022-01-01"},
+\code{c("2022-01-01", "2022-06-30")}), bounds inclusive. A single value means
+\strong{from that date until today}, not a single day. Rows of \code{df} whose
+\code{date} column falls outside are removed before summing; skipped with a
+warning if \code{df} has no \code{date} column.}
 
 \item{city}{Character vector of municipality names or 6-/7-digit IBGE codes.
 When supplied, the map is restricted to those municipalities. Names are

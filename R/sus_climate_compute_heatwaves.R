@@ -181,27 +181,35 @@ utils::globalVariables(c(
 #' **7. HI** `HImax > P90(HImax)` for >= N days (default N=3). Requires `hi_c`
 #' column from `sus_climate_compute_indicators()`.
 #'
-#' @param df A `climasus_df` at stage `"climate"` with type `"inmet"`,
-#'   `"filled"`, or `"indicators"`. Produced by `sus_climate_inmet()`,
+#' @param df A `climasus_df` (Arrow-backed objects are collected) at stage
+#'   `"climate"` with type `"inmet"`, `"filled"`, or `"indicators"`. Produced by `sus_climate_inmet()`,
 #'   `sus_climate_fill_inmet()`, or `sus_climate_compute_indicators()`. Must
 #'   contain columns `date` and `station_code`. Temperature columns
 #'   `tair_max_c`, `tair_min_c`, `tair_dry_bulb_c` are required for WHO/WMO/
 #'   INMET/EHF; `utci_c`, `wbgt_c`, `hi_c` are required for UTCI/WBGT/HI
 #'   (available after `sus_climate_compute_indicators()`).
 #' @param method Character vector. One or more of `"WHO"`, `"WMO"`, `"INMET"`,
-#'   `"EHF"`, `"UTCI"`, `"WBGT"`, `"HI"`. Use `"all"` to run every method.
-#'   Methods whose required columns are absent emit a warning and are skipped.
-#' @param baseline_start Date or character (e.g., `"1981-01-01"`). Start of the
-#'   reference period for percentile thresholds. `NULL` uses the full series.
-#' @param baseline_end Date or character. End of the reference period.
-#'   `NULL` uses the full series.
-#' @param percentile Numeric (0–100, default `90`). Percentile used for WHO,
-#'   WMO, UTCI, WBGT, and HI threshold calculations.
-#' @param min_duration Integer or `NULL`. Minimum consecutive days to qualify as
-#'   a heatwave. `NULL` uses method defaults: WHO=3, WMO=5, INMET=5, EHF=3,
-#'   UTCI=3, WBGT=3, HI=3.
-#' @param lang Character. Output language: `"pt"` (default), `"en"`, `"es"`.
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#'   `"EHF"`, `"UTCI"`, `"WBGT"`, `"HI"` (case-sensitive; e.g. `"WHO"` or
+#'   `c("WHO", "INMET", "EHF")`). Default is all seven; `"all"` is also
+#'   accepted. Methods whose required columns are absent emit a warning and
+#'   are skipped.
+#' @param baseline_start `Date` or ISO date string (e.g., `"1981-01-01"`).
+#'   Start of the reference period for percentile thresholds. `NULL` (default)
+#'   uses the start of the full series. Errors if the baseline is empty; a
+#'   warning is shown if it spans fewer than 10 years.
+#' @param baseline_end `Date` or ISO date string (e.g., `"2020-12-31"`). End of
+#'   the reference period. `NULL` (default) uses the end of the full series.
+#' @param percentile Numeric scalar in 0-100 (default `90`). Upper-tail
+#'   percentile used for the WHO, WMO, UTCI, WBGT and HI thresholds (e.g. `95`
+#'   for stricter events). Not used by INMET (fixed mean + 5 degC) or EHF
+#'   (fixed P95).
+#' @param min_duration Single integer or `NULL`. Minimum consecutive days to
+#'   qualify as a heatwave, applied to **all** selected methods. `NULL`
+#'   (default) uses method defaults: WHO=3, WMO=5, INMET=5, EHF=3, UTCI=3,
+#'   WBGT=3, HI=3.
+#' @param lang Single character string. Message language: `"pt"` (default),
+#'   `"en"`, `"es"`; other values fall back to `"pt"` with a warning.
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
 #' @return A named list with class `climasus_hw` and `sus_meta` attribute
 #'   (stage `"climate"`, type `"heatwaves"`):
@@ -242,9 +250,17 @@ utils::globalVariables(c(
 #' hw$events
 #' hw$summary
 #' hw$daily[hw$daily$hw_any, ]
+#'
+#' # Helpers
+#' hw_get_events(hw, method_filter = "WHO")
+#' hw_count_by_year(hw)
+#' hw_active_days(hw)
 #' }
 #'
-#' @seealso [sus_climate_inmet()], [sus_climate_compute_indicators()]
+#' @seealso [sus_climate_inmet()], [sus_climate_fill_inmet()],
+#'   [sus_climate_compute_indicators()], [sus_climate_compute_coldwaves()],
+#'   [sus_climate_plot_heatwaves()], [hw_get_events()], [hw_count_by_year()],
+#'   [hw_active_days()]
 #'
 #' @export
 #' @importFrom dplyr mutate select filter group_by summarise arrange left_join
@@ -867,7 +883,9 @@ sus_climate_compute_heatwaves <- function(
 #'
 #' @param hw_result A `climasus_hw` list returned by
 #'   `sus_climate_compute_heatwaves()`.
-#' @param method_filter Character vector. If supplied, keep only these methods.
+#' @param method_filter Character vector of method names (e.g. `"WHO"` or
+#'   `c("WHO", "INMET")`) matched against the `method` column. `NULL`
+#'   (default) keeps all methods.
 #' @return A tibble of heatwave events.
 #' @export
 hw_get_events <- function(hw_result, method_filter = NULL) {
@@ -896,7 +914,8 @@ hw_count_by_year <- function(hw_result) {
 #'
 #' @param hw_result A `climasus_hw` list returned by
 #'   `sus_climate_compute_heatwaves()`.
-#' @return A filtered tibble from `hw_result$daily`.
+#' @return A tibble with columns `station_code`, `date_day`, `tmax`, `tmean`
+#'   and the `hw_*` flag columns, restricted to days where `hw_any` is `TRUE`.
 #' @export
 hw_active_days <- function(hw_result) {
   hw_result$daily |>

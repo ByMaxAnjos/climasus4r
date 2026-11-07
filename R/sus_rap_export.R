@@ -63,29 +63,40 @@ utils::globalVariables(character(0L))
 #'   \item{`"function"`}{Parametrised `.R` function with Roxygen2 header.}
 #' }
 #'
-#' @param pipeline A pipeline expression (created with `quote()` or
-#'   `rlang::quo()`) containing `sus_*` function calls connected by `|>` or
-#'   `%>%`. Pass `NULL` to capture from the calling context.
-#' @param file_path `character(1)`  - Output file path. Extension informs format
-#'   detection. Pass `NULL` to return content without writing to disk.
-#' @param format `character(1)`  - One of `"script"`, `"rmarkdown"`,
-#'   `"quarto"`, or `"function"`. Inferred from `file_path` extension when
-#'   possible.
-#' @param include_metadata `logical(1)`  - Embed R version, package versions,
-#'   timestamp, and platform. Default `TRUE`.
-#' @param include_validation `logical(1)`  - Add a validation block (`stopifnot`
-#'   + NA-rate check). Default `TRUE`.
-#' @param include_documentation `character(1)`  - Comment density in the
-#'   exported code: `"minimal"`, `"standard"` (default), or `"comprehensive"`.
-#' @param output_type `character(1)`  - Purpose of the document:
-#'   `"analysis"`, `"dashboard"`, or `"report"`. Affects visualisation
-#'   sections in Rmd/Quarto outputs.
-#' @param lang `character(1)`  - Language for comments and messages: `"pt"`
-#'   (default), `"en"`, or `"es"`.
-#' @param overwrite `logical(1)`  - Overwrite an existing file. Default `FALSE`.
+#' @param pipeline A pipeline expression created with `quote()` or
+#'   `rlang::quo()`, containing `sus_*` calls connected by `|>` or `%>%`, e.g.
+#'   `quote(sus_data_import(...) |> sus_data_aggregate(...))`. The first step
+#'   should be `sus_data_import()` with literal `uf`, `year`/`years` and
+#'   `system` arguments (they are read to fill the parameters block; a warning
+#'   is issued if they are not detected). `NULL` (default) is accepted with a
+#'   warning but does not capture the calling context in practice, so supply
+#'   the expression.
+#' @param file_path `character(1)`, output file path, e.g.
+#'   `"pipeline.R"`, `"analysis.qmd"`. `NULL` (default) returns the content
+#'   without writing a file. The extension must match `format` (`.R`, `.Rmd`,
+#'   `.qmd`, `.R`), otherwise a warning is shown; the format is **not**
+#'   inferred from the extension. Missing folders are created. Aborts if the
+#'   file exists and `overwrite = FALSE`.
+#' @param format `character(1)`, one of `"script"` (default), `"rmarkdown"`,
+#'   `"quarto"` or `"function"`.
+#' @param include_metadata `logical(1)`, default `TRUE`. Embed R version,
+#'   package versions, timestamp and platform.
+#' @param include_validation `logical(1)`, default `TRUE`. Add a validation
+#'   block (`stopifnot` + NA-rate check).
+#' @param include_documentation `character(1)`, one of `"standard"` (default),
+#'   `"minimal"` or `"comprehensive"`: comment density of the exported code.
+#' @param output_type `character(1)`, one of `"analysis"` (default),
+#'   `"dashboard"` or `"report"`. Affects visualisation sections in the Rmd/Quarto
+#'   outputs.
+#' @param lang `character(1)`, `"pt"` (default), `"en"` or `"es"`. Language of
+#'   comments and messages; other values abort.
+#' @param overwrite `logical(1)`, default `FALSE`. Overwrite an existing file.
 #'
-#' @return Invisibly, a `character` vector with the exported file content.
-#'   Side-effect: writes to `file_path` when provided.
+#' @return Invisibly, a `character` vector with the exported file content (one
+#'   element per line). Side effect: writes it to `file_path` when provided.
+#'
+#' @seealso [sus_rap_read()], [sus_rap_recipe()], [sus_rap_template()],
+#'   [sus_rap_targets()]
 #'
 #' @export
 #'
@@ -96,10 +107,10 @@ utils::globalVariables(character(0L))
 #' @examples
 #' \dontrun{
 #' pipeline <- quote(
-#'   sus_data_import(uf = "SP", years = 2020:2022, system = "SIM-DO") |>
+#'   sus_data_import(uf = "SP", year = 2020:2022, system = "SIM-DO") |>
 #'     sus_data_clean_encoding() |>
-#'     sus_data_filter_cid(cid_group = "respiratory") |>
-#'     sus_data_aggregate(by = "month")
+#'     sus_data_filter_cid(disease_group = "respiratory") |>
+#'     sus_data_aggregate(time_unit = "month")
 #' )
 #'
 #' # Export as R script

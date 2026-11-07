@@ -1,206 +1,162 @@
 #' Create Derived Variables for Epidemiological Analysis
 #'
-#' Creates commonly used derived variables from health data across ALL SUS systems
-#' (SIM, SINAN, SIH, SIA, SINASC, CNES), including age groups, calendar variables,
-#' and other epidemiologically relevant categorizations. Features age
-#' calculation that handles different data formats across systems.
+#' Derives age groups, calendar variables and seasonal (climate) variables
+#' from standardized DATASUS data.
 #'
-#' @param df A data frame containing health data from any SUS system.
-#' @param create_age_groups Logical. If `TRUE`, derives age-based variables.
-#' When enabled, the function will attempt to determine age using the following
-#' hierarchy (in order of preference):
-#' \enumerate{
-#'   \item An existing age column supplied via \code{age_col}.
-#'   \item Calculation from birth date and event date columns (gold standard).
-#'   \item Decoding of DATASUS age code variables (fallback method).
-#' }
+#' Pipeline position: stage `"stand"` or later is required (run
+#' [sus_data_standardize()] first); the output has `stage = "derive"`. Next
+#' steps: [sus_data_aggregate()], [sus_data_filter_demographics()].
 #'
-#' If age is successfully determined, the following variables may be created:
+#' Supported systems: SIM, SINAN, SINASC, SIA and **SIH-RD**. The SIH
+#' sub-systems SIH-SP, SIH-RJ and SIH-ER and all CNES systems are blocked and
+#' abort early with an informative error (they lack age/date columns).
 #'
-#' \itemize{
-#'   \item \strong{User-defined age groups}:
-#'     A categorical variable based on \code{age_breaks} and \code{age_labels},
-#'     created using \code{cut()}. This variable is always created when
-#'     \code{create_age_groups = TRUE}.
+#' @param df A `climasus_df` (or tibble/data frame, Arrow dataset or DuckDB
+#'   table) produced by the pipeline, standardized with [sus_data_standardize()].
+#'   Must have at least one row.
+#' @param create_age_groups Logical scalar, default `TRUE`. If `TRUE`, derives
+#'   `age_years` (see Details for the 3-tier age logic) and the age-group
+#'   variables:
+#'   \itemize{
+#'     \item `age_group`: factor from `age_breaks`/`age_labels`
+#'       (`cut(right = FALSE)`).
+#'     \item Climate risk group (0-4 and 65+ "high risk", 5-64 "standard
+#'       risk"): `climate_risk_group` (en), `grupo_risco_climatico` (pt),
+#'       `grupo_riesgo_climatico` (es).
+#'     \item IBGE quinquennial groups `0-4, 5-9, ..., 75-79, 80+`:
+#'       `ibge_age_group` (en), `faixa_etaria_ibge` (pt), `grupo_edad_ibge` (es).
+#'   }
+#'   If age cannot be determined the function aborts with an error. With
+#'   `FALSE` no age variable is created.
+#' @param age_breaks Numeric vector (at least 2 values, increasing; `Inf`
+#'   allowed) of age-group breakpoints in years, e.g. `c(0, 5, 15, 60, Inf)`
+#'   (default) gives 0-4, 5-14, 15-59, 60+; `c(0, 18, 60, Inf)` gives 3 groups.
+#'   Intervals are closed on the left (`[0,5)`). Must be numeric, otherwise
+#'   the function aborts.
+#' @param age_labels Character vector of length `length(age_breaks) - 1`, e.g.
+#'   `c("0-4", "5-14", "15-59", "60+")`. `NULL` (default) generates labels
+#'   from the breaks, in `lang`. A wrong length aborts.
+#' @param create_calendar_vars Logical scalar, default `TRUE`. If `TRUE`,
+#'   creates calendar variables from `date_col`. If no date column can be found
+#'   (and `date_col` was not supplied) the calendar variables are skipped with
+#'   a warning. See Details for the variable set per backend.
+#' @param create_climate_vars Logical scalar, default `TRUE`. If `TRUE`,
+#'   creates seasonal variables from the month; **requires
+#'   `create_calendar_vars = TRUE`** (aborts otherwise, and also when no date
+#'   column was found). Without `climate_region`: one astronomical season
+#'   (`astronomical_season` / `estacao_astronomica` / `estacion_astronomica`),
+#'   using `hemisphere`. With `climate_region`: a climatic season
+#'   (`climatic_season` / `estacao_climatica` / `estacion_climatica`) and a
+#'   dry/rainy season (`dry_rainy_season` / `estacao_seca_chuvosa` /
+#'   `estacion_seca_lluviosa`).
+#' @param climate_region Character scalar or `NULL` (default). Brazilian
+#'   climate region used for climatic seasons: `"norte"`, `"nordeste"`,
+#'   `"centro-oeste"` (also `"centro_oeste"`, `"centrooeste"`, `"Centro Oeste"`),
+#'   `"sudeste"`, `"sul"`. Case- and accent-insensitive; only the first
+#'   element is used. `NULL` produces the astronomical season instead.
+#' @param date_col Character scalar, name of the date column used for the
+#'   calendar and season variables. `NULL` (default) auto-detects it by
+#'   system (e.g. `data_internacao` for SIH, `data_obito` for SIM,
+#'   `data_notificacao` for SINAN, `data_nascimento` for SINASC, plus common
+#'   names such as `date`/`data`/`fecha` and `DT*` columns). A supplied name
+#'   that is not in `df` aborts.
+#' @param age_col Character scalar, name of an existing column with age **in
+#'   years**. `NULL` (default) triggers auto-detection (see Details). If the
+#'   name is not in `df`, a warning is shown and auto-detection is used.
+#' @param hemisphere Character scalar, `"south"` (default, Brazil) or
+#'   `"north"`; defines the astronomical seasons. Other values abort.
+#' @param backend Character scalar, `"arrow"` (default) or `"tibble"`.
+#'   `"arrow"` processes Arrow/DuckDB inputs lazily (nothing is collected,
+#'   except that decoding a composite DATASUS age code materialises the data)
+#'   and falls back to `"tibble"` with a warning if it fails. `"tibble"`
+#'   processes in memory. Any other value uses the tibble path.
+#' @param lang Character scalar, `"pt"` (default), `"en"` or `"es"`. Language
+#'   of messages, labels and of the names of the created variables; other
+#'   values abort.
+#' @param verbose Logical scalar, default `TRUE`. Print progress messages.
 #'
-#'   \item \strong{Climate risk age group}:
-#'     A coarse age classification designed for climate–health analyses,
-#'     with three categories:
-#'     \describe{
-#'       \item{0–4}{High risk}
-#'       \item{5–64}{Standard risk}
-#'       \item{65+}{High risk}
-#'     }
-#'     The variable name depends on the selected language:
-#'     \itemize{
-#'       \item English: \code{climate_risk_group}
-#'       \item Portuguese: \code{grupo_risco_climatico}
-#'       \item Spanish: \code{grupo_riesgo_climatico}
-#'     }
-#'
-#'   \item \strong{IBGE quinquennial age groups}:
-#'     A standardized 17-group age classification following the Brazilian
-#'     Institute of Geography and Statistics (IBGE) quinquennial structure:
-#'     \code{0–4, 5–9, ..., 75–79, 80+}.
-#'     This variable ensures national and international comparability and is
-#'     particularly useful for demographic and epidemiological analyses.
-#'     Variable names by language:
-#'     \itemize{
-#'       \item English: \code{ibge_age_group}
-#'       \item Portuguese: \code{faixa_etaria_ibge}
-#'       \item Spanish: \code{grupo_edad_ibge}
-#'     }
-#' }
-#'
-#' All age group variables are created only if age can be reliably determined.
-#' If age cannot be inferred, the function will stop with an informative error.
-#' @param age_breaks Numeric vector specifying the breakpoints for age groups.
-#'   Default is `c(0, 5, 15, 65, Inf)` for standard epidemiological categories.
-#' @param age_labels Character vector with labels for age groups. If `NULL`
-#'   (default), generates labels automatically from breaks.
-#' @param create_calendar_vars Logical. If `TRUE`, creates calendar variables
-#'   (day of week, month, season, etc.). Default is `FALSE`.
-#' @param age_col Character string with the name of the age column (in years).
-#'   If `NULL` (default), auto-detects and calculates age using hierarchical logic:
-#'   1. Direct age column (if exists)
-#'   2. Calculate from dates (event_date - birth_date)
-#'   3. Decode DATASUS age codes (NU_IDADE_N, IDADE)
-#' @param date_col Character string with the name of the date column. If `NULL`
-#'   (default), auto-detects the date column. 
-#' @param create_climate_vars Logical. Se `TRUE`, cria variaveis climaticas e sazonais.
-#' @param climate_region Character. Regiao climatica para calculos sazonais.
-#'   Opcoes: "norte", "nordeste", "centro-oeste", "sudeste", "sul".
-#' @param hemisphere Character string specifying the hemisphere for season
-#'   calculation. Options: `"south"` (default, for Brazil), `"north"`.
-#' @param backend Character string specifying the data processing backend.
-#'   Use `"arrow"` for out-of-memory, lazy processing (recommended for large datasets),
-#'   or `"tibble"` for in-memory processing (recommended for small to medium datasets).
-#'
-#'   - `"arrow"`: operations are performed lazily using the Apache Arrow engine,
-#'     avoiding loading the full dataset into memory. Ideal for large files
-#'     (e.g., Parquet, Feather) and high-performance workflows.
-#'
-#'   - `"tibble"`: data is fully loaded into memory as a tibble and processed eagerly
-#'     using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
-#'
-#'   If not specified, the function may automatically choose the backend based on
-#'   the input data type.
-#' @param lang Character string specifying the language for variable labels and
-#'   messages. Options: `"en"` (English), `"pt"` (Portuguese, default), `"es"` (Spanish).
-#' @param verbose Logical. If `TRUE` (default), prints progress messages.
-#'
-#' @return The input data frame with additional columns for the created variables.
+#' @return A `climasus_df` (tibble; lazy Arrow table/DuckDB table if the input
+#'   was lazy) with the input columns plus the created variables. `sus_meta`: `stage = "derive"`, `type = "derive"`, `system`
+#'   preserved, and a history entry added.
 #'
 #' @details
-#' **Age Calculation** (Hierarchical Logic):
-#'
-#' The function uses a 3-tier hierarchy to ensure age is calculated correctly
-#' across all SUS systems:
-#'
-#' 1. **Direct Age Column** (Fastest): If a column with age in years already exists
-#'    (common in SIM after microdatasus processing), uses it directly.
-#'
-#' 2. **Date Calculation** (Gold Standard): If birth date and event date are available,
-#'    calculates exact age as: `interval(birth_date, event_date) / years(1)`.
-#'    This is the most accurate method and works for:
-#'    - SINAN: Has `DTNASC` and `DT_NOTIFIC`
-#'    - SIH: Has `NASC` and `DT_INTER`
-#'    - SINASC: Has `DTNASC` (mother) and `DTNASC` (newborn)
-#'
-#' 3. **DATASUS Code Decoder** (Fallback): If dates are missing (common in anonymized
-#'    data), decodes the composite age code used by DATASUS:
-#'    - Codes starting with `1`: Hours (converted to 0 years)
-#'    - Codes starting with `2`: Days (converted to 0 years)
-#'    - Codes starting with `3`: Months (converted to 0 years for <12 months)
-#'    - Codes starting with `4`: Years (e.g., 4035 = 35 years)
-#'    - Codes starting with `5`: 100+ years (e.g., 5105 = 105 years)
-#'
-#' **Age Groups**: Creates a factor variable `age_group` based on the specified
-#' breaks and labels. Common epidemiological categories:
-#' \itemize{
-#'   \item Pediatric: 0-4, 5-14, 15-19
-#'   \item Adult: 20-39, 40-59, 60+
-#'   \item Elderly: 65-74, 75-84, 85+
-#'   \item Climate-Health: 0-4, 5-64, 65+ (vulnerable populations)
+#' **Age (`age_years`)**: age in completed years, resolved per row with a
+#' 3-tier logic (skipped if `age_col` is valid, or a direct age column such as
+#' `age_years`/`idade_mae` exists):
+#' \enumerate{
+#'   \item **Dates** (gold standard): from the birth-date column
+#'     (`data_nascimento`/`birth_date`/`fecha_nacimiento`/`DTNASC`) and the
+#'     event-date column (e.g. `data_internacao`, `data_obito`,
+#'     `data_notificacao`), as completed years. Negative or >120 ages become `NA`.
+#'   \item **Value + unit pair** (per row, used where tier 1 is `NA`, or for all
+#'     rows when no birth-date column exists): the age value (`idade`) plus its
+#'     unit code (`codigo_unidade_idade`; raw `IDADE` + `COD_IDADE`). Units:
+#'     1 = hours and 2 = days (age 0), 3 = months (`floor(value / 12)`),
+#'     4 = years (value), 5 = 100+ years (`value + 100`). This is how SIH-RD
+#'     gets its age, because it has no birth-date column. Implausible values
+#'     (<0 or >120) become `NA`.
+#'   \item **Composite DATASUS code** (fallback, e.g. SINAN `NU_IDADE_N`,
+#'     `codigo_idade`): first digit is the unit (1 hours, 2 days, 3 months,
+#'     4 years, 5 100+) and the remaining digits the value, e.g. `4035` =
+#'     35 years, `5105` = 105 years.
 #' }
+#' Age groups are created only when `create_age_groups = TRUE`.
 #'
-#' **Calendar Variables** (when `create_calendar_vars = TRUE`):
+#' **Calendar variables** (when `create_calendar_vars = TRUE`; the date column
+#' is coerced with `as.Date()`):
 #' \itemize{
-#'   \item `day_of_week`: Day of the week (1 = Monday, 7 = Sunday)
-#'   \item `day_of_week_name`: Day name (e.g., "Monday", "Segunda-feira")
-#'   \item `month`: Month number (1-12)
-#'   \item `month_name`: Month name (e.g., "January", "Janeiro")
-#'   \item `year`: Year
-#'   \item `quarter`: Quarter (1-4)
-#'   \item `season`: Season (Summer, Autumn, Winter, Spring)
-#'   \item `is_weekend`: Logical indicating if date is weekend
-#'   \item `day_of_year`: Day of year (1-365/366)
-#'   \item `semester`: Semester (1 or 2)
+#'   \item In-memory (tibble) path, full set, names by `lang`: year, month,
+#'     month name, day of week (Monday = 1), day-of-week name, day of year,
+#'     quarter, epidemiological week, weekend flag, semester. Names: en
+#'     `year, month, month_name, day_of_week, day_of_week_name, day_of_year,
+#'     quarter, epidemiological_week, is_weekend, semester`; pt `ano, mes,
+#'     nome_mes, dia_semana, nome_dia_semana, dia_ano, trimestre,
+#'     semana_epidemiologica, fim_semana, semestre`; es `anio, mes,
+#'     nombre_mes, dia_semana, nombre_dia_semana, dia_anio, trimestre,
+#'     semana_epidemiologica, fin_semana, semestre`.
+#'   \item Arrow path (default backend, including in-memory input that is
+#'     processed by it, and Arrow/DuckDB inputs): only `ano`, `mes` and
+#'     `trimestre` (Portuguese names whatever `lang` is).
 #' }
+#' To get the full calendar set from an in-memory data frame use
+#' `backend = "tibble"`.
 #'
-#' **Seasons** are calculated based on hemisphere:
-#' \itemize{
-#'   \item **Southern Hemisphere** (Brazil): Summer (Dec-Feb), Autumn (Mar-May),
-#'     Winter (Jun-Aug), Spring (Sep-Nov)
-#'   \item **Northern Hemisphere**: Summer (Jun-Aug), Autumn (Sep-Nov),
-#'     Winter (Dec-Feb), Spring (Mar-May)
-#' }
+#' **Seasons** (astronomical, by `hemisphere`): southern = Summer (Dec-Feb),
+#' Autumn (Mar-May), Winter (Jun-Aug), Spring (Sep-Nov); northern is the
+#' reverse.
+#'
+#' @seealso [sus_data_standardize()], [sus_data_aggregate()],
+#'   [sus_data_filter_demographics()], [sus_data_filter_cid()]
 #'
 #' @examples
 #' \dontrun{
-#' library(climasus4r)
-#'
-#' # ===== EXAMPLE 1: SIM (Mortality) - Age already calculated =====
+#' # SIM: age is already available
 #' df_sim <- sus_data_import(uf = "SP", year = 2023, system = "SIM-DO") |>
+#'   sus_data_clean_encoding() |>
 #'   sus_data_standardize(lang = "en") |>
 #'   sus_data_create_variables(
-#'     create_age_groups = TRUE,
 #'     age_breaks = c(0, 5, 65, Inf),
 #'     age_labels = c("0-4", "5-64", "65+"),
-#'     create_calendar_vars = TRUE,
 #'     lang = "en"
 #'   )
-#' # Uses direct age column (fastest)
 #'
-#' # ===== EXAMPLE 2: SINAN (Dengue) - Calculate from dates =====
-#' df_sinan <- sus_data_import(uf = "RJ", year = 2023, system = "SINAN-DENGUE") |>
+#' # SIH-RD: age from value + unit code (idade + codigo_unidade_idade)
+#' df_sih <- sus_data_import(uf = "MG", year = 2023, month = 1:3,
+#'                           system = "SIH-RD") |>
+#'   sus_data_clean_encoding() |>
 #'   sus_data_standardize(lang = "pt") |>
 #'   sus_data_create_variables(
-#'     create_age_groups = TRUE,
-#'     age_breaks = c(0, 15, 60, Inf),
-#'     create_calendar_vars = TRUE,
-#'     lang = "pt"
-#'   )
-#' # Calculates age from DTNASC and DT_NOTIFIC (gold standard)
-#'
-#' # ===== EXAMPLE 3: SIH (Hospitalizations) - Decode age codes =====
-#' df_sih <- sus_data_import(uf = "MG", year = 2023, system = "SIH-RD") |>
-#'   sus_data_standardize(lang = "es") |>
-#'   sus_data_create_variables(
-#'     create_age_groups = TRUE,
 #'     age_breaks = c(0, 18, 60, Inf),
 #'     age_labels = c("0-17", "18-59", "60+"),
-#'     create_calendar_vars = TRUE,
-#'     lang = "es"
+#'     backend = "tibble"   # full calendar set
 #'   )
-#' # Decodes DATASUS age codes if dates are missing (fallback)
 #'
-#' # ===== EXAMPLE 4: Custom age groups for elderly analysis =====
-#' df_elderly <- sus_data_create_variables(
-#'   df,
-#'   create_age_groups = TRUE,
-#'   age_breaks = c(60, 70, 80, 90, Inf),
-#'   age_labels = c("60-69", "70-79", "80-89", "90+"),
-#'   lang = "pt"
-#' )
+#' # Seasons for the Amazon (Norte) region
+#' df_n <- sus_data_create_variables(df_sih, climate_region = "norte")
 #'
-#' # ===== EXAMPLE 5: Calendar variables and climate variables =====
-#' df_calendar_climate <- sus_data_create_variables(
-#'   df,
-#'   create_calendar_vars = TRUE,
-#'   create_semester = TRUE,
-#'   create_climate_vars = TRUE,
-#'   climate_region = "Norte"
+#' # Only age variables
+#' df_age <- sus_data_create_variables(
+#'   df_sih, create_calendar_vars = FALSE, create_climate_vars = FALSE
 #' )
 #' }
 #'
@@ -489,6 +445,12 @@ sus_data_create_variables <- function(
     age_from_dates <- try_calculate_age_from_dates(df, lang, verbose)
 
     if (!is.null(age_from_dates)) {
+      # SIH (and any system with a value + unit-code pair): rows whose dates are
+      # missing/invalid fall back to the recorded age instead of becoming NA.
+      sih_age <- decode_age_value_unit(df)
+      if (!is.null(sih_age)) {
+        age_from_dates <- ifelse(is.na(age_from_dates), sih_age, age_from_dates)
+      }
       df$age_years <- age_from_dates
       age_col_to_use <- "age_years"
       if (verbose) {
@@ -501,8 +463,10 @@ sus_data_create_variables <- function(
         cli::cli_alert_success(msg)
       }
     } else {
-      # Fallback to decoding DATASUS age codes
-      age_from_code <- try_decode_datasus_age(df, lang, verbose)
+      # Fallback to decoding DATASUS age codes (value + unit pair first, e.g. SIH
+      # `idade` + `codigo_unidade_idade`; then the composite code, e.g. SINAN)
+      age_from_code <- decode_age_value_unit(df) %||%
+        try_decode_datasus_age(df, lang, verbose)
 
       if (!is.null(age_from_code)) {
         df$age_years <- age_from_code
@@ -548,6 +512,9 @@ sus_data_create_variables <- function(
       cli::cli_alert_info(msg)
     }
 
+    if (is.null(age_labels) && is.numeric(age_breaks) && length(age_breaks) >= 2) {
+      age_labels <- generate_age_labels(age_breaks, lang)
+    }
     df$age_group <- cut(
       df[[age_col_to_use]],
       breaks = age_breaks,
@@ -939,6 +906,7 @@ sus_data_create_variables <- function(
   # SUMMARY MESSAGE
   # ========================================================================
 
+  created_vars <- unique(created_vars)
   if (verbose && length(created_vars) > 0) {
     msg <- switch(
       lang,
@@ -946,19 +914,19 @@ sus_data_create_variables <- function(
         "Created ",
         length(created_vars),
         " new variables: ",
-        paste(created_vars, collapse = ", ")
+        paste(unique(created_vars), collapse = ", ")
       ),
       "pt" = paste0(
         "Criadas ",
         length(created_vars),
         " novas variaveis: ",
-        paste(created_vars, collapse = ", ")
+        paste(unique(created_vars), collapse = ", ")
       ),
       "es" = paste0(
         "Creadas ",
         length(created_vars),
         " nuevas variables: ",
-        paste(created_vars, collapse = ", ")
+        paste(unique(created_vars), collapse = ", ")
       )
     )
     cli::cli_alert_success(msg)
@@ -1157,13 +1125,31 @@ sus_data_create_variables <- function(
         # Arrow stores Date as int32 (days since 1970-01-01).
         # as.integer(Date) casts to int32 — fully supported kernel.
         # Subtracting two int32 values gives days between dates (no duration cast).
+        # Exact completed years (birthday-aware) instead of days / 365.25, which is
+        # off by one on birthdays. Implausible ages (<0 or >120) become NA.
         df <- df |>
           dplyr::mutate(
-            .data_nasc_tmp = as.integer(as.Date(.data[[birth_col]])),
-            .data_evnt_tmp = as.integer(as.Date(.data[[event_col]])),
-            age_years      = floor((.data_evnt_tmp - .data_nasc_tmp) / 365.25)
+            .age_raw = lubridate::year(as.Date(.data[[event_col]])) -
+              lubridate::year(as.Date(.data[[birth_col]])) -
+              as.integer(
+                lubridate::month(as.Date(.data[[event_col]])) * 100L +
+                  lubridate::day(as.Date(.data[[event_col]])) <
+                  lubridate::month(as.Date(.data[[birth_col]])) * 100L +
+                  lubridate::day(as.Date(.data[[birth_col]]))
+              ),
+            age_years = dplyr::if_else(
+              .data$.age_raw >= 0L & .data$.age_raw <= 120L,
+              as.numeric(.data$.age_raw), NA_real_
+            )
           ) |>
-          dplyr::select(-".data_nasc_tmp", -".data_evnt_tmp")
+          dplyr::select(-".age_raw")
+        # Rows with unusable dates fall back to the recorded age (value + unit
+        # pair, e.g. SIH idade + codigo_unidade_idade).
+        unit_expr <- .age_value_unit_arrow_expr(col_names)
+        if (!is.null(unit_expr)) {
+          df <- df |>
+            dplyr::mutate(age_years = dplyr::coalesce(.data$age_years, !!unit_expr))
+        }
           
       } else if (is_duckdb_conn) {
         # DuckDB SQL expression
@@ -1183,6 +1169,14 @@ sus_data_create_variables <- function(
         cli::cli_alert_success("Lazy age calculation from dates applied")
       }
       
+    } else if (!is.null(unit_expr0 <- .age_value_unit_arrow_expr(col_names)) &&
+               (is_arrow_dataset || is_duckdb_conn)) {
+      # Value + unit-code pair (SIH): no birth date, decode lazily
+      df <- df |> dplyr::mutate(age_years = !!unit_expr0)
+      age_col_to_use <- "age_years"
+      if (verbose) {
+        cli::cli_alert_success("Age decoded from value + unit code")
+      }
     } else {
       # Try age code column (DATASUS format)
       age_code_col <- NULL
@@ -1544,14 +1538,15 @@ sus_data_create_variables <- function(
   # SUMMARY
   # ========================================================================
   
+  created_vars <- unique(created_vars)
   if (verbose && length(created_vars) > 0) {
     msg <- switch(lang,
       "en" = paste0("Created ", length(created_vars), " new variables: ",
-                    paste(created_vars, collapse = ", ")),
-      "pt" = paste0("Criadas ", length(created_vars), " novas variaveis: ",
-                    paste(created_vars, collapse = ", ")),
+                    paste(unique(created_vars), collapse = ", ")),
+      "pt" = paste0("Criadas ", length(unique(created_vars)), " novas variaveis: ",
+                    paste(unique(created_vars), collapse = ", ")),
       "es" = paste0("Creadas ", length(created_vars), " nuevas variables: ",
-                    paste(created_vars, collapse = ", "))
+                    paste(unique(created_vars), collapse = ", "))
     )
     cli::cli_alert_success(msg)
   }
@@ -1958,6 +1953,68 @@ try_decode_datasus_age <- function(df, lang, verbose) {
   return(age_years)
 }
 
+
+#' Lazy (Arrow) expression for value + unit-code ages; NULL if no pair exists
+#' @keywords internal
+#' @noRd
+.age_value_unit_arrow_expr <- function(col_names) {
+  pairs <- list(
+    c("idade", "codigo_unidade_idade"),
+    c("IDADE", "COD_IDADE"),
+    c("age", "age_unit_code"),
+    c("edad", "codigo_unidad_edad")
+  )
+  for (p in pairs) {
+    if (all(p %in% col_names)) {
+      v <- rlang::expr(as.numeric(.data[[!!p[1]]]))
+      u <- rlang::expr(as.character(.data[[!!p[2]]]))
+      return(rlang::expr(
+        dplyr::case_when(
+          !!u %in% c("1", "2") ~ 0,
+          !!u == "3" ~ floor(!!v / 12),
+          !!u == "4" ~ !!v,
+          !!u == "5" ~ !!v + 100,
+          .default = NA_real_
+        )
+      ))
+    }
+  }
+  NULL
+}
+
+#' Decode age stored as a value column plus a unit-code column
+#'
+#' SIH keeps the age value (`idade` / `IDADE`) separate from its unit code
+#' (`codigo_unidade_idade` / `COD_IDADE`: 1 = hours, 2 = days, 3 = months,
+#' 4 = years, 5 = 100+ years). Treating the value as a composite code (as SINAN
+#' does) would turn e.g. 35 years into "3|5" = 0 years.
+#'
+#' @param df Data frame.
+#' @return Numeric vector of ages in years, or NULL if no value/unit pair exists.
+#' @keywords internal
+#' @noRd
+decode_age_value_unit <- function(df) {
+  pairs <- list(
+    c("idade", "codigo_unidade_idade"),
+    c("IDADE", "COD_IDADE"),
+    c("age", "age_unit_code"),
+    c("edad", "codigo_unidad_edad")
+  )
+  for (p in pairs) {
+    if (all(p %in% names(df))) {
+      val <- suppressWarnings(as.numeric(df[[p[1]]]))
+      unit <- as.character(df[[p[2]]])
+      out <- rep(NA_real_, length(val))
+      out[unit %in% c("1", "2")] <- 0
+      out[unit == "3"] <- floor(val[unit == "3"] / 12)
+      out[unit == "4"] <- val[unit == "4"]
+      out[unit == "5"] <- val[unit == "5"] + 100
+      out[!is.na(out) & (out < 0 | out > 120)] <- NA_real_
+      return(out)
+    }
+  }
+  NULL
+}
 
 #' Decode DATASUS Age Codes (Vectorized)
 #' 

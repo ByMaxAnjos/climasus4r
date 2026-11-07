@@ -25,16 +25,22 @@ sus_climate_aggregate(
 )
 }
 \arguments{
-\item{health_data}{A \code{climasus_df} object produced by \code{sus_spatial_join()}.
-Must contain columns \code{date} (Date), \code{code_muni} (character), and geometry
-column \code{geom}.}
+\item{health_data}{A \code{climasus_df} at stage \code{"spatial"} produced by
+\code{\link[=sus_spatial_join]{sus_spatial_join()}} (other stages raise an error; a plain tibble is
+rejected). Must contain columns \code{date} (Date), \code{code_muni} (character), and
+geometry column \code{geom}.}
 
-\item{climate_data}{A \code{climasus_df} object produced by \code{sus_climate_fill_inmet()}.
+\item{climate_data}{A \code{climasus_df} at stage \code{"climate"} (e.g. from
+\code{\link[=sus_climate_fill_inmet]{sus_climate_fill_inmet()}} or \code{\link[=sus_climate_compute_indicators]{sus_climate_compute_indicators()}}).
 Must contain \code{date} (Date or POSIXct), \code{station_code}, \code{latitude}, \code{longitude},
-and climate variables.}
+and climate variables. Its date range must overlap the health data
+(no overlap is an error; partial overlap is a warning).}
 
-\item{climate_var}{Character vector with climate variables to aggregate.
-Use \code{"all"} (default) to include all available variables.
+\item{climate_var}{Character vector of climate columns to aggregate, e.g.
+\code{"tair_max_c"} or \code{c("tair_max_c", "rh_mean_porc")}, or \code{"all"} (default;
+\code{NULL} is treated as \code{"all"}) to use every known variable present in
+\code{climate_data}. Names not available are dropped with a warning; an error
+is raised if none remain.
 
 Available variables are grouped as follows:
 
@@ -100,7 +106,7 @@ Available variables are grouped as follows:
 \item \code{"vapor_pressure_kpa"} (saturation vapor pressure)
 }
 
-@section Notes:
+\strong{Notes:}
 \itemize{
 \item Not all variables may be available in \code{climate_data}. Use \code{names(climate_data)}
 to inspect available columns.
@@ -109,11 +115,17 @@ to inspect available columns.
 \code{sus_climate_fill_inmet()} or feature engineering steps.
 }}
 
-\item{time_unit}{Temporal aggregation unit for raw climate data before join.
-Options: \code{"day"} (default), \code{"week"}, \code{"month"}, \code{"quarter"}, \code{"year"},
-\code{"season"}. Relevant only when input data are hourly resolution.}
+\item{time_unit}{Single character string: temporal unit to which climate
+data are aggregated before the join. Default \code{"day"}. Other values:
+\code{"week"}, \code{"month"}, \code{"year"}, \code{"season"} (Brazilian DJF/MAM/JJA/SON), or a
+lubridate unit string such as \code{"2 months"}. Hourly input is always
+aggregated to day first. Note that the health \code{date} is still matched
+against the start date of each period; \code{"quarter"} is not implemented and
+silently falls back to daily resolution.}
 
-\item{temporal_strategy}{Temporal matching strategy. Options:
+\item{temporal_strategy}{Single character string, temporal matching
+strategy (partial matching allowed; invalid values error). Default
+\code{"exact"}. Options:
 \describe{
 \item{\code{"exact"}}{Exact date match (same-day temperature for acute heat-related mortality).}
 \item{\code{"discrete_lag"}}{Climate value exactly L days before event.}
@@ -127,54 +139,83 @@ Options: \code{"day"} (default), \code{"week"}, \code{"month"}, \code{"quarter"}
 \item{\code{"weighted_window"}}{Weighted mean with decay function.}
 }}
 
-\item{climate_region}{Character. Climate classification for parameter adaptation.
-Options: \code{"auto"} (default, auto-detect by latitude), \code{"tropical"} (North, Northeast),
-\code{"subtropical"} (Center-West, Southeast), \code{"temperate"} (South).}
+\item{climate_region}{Single character string, climate classification used to
+adapt defaults. \code{"auto"} (default) detects it from the mean station latitude
+(> -5 tropical; -5 to -20 subtropical; < -20 temperate). Or one of
+\code{"tropical"} (North, Northeast), \code{"subtropical"} (Center-West, Southeast),
+\code{"temperate"} (South); anything else errors.}
 
-\item{window_days}{Integer. Number of days in window for \code{moving_window},
-\code{offset_window}, \code{degree_days}, \code{threshold_exceedance}, \code{cold_wave_exceedance},
-or \code{weighted_window}. Required for these strategies.}
+\item{window_days}{Single positive integer (e.g. \code{7}, \code{14}): window length
+in days, covering \code{t-window_days} to \code{t}. Required for \code{moving_window},
+\code{degree_days}, \code{threshold_exceedance}, \code{weighted_window} (and
+\code{cold_wave_exceedance}, see note below); ignored by the other strategies.}
 
-\item{lag_days}{Integer vector. Specific lags for \code{discrete_lag} or maximum lag
-for \code{distributed_lag}. Required for these strategies.}
+\item{lag_days}{Non-negative integer vector. For \code{discrete_lag}: the lags in
+days, e.g. \code{7} or \code{c(0, 7, 14)} (sorted, duplicates dropped; each lag
+creates its own column). For \code{distributed_lag}: the maximum lag \code{L}; a
+vector uses \code{max(lag_days)} and lags \code{0:L} are created (use \code{0:14} or \code{14}
+alike). Required for these two strategies, ignored otherwise.}
 
-\item{offset_days}{Integer vector of length 2 for \code{offset_window}.
-Defines historical interval: \code{c(W1, W2)} aggregates from t-W2 to t-W1.}
+\item{offset_days}{Numeric vector of length 2 (non-negative integers), e.g.
+\code{c(7, 14)}, for \code{offset_window}. The pair is sorted, so \code{c(14, 7)} is
+equivalent; it aggregates from \code{t-14} to \code{t-7}. Required for
+\code{offset_window}, ignored otherwise.}
 
-\item{temp_base}{Numeric. Temperature base for \code{degree_days} calculation.
-If \code{NULL} (default), uses region-specific default: 20degC (tropical), 18degC (subtropical),
-15degC (temperate). Use 11 degC for \emph{Aedes aegypti} development, 10degC for \emph{Plasmodium}.}
+\item{temp_base}{Single non-negative number (degC), base for \code{degree_days}.
+If \code{NULL} (default), uses the region default: 20 (tropical), 18
+(subtropical), 15 (temperate). Use 11 for \emph{Aedes aegypti} development, 10
+for \emph{Plasmodium}. A warning is shown if it differs by more than 3 degC
+from the regional default.}
 
-\item{gdd_temp_var}{Character. Temperature column for \code{degree_days}.
-Default: \code{"tair_dry_bulb_c"}.}
+\item{gdd_temp_var}{Single character string. Temperature column used by
+\code{degree_days}. Default \code{"tair_dry_bulb_c"}.}
 
-\item{min_obs}{Numeric (0 to 1). Minimum proportion of valid observations required
-within window. Default: 0.7 (70\%).}
+\item{min_obs}{Numeric scalar in \verb{[0, 1]}. Minimum proportion of valid
+(non-NA) daily observations required within a window for the result to be
+computed (otherwise \code{NA}). Used by the window strategies. Default \code{0.7}.}
 
-\item{threshold_value}{Numeric. Threshold for \code{threshold_exceedance} or
-\code{cold_wave_exceedance}. If \code{NULL}, uses region-specific default.}
+\item{threshold_value}{Single number (degC) used by \code{threshold_exceedance}
+and \code{cold_wave_exceedance}. If \code{NULL}, uses the regional heat-wave
+threshold (tropical 35, subtropical 32, temperate 30) for both strategies,
+so supply an explicit value (e.g. \code{5}) for \code{cold_wave_exceedance}.}
 
-\item{threshold_direction}{Character: \code{"above"} (default, > threshold) or
-\code{"below"} (< threshold). For \code{cold_wave_exceedance}, automatically set to \code{"below"}.}
+\item{threshold_direction}{Single character string, \code{"above"} (default,
+value > threshold) or \code{"below"} (value < threshold). Only used by
+\code{threshold_exceedance}; \code{cold_wave_exceedance} always counts days below
+the threshold.}
 
-\item{weights}{Numeric vector (optional) for \code{weighted_window}. Defines weight
-for each day within window, from most recent (position 1) to oldest (position W+1).
-If \code{NULL}, linear decreasing weights are generated automatically.}
+\item{weights}{Numeric vector (optional, non-negative) for \code{weighted_window},
+of length \code{window_days + 1}, from the event day (position 1) to the oldest
+day (position \code{window_days + 1}). If \code{NULL}, linearly decreasing weights
+from 1.0 to 0.1 are generated. Ignored for other strategies.}
 
-\item{lang}{Language for messages: \code{"pt"} (Portuguese), \code{"en"} (English), or
-\code{"es"} (Spanish). Default: \code{"pt"}.}
+\item{lang}{Single character string. Message language: \code{"pt"}
+(Portuguese, default), \code{"en"} (English), or \code{"es"} (Spanish).}
 
-\item{verbose}{Logical. If \code{TRUE}, displays progress messages. Default: \code{TRUE}.}
+\item{verbose}{Logical scalar. If \code{TRUE} (default), displays progress messages.}
 }
 \value{
-A \code{climasus_df} (tibble) with original health data and integrated climate
-variables as new columns. Geometry is preserved if input is \code{sf}.
+A \code{climasus_df} (tibble) with the original health data and the
+integrated climate variables as new columns (names depend on the strategy,
+e.g. threshold/lag/window suffixes; strategies other than \code{"exact"} also
+add the same-day value of each variable). Whether the \code{geom} column
+is preserved depends on the strategy. \code{sus_meta()}: \code{system} kept from the health data, \code{stage} set
+to \code{"climate"}, \code{type} set to the \code{temporal_strategy}, and a history entry
+describing the parameters.
 }
 \description{
 \code{sus_climate_aggregate()} aggregates meteorological data to DATASUS health data
 using epidemiologically rigorous temporal strategies. The function links each
 health record to the nearest climate station (by Euclidean distance) and applies
 the requested temporal window.
+
+This is the climate-health integration step. Run it after
+\code{\link[=sus_spatial_join]{sus_spatial_join()}} (health side, stage \code{"spatial"}) and after
+\code{\link[=sus_climate_inmet]{sus_climate_inmet()}} / \code{\link[=sus_climate_fill_inmet]{sus_climate_fill_inmet()}} /
+\code{\link[=sus_climate_compute_indicators]{sus_climate_compute_indicators()}} (climate side, stage \code{"climate"}).
+Hourly climate data are first aggregated to daily resolution. Windows are
+retroactive (see Details). It is built for INMET-style columns; UNIPLU data
+(\code{\link[=sus_climate_uniplu]{sus_climate_uniplu()}}) only provide \code{rainfall_mm}.
 }
 \details{
 \subsection{Temporal Strategies Epidemiological Foundations}{
@@ -207,6 +248,18 @@ heatwave threshold Tmax > 32degC, moderate autocorrelation.
 \strong{Temperate (South):} Mean temperature 12-24degC, recommended temp_base 15degC,
 heatwave threshold Tmax > 30degC, \strong{coldwave threshold Tmin < 5degC} (critical),
 low autocorrelation.
+}
+
+\subsection{Caveats}{
+\itemize{
+\item \code{cold_wave_exceedance} needs \code{window_days} internally, but the argument
+validation currently only enforces/returns it for the four strategies
+listed under \code{window_days}; check the result when using this strategy.
+\item Variables are collapsed to one value per municipality and day using
+variable-specific rules (sum for rainfall/radiation/degree-days, max for
+Tmax and heat indices, min for Tmin and cold indices, circular mean for
+wind direction, mean otherwise).
+}
 }
 
 \subsection{Causal Inference & Look-Ahead Bias}{
@@ -273,4 +326,12 @@ Silveira, I. H., et al. (2023). Heat waves and mortality in the Brazilian Amazon
 
 Marengo, J. A., et al. (2023). A cold wave of winter 2021 in central South America.
 \emph{Climate Dynamics}, 61, 3-4.
+}
+\seealso{
+\itemize{
+\item \code{\link[=sus_spatial_join]{sus_spatial_join()}} to prepare \code{health_data}
+\item \code{\link[=sus_climate_inmet]{sus_climate_inmet()}}, \code{\link[=sus_climate_fill_inmet]{sus_climate_fill_inmet()}} and
+\code{\link[=sus_climate_compute_indicators]{sus_climate_compute_indicators()}} to prepare \code{climate_data}
+\item \code{\link[=sus_climate_plot_aggregate]{sus_climate_plot_aggregate()}} to visualise the result
+}
 }

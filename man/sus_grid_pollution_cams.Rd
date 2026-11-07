@@ -15,25 +15,32 @@ sus_grid_pollution_cams(
 )
 }
 \arguments{
-\item{pollutants}{Character vector. Pollutants to include. Allowed values:
-\code{"pm25"}, \code{"pm10"}, \code{"co"}, \code{"o3"}, \code{"no2"}, \code{"so2"}, or \code{"all"}.
-Default: \code{c("pm25", "pm10")}.}
+\item{pollutants}{Character vector of pollutant codes, or the single string \code{"all"}.
+Allowed: \code{"pm25"}, \code{"pm10"}, \code{"co"}, \code{"o3"}, \code{"no2"}, \code{"so2"}. Examples:
+\code{"pm25"}, \code{c("pm25", "no2")}, \code{"all"}. Default \code{c("pm25", "pm10")}. Unknown
+codes error.}
 
-\item{metric}{Character. Daily aggregation statistic. One of:
-\code{"mean"} (default), \code{"max"}, \code{"min"}, or \code{"all"} (all three).}
+\item{metric}{Character vector: any of \code{"mean"} (default), \code{"max"}, \code{"min"}
+(e.g. \code{c("mean", "max")}), or the single string \code{"all"} (all three). One output
+column is created per pollutant x metric (\verb{<pollutant>_<metric>}). Other
+values error.}
 
-\item{years}{Integer vector. Years to include (2003–2024). \code{NULL} (default)
-returns all available years.}
+\item{years}{Numeric vector of years or \code{NULL}. Accepted forms: scalar (\code{2020}),
+range (\code{2019:2022}) or explicit vector (\code{c(2019, 2022)} = exactly those two
+years, NOT the range -- use \code{2019:2022}). Valid range 2003-2024 (values
+outside error; character values error). \code{NULL} (default) = all available years.
+The whole file is always downloaded; years are filtered after reading.}
 
-\item{use_cache}{Logical. Re-use previously downloaded Parquet files.
-Default \code{TRUE}.}
+\item{use_cache}{Logical scalar. Reuse previously downloaded Parquet files
+(\code{FALSE} re-downloads). Default \code{TRUE}.}
 
-\item{cache_dir}{Character. Directory for cached Parquet files.
-Default \code{"~/.climasus4r_cache/cams"}.}
+\item{cache_dir}{Character scalar. Directory for cached Parquet files. Default
+\code{"~/.climasus4r_cache/cams"}.}
 
-\item{lang}{Character. Message language: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"} or
+\code{"es"}; other values error.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
 A \code{climasus_df} tibble with columns:
@@ -55,7 +62,9 @@ to daily means/maxima/minima per municipality from 2003 to 2024. Files are
 hosted on Zenodo (CC-BY) as Parquet and are downloaded once and cached
 locally.
 
-The return value is a \code{climasus_df} at \code{stage = "climate"},
+Data are already aggregated per municipality, so no polygons are needed;
+join the result to health data with \code{\link[=sus_grid_join]{sus_grid_join()}}. The return value is
+a \code{climasus_df} at \code{stage = "climate"},
 \code{type = "pollution_cams"}, directly compatible with
 \code{\link[=sus_climate_anomaly]{sus_climate_anomaly()}}, \code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}}, and \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}.
 }
@@ -102,5 +111,7 @@ cams_full <- sus_grid_pollution_cams(
 
 }
 \seealso{
-\code{\link[=sus_climate_anomaly]{sus_climate_anomaly()}}, \code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
+\code{\link[=sus_grid_pollution_ghap]{sus_grid_pollution_ghap()}}, \code{\link[=sus_grid_pollution_merra2]{sus_grid_pollution_merra2()}},
+\code{\link[=sus_grid_join]{sus_grid_join()}}, \code{\link[=sus_climate_anomaly]{sus_climate_anomaly()}}, \code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}},
+\code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
 }

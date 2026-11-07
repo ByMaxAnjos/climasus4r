@@ -649,12 +649,12 @@ utils::globalVariables(c(
 #'   \item{`"rr_map"`}{Choropleth map of the posterior mean relative risk
 #'     (`rr_mean`) merged with the `municipalities` sf polygon layer.
 #'     Uses a diverging colour scale centred at 1.0. Municipalities where
-#'     the entire 95\% credible interval lies above 1 receive a black border.
+#'     the entire 95% credible interval lies above 1 receive a black border.
 #'     Supply `time_point` to show a single period; set `facet_time = TRUE`
 #'     to produce one facet per period; leave both as defaults to display the
 #'     mean across all periods. Requires `municipalities`.}
 #'   \item{`"temporal"`}{Line chart of the population-averaged posterior mean
-#'     RR (aggregated across municipalities) with a shaded 95\% credible
+#'     RR (aggregated across municipalities) with a shaded 95% credible
 #'     interval ribbon over time. Supply `time_range` to restrict the
 #'     displayed periods.}
 #'   \item{`"interaction"`}{Tile heatmap of the space-time interaction term
@@ -671,34 +671,51 @@ utils::globalVariables(c(
 #'
 #' @param x A `climasus_spacetime_bayes` object from [sus_mod_spacetime_bayes()]
 #'   or a `climasus_spacetime_exceedance` object from
-#'   [sus_mod_spacetime_exceedance()].
-#' @param type Character. One of `"rr_map"` (default), `"temporal"`,
-#'   `"interaction"`, `"exceedance"`, `"coef"`. See **Plot types**.
+#'   [sus_mod_spacetime_exceedance()]. Other classes error. `type = "exceedance"`
+#'   needs an `$exceedance` slot (otherwise error).
+#' @param type Character scalar: `"rr_map"` (default), `"temporal"`,
+#'   `"interaction"`, `"exceedance"` or `"coef"`. See **Plot types**. Partial
+#'   matching applies; other values error.
 #' @param municipalities An `sf` polygon object with a `code_muni` column
-#'   (7-digit IBGE code). Required for `type = "rr_map"` and
-#'   `type = "exceedance"`. Typically from [geobr::read_municipality()].
-#' @param time_point Integer or `NULL`. Single time index to display in
-#'   `type = "rr_map"`. Ignored when `facet_time = TRUE` or for other types.
-#'   Default `NULL` (aggregate mean across all periods).
-#' @param time_range Integer vector of length 2 (`c(t_start, t_end)`) to
-#'   restrict the time axis in `type = "temporal"` and `type = "interaction"`.
-#'   Default `NULL` (all periods).
-#' @param threshold Numeric. RR threshold used to select the exceedance layer
-#'   from `x$exceedance` when `type = "exceedance"`. Default `1.0`.
-#' @param facet_time Logical. When `TRUE` and `type = "rr_map"`, produces a
-#'   faceted map with one panel per time period. Default `FALSE`.
-#' @param palette Character. Name of a diverging RColorBrewer palette for RR
-#'   maps (e.g. `"RdYlBu"`, `"RdBu"`, `"PuOr"`). Default `"RdYlBu"`.
-#' @param title Character or `NULL`. Custom plot title. `NULL` uses a
-#'   multilingual default.
-#' @param base_size Numeric. Base font size for ggplot2 themes. Default `11`.
-#' @param interactive Logical. `TRUE` wraps the ggplot object with
-#'   [plotly::ggplotly()] (requires \pkg{plotly}). Default `FALSE`.
-#' @param lang Character. Language for axis labels and titles: `"pt"`
-#'   (default), `"en"`, `"es"`.
+#'   (IBGE municipality code, matched as character to the codes in the model
+#'   results), e.g. from `geobr::read_municipality()`. Required for
+#'   `type = "rr_map"` and `"exceedance"` (errors if `NULL`, not `sf`, or
+#'   without `code_muni`); ignored by other types. Needs \pkg{sf} and
+#'   \pkg{RColorBrewer} for those types.
+#' @param time_point Integer scalar or `NULL` (default). Time index (value of
+#'   `time_idx`, 1 = first period, e.g. `3L`) shown by `type = "rr_map"`.
+#'   `NULL` shows the mean over all periods. Ignored when `facet_time = TRUE`
+#'   and by other types.
+#' @param time_range Integer vector of length 2, `c(t_start, t_end)` (time
+#'   indices, inclusive, e.g. `c(2L, 6L)`), or `NULL` (default = all periods).
+#'   Restricts the periods used by `"temporal"` and `"interaction"`; it is also
+#'   applied to `"rr_map"` (when `facet_time = FALSE`) although a warning says it
+#'   is ignored for types other than `"temporal"`/`"interaction"`. Not used by
+#'   `"exceedance"` and `"coef"` (warning issued).
+#' @param threshold Numeric scalar. RR threshold selecting the layer of
+#'   `x$exceedance` for `type = "exceedance"` (e.g. `1.5`). It is matched by
+#'   name against the thresholds computed in
+#'   [sus_mod_spacetime_exceedance()] (`thresholds` argument) and errors if not
+#'   available. Default `1.0`.
+#' @param facet_time Logical scalar. If `TRUE` and `type = "rr_map"`, draws one
+#'   facet per time period. Default `FALSE`.
+#' @param palette Character scalar. Name of a diverging RColorBrewer palette with
+#'   11 classes for `type = "rr_map"`: `"RdYlBu"` (default), `"RdBu"`,
+#'   `"PuOr"`, `"PiYG"`, `"PRGn"`, `"BrBG"`, `"RdGy"`, `"Spectral"`. Scale is
+#'   centred at RR = 1.
+#' @param title Character scalar or `NULL` (default). Custom plot title; `NULL`
+#'   uses a translated default.
+#' @param base_size Numeric scalar. Base font size in points for the ggplot2
+#'   theme. Default `11`.
+#' @param interactive Logical scalar. `TRUE` wraps the plot with
+#'   [plotly::ggplotly()] (requires \pkg{plotly}; if missing, a warning is
+#'   issued and the static ggplot is returned). Default `FALSE`.
+#' @param lang Character scalar: `"pt"` (default), `"en"`, `"es"`. Language of
+#'   axis labels and titles; unsupported values warn and fall back to `"pt"`.
 #' @param ... Currently unused; reserved for future arguments.
 #'
 #' @return A `ggplot` object (or `plotly` object when `interactive = TRUE`).
+#'   The function does not return the underlying table or save files.
 #'
 #' @examples
 #' \dontrun{
@@ -707,9 +724,11 @@ utils::globalVariables(c(
 #'
 #' shp <- geobr::read_municipality(code_muni = "all", year = 2022)
 #'
+#' # W: spatial weights, e.g. from sus_mod_spatial_weights()
 #' fit <- sus_mod_spacetime_bayes(
 #'   df         = agg,
 #'   outcome    = "deaths",
+#'   W          = W,
 #'   covariates = c("temp_mean", "prec_total"),
 #'   offset     = "expected"
 #' )

@@ -52,16 +52,22 @@ utils::globalVariables(character(0L))
 #' }
 #'
 #' @param pipeline A `rap_object` (from [sus_rap_read()]) or a quoted
-#'   pipeline expression (from `quote()`).
-#' @param file_path `character(1)`  - Output path. Default `"_targets.R"`.
-#' @param branching `character(1)`  - Branching strategy: `"none"` (default),
-#'   `"uf"`, `"year"`, or `"cross"`.
-#' @param workers `integer(1)`  - Number of parallel workers. Default `1`.
-#' @param include_qc `logical(1)`  - Add a quality-control target. Default `TRUE`.
-#' @param lang `character(1)`  - Language for messages.
-#' @param overwrite `logical(1)`  - Overwrite existing file. Default `FALSE`.
+#'   pipeline expression (from `quote()`, with literal `uf`, `year`/`years`
+#'   and `system` in the import step).
+#' @param file_path `character(1)`, output path, default `"_targets.R"`. A
+#'   `data/` folder is also created next to it. Aborts if the file exists and
+#'   `overwrite = FALSE`.
+#' @param branching `character(1)`, one of `"none"` (default), `"uf"`,
+#'   `"year"` or `"cross"` (all UF x year combinations); partial matching is
+#'   allowed.
+#' @param workers `integer(1)`, default `1`. Number of parallel workers
+#'   written into the pipeline.
+#' @param include_qc `logical(1)`, default `TRUE`. Add a quality-control target.
+#' @param lang `character(1)`, `"pt"` (default), `"en"` or `"es"`.
+#' @param overwrite `logical(1)`, default `FALSE`. Overwrite an existing file.
 #'
-#' @return Invisibly, the path of the generated `_targets.R` file.
+#' @return Invisibly, the path (character) of the generated `_targets.R` file.
+#' @seealso [sus_rap_make()], [sus_rap_read()], [sus_rap_export()]
 #' @export
 #'
 #' @importFrom cli cli_alert_info cli_alert_success cli_abort
@@ -146,15 +152,18 @@ sus_rap_targets <- function(
 #' @param rap A `rap_object`, a `tar_rap_object`, or a `character(1)` path to
 #'   a `_targets.R` file. When a `rap_object` is passed, a temporary
 #'   `_targets.R` is generated automatically.
-#' @param workers `integer(1)`  - Parallel workers. Default `1`.
-#' @param reporter `character(1)`  - Progress reporter for `tar_make()`.
-#'   Default `"verbose"`.
-#' @param branching `character(1)`  - Branching strategy when `rap` is a
-#'   `rap_object` (ignored when a file path is passed). Default `"none"`.
-#' @param lang `character(1)`  - Language for messages.
+#' @param workers `integer(1)`, default `1`. Parallel workers.
+#' @param reporter `character(1)`, default `"verbose"`. Progress reporter passed
+#'   to `targets::tar_make()` (e.g. `"silent"`, `"summary"`, `"timestamp"`).
+#' @param branching `character(1)`, `"none"` (default), `"uf"`, `"year"` or
+#'   `"cross"`. Used only when `rap` is a `rap_object` (ignored for a path).
+#' @param lang `character(1)`, `"pt"` (default), `"en"` or `"es"`.
 #' @param ... Additional arguments forwarded to `targets::tar_make()`.
 #'
-#' @return A list with `$results`, `$rap`, and `$store`.
+#' @return A list with `$results` (the `climasus_pipeline_results` target, or
+#'   `NULL` if it cannot be read), `$rap` and `$store` (path of the targets
+#'   store).
+#' @seealso [sus_rap_targets()]
 #' @export
 #'
 #' @examples

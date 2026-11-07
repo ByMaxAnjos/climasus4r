@@ -11,7 +11,8 @@ hw_active_days(hw_result)
 \code{sus_climate_compute_heatwaves()}.}
 }
 \value{
-A filtered tibble from \code{hw_result$daily}.
+A tibble with columns \code{station_code}, \code{date_day}, \code{tmax}, \code{tmean}
+and the \verb{hw_*} flag columns, restricted to days where \code{hw_any} is \code{TRUE}.
 }
 \description{
 Return daily rows where at least one heatwave method is active

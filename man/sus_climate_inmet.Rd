@@ -17,49 +17,59 @@ sus_climate_inmet(
 )
 }
 \arguments{
-\item{years}{Numeric vector of year(s) to import.
-Examples: \code{2020}, \code{2020:2024}, \code{c(2019, 2021, 2023)}.
-Must be between 2000 and current year. If \code{NULL}, imports last 2 years.}
+\item{years}{Numeric (integer-valued) vector of year(s) to import. Accepted
+forms: a single year (\code{2023}), a range (\code{2020:2024}), or an explicit
+vector (\code{c(2019, 2021, 2023)}). \code{c(2020, 2024)} means exactly those two
+years, \strong{not} the range 2020-2024; use \code{2020:2024} for a range.
+Duplicates are dropped and years are sorted. Valid values are 2000 up to
+the current year (the current year is partial); values outside this
+interval, \code{NA}, or non-numeric input (e.g. \code{"2023"}) raise an error.
+If \code{NULL} (default), the previous and the current year are imported.}
 
-\item{uf}{Character vector of Brazilian state codes (e.g., \code{"AM"},
-\code{c("RJ", "MG")}). Case insensitive. If \code{NULL} (default), imports
-\strong{all 27 states} (may be slow - see \strong{Performance}).}
+\item{uf}{Character vector of two-letter state codes: one (\code{"AM"}) or
+several (\code{c("RJ", "MG")}). Case insensitive, whitespace trimmed. The 27
+UFs (incl. \code{"DF"}) are valid; unknown codes, \code{NA} or empty strings raise
+an error. The string \code{"all"} is \strong{not} accepted: use \code{NULL} (default),
+which imports \strong{all states} (slow for many years).}
 
 \item{station_code}{Character vector of INMET station codes to filter
-(e.g., \code{c("A101", "A122")}). Optional. If provided, the function downloads
-data for the requested \code{years}/\code{uf} and then filters to include only the
-specified stations. If \code{NULL} (default), all stations in the selected
-states are returned. Station codes are matched case-insensitively.}
+(e.g., \code{"A101"}, \code{c("A101", "A122")}). Optional. If provided, the function
+downloads data for the requested \code{years}/\code{uf} and then keeps only the
+specified stations (filter applied after download, so it does not reduce
+download size). Matched case-insensitively. If \code{NULL} (default), all
+stations are returned. Errors if no row matches any code.}
 
-\item{use_cache}{Logical. If \code{TRUE} (default), implements two-level caching:
-\itemize{
-\item \strong{Session cache}: In-memory cache (MD5 hash of parameters)
-\item \strong{Disk cache}: Parquet files with Zstandard compression
-}
-Use \code{unlink(cache_dir, recursive = TRUE)} to clear all caches.}
+\item{use_cache}{Logical scalar. If \code{TRUE} (default), downloaded zips and
+the processed Parquet dataset (partitioned by year) are stored in and
+re-used from \code{cache_dir}; requires the \pkg{arrow} package for the
+Parquet layer. If \code{FALSE}, nothing is read from the cache.
+Use \code{unlink(cache_dir, recursive = TRUE)} to clear it.}
 
-\item{cache_dir}{Character. Directory path for disk cache.
-Default: \code{"~/.climasus4r_cache/climate"}. Created automatically.}
+\item{cache_dir}{Single non-empty character string: directory for the disk
+cache. Default \code{"~/.climasus4r_cache/climate"} (tilde expanded). Created
+automatically when \code{use_cache = TRUE}.}
 
-\item{parallel}{Logical. If \code{TRUE} (default), enables \strong{two levels} of parallelism:
+\item{parallel}{Logical scalar. Default \code{FALSE}. If \code{TRUE} (and the
+effective number of workers is greater than 1), enables parallelism:
 \itemize{
 \item \strong{Between years}: Multiple years downloaded simultaneously
 \item \strong{Within year}: CSV files for each year parsed in parallel
 }
 For single-year imports, only within-year parallelization applies.}
 
-\item{workers}{Integer. Number of parallel workers. Default: \code{4}.
-Ignored if \code{parallel = FALSE}. Uses \code{future::multisession} backend.
-Automatically capped at \code{availableCores() - 1}.}
+\item{workers}{Single positive integer: number of parallel workers.
+Default \code{2}. Ignored if \code{parallel = FALSE}. Uses the \pkg{future}
+multisession backend and is automatically capped at the number of cores
+available minus one (a message reports the cap when \code{verbose = TRUE}).}
 
-\item{lang}{Character. Message language. One of:
+\item{lang}{Single character string, message language. One of:
 \itemize{
 \item \code{"pt"}: Portuguese (default)
 \item \code{"en"}: English
 \item \code{"es"}: Spanish
 }}
 
-\item{verbose}{Logical. If \code{TRUE} (default), prints detailed progress including:
+\item{verbose}{Logical scalar. If \code{TRUE} (default), prints detailed progress including:
 \itemize{
 \item Cache hits/misses
 \item Download progress with retry attempts
@@ -73,7 +83,7 @@ A \code{climasus_df} object (subclass of \code{tibble}) with class hierarchy:
 
 \strong{Data Columns:}
 \describe{
-\item{\code{station_code}}{Character. INMET 8-digit station identifier (e.g., "A001")}
+\item{\code{station_code}}{Character. INMET station identifier (e.g., "A001")}
 \item{\code{station_name}}{Character. Full station name}
 \item{\code{region}}{Character. Brazilian region (Norte, Nordeste, etc.)}
 \item{\code{UF}}{Character. State abbreviation}
@@ -85,23 +95,31 @@ A \code{climasus_df} object (subclass of \code{tibble}) with class hierarchy:
 
 \strong{Metadata} (accessible via \code{attr(x, "sus_meta")}):
 \describe{
-\item{\code{version}}{Package version used}
-\item{\code{timestamp}}{Import date/time}
-\item{\code{source}}{"INMET"}
+\item{\code{system}}{\code{NULL} (not a DATASUS system)}
+\item{\code{stage}}{\code{"climate"}}
+\item{\code{type}}{\code{"inmet"}}
+\item{\code{spatial}}{Logical, \code{TRUE} if the object is an \code{sf}}
+\item{\code{temporal}}{List with \code{start} and \code{end} (min/max \code{date})}
 \item{\code{years}}{Years imported}
-\item{\code{ufs}}{States imported}
-\item{\code{station_codes}}{Station codes filtered (or NULL if all)}
-\item{\code{cache_used}}{Whether cache was used}
-\item{\code{qc_stats}}{List with quality control statistics}
+\item{\code{ufs}}{States requested (\code{NULL} if all)}
+\item{\code{station_codes}}{Station codes filtered (or \code{NULL} if all)}
 \item{\code{n_stations}}{Number of unique stations}
 \item{\code{n_observations}}{Total rows}
-\item{\code{temporal_coverage}}{List with \code{start} and \code{end} dates}
+\item{\code{created}, \code{modified}}{Timestamps}
 \item{\code{history}}{Character vector of processing steps}
 }
 }
 \description{
 \code{sus_climate_inmet()} downloads, imports, standardizes, and quality-controls
 Brazilian meteorological data from the National Institute of Meteorology (INMET).
+
+This is the entry point of the \strong{climate} branch of the pipeline (stage
+\code{"climate"}, type \code{"inmet"}). Its output feeds \code{\link[=sus_climate_fill_inmet]{sus_climate_fill_inmet()}}
+(gap filling), \code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}} (join with health data),
+\code{\link[=sus_climate_compute_indicators]{sus_climate_compute_indicators()}}, \code{\link[=sus_climate_compute_heatwaves]{sus_climate_compute_heatwaves()}} and
+\code{\link[=sus_climate_compute_coldwaves]{sus_climate_compute_coldwaves()}}. It does not need a health \code{climasus_df}
+as input. Only INMET automatic-station historical files (2000 onwards) are
+supported; a network connection is required unless the data are cached.
 
 The function implements a \strong{comprehensive processing pipeline}:
 \enumerate{
@@ -180,7 +198,6 @@ Nighttime values (18h-6h) are set to 0 for physical consistency.
 \itemize{
 \item \strong{Format}: Apache Parquet with Zstandard compression (level 6)
 \item \strong{Partitioning}: By \code{year} and \code{UF} for fast filtering
-\item \strong{Backup}: Compressed CSV as fallback if Parquet corrupted
 \item \strong{Location}: \verb{~/.climasus4r_cache/climate/inmet_parquet/}
 }
 }
@@ -215,8 +232,11 @@ climate_se <- sus_climate_inmet(
   verbose = TRUE
 )
 
+# Non-consecutive years: exactly 2019 and 2023 (NOT 2019-2023)
+climate_two <- sus_climate_inmet(years = c(2019, 2023), uf = "AM")
+
 # Inspect available stations
-climate_df |>
+climate_am |>
   dplyr::distinct(station_code, station_name, latitude, longitude)
 }
 
@@ -224,6 +244,8 @@ climate_df |>
 \seealso{
 \itemize{
 \item \code{\link[=sus_climate_fill_inmet]{sus_climate_fill_inmet()}} for ML-based gap filling
+\item \code{\link[=sus_climate_aggregate]{sus_climate_aggregate()}} to join climate with health data
+\item \code{\link[=sus_climate_compute_indicators]{sus_climate_compute_indicators()}} for derived indicators
 \item \code{\link[=sus_spatial_join]{sus_spatial_join()}} for preparing municipality data
 }
 }

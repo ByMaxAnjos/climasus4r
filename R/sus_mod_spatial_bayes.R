@@ -215,24 +215,27 @@ utils::globalVariables(c(
 #' The default `c(1, 0.01)` is weakly informative. Fixed-effect coefficients
 #' receive flat (improper) priors.
 #'
-#' @param df A `data.frame` or `climasus_df` at the aggregate pipeline stage.
-#'   Must contain `code_muni` (7-digit IBGE code), the `outcome` column, all
-#'   columns named in `covariates`, and optionally an `offset` column.
-#'   Rows are sorted by `code_muni` internally to align with `W`.
-#' @param outcome Character. Name of the response variable column in `df`
-#'   (e.g. `"deaths"`, `"hospitalizations"`).
-#' @param W A `climasus_weights` object produced by
-#'   [sus_mod_spatial_weights()]. Must contain either a `$W` dense matrix or a
-#'   `$nb` neighbour list from which a binary adjacency matrix is built.
-#' @param covariates Character vector of covariate column names in `df` to
-#'   include as fixed effects. Default `NULL` (intercept-only model).
-#' @param offset Character. Name of an **expected counts** column in `df`
-#'   (on the natural scale, not log-transformed). Used as `log(offset)` in the
-#'   linear predictor for Poisson models. Default `NULL`.
-#' @param family Character. Response distribution. One of `"poisson"`
-#'   (default), `"binomial"`, or `"gaussian"`. Note: `"gaussian"` is not
-#'   supported for `model = "bym2"`.
-#' @param model Character. Spatial model structure. One of:
+#' @param df A `data.frame` or `climasus_df` at the aggregate pipeline stage
+#'   (see [sus_data_aggregate()]) with **exactly one row per municipality**
+#'   (`nrow(df)` must equal `W$n_regions`, otherwise error; for panels use
+#'   [sus_mod_spacetime_bayes()]). Must contain `code_muni` (IBGE code), the
+#'   `outcome` column and all `covariates`/`offset` columns. Rows are sorted
+#'   by `code_muni` internally, so `W` must follow the same sorted order.
+#' @param outcome Character scalar. Name of the response column in `df`
+#'   (e.g. `"deaths"`, `"hospitalizations"`). `NA` values trigger a warning.
+#' @param W A `climasus_weights` object from [sus_mod_spatial_weights()]
+#'   with a `$W` dense matrix or a `$nb` neighbour list (a binary adjacency
+#'   matrix is built from it). Errors otherwise.
+#' @param covariates Character vector of column names in `df` included as
+#'   fixed effects, e.g. `c("temp_mean", "prec_total")`. `NULL` (default)
+#'   fits an intercept-only model. Missing columns error.
+#' @param offset Character scalar or `NULL`. Name of an **expected counts**
+#'   column in `df` (natural scale, not logged; must be positive), entered as
+#'   `log(offset)` for Poisson models. Default `NULL`.
+#' @param family Character scalar. Response distribution: `"poisson"`
+#'   (default), `"binomial"`, or `"gaussian"`. `"gaussian"` is not supported
+#'   for `model = "bym2"` (error).
+#' @param model Character scalar. Spatial model structure, one of:
 #'   \itemize{
 #'     \item `"bym"` (default) -- Besag-York-Mollie model via CARBayes/MCMC.
 #'     \item `"leroux"` -- Leroux CAR model via CARBayes/MCMC.
@@ -241,9 +244,10 @@ utils::globalVariables(c(
 #'       complexity priors. Requires the **INLA** package (not on CRAN; see
 #'       \url{https://www.r-inla.org/download-install}).
 #'   }
-#' @param n_iter Positive integer. Total number of MCMC iterations
-#'   (including burn-in). Used only for CARBayes models (`"bym"`, `"leroux"`,
-#'   `"independent"`). Default `10000`. Ignored for `model = "bym2"`.
+#' @param n_iter Positive integer scalar. Total MCMC iterations (including
+#'   burn-in), e.g. `20000L`. Used only for CARBayes models (`"bym"`,
+#'   `"leroux"`, `"independent"`); ignored for `model = "bym2"`. Default
+#'   `10000L`.
 #' @param burnin Positive integer. Number of initial MCMC iterations to
 #'   discard as burn-in. Must be less than `n_iter`. Used only for CARBayes
 #'   models. Default `2000`. Ignored for `model = "bym2"`.
@@ -253,17 +257,17 @@ utils::globalVariables(c(
 #'   the Inverse-Gamma prior for the variance of spatial random effects.
 #'   Used only for CARBayes models. Default `c(1, 0.01)` (weakly informative).
 #'   Ignored for `model = "bym2"` (which uses PC priors instead).
-#' @param seed Integer. Random seed passed to [base::set.seed()] for
-#'   reproducible MCMC (CARBayes models) or to `INLA::inla.set.control.compute`
-#'   via `inla.seed` (BYM2). Default `42`.
-#' @param lang Character. Language for CLI messages: `"pt"` (default),
-#'   `"en"`, `"es"`.
-#' @param verbose Logical. If `TRUE` (default), print progress messages
-#'   via **cli**.
+#' @param seed Integer scalar. Random seed passed to [base::set.seed()] for
+#'   reproducible MCMC (CARBayes models) or to INLA via `inla.seed` (BYM2).
+#'   Default `42L`.
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"`,
+#'   or `"es"`; anything else errors (`match.arg`).
+#' @param verbose Logical scalar. Print progress messages via \pkg{cli}.
+#'   Default `TRUE`.
 #'
 #' @return A named list of class `c("climasus_spatial_bayes", "list")` with
 #'   slots `$fixed` (posterior fixed effects), `$random` (spatial random
-#'   effects per municipality), `$rr` (posterior relative risk with 95\%
+#'   effects per municipality), `$rr` (posterior relative risk with 95%
 #'   credible intervals), `$fitted` (posterior mean fitted values), `$dic`
 #'   (Deviance Information Criterion; for BYM2 a named numeric with both DIC
 #'   and WAIC), `$model`, `$family`, `$n_iter_effective`, and `$call`.
@@ -831,7 +835,7 @@ sus_mod_spatial_bayes <- function(
 #'
 #' Displays a formatted summary of the Bayesian spatial model fit, including
 #' DIC, effective MCMC sample size (or NA for INLA-based models), model
-#' specification, and the top fixed effects with posterior means and 95\%
+#' specification, and the top fixed effects with posterior means and 95%
 #' credible intervals.
 #'
 #' @param x A `climasus_spatial_bayes` object from [sus_mod_spatial_bayes()].

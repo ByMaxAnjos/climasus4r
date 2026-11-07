@@ -10,7 +10,9 @@ hw_get_events(hw_result, method_filter = NULL)
 \item{hw_result}{A \code{climasus_hw} list returned by
 \code{sus_climate_compute_heatwaves()}.}
 
-\item{method_filter}{Character vector. If supplied, keep only these methods.}
+\item{method_filter}{Character vector of method names (e.g. \code{"WHO"} or
+\code{c("WHO", "INMET")}) matched against the \code{method} column. \code{NULL}
+(default) keeps all methods.}
 }
 \value{
 A tibble of heatwave events.

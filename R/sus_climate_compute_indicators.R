@@ -41,6 +41,14 @@
 #' bioclimatic and thermal-stress indices from INMET station data (output of
 #' `sus_climate_inmet()` or `sus_climate_fill_inmet()`).
 #'
+#' Use it after [sus_climate_inmet()] / [sus_climate_fill_inmet()] and before
+#' [sus_climate_aggregate()], [sus_climate_compute_heatwaves()] or
+#' [sus_climate_compute_coldwaves()] (which use `wbgt_c`, `utci_c`, `hi_c`).
+#' The output keeps the temporal resolution of the input (hourly for INMET)
+#' and contains only the identifier columns and the computed indicators (plus
+#' station metadata), unless `keep_source_vars = TRUE`. Indicators whose input
+#' columns are missing are returned as `NA` with a warning.
+#'
 #' **Scientific robustness highlights:**
 #' \itemize{
 #'   \item WBGT uses a dual wet-bulb estimate (Liljegren + Bernard/Pourmoghani)
@@ -84,31 +92,62 @@
 #' 
 #' *(Where: T=`tair_dry_bulb_c`, RH=`rh_mean_porc`, SR=`sr_kj_m2`, WS=`ws_2_m_s`)*
 #'
-#' @param df Data frame or tibble from `sus_climate_inmet()` or `sus_climate_fill_inmet()`.
-#' @param indicators Character vector of indicator codes or `"all"` (default).
-#' @param region Character. `"auto"` (default, standard thresholds) or a
-#'   Brazilian biome: `"amazon"`, `"cerrado"`, `"caatinga"`,
-#'   `"atlantic_forest"`, `"pampa"`, `"pantanal"`, `"southeast"`, `"south"`.
-#' @param datetime_col Character or `NULL` (auto-detected).
-#' @param station_col Character or `NULL` (auto-detected).
-#' @param apply_validity_mask Logical (default `TRUE`). When `region=="none"`,
-#'   masks HI, WCET, WCT outside their valid meteorological domains with `NA`.
-#' @param confidence_flags Logical. Add `_flag_extreme`, `_flag_high`,
-#'   `_flag_low` columns. Default `TRUE` when region is set, `FALSE` otherwise.
-#' @param custom_thresholds Named list to override regional defaults.
-#' @param keep_source_vars Logical (default `FALSE`).
-#' @param verify_physics Logical (default `TRUE`). Check solar radiation
-#'   against extraterrestrial limits; requires `latitude` column.
-#' @param compute_uncertainty Logical (default `FALSE`). Monte Carlo 95% CI.
-#' @param verbose Logical (default `TRUE`).
-#' @param lang Character: `"pt"` (default), `"en"`, `"es"`.
-#' @param use_cache Logical. If `TRUE` (default), uses cached spatial data to avoid
-#'   re-downloads and improve performance.
-#' @param cache_dir Character string specifying the directory to store cached files.
-#'   Default is `"~/.climasus4r_cache/spatial"`.
+#' @param df A `climasus_df` at stage `"climate"` or later, typically from
+#'   [sus_climate_inmet()] or [sus_climate_fill_inmet()] (a plain tibble or a
+#'   lower-stage object errors). Needs a datetime column, a station column
+#'   (`station_code`) and the input columns listed in the table above.
+#' @param indicators Character vector of indicator codes (case-insensitive),
+#'   e.g. `"wbgt"` or `c("wbgt", "hi", "utci")`, or `"all"` (default) for the
+#'   15 codes in the table. Unknown codes error and list the valid ones.
+#' @param region Single character string selecting regional thresholds and
+#'   parameters. `"auto"` (default) detects the biome from the `UF` column (most
+#'   frequent UF) or, failing that, from mean latitude. Otherwise one of
+#'   `"amazon"`, `"cerrado"`, `"caatinga"`, `"atlantic_forest"`, `"pampa"`,
+#'   `"pantanal"`, `"southeast"`, `"south"`. `"none"` disables regional
+#'   adaptation (standard thresholds, no confidence flags by default). An
+#'   unknown value gives a warning and falls back to `"southeast"`.
+#' @param datetime_col Single character string or `NULL` (default,
+#'   auto-detected): name of the datetime column.
+#' @param station_col Single character string or `NULL` (default,
+#'   auto-detected): name of the station identifier column.
+#' @param apply_validity_mask Logical scalar (default `TRUE`). Only effective
+#'   when `region = "none"`: masks HI, WCET and WCT outside their valid
+#'   meteorological domains with `NA`.
+#' @param confidence_flags Logical scalar or `NULL` (default). Add
+#'   `<indicator>_flag_extreme`, `_flag_high`, `_flag_low` columns. `NULL`
+#'   means `TRUE` when a region is used (any `region` except `"none"`,
+#'   including `"auto"`) and `FALSE` for `region = "none"`.
+#' @param custom_thresholds Named list overriding the regional parameter
+#'   values (merged with `utils::modifyList()`), or `NULL` (default). Names
+#'   must match the entries of the regional parameter table. Ignored for
+#'   `region = "none"`.
+#' @param keep_source_vars Logical scalar (default `FALSE`). If `TRUE`, also
+#'   returns the input columns required by the requested indicators.
+#' @param verify_physics Logical scalar (default `TRUE`). Check solar
+#'   radiation against extraterrestrial limits; requires a `latitude` column
+#'   and `sr_kj_m2`.
+#' @param compute_uncertainty Logical scalar (default `FALSE`). Adds
+#'   `<indicator>_ci_low` / `_ci_high` columns (Monte Carlo, 200 simulations,
+#'   95% interval) for indicators that define input uncertainties.
+#' @param verbose Logical scalar (default `TRUE`).
+#' @param lang Single character string: `"pt"` (default), `"en"`, `"es"`.
+#' @param use_cache Logical scalar. If `TRUE` (default), the station metadata
+#'   table (downloaded once from the climasus4r GitHub repository, so a network
+#'   connection is needed the first time) is read from and saved to
+#'   `cache_dir`. If `FALSE` it is downloaded every call.
+#' @param cache_dir Single character string, directory for the cached station
+#'   metadata. Default `"~/.climasus4r_cache/spatial"`.
 #'
-#' @return A `tibble` of class `climasus_df` containing indicator columns,
-#'   optional flag/CI columns, and a `sus_meta` attribute.
+#' @return A `climasus_df` with one row per input row containing `date`, the
+#'   station column, one column per computed indicator (names in the table
+#'   above, `NA` when skipped), optional flag/CI columns, optional source
+#'   variables and the station metadata columns joined by `station_code`.
+#'   `sus_meta()`: `stage = "climate"`, `type = "indicators"`, `system = NULL`,
+#'   with the requested indicators in `temporal$indicators_requested`.
+#'
+#' @seealso [sus_climate_inmet()], [sus_climate_fill_inmet()],
+#'   [sus_climate_aggregate()], [sus_climate_compute_heatwaves()],
+#'   [sus_climate_compute_coldwaves()]
 #'
 #' @section Scientific References:
 #' \itemize{

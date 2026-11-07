@@ -4,61 +4,65 @@
 #' time units and grouping variables. This function is essential for preparing
 #' data for time series analysis, DLNM models, and other temporal epidemiological methods.
 #'
-#' @param df A data frame containing health data (output from `sus_data_standardize()`, or `sus_data_filter*()`).
-#' @param time_unit Character string specifying the temporal aggregation unit.
-#'   **Standard units**: `"day"`, `"week"`, `"month"`, `"quarter"`, `"year"`
-#'   **Multi-day/week/month**: `"2 days"`, `"5 days"` (pentads), `"14 days"` (fortnightly),
-#'    `"3 months"` (trimester), `"6 months"` (semester).
-#'   **Special**: `"season"` (Brazilian seasons: DJF, MAM, JJA, SON).
-#'   Default is `"day"`.
-#' @param fun Character string or list of functions specifying the aggregation function(s).
-#'   Options: `"count"` (default), `"sum"`, `"mean"`, `"median"`, `"min"`, `"max"`,
-#'   `"sd"`, `"q25"` (25th percentile), `"q75"`, `"q95"`, and `"q99"`.
-#'   Can also be a named list for multiple aggregations, e.g.,
-#'   `list(mean_temp = "mean", max_temp = "max")`.
-#' @param group_by Character vector with names of columns to group by (e.g.,
-#'   `c("sex", "age_group", "race")`). If `NULL` (default), aggregates
-#'   across `"municipality_code"` records.
-#' @param value_col Character string with the name of the column to aggregate when
-#'   using functions other than `"count"`. Required for `"sum"`, `"mean"`, etc.
-#'   For example, `"temperature"`, `"precipitation"`, `"pm25"`.
-#' @param date_col Character string with the name of the date column to use for
-#'   aggregation. If `NULL` (default), the function will attempt to auto-detect
-#'   the date column based on common patterns.
-#' @param complete_dates Logical. If `TRUE` (default), fills in missing time periods
-#'   with zero counts to create a complete time series without gaps.
-#' @param backend Character string specifying the data processing backend.
-#'   Use `"arrow"` for out-of-memory, lazy processing (recommended for large datasets),
-#'   or `"tibble"` for in-memory processing (recommended for small to medium datasets).
+#' @param df A `climasus_df` (stage `"stand"` or later, typically from
+#'   [sus_data_standardize()], [sus_data_create_variables()] or the
+#'   `sus_data_filter_*()` functions), or an Arrow/DuckDB lazy table.
+#' @param time_unit Character scalar, default `"day"`. Temporal unit:
+#'   * Standard: `"day"`, `"week"`, `"month"`, `"quarter"`, `"year"`.
+#'   * Multi-period: `"N days"` / `"N months"` (e.g. `"5 days"` pentads,
+#'     `"14 days"`, `"3 months"`, `"6 months"`). `"2 weeks"` is not supported;
+#'     use `"14 days"`.
+#'   * Special: `"season"` (Brazilian seasons DJF, MAM, JJA, SON).
+#'   Anything else aborts with "Invalid time_unit".
+#' @param fun Character scalar, or a named list/vector, default `"count"`.
+#'   Valid values: `"count"`, `"sum"`, `"mean"`, `"median"`, `"min"`, `"max"`,
+#'   `"sd"`, `"q25"`, `"q75"`, `"q95"`, `"q99"`. A named list, e.g.
+#'   `list(mean_temp = "mean", max_temp = "max")`, computes several statistics
+#'   of `value_col`. Anything other than `"count"` requires `value_col`.
+#'   Invalid values abort.
+#' @param group_by Character vector of column names to group by, e.g.
+#'   `c("sex", "age_group")`. `NULL` (default) = no extra grouping. The
+#'   municipality column of the system (residence/occurrence/establishment
+#'   code, detected automatically) is always kept as a grouping key when
+#'   present. Missing columns abort.
+#' @param value_col Character scalar, column to aggregate when `fun` is not
+#'   `"count"` (e.g. `"temperature"`, `"pm25"`). Ignored for `"count"`.
+#' @param complete_dates Logical scalar, default `FALSE`. If `TRUE`, fills
+#'   missing periods (per group) so the series has no gaps; filled values are
+#'   `0` for `fun = "count"` and `NA` otherwise.
+#' @param date_col Character scalar, name of the date column. `NULL` (default)
+#'   auto-detects it by system (e.g. admission date for SIH, death date for
+#'   SIM, notification date for SINAN); aborts if none is found.
+#' @param backend Character scalar, `"arrow"` (default) or `"tibble"`.
+#'   `"arrow"` aggregates lazily (Arrow/DuckDB) and collects only the small
+#'   result; it falls back to `"tibble"` with a warning if it fails.
+#'   `"tibble"` processes in memory.
+#' @param lang Character scalar, `"pt"` (default), `"en"` or `"es"`. Language
+#'   of messages and of the smart column names.
+#' @param verbose Logical scalar, default `TRUE`. Print progress messages.
 #'
-#'   - `"arrow"`: operations are performed lazily using the Apache Arrow engine,
-#'     avoiding loading the full dataset into memory. Ideal for large files
-#'     (e.g., Parquet, Feather) and high-performance workflows.
-#'
-#'   - `"tibble"`: data is fully loaded into memory as a tibble and processed eagerly
-#'     using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
-#'
-#'   If not specified, the function may automatically choose the backend based on
-#'   the input data type.
-#' @param lang Character string specifying the language for messages. Options:
-#'   `"en"` (English), `"pt"` (Portuguese, default), `"es"` (Spanish).
-#' @param verbose Logical. If `TRUE` (default), prints progress messages.
-#'
-#' @return A tibble with aggregated data containing:
+#' @return A `climasus_df` tibble (`sus_meta`: `stage = "aggregate"`, system
+#'   preserved, `temporal` = start/end/unit) with:
 #'   \itemize{
-#'     \item `date`: The aggregated date (start of period)
-#'     \item Grouping columns (if `group_by` was specified)
-#'     \item Aggregated value column(s) with smart names based on system and function
+#'     \item `date`: start of each period (`Date`)
+#'     \item the municipality column and any `group_by` columns
+#'     \item aggregated column(s): for `fun = "count"` a name derived from the
+#'       system and `lang` (e.g. `n_deaths`/`n_obitos`, `n_hospitalizations`/
+#'       `n_internacoes`, `n_cases`/`n_casos`); otherwise one column per `fun`
+#'       (list names are used when `fun` is a named list)
 #'   }
 #'
 #' @details
-#' **New Features**:
+#' Pipeline position: after [sus_data_create_variables()] / filtering; before
+#' the spatial join, climate linkage and modelling steps.
+#'
+#' **Features**:
 #' \itemize{
-#'   \item **Multiple aggregation functions**: Beyond counting, you can now calculate
-#'     mean, sum, median, percentiles, etc., useful for climate and environmental data.
-#'   \item **Smart column naming**: The aggregated column is automatically named
-#'     based on the health system (e.g., `n_deaths` for SIM, `n_hospitalizations`
-#'     for SIH-RD, `n_births` for SINASC, `n_cases` for SINAN, `n_procedures` for SIA, and `n_establishments`, for CNES).
+#'   \item **Multiple aggregation functions**: counting, or sum/mean/median/
+#'     percentiles of `value_col`.
+#'   \item **Smart column naming**: the count column is named from the health
+#'     system (e.g., `n_deaths` for SIM, `n_hospitalizations`
+#'     for SIH-RD, `n_births` for SINASC, `n_cases` for SINAN, `n_procedures` for SIA, and `n_establishments` for CNES).
 #' }
 #' **Epidemiological Use Cases**:
 #' \itemize{
@@ -119,8 +123,11 @@
 #'   group_by = c("age_group", "sex") #age_group comes from `sus_data_create_variables()`
 #' )
 #' }
+#' @seealso [sus_data_create_variables()], [sus_data_filter_cid()],
+#'   [sus_data_plot_aggregate_ts()], [sus_data_plot_aggregate_map()]
+#'
 #' @importFrom rlang .data
-#'  
+#'
 #' @export
 sus_data_aggregate <- function(df,
                                time_unit = "day",

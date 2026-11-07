@@ -21,31 +21,41 @@ utils::globalVariables(c(
 #' exposure is a key driver of frontier malaria (SINAN), dengue, leishmaniasis,
 #' and respiratory disease from biomass burning in Brazil.
 #'
-#' @param years Integer vector. Years to download. Availability by biome:
-#'   Amazon 2007–present; all others 2000–present.
+#' @param years Numeric vector of PRODES years (required, no default; character
+#'   values error). Accepted forms: scalar (`2022`), range (`2015:2022`) or
+#'   explicit vector (`c(2015, 2020)` = exactly those two years, NOT the range --
+#'   use `2015:2020`). De-duplicated, sorted, coerced with `as.integer()`.
+#'   Values below 1988 or above the current year error. Per-biome availability:
+#'   Amazon from 2007, all other biomes from 2000; years before a biome's start
+#'   are skipped with a warning, and an error is raised if no requested year is
+#'   available in any selected biome.
 #'
-#' @param biomes Character vector. Biomes to include. Any combination of:
-#'   `"Amazon"`, `"Cerrado"`, `"MataAtlantica"`, `"Caatinga"`, `"Pampa"`,
-#'   `"Pantanal"`. Default: all six biomes.
+#' @param biomes Character vector of biome names, any subset of `"Amazon"`,
+#'   `"Cerrado"`, `"MataAtlantica"`, `"Caatinga"`, `"Pampa"`, `"Pantanal"` (exact
+#'   spelling, no spaces/accents; others error), e.g. `"Amazon"` or
+#'   `c("Amazon", "Cerrado")`. Default: all six biomes.
 #'
-#' @param uf Character vector. Optional state filter (e.g., `c("MT", "PA")`).
-#'   Reduces download size. `NULL` = all states in the selected biome(s).
+#' @param uf Character vector of 2-letter state codes (e.g. `"MT"`,
+#'   `c("MT", "PA")`; case-insensitive; invalid codes error) or `NULL` (default,
+#'   all states in the selected biomes). Used as a download filter; it is part of
+#'   the cache file name.
 #'
-#' @param municipalities An `sf` POLYGON object (e.g., from
-#'   [geobr::read_municipality()]). When provided, deforestation polygons are
-#'   spatially intersected with municipality boundaries and annual areas are
-#'   aggregated. If `NULL`, raw deforestation polygons are returned as an sf
-#'   `climasus_df`.
+#' @param municipalities An `sf` polygon object (e.g. from [geobr::read_municipality()])
+#'   or `NULL` (default). Non-`sf` input errors. When provided, deforestation
+#'   polygons are intersected with the municipalities and annual areas are
+#'   aggregated per municipality. If `NULL`, the raw deforestation polygons are
+#'   returned.
 #'
-#' @param use_cache Logical. Reuse previously downloaded GeoJSON files and
-#'   aggregated Parquet caches. Default `TRUE`.
+#' @param use_cache Logical scalar. Reuse previously downloaded GeoJSON files and
+#'   aggregated Parquet caches (`FALSE` re-downloads). Default `TRUE`.
 #'
-#' @param cache_dir Character. Root cache directory.
-#'   Default `"~/.climasus4r_cache/prodes"`.
+#' @param cache_dir Character scalar. Root cache directory. Default
+#'   `"~/.climasus4r_cache/prodes"`.
 #'
-#' @param lang Character. Message language: `"pt"` (default), `"en"`, `"es"`.
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"` or
+#'   `"es"`; other values error.
 #'
-#' @param verbose Logical. Print progress. Default `TRUE`.
+#' @param verbose Logical scalar. Print progress. Default `TRUE`.
 #'
 #' @return
 #' \itemize{
@@ -98,7 +108,8 @@ utils::globalVariables(c(
 #' )
 #' }
 #'
-#' @seealso [sus_grid_fires()], [sus_climate_anomaly()], [sus_mod_dlnm()]
+#' @seealso [sus_grid_fires()], [sus_grid_join()], [sus_climate_anomaly()],
+#'   [sus_mod_dlnm()]
 #'
 #' @export
 #' @importFrom rlang .data is_installed

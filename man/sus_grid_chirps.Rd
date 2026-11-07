@@ -19,7 +19,7 @@ sus_grid_chirps(
 )
 }
 \arguments{
-\item{resolution}{Character. Temporal resolution of source files:
+\item{resolution}{Character scalar. Temporal resolution of source files:
 \itemize{
 \item \code{"monthly"} (default) -- one file per month (~5-20 MB each);
 returns mm/month.
@@ -28,17 +28,26 @@ Recommended only for short periods; a full year = 365 downloads.
 \item \code{"annual"} -- one file per year; returns mm/year.
 }}
 
-\item{years}{Integer vector. Years to download. Coverage: 1981 to present
-for daily/monthly; 1981-2024 for annual. \code{NULL} defaults to the last
-two complete years.}
+\item{years}{Numeric vector of years to download (character values error).
+Accepted forms: scalar (\code{2023}), range (\code{2020:2025}) or explicit vector
+(\code{c(2020, 2022, 2024)}). \code{c(2020, 2024)} means exactly those two years,
+NOT the range 2020-2024 -- use \code{2020:2024} for a range. Values are
+de-duplicated, sorted and coerced with \code{as.integer()}. Valid range:
+1981 to the current year for daily/monthly; 1981-2024 for annual (values
+outside error). \code{NULL} (default) uses the last two complete years
+(\code{current_year - 2} and \code{current_year - 1}).}
 
-\item{months}{Integer vector (1-12). Months to include for daily and monthly
-resolutions. Ignored for annual. Default \code{1:12}.}
+\item{months}{Numeric vector of months (1-12), e.g. \code{1:12}, \code{7:9},
+\code{c(1, 7)} (exactly January and July). Default \code{1:12}. Used for daily and
+monthly resolutions; ignored for \code{"annual"}. Values outside 1-12 or \code{NA}
+error.}
 
 \item{municipalities}{An \code{sf} POLYGON object (e.g., from
-\code{\link[geobr:read_municipality]{geobr::read_municipality()}}). When provided, rasters are aggregated and a
-\code{climasus_df} is returned. If \code{NULL}, a named character vector of cached
-file paths is returned instead (see \code{raster_area}).}
+\code{\link[geobr:read_municipality]{geobr::read_municipality()}}) with a municipality-code column (detected
+automatically, e.g. \code{code_muni}). Non-\code{sf} input errors. When provided,
+rasters are aggregated and a \code{climasus_df} is returned. If \code{NULL}
+(default), cached file paths or a \code{SpatRaster} are returned instead (see
+\code{raster_area}). Aggregated results are cached per set of municipalities.}
 
 \item{raster_area}{Controls what is returned when \code{municipalities = NULL}.
 One of:
@@ -57,22 +66,25 @@ and mask the \code{SpatRaster}.
 Ignored (with the file-path/tibble behavior taking precedence) if
 \code{municipalities} is provided.}
 
-\item{agg_fun}{Character. Spatial aggregation function for
-\code{exactextractr::exact_extract()}. Default \code{"mean"} (area-weighted mean).
-For rainfall totals over a municipality use \code{"sum"}.}
+\item{agg_fun}{Character scalar. Spatial aggregation function for
+\code{exactextractr::exact_extract()}; one of \code{"mean"} (default,
+area-weighted mean), \code{"sum"}, \code{"median"}, \code{"min"}, \code{"max"}. Other values
+error. Only used when \code{municipalities} is provided.}
 
-\item{crop_brazil}{Logical. Crop global rasters to Brazil's bounding box
-before aggregation. Reduces memory usage significantly. Default \code{TRUE}.}
+\item{crop_brazil}{Logical scalar. Crop global rasters to Brazil's bounding
+box before aggregation or before building the \code{SpatRaster}. Reduces
+memory usage significantly. Default \code{TRUE}.}
 
-\item{use_cache}{Logical. Reuse previously downloaded raster files and
-aggregated Parquet caches. Default \code{TRUE}.}
+\item{use_cache}{Logical scalar. Reuse previously downloaded raster files and
+aggregated Parquet caches (\code{FALSE} forces re-download). Default \code{TRUE}.}
 
 \item{cache_dir}{Character. Root cache directory.
 Default \code{"~/.climasus4r_cache/chirps"}.}
 
-\item{lang}{Character. Message language: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"}
+or \code{"es"}; other values error.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
 \itemize{
@@ -157,5 +169,6 @@ paths <- sus_grid_chirps(
 
 }
 \seealso{
-\code{\link[=sus_grid_era5]{sus_grid_era5()}}, \code{\link[=sus_climate_anomaly]{sus_climate_anomaly()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
+\code{\link[=sus_grid_era5]{sus_grid_era5()}}, \code{\link[=sus_grid_join]{sus_grid_join()}}, \code{\link[=sus_grid_plot]{sus_grid_plot()}},
+\code{\link[=sus_climate_anomaly]{sus_climate_anomaly()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
 }

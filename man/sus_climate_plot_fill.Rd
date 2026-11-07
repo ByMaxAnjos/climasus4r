@@ -20,32 +20,52 @@ sus_climate_plot_fill(
 )
 }
 \arguments{
-\item{df_filled}{Output of \code{sus_climate_fill_inmet()}. In production mode this is a
-\verb{<climasus_df>} tibble; in evaluation mode it is the named list returned by
-\code{sus_climate_fill_inmet(evaluation = TRUE)}.}
+\item{df_filled}{Output of \code{\link[=sus_climate_fill_inmet]{sus_climate_fill_inmet()}}. In production mode
+this is a \code{climasus_df} (stage \code{"climate"}, type \code{"filled"}); in
+evaluation mode it is the named list returned by
+\code{sus_climate_fill_inmet(run_evaluation = TRUE)}. The mode is detected
+automatically from the first \code{target_var}.}
 
-\item{df_original}{Raw data before gap filling, e.g. from \code{sus_climate_inmet()}.
-Required in production mode; ignored in evaluation mode.}
+\item{df_original}{A \code{climasus_df} of the raw data before gap filling
+(stage \code{"climate"}, type \code{"inmet"}), e.g. from \code{\link[=sus_climate_inmet]{sus_climate_inmet()}}.
+Required in production mode (errors if \code{NULL} or of another type);
+ignored in evaluation mode.}
 
-\item{target_var}{Character vector of variable(s) to visualise.}
+\item{target_var}{Character vector (required) of variable(s) to visualise,
+e.g. \code{"tair_dry_bulb_c"} or \code{c("tair_dry_bulb_c", "rh_mean_porc")}. In
+evaluation mode the names must be elements of the evaluation list. With
+several variables the plots are stacked in one combined figure.}
 
-\item{interactive}{Logical. \code{TRUE} → plotly; \code{FALSE} → ggplot2 (default: \code{TRUE}).}
+\item{interactive}{Logical scalar. \code{TRUE} returns plotly; \code{FALSE} (default)
+returns ggplot2.}
 
-\item{output_type}{What to return: \code{"plot"}, \code{"table"}, \code{"metrics"}, or \code{"all"}
-(default: \code{"all"}).}
+\item{output_type}{Single character string, what to return: \code{"plot"}
+(default), \code{"table"}, \code{"metrics"}, or \code{"all"} (named list).}
 
-\item{save_plot}{Optional file path to save the plot (e.g. \code{"plot.png"} or
-\code{"plot.html"}).}
+\item{save_plot}{Single character string or \code{NULL} (default, do not save).
+File path to save the plot: \code{".html"} when \code{interactive = TRUE} (needs
+\pkg{htmlwidgets}), an image path such as \code{".png"} when
+\code{interactive = FALSE} (12 x 5 inches, 150 dpi).}
 
-\item{lang}{Language: \code{"en"}, \code{"pt"}, or \code{"es"} (default: \code{"en"}).}
+\item{lang}{Single character string: \code{"en"} (default), \code{"pt"}, or \code{"es"}
+(message and label language).}
 
-\item{color_palette}{ggsci palette name (default: \code{"npg"}).}
+\item{color_palette}{Single character string, name of a \pkg{ggsci} palette
+(without \code{pal_}). One of \code{"npg"} (default), \code{"aaas"}, \code{"nejm"},
+\code{"lancet"}, \code{"jama"}, \code{"bmj"}, \code{"jco"}, \code{"frontiers"}, \code{"gsea"},
+\code{"uchicago"}, \code{"primer"}, \code{"atlassian"}, \code{"observable"}, \code{"d3"}, \code{"igv"},
+\code{"cosmic"}, \code{"locuszoom"}, \code{"ucscgb"}, \code{"startrek"}, \code{"tron"},
+\code{"futurama"}, \code{"rickandmorty"}, \code{"simpsons"}, \code{"flatui"}, \code{"bs5"},
+\code{"material"}, \code{"tw3"}.}
 
-\item{verbose}{Print diagnostic information (default: \code{FALSE}).}
+\item{verbose}{Logical scalar. Print diagnostic information (default
+\code{FALSE}).}
 }
 \value{
-Depending on \code{output_type}, returns the plot, table, metrics, or a
-named list containing all four components: \code{plot}, \code{table}, \code{metrics}, \code{data}.
+Returned invisibly. Depending on \code{output_type}: the plot (ggplot or
+plotly), the DT table (\code{DT::datatable}), the metrics tibble (per-station
+evaluation metrics, or imputation summary in production mode), or, for
+\code{"all"}, a named list with \code{plot}, \code{table}, \code{metrics} and \code{data}.
 }
 \description{
 Unified visualisation for gap-filling outputs of the \code{climasus4r} pipeline.
@@ -68,4 +88,31 @@ connected by a dotted line; isolated single points appear as dots only.
 \item Residuals over time (temporal-autocorrelation diagnostic).
 \item Residuals vs observed (heteroscedasticity diagnostic).
 }
+
+Use it after \code{\link[=sus_climate_fill_inmet]{sus_climate_fill_inmet()}}, with either the filled data
+(production mode) or the evaluation list (\code{run_evaluation = TRUE}). All of
+\pkg{ggplot2}, \pkg{ggsci}, \pkg{DT}, \pkg{patchwork} and \pkg{htmltools}
+must be installed (plus \pkg{plotly} if \code{interactive = TRUE}).
+}
+\examples{
+\dontrun{
+raw    <- sus_climate_inmet(years = 2023, uf = "SP")
+filled <- sus_climate_fill_inmet(raw, target_var = "tair_dry_bulb_c")
+
+# Production mode: observed vs imputed
+sus_climate_plot_fill(filled, df_original = raw,
+                      target_var = "tair_dry_bulb_c", interactive = FALSE)
+
+# Evaluation mode: diagnostics of artificial gaps
+ev <- sus_climate_fill_inmet(raw, target_var = "tair_dry_bulb_c",
+                             run_evaluation = TRUE)
+res <- sus_climate_plot_fill(ev, target_var = "tair_dry_bulb_c",
+                             output_type = "all")
+res$metrics
+}
+
+}
+\seealso{
+\code{\link[=sus_climate_fill_inmet]{sus_climate_fill_inmet()}}, \code{\link[=sus_climate_inmet]{sus_climate_inmet()}},
+\code{\link[=sus_climate_plot_aggregate]{sus_climate_plot_aggregate()}}
 }

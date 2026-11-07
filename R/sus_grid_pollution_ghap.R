@@ -30,42 +30,35 @@ utils::globalVariables(c(
 #' `stage = "climate"`, `type = "pollution_ghap"`, compatible with
 #' [sus_climate_anomaly()], [sus_climate_aggregate()], and [sus_mod_dlnm()].
 #'
-#' @param pollutants Character vector. Pollutants to download.
-#'   Accepted: `"pm25"`, `"o3"`, `"co"`. Default: `"pm25"`.
-#'   Note: `"no2"` is not yet publicly available.
+#' @param pollutants Character vector, or the single string `"all"` (= all three below).
+#'   Accepted: `"pm25"` (default), `"o3"`, `"co"`; e.g. `c("pm25", "o3")`.
+#'   `"no2"` is dropped with a warning (not released); other values error, and
+#'   error if nothing valid remains.
 #'
-#' @param resolution Character. Temporal aggregation of source files.
-#'   One of `"daily"`, `"monthly"`, or `"annual"`. Default: `"monthly"`.
-#'   \itemize{
-#'     \item `"daily"` -- no longer served by Zenodo for any pollutant; falls
-#'       back to `"annual"`. (Legacy PM2.5 behavior: each monthly
-#'       ZIP (~3 GB) is downloaded, extracted to a temp directory, each daily
-#'       NetCDF is aggregated, and the result is cached as Parquet. Subsequent
-#'       calls read from Parquet without re-extracting.)
-#'     \item `"monthly"` -- the PM2.5 monthly files were removed from Zenodo;
-#'       falls back to `"annual"` with a warning.
-#'     \item `"annual"` -- PM2.5 (2000-2022), O3 (2000-2020), CO (2019-2022).
-#'   }
-#'   All pollutants currently fall back to `"annual"` regardless of this
-#'   parameter; the annual value is assigned to January 1st of each year.
+#' @param resolution Character scalar: `"daily"`, `"monthly"` (default) or `"annual"`
+#'   (other values error). Currently every supported pollutant is only served
+#'   annually, so `"daily"` and `"monthly"` fall back to `"annual"` with a warning;
+#'   the annual value is assigned to January 1st of each year. (Legacy daily/monthly
+#'   PM2.5 ZIP handling remains in the code but is not reachable.)
 #'
-#' @param years Integer vector. Years to download. Availability depends on
-#'   pollutant and resolution:
-#'   \itemize{
-#'     \item PM2.5 annual: 2000-2022
-#'     \item O3 annual: 2000-2020
-#'     \item CO annual: 2019-2022
-#'   }
-#'   `NULL` (default) returns all available years for the selected pollutant.
+#' @param years Numeric vector or `NULL`. Accepted forms: scalar (`2020`), range
+#'   (`2018:2022`) or explicit vector (`c(2019, 2022)` = exactly those two
+#'   years, NOT the range -- use `2019:2022`). Per pollutant (annual): PM2.5
+#'   2000-2022, O3 2000-2020, CO 2019-2022. Years unavailable for a pollutant are
+#'   NOT an error: a warning is issued and they are dropped (a pollutant with no
+#'   valid year is skipped). `NULL` (default) = all available years of each
+#'   pollutant.
 #'
-#' @param months Integer vector (1-12). Months to include when
-#'   `resolution = "monthly"`. Ignored for annual data. Default: `1:12`.
+#' @param months Numeric vector of months (1-12), e.g. `1:3`, `c(1, 7)`. Default
+#'   `1:12`. Only relevant for monthly/daily source files, which are not served
+#'   currently (annual fallback), so it has no practical effect. Values outside
+#'   1-12 or `NA` error.
 #'
-#' @param municipalities An `sf` object with polygon geometries
-#'   (e.g., from [geobr::read_municipality()]). If provided, raster data are
-#'   aggregated to these polygons and a `climasus_df` is returned.
-#'   If `NULL`, a named character vector of cached NetCDF file paths is
-#'   returned instead (see `raster_area`).
+#' @param municipalities An `sf` polygon object (e.g. from [geobr::read_municipality()])
+#'   or `NULL` (default). Non-`sf` input errors. When provided, requires `terra`
+#'   and `exactextractr`; rasters are aggregated per polygon and a `climasus_df` is
+#'   returned. If `NULL`, file paths or a `SpatRaster` are returned (see
+#'   `raster_area`).
 #'
 #' @param raster_area Only used when `municipalities = NULL`. One of:
 #'   \itemize{
@@ -96,23 +89,24 @@ utils::globalVariables(c(
 #'   lightweight and predictable rather than silently building a large
 #'   multi-day stack.
 #'
-#' @param agg_fun Character. Spatial aggregation function applied by
-#'   `exactextractr::exact_extract()`. Default: `"mean"` (area-weighted).
-#'   Other options: `"sum"`, `"median"`, `"min"`, `"max"`.
+#' @param agg_fun Character scalar. Spatial aggregation for
+#'   `exactextractr::exact_extract()`: `"mean"` (default, area-weighted), `"sum"`,
+#'   `"median"`, `"min"` or `"max"`; other values error. Also names the output
+#'   column (`<pollutant>_<agg_fun>`, e.g. `pm25_mean`).
 #'
-#' @param crop_brazil Logical. Crop global rasters to Brazil's bounding box
-#'   before extraction, significantly reducing memory use. Default `TRUE`.
+#' @param crop_brazil Logical scalar. Crop global rasters to Brazil's bounding box
+#'   before extraction (lower memory). Default `TRUE`.
 #'
-#' @param use_cache Logical. If `TRUE` (default), reuse previously downloaded
-#'   NetCDF files and previously computed municipality-level Parquet caches.
+#' @param use_cache Logical scalar. If `TRUE` (default), reuse downloaded NetCDF files
+#'   and municipality-level Parquet caches; `FALSE` recomputes.
 #'
-#' @param cache_dir Character. Root directory for all cached files.
-#'   Default `"~/.climasus4r_cache/ghap"`. Sub-directories are created per
-#'   pollutant.
+#' @param cache_dir Character scalar. Root cache directory, with one sub-directory per
+#'   pollutant. Default `"~/.climasus4r_cache/ghap"`.
 #'
-#' @param lang Character. Message language: `"pt"` (default), `"en"`, `"es"`.
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"` or
+#'   `"es"`; other values error.
 #'
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
 #' @return
 #' \itemize{
@@ -170,8 +164,9 @@ utils::globalVariables(c(
 #' )
 #' }
 #'
-#' @seealso [sus_climate_anomaly()], [sus_climate_aggregate()],
-#'   [sus_grid_era5()], [sus_grid_pollution_cams()], [sus_mod_dlnm()]
+#' @seealso [sus_grid_pollution_cams()], [sus_grid_pollution_merra2()],
+#'   [sus_grid_era5()], [sus_grid_join()], [sus_grid_plot()],
+#'   [sus_climate_anomaly()], [sus_climate_aggregate()], [sus_mod_dlnm()]
 #'
 #' @export
 #' @importFrom rlang .data is_installed
@@ -271,6 +266,10 @@ sus_grid_pollution_ghap <- function(
   # ponytail: Zenodo removed the PM2.5 monthly/daily V1 files; only annual V2 remains
   annual_only <- c("pm25", "o3", "co")
   manifest_rows <- list()
+  # Parquet cache key: municipalities + agg + crop (see .grid_cache_key)
+  ckey <- .grid_cache_key(
+    if (!is.null(municipalities)) municipalities[[.ghap_detect_muni_col(municipalities)]],
+    agg_fun = agg_fun, crop_brazil = crop_brazil)
 
   for (p in pollutants) {
     p_res <- resolution
@@ -322,7 +321,7 @@ sus_grid_pollution_ghap <- function(
             cache_nc   = file.path(cache_dir, p, "daily", info$filename),
             cache_pq   = file.path(cache_dir, p, "parquet",
                                    paste0(p, "_daily_", yr,
-                                          sprintf("%02d", mo), ".parquet"))
+                                          sprintf("%02d", mo), "_", ckey, ".parquet"))
           )
         }
       } else if (p_res == "monthly") {
@@ -340,7 +339,7 @@ sus_grid_pollution_ghap <- function(
             out_col    = out_col,
             cache_nc   = file.path(cache_dir, p, info$filename),
             cache_pq   = file.path(cache_dir, p, "parquet",
-                                   paste0(p, "_", yr, sprintf("%02d", mo), ".parquet"))
+                                   paste0(p, "_", yr, sprintf("%02d", mo), "_", ckey, ".parquet"))
           )
         }
       } else {
@@ -357,7 +356,7 @@ sus_grid_pollution_ghap <- function(
           out_col    = out_col,
           cache_nc   = file.path(cache_dir, p, info$filename),
           cache_pq   = file.path(cache_dir, p, "parquet",
-                                 paste0(p, "_", yr, "_annual.parquet"))
+                                 paste0(p, "_", yr, "_annual_", ckey, ".parquet"))
         )
       }
     }

@@ -5,14 +5,16 @@
 #' all ten stages of the climasus4r health-climate-environment workflow plus
 #' utility functions.
 #'
-#' @param lang Character. Language: `"pt"` (default), `"en"`, or `"es"`.
-#' @param output Character vector. Outputs to produce: `"console"`, `"html"`,
-#'   or both (default). Multiple values are accepted.
-#' @param open Logical. If `TRUE` (default) and the session is interactive,
-#'   opens the HTML file automatically.
+#' @param lang Character scalar, `"pt"` (default), `"en"` or `"es"`.
+#' @param output Character scalar or vector, subset of `"console"` and `"html"`;
+#'   the default `c("console", "html")` produces both, `"console"` only prints.
+#'   Invalid values abort.
+#' @param open Logical scalar, default `TRUE`. If `TRUE` and the session is
+#'   interactive, opens the HTML page in the browser/viewer; ignored when
+#'   `"html"` is not in `output`.
 #'
-#' @return Invisibly returns the path to the HTML file (or `NULL` when
-#'   `"html"` is not in `output`). Called for its side effects.
+#' @return Invisibly, the path (character) of the generated HTML file, or
+#'   `NULL` when `"html"` is not in `output`. Called for its side effects.
 #'
 #' @examples
 #' \dontrun{
@@ -21,6 +23,8 @@
 #' sus_welcome(output = "html", open = TRUE)
 #' sus_welcome(lang = "es", output = c("console", "html"))
 #' }
+#'
+#' @seealso [sus_data_import()], [sus_data_standardize()], [sus_data_create_variables()]
 #'
 #' @export
 #' @importFrom cli cli_rule cli_text style_bold style_italic col_blue col_green col_cyan col_magenta col_yellow
@@ -118,7 +122,7 @@ sus_welcome <- function(
          )),
     list(num = 7, color = "cyan",
          name = c(pt = "SOCIOECON\u00d4MICO",          en = "SOCIOECONOMIC",           es = "SOCIOECON\u00d3MICO"),
-         fns  = c("sus_socio_add_census()", "sus_socio_compute_indicators()"),
+         fns  = c("sus_census_join()", "sus_socio_compute_indicators()"),
          desc = c(
            pt = "Adiciona indicadores do Censo IBGE e \u00edndices compostos de vulnerabilidade socioecon\u00f4mica",
            en = "Adds IBGE Census indicators and composite socioeconomic vulnerability indices",

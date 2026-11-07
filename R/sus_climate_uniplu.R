@@ -22,6 +22,12 @@ utils::globalVariables(c(
 #' national rainfall database for Brazil, covering **21,000+ gauges** from
 #' five monitoring networks over **140 years (1885–2025)**.
 #'
+#' Use it instead of [sus_climate_inmet()] when only rainfall is needed (longer
+#' history, more gauge networks). Output is stage `"climate"`, type `"uniplu"`
+#' and can be passed to [sus_climate_aggregate()] (`climate_var = "rainfall_mm"`),
+#' [sus_climate_compute_spi()] / [sus_climate_compute_spei()] (use
+#' `aggregate_to = "month"`). A network connection is needed on first use.
+#'
 #' The function implements a full processing pipeline:
 #' \enumerate{
 #'   \item **Download**: Single 1.6 GB ZIP from Zenodo (first call only)
@@ -31,21 +37,27 @@ utils::globalVariables(c(
 #'   \item **Aggregation**: Sub-daily data optionally aggregated to daily/monthly/yearly totals
 #' }
 #'
-#' @param years Integer vector of year(s) to import.
-#'   Examples: `2020`, `2020:2024`, `c(2015, 2020, 2024)`.
-#'   Must be between 1885 and the current year. If `NULL` (default), imports
-#'   the last 2 years.
+#' @param years Numeric (integer-valued) vector of year(s) to keep. Accepted
+#'   forms: a single year (`2023`), a range (`2020:2024`), or an explicit
+#'   vector (`c(2015, 2020, 2024)`). `c(2020, 2024)` means exactly those two
+#'   years, **not** the range 2020-2024; use `2020:2024` for a range. Valid
+#'   values are 1885 to the current year; `NA`, non-numeric input (e.g.
+#'   `"2023"`) or out-of-range values raise an error. If `NULL` (default),
+#'   the previous and the current year are kept. The whole dataset is
+#'   downloaded regardless; `years` only filters it.
 #'
-#' @param uf Character vector of Brazilian state codes
-#'   (e.g., `"RN"`, `c("SP", "RJ", "MG")`). Case insensitive. If `NULL`
-#'   (default), all 27 states are returned.
+#' @param uf Character vector of two-letter state codes: one (`"RN"`) or
+#'   several (`c("SP", "RJ", "MG")`). Case insensitive, whitespace trimmed.
+#'   Unknown codes, `NA` or empty strings raise an error; `"all"` is **not**
+#'   accepted. If `NULL` (default), all 27 UFs are returned.
 #'
 #' @param network Character vector of monitoring network(s) to include.
 #'   One or more of: `"Hidroweb"`, `"INMET"`, `"ICEA"`, `"CEMADEN"`,
-#'   `"Telemetria"`. Case insensitive. If `NULL` (default), all networks
-#'   are returned.
+#'   `"Telemetria"`, e.g. `"CEMADEN"` or `c("Hidroweb", "INMET")`. Case
+#'   insensitive; any other value raises an error. If `NULL` (default), all
+#'   networks are returned.
 #'
-#' @param aggregate_to Character. Temporal resolution for aggregating sub-daily
+#' @param aggregate_to Single character string. Temporal resolution for aggregating sub-daily
 #'   observations into totals. One of:
 #'   \itemize{
 #'     \item `"day"` (default): Daily rainfall totals (`sum(rain_mm)`)
@@ -55,26 +67,26 @@ utils::globalVariables(c(
 #'   }
 #'   When `"none"`, `rainfall_mm` reflects the raw measurement interval
 #'   (10 min to 1440 min depending on network). Use `"day"` for compatibility
-#'   with `sus_climate_aggregate()`.
+#'   with `sus_climate_aggregate()`. Any other value raises an error.
 #'
-#' @param use_cache Logical. If `TRUE` (default), skips download when the two
+#' @param use_cache Logical scalar. If `TRUE` (default), skips download when the two
 #'   Parquet files already exist in `cache_dir/uniplu/`. The full ZIP (~1.6 GB)
 #'   is only downloaded once. Use `use_cache = FALSE` to force a re-download
 #'   (e.g., after a new dataset version is published on Zenodo).
 #'
-#' @param cache_dir Character. Directory path for the disk cache.
+#' @param cache_dir Single non-empty character string. Directory path for the disk cache.
 #'   Default: `"~/.climasus4r_cache/climate"`. Created automatically if absent.
 #'   Use `unlink(file.path(cache_dir, "uniplu"), recursive = TRUE)` to clear
 #'   the UNIPLU cache.
 #'
-#' @param lang Character. Message language. One of:
+#' @param lang Single character string. Message language. One of:
 #'   \itemize{
 #'     \item `"pt"`: Portuguese (default)
 #'     \item `"en"`: English
 #'     \item `"es"`: Spanish
 #'   }
 #'
-#' @param verbose Logical. If `TRUE` (default), prints progress messages
+#' @param verbose Logical scalar. If `TRUE` (default), prints progress messages
 #'   including cache status, download progress, filtering counts, and
 #'   aggregation summary.
 #'
@@ -158,6 +170,7 @@ utils::globalVariables(c(
 #' * [sus_climate_inmet()] for multi-variable meteorological data (INMET)
 #' * [sus_climate_aggregate()] for health-climate temporal integration
 #' * [sus_climate_fill_inmet()] for ML-based gap filling
+#' * [sus_climate_compute_spi()] for drought indices from monthly rainfall
 #'
 #' @examples
 #' \dontrun{
@@ -185,6 +198,9 @@ utils::globalVariables(c(
 #'   network      = "CEMADEN",
 #'   aggregate_to = "none"
 #' )
+#'
+#' # Non-consecutive years: exactly 2010 and 2020 (NOT 2010-2020)
+#' rain_two <- sus_climate_uniplu(years = c(2010, 2020), uf = "RN")
 #'
 #' # Check metadata
 #' sus_meta(rain_rn)

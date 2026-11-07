@@ -27,40 +27,54 @@ utils::globalVariables(c(
 #' The function requires **monthly** precipitation data (one row per
 #' municipality × month). The best upstream source is
 #' [sus_grid_chirps()] with `resolution = "monthly"` (0.05°, 1981–present).
-#' INMET-derived `rainfall_mm` from [sus_climate_aggregate()] also works.
+#' INMET-derived `rainfall_mm` aggregated monthly (e.g. with
+#' [sus_climate_aggregate()] `time_unit = "month"`) also works, as does monthly
+#' [sus_climate_uniplu()] output (`aggregate_to = "month"`) once `code_muni`
+#' has been added. Rows must be consecutive months per municipality: the
+#' rolling sum is taken over the previous `s` rows, so missing months must be
+#' present as `NA`.
 #'
-#' @param df A `climasus_df` at `stage = "climate"` with monthly precipitation.
-#'   Must contain `code_muni` (character), `date` (Date, first day of each
-#'   month), and the column named by `var`.
+#' @param df A `climasus_df` at `stage = "climate"` (any other stage or a plain
+#'   tibble errors; Arrow objects are collected) with monthly precipitation.
+#'   Must contain `code_muni` (character), `date` (Date or coercible, first day
+#'   of each month), and the column named by `var`.
 #'
-#' @param var Character. Name of the monthly precipitation column.
-#'   Default `"rainfall_chirps_mm"`. Other common value: `"rainfall_mm"`.
+#' @param var Single character string. Name of the monthly precipitation
+#'   column (mm). Default `"rainfall_chirps_mm"`. Other common value:
+#'   `"rainfall_mm"`. Errors if not found.
 #'
-#' @param scales Integer vector. SPI timescales in months. Default
-#'   `c(1L, 3L, 6L, 12L)`. Common choices: 1 (soil moisture), 3 (short-term),
-#'   6 (agriculture/water supply), 12 (groundwater/streamflow).
+#' @param scales Positive integer vector of SPI timescales in months, e.g.
+#'   `3`, `c(3, 6)` or `1:12`. Default `c(1L, 3L, 6L, 12L)`. Duplicates dropped,
+#'   sorted. Values below 1 or non-numeric input error. Common choices: 1
+#'   (soil moisture), 3 (short-term), 6 (agriculture/water supply), 12
+#'   (groundwater/streamflow).
 #'
-#' @param ref_start Date or `NULL`. Start of the calibration period for
-#'   gamma distribution fitting. `NULL` (default) uses all available data.
-#'   WMO recommends at least 30 years; CHIRPS 1981–2010 is ideal.
+#' @param ref_start `Date`, date string (`"1991-01-01"`) or `NULL`. Start of
+#'   the calibration period for gamma distribution fitting. `NULL` (default)
+#'   uses all available data. WMO recommends at least 30 years; CHIRPS
+#'   1981-2010 is ideal. Must be earlier than `ref_end` if both are given.
 #'
-#' @param ref_end Date or `NULL`. End of the calibration period.
-#'   `NULL` (default) uses all available data.
+#' @param ref_end `Date`, date string (`"2020-12-31"`) or `NULL`. End of the
+#'   calibration period. `NULL` (default) uses all available data.
 #'
-#' @param min_n Integer. Minimum number of non-NA, non-zero precipitation
-#'   values required to fit the gamma distribution per location. Default `24L`
-#'   (2 years). Locations with fewer values receive `NA` for all SPI columns.
+#' @param min_n Single integer >= 2. Minimum number of non-NA rolling-sum
+#'   values in the calibration period required per location. Default `24L`
+#'   (2 years). Locations with fewer values receive `NA` for all SPI columns
+#'   (a location also gets `NA` if fewer than 4 positive values exist).
 #'
-#' @param lang Character. Message language: `"pt"` (default), `"en"`, `"es"`.
+#' @param lang Single character string. Message language: `"pt"` (default),
+#'   `"en"`, `"es"`; other values error.
 #'
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
 #' @return The input `climasus_df` with additional columns:
 #'   \itemize{
 #'     \item `spi_{s}mo` — SPI at timescale `s` months (numeric, dimensionless)
 #'   }
 #'   For example, `scales = c(1, 3, 6, 12)` adds `spi_1mo`, `spi_3mo`,
-#'   `spi_6mo`, `spi_12mo`. Metadata: `stage = "climate"`, `type = "spi"`.
+#'   `spi_6mo`, `spi_12mo`. The first `s - 1` months of each location are `NA`
+#'   (incomplete window). Output is sorted by `code_muni` and `date`.
+#'   `sus_meta()`: `stage = "climate"`, `type = "spi"` (other fields kept).
 #'
 #' @section SPI classification:
 #' \preformatted{
@@ -81,6 +95,8 @@ utils::globalVariables(c(
 #'   \item Estimate gamma distribution parameters (shape \eqn{\alpha},
 #'     rate \eqn{\beta}) via method of moments from the calibration period,
 #'     handling zero-inflation with a mixed distribution (McKee et al., 1993).
+#'     The fit pools all calendar months of the location (it is not fitted
+#'     separately for each month of the year).
 #'   \item Transform to standard normal: `SPI = qnorm(p0 + (1-p0) *
 #'     pgamma(x, shape, rate))`, where `p0` is the proportion of zeros.
 #' }
@@ -120,7 +136,8 @@ utils::globalVariables(c(
 #' combined <- sus_grid_join(health_mt, spi_mt)
 #' }
 #'
-#' @seealso [sus_grid_chirps()], [sus_climate_anomaly()], [sus_grid_join()],
+#' @seealso [sus_climate_compute_spei()], [sus_grid_chirps()],
+#'   [sus_climate_uniplu()], [sus_climate_anomaly()], [sus_grid_join()],
 #'   [sus_mod_dlnm()]
 #'
 #' @export

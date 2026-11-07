@@ -150,7 +150,7 @@ utils::globalVariables(c(
 #' @section Approximation method:
 #'
 #' Exact computation requires access to the full MCMC sample or INLA posterior
-#' marginals. When only the posterior mean and 95\% credible interval are
+#' marginals. When only the posterior mean and 95% credible interval are
 #' stored (as in the `$rr` slot), exceedance probabilities are approximated
 #' via a **log-normal approximation**:
 #'
@@ -183,21 +183,31 @@ utils::globalVariables(c(
 #'
 #' @param fit A `climasus_spacetime_bayes` object produced by
 #'   [sus_mod_spacetime_bayes()]. Must contain a `$rr` data frame with
-#'   columns `code_muni`, `time_idx`, `rr_mean`, `rr_lower95`, `rr_upper95`.
-#' @param thresholds Numeric vector of positive RR thresholds for which
-#'   \eqn{P(RR > t)} is computed. Default `c(1.0, 1.5, 2.0)`.
-#' @param aggregate_time Character or `NULL`. If `"year"` or `"month"`,
-#'   aggregate the temporal dimension before reporting exceedances. Requires
-#'   that `time_idx` be coercible to `Date` (formats `"YYYY-MM-DD"` or
-#'   `"YYYY-MM"`). Default `NULL` (no aggregation).
-#' @param municipalities An `sf` object with at least a `code_muni` column
-#'   and geometry. If provided, geometry is joined to the exceedance table
-#'   so the result can be mapped directly. Requires the **sf** package.
-#'   Default `NULL`.
-#' @param lang Character. Language for CLI messages: `"pt"` (default),
-#'   `"en"`, or `"es"`.
-#' @param verbose Logical. If `TRUE` (default), print progress messages via
-#'   **cli**.
+#'   columns `code_muni`, `time_idx`, `rr_mean`, `rr_lower95`, `rr_upper95`
+#'   (errors otherwise). Rows with `NA` or non-positive RR are dropped with a
+#'   warning.
+#' @param thresholds Numeric vector of positive RR thresholds, e.g. `1.5` or
+#'   `c(1.0, 1.5, 2.0)` (default). Duplicates are removed and values sorted;
+#'   non-numeric, `NA` or values `<= 0` error. One `p_gt_*` column is created
+#'   per threshold (decimal point replaced by `_`, and `1.0` prints as `1`,
+#'   so the defaults give `p_gt_1`, `p_gt_1_5`, `p_gt_2`).
+#' @param aggregate_time Character scalar or `NULL`. `"year"` or `"month"`
+#'   averages \eqn{\log(RR)} and \eqn{\sigma_{\log}} within municipality x
+#'   period before computing exceedances (output column `time_period`,
+#'   formatted `"YYYY"` or `"YYYY-MM"`). Any other string errors. `time_idx`
+#'   must be parseable as a date (`"YYYY-MM-DD"` or `"YYYY-MM"`) or, for
+#'   [sus_mod_spacetime_bayes()] objects, an integer index `1..T` that is
+#'   mapped to calendar periods through `fit$time_keys` / `fit$time_unit`.
+#'   Without that calendar information, a numeric `time_idx` is accepted only
+#'   if it looks like a calendar year (>= 1000); otherwise it errors.
+#'   Default `NULL` (no aggregation).
+#' @param municipalities An `sf` object (must inherit `sf`, otherwise error)
+#'   containing `code_muni` and geometry, joined to the exceedance table so
+#'   it can be mapped. Requires \pkg{sf}. Default `NULL`.
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"`,
+#'   or `"es"`; anything else errors (`match.arg`).
+#' @param verbose Logical scalar. Print progress messages via \pkg{cli}.
+#'   Default `TRUE`.
 #'
 #' @return A named list of class `c("climasus_spacetime_exceedance", "list")`
 #'   with the following slots:
@@ -205,8 +215,8 @@ utils::globalVariables(c(
 #'   \describe{
 #'     \item{`$exceedance`}{`data.frame` with columns `code_muni`,
 #'       `time_idx` (or `time_period` if aggregated), `rr_mean`, and one
-#'       `p_gt_X` column per threshold (e.g. `p_gt_1_0`, `p_gt_1_5`,
-#'       `p_gt_2_0`).}
+#'       `p_gt_*` column per threshold (see `thresholds`). When
+#'       `municipalities` is given, geometry is attached.}
 #'     \item{`$thresholds`}{Numeric vector of thresholds used.}
 #'     \item{`$n_exceed`}{`data.frame` with columns `threshold` and
 #'       `n_cells_exceed` counting how many cells have
@@ -335,8 +345,23 @@ sus_mod_spacetime_exceedance <- function(
     time_vec <- tryCatch(
       {
         tv <- rr_df$time_idx
-        if (is.numeric(tv)) {
-          # assume integer year
+        keys <- fit[["time_keys"]]
+        unit <- fit[["time_unit"]] %||% "numeric"
+        if (is.numeric(tv) && !is.null(keys) && unit != "numeric" &&
+            all(tv %in% seq_along(keys))) {
+          # bayes object: time_idx 1..T -> calendar key (YYYY, YYYYMM, YYYYWW)
+          k <- keys[as.integer(tv)]
+          if (unit == "year") {
+            as.Date(sprintf("%d-01-01", k))
+          } else if (unit == "month") {
+            as.Date(sprintf("%d-%02d-01", k %/% 100L, k %% 100L))
+          } else {
+            as.Date(sprintf("%d-01-01", k %/% 100L)) + 7 * (k %% 100L)
+          }
+        } else if (is.numeric(tv)) {
+          # no calendar info: accept only values that look like years
+          if (!is.null(keys) && unit == "numeric") tv <- keys[as.integer(tv)]
+          if (any(is.na(tv) | tv < 1000)) stop("not years")
           as.Date(paste0(as.integer(tv), "-01-01"))
         } else {
           tv_chr <- as.character(tv)

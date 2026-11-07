@@ -4,18 +4,21 @@
 #' `sus_climate_fill_inmet()` imputes missing values in **INMET automatic station data**
 #' using station-wise XGBoost models with automated feature engineering.
 #'
+#' Use it right after [sus_climate_inmet()] and before [sus_climate_aggregate()],
+#' [sus_climate_compute_indicators()] or the heat/cold-wave functions. It is
+#' designed exclusively for hourly INMET data in the standard variable set
+#' (see below); it does not support UNIPLU data.
+#'
 #' **Key features:**
 #' \itemize{
-#'   \item **Multi-target support**: Impute one, many, or ALL numeric variables in a single call
+#'   \item **Multi-target support**: Impute one, many, or ALL known INMET variables in a single call
 #'   \item **Station-wise modeling**: Separate model per station per variable
 #'   \item **Temporal features**: Automatic creation of lags and rolling statistics
-#'   \item **Quality control**: Stations with >`quality_threshold` missing are excluded
+#'   \item **Quality control**: Stations with >`quality_threshold` missing (per variable) are excluded
 #'   \item **Parallel processing**: Stations processed in parallel; workers resolved once and
 #'         reused across all variable iterations
 #'   \item **Evaluation mode**: Assess accuracy by creating artificial gaps
 #' }
-#' **Important: This function is designed exclusively for data imported by
-#' `sus_climate_inmet()` and works with the standard INMET variable set.**
 #'
 #' @section INMET Variable Set:
 #' The function is optimized for the following 17 INMET variables:
@@ -29,170 +32,199 @@
 #'   \item **Solar Radiation**: `sr_kj_m2`
 #' }
 #' When `target_var = "all"`, the function automatically detects and imputes
-#' **only these 17 variables** if present in the data.
+#' **only these 17 variables** if present in the data. Other numeric columns
+#' can be imputed by naming them explicitly (a warning is shown).
+#' Variable-specific transforms are applied internally (`log1p` for rainfall,
+#' `sqrt` for wind and solar radiation); humidity and wind direction are
+#' rounded to integers after imputation.
 #'
 #' @param df
-#'   A data frame (or tibble) containing climate data, typically from `sus_climate_inmet()`.
-#'   Must contain:
+#'   A data frame or `climasus_df` of hourly climate data, typically from
+#'   [sus_climate_inmet()]. Must contain:
 #'   \itemize{
-#'     \item A datetime column (POSIXct or convertible)
-#'     \item A station identifier column
+#'     \item A datetime column (POSIXct or convertible; normally `date`)
+#'     \item A station identifier column (normally `station_code`)
 #'     \item The target numeric column(s) to be imputed
 #'   }
 #'
 #' @param target_var
-  #'   Character vector of column name(s) to impute, **or** the special string `"all"`
-  #'   to impute every numeric column that is not the datetime or station column.
-  #'   Examples:
-  #'   \itemize{
-  #'     \item Single variable: `target_var = "tair_dry_bulb_c"`
-  #'     \item Multiple variables: `target_var = c("tair_dry_bulb_c", "rh_pct", "ws_2_m_s")`
-  #'     \item All numeric variables: `target_var = "all"`
-  #'   }
-  #'
-  #' @param datetime_col
-  #'   Character. Name of the datetime column. If `NULL` (default), auto-detected.
-  #'
-  #' @param station_col
-  #'   Character. Name of the station identifier column. If `NULL`, auto-detected.
-  #'
-  #' @param quality_threshold
-  #'   Numeric (0-1). Maximum allowed missing proportion per station.
-  #'   Stations exceeding this are excluded. Default: `0.4` (40%).
-  #' 
-  #'   **For INMET data**: Recommended values:
-  #'   \itemize{
-  #'     \item `0.3` (30%) - Conservative, high-quality stations only
-  #'     \item `0.4` (40%) - Default, balanced approach
-  #'     \item `0.6` (60%) - Lenient, includes stations with significant gaps
-  #'   }
-  #' @param run_evaluation
-  #'   Logical. If `TRUE`, runs in evaluation mode:
-  #'   \itemize{
-  #'     \item Creates artificial MCAR gaps in observed data
-  #'     \item Imputes and compares predictions with true values
-  #'     \item Returns metrics by station
-  #'   }
-  #'   Default: `FALSE` (production mode).
-  #'
-  #' @param gap_percentage
-  #'   Numeric (0-1). Proportion of data to set as missing in evaluation mode. The `"MCAR"` Missing Completely At Random is used as default.
-  #'   Default: `0.2` (20%).
-  #'
-  #' @param keep_features
-  #'   Logical. If `TRUE`, retains engineered features (lags, rolling stats).
-  #'   Default: `FALSE` (returns only original columns + `is_imputed`).
-  #'
-  #' @param parallel
-  #'   Logical. If `TRUE` (default), processes stations in parallel using `furrr`.
-  #'
-  #' @param workers
-  #'   Integer. Number of parallel workers. If `NULL`, uses `max(1, availableCores() - 1)`.
-  #'   The value is resolved **once** at the start and reused across all variable iterations,
-  #'   avoiding repeated plan switches.
-  #'
-  #' @param verbose
-  #'   Logical. If `TRUE` (default), prints progress messages.
-  #'
-  #' @param lang
-  #'   Character. Message language: `"pt"` (Portuguese), `"en"` (English), or `"es"` (Spanish).
-  #'   Default: `"pt"`.
-  #'
-  #' @return
-  #' **Production mode** (`run_evaluation = FALSE`):
-  #' \itemize{
-  #'   \item **Single variable**: a `tibble` (same class as input) with imputed values in
-  #'     `target_var` and an `is_imputed_<var>` flag column.
-  #'   \item **Multiple variables / `"all"`**: the same tibble with all requested variables
-  #'     imputed sequentially, each with its own `is_imputed_<var>` flag column.
-  #'   \item A `sus_meta` attribute records all imputed variables and their rates.
-  #' }
-  #'
-  #' **Evaluation mode** (`run_evaluation = TRUE`):
-  #' Returns a **named list** (one element per variable) of class `climasus_eval`, each with:
-  #' \itemize{
-  #'   \item `$data`: Data frame with artificial gaps and predictions
-  #'   \item `$metrics`: A `tibble` with per-station performance metrics:
-  #'     \itemize{
-  #'       \item `station`: Station identifier
-  #'       \item `rmse`: Root Mean Squared Error
-  #'       \item `mae`: Mean Absolute Error
-  #'       \item `r_squared`: R-squared (lower than 1, higher is better)
-  #'       \item `smape`: Symmetric MAPE (0-200%, lower is better)
-  #'       \item `slope_bias`: Should be close to 1.0, indicating underestimate and overestimate
-  #'       \item `n_gaps`: Number of artificial gaps
-  #'     }
-  #' }
-  #'
-  #' @section Methodological Notes:
-  #'
-  #' **Important limitations:**
-  #' \itemize{
-  #'   \item **Not forecasting**: Predicts only where data are missing
-  #'   \item **No future data**: Uses only past information (lags)
-  #'   \item **Station independence**: Models don't share information
-  #'   \item **Quality filter**: Stations with >`quality_threshold` missing are skipped
-  #' }
-  #'
-  #' **Feature engineering:**
-  #' Automatically creates:
-  #' \itemize{
-  #'   \item Time features: hour, day, month, year, cyclic transforms
-  #'   \item Lag features: 1,2,3,6,12,24,48,72,168 periods
-  #'   \item Rolling statistics: mean and sd over windows 3,6,12,24,48,72
-  #' }
-  #'
-  #' @section Evaluation Mode Details:
-  #'
-  #' When `run_evaluation = TRUE`, the function:
-  #' \enumerate{
-  #'   \item Creates artificial gaps (MCAR by default)
-  #'   \item Runs imputation on the data with gaps
-  #'   \item Compares predictions with true values
-  #'   \item Returns per-station performance
-  #' }
-  #'
-  #' This helps assess model accuracy before production use.
-  #'
-  #' @examples
-  #' \dontrun{
-  #' # ===== PRODUCTION MODE — single variable =====
-  #' filled_temp <- sus_climate_fill_inmet(
-  #'   df = climate_data,
-  #'   target_var = "tair_dry_bulb_c",
-  #'   quality_threshold = 0.3,
-  #'   parallel = TRUE
-  #' )
-  #'
-  #' # ===== PRODUCTION MODE — multiple variables =====
-  #' filled_multi <- sus_climate_fill_inmet(
-  #'   df = climate_data,
-  #'   target_var = c("tair_dry_bulb_c", "rh_pct", "ws_2_m_s"),
-  #'   quality_threshold = 0.3,
-  #'   parallel = TRUE,
-  #'   workers = 4
-  #' )
-  #'
-  #' # ===== PRODUCTION MODE — all numeric variables =====
-  #' filled_all <- sus_climate_fill_inmet(
-  #'   df = climate_data,
-  #'   target_var = "all",
-  #'   parallel = TRUE
-  #' )
-  #'
-  #' # ===== EVALUATION MODE — single variable =====
-  #' eval_results <- sus_climate_fill_inmet(
-  #'   df = climate_data,
-  #'   target_var = "ws_2_m_s",
-  #'   run_evaluation = TRUE,
-  #'   gap_percentage = 0.2,
-  #'   workers = 4
-  #' )
-  #' eval_results$ws_2_m_s$metrics
-  #'
-  #' # ===== EVALUATION MODE — multiple variables =====
-  #' eval_multi <- sus_climate_fill_inmet(
-  #'   df = climate_data,
+#'   Character vector of column name(s) to impute, **or** the single string
+#'   `"all"` to impute every one of the 17 known INMET variables present in
+#'   `df` (errors if none is present). Names not found in `df` raise an error;
+#'   names outside the known set are imputed with a warning.
+#'   Examples:
+#'   \itemize{
+#'     \item Single variable: `target_var = "tair_dry_bulb_c"`
+#'     \item Multiple variables: `target_var = c("tair_dry_bulb_c", "rh_mean_porc", "ws_2_m_s")`
+#'     \item All known INMET variables: `target_var = "all"`
+#'   }
+#'
+#' @param datetime_col
+#'   Single character string, name of the datetime column. If `NULL`
+#'   (default), auto-detected.
+#'
+#' @param station_col
+#'   Single character string, name of the station identifier column. If
+#'   `NULL` (default), auto-detected.
+#'
+#' @param quality_threshold
+#'   Numeric scalar in `[0, 1]`. Maximum allowed proportion of missing values
+#'   of the target variable per station; stations above it are skipped for that
+#'   variable. Default `0.4` (40%).
+#'
+#'   Recommended values for INMET data:
+#'   \itemize{
+#'     \item `0.3` (30%) - Conservative, high-quality stations only
+#'     \item `0.4` (40%) - Default, balanced approach
+#'     \item `0.6` (60%) - Lenient, includes stations with significant gaps
+#'   }
+#'
+#' @param run_evaluation
+#'   Logical scalar. If `TRUE`, runs in evaluation mode instead of imputing:
+#'   \itemize{
+#'     \item Creates artificial MCAR gaps in observed data
+#'     \item Imputes and compares predictions with true values
+#'     \item Returns metrics by station
+#'   }
+#'   Default `FALSE` (production mode).
+#'
+#' @param gap_percentage
+#'   Numeric scalar in `(0, 1)`. Proportion of observed values set to missing
+#'   in evaluation mode (MCAR: Missing Completely At Random). Ignored when
+#'   `run_evaluation = FALSE`. Default `0.2` (20%).
+#'
+#' @param keep_features
+#'   Logical scalar. If `TRUE`, retains engineered features (lags, rolling
+#'   stats, time features). Default `FALSE` (returns only original columns
+#'   plus the `is_imputed_<var>` flags).
+#'
+#' @param parallel
+#'   Logical scalar. If `TRUE`, processes stations in parallel using
+#'   \pkg{furrr}/\pkg{future} (multisession); falls back to sequential with a
+#'   warning if these packages are missing. Default `FALSE`.
+#'
+#' @param workers
+#'   Single positive integer, or `NULL` (default). Number of parallel workers;
+#'   `NULL` uses `max(1, availableCores() - 1)`. Ignored if `parallel = FALSE`.
+#'   The value is resolved **once** at the start and reused across all variable
+#'   iterations, avoiding repeated plan switches.
+#'
+#' @param verbose
+#'   Logical scalar. If `TRUE` (default), prints progress messages.
+#'
+#' @param lang
+#'   Single character string. Message language: `"pt"` (Portuguese), `"en"`
+#'   (English), or `"es"` (Spanish). Default `"pt"`.
+#'
+#' @return
+#' **Production mode** (`run_evaluation = FALSE`): a `climasus_df` (stage
+#' `"climate"`, type `"filled"`, `system = NULL`) with the same columns as
+#' `df`, imputed values in each `target_var` and one logical flag column
+#' `is_imputed_<var>` per variable. `sus_meta()` records the source,
+#' imputed variables, per-variable imputation stats and `quality_threshold`.
+#' Stations that fail the quality threshold are **removed** from the output
+#' (see Methodological Notes).
+#'
+#' **Evaluation mode** (`run_evaluation = TRUE`): a plain **named list** (one
+#' element per variable that had at least one eligible station), each with:
+#' \itemize{
+#'   \item `$data`: tibble with `date`, the station column, `true_value`
+#'     and `pred_value` for the artificial gaps
+#'   \item `$metrics`: tibble with per-station performance metrics:
+#'     \itemize{
+#'       \item `station_id`: Station identifier
+#'       \item `rmse`: Root Mean Squared Error
+#'       \item `mae`: Mean Absolute Error
+#'       \item `r_squared`: R-squared (closer to 1 is better)
+#'       \item `smape`: Symmetric MAPE (0-200%, lower is better)
+#'       \item `slope_bias`: Slope of predicted vs. true; close to 1.0 means no
+#'         systematic under/over-estimation
+#'       \item `gap_percentage`, `gap_mechanism`: evaluation settings
+#'     }
+#' }
+#' The result of evaluation mode can be passed to [sus_climate_plot_fill()].
+#'
+#' @section Methodological Notes:
+#'
+#' **Important limitations:**
+#' \itemize{
+#'   \item **Not forecasting**: Predicts only where data are missing
+#'   \item **Station independence**: Models don't share information between stations
+#'   \item **Quality filter**: Stations with >`quality_threshold` missing are skipped
+#'     and dropped from the returned data
+#'   \item **Minimum data**: A station needs at least 30 observed values per variable
+#'   \item **Features may use neighbouring (past and future) hours**, so this is
+#'     interpolation, not prediction
+#' }
+#'
+#' **Feature engineering:**
+#' Automatically creates:
+#' \itemize{
+#'   \item Time features: hour, day, month, year, cyclic transforms
+#'   \item Lag features (past, forward and seasonal) at 1, 2, 3, 12, 24, 168 periods
+#'   \item Rolling statistics (mean, sd, ...) over windows 3, 6, 12, 24
+#' }
+#' A fixed seed (`42`) is set for reproducibility.
+#'
+#' @section Evaluation Mode Details:
+#'
+#' When `run_evaluation = TRUE`, the function:
+#' \enumerate{
+#'   \item Creates artificial gaps (MCAR)
+#'   \item Runs imputation on the data with gaps
+#'   \item Compares predictions with true values
+#'   \item Returns per-station performance
+#' }
+#'
+#' This helps assess model accuracy before production use.
+#'
+#' @seealso
+#' * [sus_climate_inmet()] to import the input data
+#' * [sus_climate_plot_fill()] to visualise results and metrics
+#' * [sus_climate_aggregate()] to join the filled series with health data
+#'
+#' @examples
+#' \dontrun{
+#' climate_data <- sus_climate_inmet(years = 2023, uf = "SP")
+#'
+#' # ===== PRODUCTION MODE - single variable =====
+#' filled_temp <- sus_climate_fill_inmet(
+#'   df = climate_data,
+#'   target_var = "tair_dry_bulb_c",
+#'   quality_threshold = 0.3,
+#'   parallel = TRUE
+#' )
+#'
+#' # ===== PRODUCTION MODE - multiple variables =====
+#' filled_multi <- sus_climate_fill_inmet(
+#'   df = climate_data,
+#'   target_var = c("tair_dry_bulb_c", "rh_mean_porc", "ws_2_m_s"),
+#'   quality_threshold = 0.3,
+#'   parallel = TRUE,
+#'   workers = 4
+#' )
+#'
+#' # ===== PRODUCTION MODE - all known INMET variables =====
+#' filled_all <- sus_climate_fill_inmet(
+#'   df = climate_data,
+#'   target_var = "all",
+#'   parallel = TRUE
+#' )
+#'
+#' # ===== EVALUATION MODE - single variable =====
+#' eval_results <- sus_climate_fill_inmet(
+#'   df = climate_data,
+#'   target_var = "ws_2_m_s",
+#'   run_evaluation = TRUE,
+#'   gap_percentage = 0.2,
+#'   parallel = TRUE,
+#'   workers = 4
+#' )
+#' eval_results$ws_2_m_s$metrics
+#'
+#' # ===== EVALUATION MODE - multiple variables =====
+#' eval_multi <- sus_climate_fill_inmet(
+#'   df = climate_data,
 #'   target_var = c("tair_dry_bulb_c", "ws_2_m_s"),
 #'   run_evaluation = TRUE,
 #'   gap_percentage = 0.2

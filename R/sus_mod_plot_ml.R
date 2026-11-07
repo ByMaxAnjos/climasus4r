@@ -118,24 +118,36 @@ utils::globalVariables(c(
 #' | `"fit"` | Observed vs. out-of-fold CV-predicted scatter with R² and RMSE annotation |
 #' | `"cv_log"` | Train/test loss per boosting round from `xgb.cv()`, with best-round marker |
 #'
-#' @param x A `climasus_ml` object produced by [sus_mod_ml()].
-#' @param type Character. Plot type: `"importance"` (default), `"fit"`, or
-#'   `"cv_log"`.
-#' @param output_type Character. `"plot"` (default), `"table"`, or `"all"`
-#'   (named list `$plot`, `$table`, `$data`).
-#' @param n_top Integer. Maximum number of features to show in the importance
-#'   plot. Default `20L`.
-#' @param interactive Logical. `TRUE` converts the ggplot2 output to an
-#'   interactive \pkg{plotly} widget. Default `FALSE`.
-#' @param base_size Numeric. ggplot2 base font size. Default `12`.
-#' @param save_plot Character or `NULL`. File path to save the plot.
-#' @param lang Character. Language for labels: `"pt"` (default), `"en"`, `"es"`.
-#' @param verbose Logical. Print progress messages. Default `FALSE`.
+#' @param x A `climasus_ml` object produced by [sus_mod_ml()]. Other classes
+#'   error.
+#' @param type Character scalar: `"importance"` (default; top features by
+#'   XGBoost Gain), `"fit"` (observed vs out-of-fold predicted) or `"cv_log"`
+#'   (train/test loss per boosting round). Partial matching applies; other
+#'   values error.
+#' @param output_type Character scalar: `"plot"` (default), `"table"` (plotted
+#'   data) or `"all"` (list with `$plot`, `$table`, `$data`).
+#' @param n_top Positive integer. Maximum number of features shown (and
+#'   returned in the table) for `type = "importance"`, e.g. `10L`. Values below
+#'   1 are raised to 1. Ignored by the other types. Default `20L`.
+#' @param interactive Logical scalar. `TRUE` converts the ggplot to a
+#'   \pkg{plotly} widget (requires \pkg{plotly}). Default `FALSE`.
+#' @param base_size Numeric scalar. Base font size in points for the ggplot2
+#'   theme. Default `12L`.
+#' @param save_plot Character scalar or `NULL` (default). Output path, e.g.
+#'   `"ml.png"` (saved with [ggplot2::ggsave()], 9 x 5 in); with
+#'   `interactive = TRUE` use an `.html` path (needs \pkg{htmlwidgets}).
+#'   `NULL` does not save.
+#' @param lang Character scalar: `"pt"` (default), `"en"`, `"es"`. Language of
+#'   labels; unsupported values warn and fall back to `"pt"`.
+#' @param verbose Logical scalar. If `TRUE` prints progress messages. Default
+#'   `FALSE`.
 #'
 #' @return Depending on `output_type`:
-#'   - `"plot"` -> a `ggplot` or `plotly` object.
-#'   - `"table"` -> a `tibble` of the plotted data.
-#'   - `"all"` -> a named list: `$plot`, `$table`, `$data`.
+#'   - `"plot"`: a `ggplot` (or `plotly` when `interactive = TRUE`) object.
+#'   - `"table"`: the plotted data: top `n_top` rows of `x$importance`
+#'     (`"importance"`), `x$predictions` (`"fit"`) or `x$cv_log` (`"cv_log"`).
+#'   - `"all"`: a named list with `$plot`, `$table` and `$data` (identical to
+#'     `$table`).
 #'
 #' @examples
 #' \dontrun{
@@ -148,7 +160,7 @@ utils::globalVariables(c(
 #' out$table
 #' }
 #'
-#' @seealso [sus_mod_ml()], [sus_mod_plot_dlnm()]
+#' @seealso [sus_mod_ml()], [predict.climasus_ml()], [sus_mod_plot_dlnm()]
 #'
 #' @export
 #' @importFrom cli cli_h1 cli_alert_success cli_alert_warning cli_abort

@@ -24,11 +24,22 @@ sus_data_import(
 )
 }
 \arguments{
-\item{uf}{A string or vector of strings with state abbreviations (\strong{igonered if 'region' is provided})
-(e.g., "AM", c("SP", "RJ")). Valid UF codes: AC, AL, AP, AM, BA, CE, DF, ES,
-GO, MA, MT, MS, MG, PA, PB, PR, PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO.}
+\item{uf}{Character scalar or vector of two-letter state codes (upper case),
+e.g. \code{"AM"} or \code{c("SP", "RJ")}; \code{"all"} is also accepted by the
+validation (all states; no UF filter is applied to the result). Valid
+codes: AC, AL, AP, AM, BA, CE, DF, ES, GO, MA, MT, MS, MG, PA, PB, PR,
+PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO. \strong{Ignored (with a warning)
+when \code{region} is supplied.} Invalid codes abort with an error. Either
+\code{uf} or \code{region} is required (default \code{NULL}). For national SINAN
+systems a single national file is downloaded per year and then filtered
+to the requested UF(s).}
 
-\item{region}{A string indicating a predefined group of states (supports multilingual names PT, EN, ES). Available regions:
+\item{region}{Character scalar (a single name, not a vector) selecting a
+predefined group of states, e.g. \code{"norte"}, \code{"amazonia_legal"},
+\code{"matopiba"}. Case-insensitive; Portuguese keys and the English/Spanish
+aliases (e.g. \code{"north"}, \code{"legal_amazon"}, \code{"sur"}, \code{"semiarido"}) are
+accepted. Takes precedence over \code{uf}. Default \code{NULL}. An unrecognised name
+aborts with an error. Available regions:
 
 \strong{IBGE Macro-regions:}
 \itemize{
@@ -67,14 +78,27 @@ GO, MA, MT, MS, MG, PA, PB, PR, PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO.}
 \item \code{"fronteira_brasil"}: c("AC", "AM", "AP", "MT", "MS", "PA", "PR", "RO", "RR", "RS", "SC")
 }}
 
-\item{year}{An integer or vector of integers with the desired years (4 digits).}
+\item{year}{Required. Numeric (4-digit) year(s): a scalar (\code{2023}), a range
+(\code{2020:2025}), or an explicit vector (\code{c(2020, 2022, 2024)}). Every
+element is downloaded as a separate file, so \code{c(2020, 2024)} means
+exactly those two years, \strong{not} the range 2020-2024; use \code{2020:2024}
+for a range. Character years that coerce to numbers (\code{"2023"}) are
+passed through \code{as.numeric()}. Available years depend on the DATASUS
+system and are not validated here; a combination with no published file
+is reported as "no data"/failed and skipped. The total number of downloads
+is \code{length(uf) * length(year) * length(month)} (months only for monthly
+systems).}
 
-\item{month}{An integer or vector of integers with the desired months (1-12).
-This argument is only used with monthly-based health information systems:
-SIH, CNES, and SIA. For annual systems (SIM, SINAN, SINASC), this parameter
-is ignored.}
+\item{month}{Integer scalar or vector with months \code{1}-\code{12}, e.g. \code{1},
+\code{1:6}, \code{c(1, 7)} (exactly January and July). \strong{Required} (non-\code{NULL}) for
+the monthly systems SIH, CNES and SIA; the function aborts otherwise.
+Values outside 1-12 abort. For annual systems (SIM, SINAN, SINASC) a
+non-\code{NULL} value triggers a warning and has no effect on the download.
+The same months are applied to every year in \code{year}. Default \code{NULL}.}
 
-\item{system}{A string indicating the information system. Available systems:
+\item{system}{Required. Character scalar with exactly one system code from
+the list below (case-sensitive; vectors are not supported). An invalid
+value aborts and suggests close matches. Available systems:
 
 \strong{Mortality Systems (SIM - Mortality Information System):}
 \itemize{
@@ -143,37 +167,43 @@ is ignored.}
 \item \code{"SINASC"}: Live Birth Declarations (Declaracoes de Nascidos Vivos)
 }}
 
-\item{backend}{Character string specifying the data processing backend.
-Use \code{"arrow"} for out-of-memory, lazy processing (recommended for large datasets),
-or \code{"tibble"} for in-memory processing (recommended for small to medium datasets).
+\item{backend}{Character scalar, \code{"arrow"} (default) or \code{"tibble"}.
 \itemize{
-\item \code{"arrow"}: operations are performed lazily using the Apache Arrow engine,
-avoiding loading the full dataset into memory. Ideal for large files
-(e.g., Parquet, Feather) and high-performance workflows.
-\item \code{"tibble"}: data is fully loaded into memory as a tibble and processed eagerly
-using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
+\item \code{"arrow"}: each UF/year/month file is cached as Parquet and the result
+is a lazy Arrow dataset (class \code{climasus_dataset}) that is not loaded
+into memory; use \code{\link[dplyr:compute]{dplyr::collect()}} to materialise it. If the Arrow
+path fails, a warning is issued and the function falls back to
+\code{"tibble"}.
+\item \code{"tibble"}: data is fully loaded into memory as a \code{climasus_df}
+(cached as RDS). Simpler, but may be slow or fail for large datasets.
 }
 
-If not specified, the function may automatically choose the backend based on
-the input data type.}
+Any value other than \code{"arrow"} uses the tibble path.}
 
 \item{city}{Character vector of municipality names (e.g., \code{"Porto Velho"},
-\code{"São Paulo"}). Case-insensitive; accents are normalised. Typos trigger
-fuzzy suggestions. Union with \code{municipality_code}. Applied after download
-to the combined dataset.}
+\code{c("Manaus", "Belem")}) or 6/7-digit code strings. Case-insensitive;
+accents are normalised; the search is restricted to the requested \code{uf}
+when possible. Unknown names are skipped with a warning and fuzzy
+suggestions. Combined (union) with \code{municipality_code}. Applied after the
+download to the combined data. Default \code{NULL} (no municipality filter).}
 
-\item{municipality_code}{Character or numeric vector of 6 or 7-digit IBGE
-municipality codes. Applied independently from \code{city}; both 6-digit
-(DATASUS) and 7-digit (IBGE) forms are always included.}
+\item{municipality_code}{Character or numeric vector of 6- or 7-digit IBGE
+municipality codes, e.g. \code{c(110020, 1302603)}. Combined (union) with
+\code{city}; both the 6-digit (DATASUS) and 7-digit (IBGE) forms of each code
+are matched. Default \code{NULL}.}
 
-\item{use_cache}{Logical. If TRUE (default), will use cached data to avoid
-re-downloads. Cache is based on UF, year, month, and system parameters.}
+\item{use_cache}{Logical scalar, default \code{TRUE}. Reuse files already
+downloaded to \code{cache_dir}. The cache key is system + UF + year + month
+(national SINAN files are keyed without UF). Files older than 30 days are
+considered stale and re-downloaded.}
 
-\item{cache_dir}{Character. Directory to store cached files.
-Default is "~/.climasus4r_cache/data".}
+\item{cache_dir}{Character scalar, directory for cached files (\code{~} is
+expanded; created if missing). Default \code{"~/.climasus4r_cache/data"}.
+The arrow backend stores Parquet files under \code{cache_dir/raw}.}
 
-\item{force_redownload}{Logical. If TRUE, ignores cache and re-downloads
-everything. Useful when you suspect cached data is corrupted or outdated.}
+\item{force_redownload}{Logical scalar, default \code{FALSE}. If \code{TRUE}, ignores
+the cache and downloads everything again (useful for corrupted or
+outdated files).}
 
 \item{filter_residence_uf}{Logical. For state-level systems (SIM, SIH, SIA,
 SINASC), keep only records whose municipality code belongs to the
@@ -183,30 +213,29 @@ Needed to build residence-based national series, where an admission in
 one state must be assigned to the patient's state of residence. Has no
 effect on national systems (SINAN).}
 
-\item{parallel}{Logical. If TRUE (default), will use parallel processing
-for multiple UF/year combinations. Significantly speeds up bulk downloads.}
+\item{parallel}{Logical scalar, default \code{FALSE}. If \code{TRUE}, download
+multiple UF/year/month combinations in parallel (via \code{future}). A warning
+is issued if \code{workers} exceeds the number of detected cores.}
 
-\item{workers}{Integer. Number of parallel workers to use. Default is 4.
-Set to 1 to disable parallel processing.}
+\item{workers}{Integer, default \code{4}. Number of parallel workers; only used
+when \code{parallel = TRUE}.}
 
-\item{lang}{Character string specifying the language for variable labels and
-messages. Options: \code{"en"} (English), \code{"pt"} (Portuguese, default), \code{"es"} (Spanish).}
+\item{lang}{Character scalar: \code{"pt"} (default), \code{"en"} or \code{"es"}. Language
+of console messages; any other value aborts.}
 
-\item{verbose}{Logical. If TRUE (default), prints detailed progress
-information including cache status, download progress, and time estimates.}
+\item{verbose}{Logical scalar, default \code{TRUE}. Print progress (cache hits,
+downloads, filters).}
 }
 \value{
-A \code{tibble} (or \code{data.frame}) with the requested data, combining
-multiple UFs/years when requested. The output includes:
-\itemize{
-\item All original variables from the DATASUS system
-\item Additional metadata columns: \code{source_system}, \code{download_timestamp}
-\item Standardized date formats (Date objects instead of strings)
-\item UTF-8 encoded character variables
-}
+With \code{backend = "arrow"} (default): a lazy Arrow dataset of class
+\code{climasus_dataset} (not in memory; \code{dplyr::collect()} returns a
+\code{climasus_df}). With \code{backend = "tibble"} (or after fallback): a
+\code{climasus_df} tibble combining all UFs/years/months with the original
+DATASUS columns (as returned by \code{microdatasus}). \code{sus_meta} is set to
+\code{stage = "import"}, \code{type = "raw"}.
 
-\strong{Note}: Large datasets (especially SIA and SIH) may require significant
-memory (1GB+ for national annual data).
+\strong{Note}: large datasets (especially SIA and SIH) may require a lot of
+memory (1 GB+ for national annual data); prefer the arrow backend.
 }
 \description{
 This function acts as a wrapper for \code{microdatasus::fetch_datasus},
@@ -223,19 +252,34 @@ All data is sourced from the Brazilian Ministry of Health's DATASUS portal
 
 \subsection{Caching System}{
 
-The cache uses SHA-256 hashing of parameters to create unique cache keys.
-Cached files are stored as compressed RDS files and include metadata about
-the download date and parameter combination. Cache is automatically invalidated
-after 30 days for dynamic systems (CNES, SIA, SIH) and 365 days for static
-systems (SIM, SINAN, SINASC).
+One file is cached per system/UF/year(/month) combination (Parquet for
+\code{backend = "arrow"}, RDS for \code{"tibble"}). Cached files older than 30 days are
+re-downloaded.
+}
+
+\subsection{Pipeline position}{
+
+First step of the pipeline (stage \code{"import"}). Next: \code{\link[=sus_data_clean_encoding]{sus_data_clean_encoding()}}
+and \code{\link[=sus_data_standardize]{sus_data_standardize()}}.
+}
+
+\subsection{Year and month semantics}{
+
+\code{year} and \code{month} are expanded as a full grid with \code{uf}:
+\verb{year = 2020:2022, month = 1:3} downloads 9 files per UF. Vectors are taken
+literally (\code{c(2020, 2024)} = two years).
+}
+
+\subsection{Residence filter}{
+
+For state-level systems, rows whose municipality code does not belong to
+the requested UF are dropped unless \code{filter_residence_uf = FALSE}.
 }
 
 \subsection{Parallel Processing}{
 
-When downloading data for multiple states or years, parallel processing
-can reduce download time by up to 70\%. The function uses \code{future.apply}
-internally. For large downloads (>100 files), consider increasing \code{workers}
-up to 8 (if your system has sufficient cores and memory).
+With \code{parallel = TRUE}, combinations are downloaded concurrently. For large
+downloads consider more \code{workers} if cores and memory allow.
 }
 }
 \examples{
@@ -266,6 +310,12 @@ df_hospital <- sus_data_import(
   verbose = TRUE
 )
 
+# Non-contiguous years: exactly 2020 and 2024 (NOT 2020-2024)
+df_two <- sus_data_import(uf = "AM", year = c(2020, 2024), system = "SIM-DO")
+
+# A whole region instead of uf
+df_n <- sus_data_import(region = "norte", year = 2022, system = "SIM-DO")
+
 # Force re-download ignoring cache
 df_births <- sus_data_import(
   uf = "BA",
@@ -284,6 +334,7 @@ SALDANHA, Raphael de Freitas; BASTOS, Ronaldo Rocha; BARCELLOS, Christovam. Micr
 }
 \seealso{
 \itemize{
+\item \code{\link[=sus_data_clean_encoding]{sus_data_clean_encoding()}}, \code{\link[=sus_data_standardize]{sus_data_standardize()}}, \code{\link[=sus_data_read]{sus_data_read()}}
 \item Official DATASUS documentation: \url{http://datasus.saude.gov.br}
 \item Microdatasus package: \url{https://github.com/rfsaldanha/microdatasus}
 }

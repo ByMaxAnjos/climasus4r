@@ -17,33 +17,40 @@ sus_mod_spatial_weights(
 }
 \arguments{
 \item{municipalities}{An \code{sf} object with \strong{polygon} or \strong{multipolygon}
-geometry. Typically the result of \code{\link[geobr:read_municipality]{geobr::read_municipality()}} or any
-shape file read with \code{\link[sf:st_read]{sf::st_read()}}. A column named \code{code_muni} is used
-as row labels when present; otherwise integer indices are used.}
+geometry, e.g. from \code{\link[geobr:read_municipality]{geobr::read_municipality()}} or \code{\link[sf:st_read]{sf::st_read()}}.
+Errors if not \code{sf} or if it has zero rows. Geometries are repaired with
+\code{sf::st_make_valid()}. If a \code{code_muni} column exists it labels the
+regions (\verb{$nb}, \verb{$W} dimnames, \verb{$island_ids}); otherwise labels are
+\verb{"1"..."n"}. \strong{Row order defines the unit order of the weights}: the
+\verb{sus_mod_spatial_*} models match data to \code{W} by position (and some sort
+\code{df} by \code{code_muni}), so sort \code{municipalities} by \code{code_muni} first
+(e.g. \code{muni[order(muni$code_muni), ]}).}
 
-\item{style}{Character. Weight normalisation style passed to
-\code{\link[spdep:nb2listw]{spdep::nb2listw()}}. One of \code{"W"} (default), \code{"B"}, \code{"C"}, \code{"U"},
-\code{"S"}, \code{"minmax"}. See \strong{Weight styles} section.}
+\item{style}{Character scalar. Weight normalisation passed to
+\code{\link[spdep:nb2listw]{spdep::nb2listw()}}: \code{"W"} (default, row-standardised), \code{"B"}, \code{"C"},
+\code{"U"}, \code{"S"}, or \code{"minmax"}. Any other value errors. See \strong{Weight
+styles}.}
 
-\item{queen}{Logical. If \code{TRUE} (default) Queen contiguity is used (shared
-edge or vertex). If \code{FALSE}, Rook contiguity (shared edge only).}
+\item{queen}{Logical scalar. \code{TRUE} (default) Queen contiguity (shared edge
+or vertex); \code{FALSE} Rook (shared edge only).}
 
-\item{snap}{Numeric or \code{NULL}. Snap distance tolerance passed to
-\code{\link[spdep:poly2nb]{spdep::poly2nb()}}. \code{NULL} (default) uses \code{1e-3}. See \strong{Snap distance}
-section.}
+\item{snap}{Numeric scalar or \code{NULL}. Distance tolerance (in CRS units)
+passed to \code{\link[spdep:poly2nb]{spdep::poly2nb()}}, e.g. \code{1e-3} for degree CRS or \code{10} for
+metres. \code{NULL} (default) uses \code{1e-3}. See \strong{Snap distance}.}
 
-\item{zero_policy}{Logical. If \code{TRUE} (default) municipalities with no
-neighbours ("islands") are allowed — their spatial lag is set to \code{NA}.
-If \code{FALSE} an error is raised when islands are found.}
+\item{zero_policy}{Logical scalar. \code{TRUE} (default) allows regions without
+neighbours (islands); they have an empty neighbour set (zero lag) and
+are reported in \verb{$island_ids}. \code{FALSE} errors if any island exists.}
 
-\item{return_matrix}{Logical. If \code{TRUE}, a dense \eqn{n \times n} spatial
-weights matrix \code{W} is included in the output (slot \verb{$W}). This can be
-memory-intensive for large datasets. Default \code{FALSE}.}
+\item{return_matrix}{Logical scalar. \code{TRUE} adds a dense \eqn{n \times n}
+matrix to \verb{$W} (memory-heavy for large \code{n}). Default \code{FALSE} (\verb{$W} is
+\code{NULL}; \code{\link[=sus_mod_spacetime_bayes]{sus_mod_spacetime_bayes()}} and \code{\link[=sus_mod_spatial_bayes]{sus_mod_spatial_bayes()}} then
+build the adjacency from \verb{$nb}).}
 
-\item{lang}{Character. Language for CLI messages: \code{"pt"} (default),
-\code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"},
+or \code{"es"}; anything else errors (\code{match.arg}).}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
 A \code{climasus_weights} object (named list with class
@@ -132,8 +139,9 @@ Anselin, L. (1988).
 \emph{Spatial Econometrics: Methods and Models}. Kluwer Academic.
 }
 \seealso{
-\code{\link[=sus_mod_spatial_reg]{sus_mod_spatial_reg()}} for spatial lag model (SAR/SLM),
-\code{\link[=sus_mod_spatial_reg]{sus_mod_spatial_reg()}} for spatial error model (SEM),
-\code{\link[=sus_mod_spatial_bayes]{sus_mod_spatial_bayes()}} for Bayesian hierarchical spatial models,
+\code{\link[=sus_mod_spatial_moran]{sus_mod_spatial_moran()}} for Moran's I / LISA,
+\code{\link[=sus_mod_spatial_reg]{sus_mod_spatial_reg()}} for spatial lag / error / Durbin / SAC regression,
+\code{\link[=sus_mod_spatial_bayes]{sus_mod_spatial_bayes()}} and \code{\link[=sus_mod_spacetime_bayes]{sus_mod_spacetime_bayes()}} for Bayesian
+hierarchical models,
 \code{\link[=sus_mod_spatial_scan]{sus_mod_spatial_scan()}} for spatial scan statistics.
 }

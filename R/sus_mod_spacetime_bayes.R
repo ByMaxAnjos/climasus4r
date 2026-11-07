@@ -194,8 +194,14 @@ utils::globalVariables(c(
 #' @keywords internal
 #' @noRd
 .build_time_index <- function(x, time_unit) {
+  unit <- "numeric"
   if (inherits(x, "Date") || inherits(x, "POSIXt")) {
     x <- as.Date(x)
+    if (time_unit == "auto") {
+      rng <- as.numeric(diff(range(x, na.rm = TRUE)))
+      time_unit <- if (rng > 365 * 2) "year" else if (rng > 60) "month" else "week"
+    }
+    unit <- time_unit
     if (time_unit == "year") {
       keys <- as.integer(format(x, "%Y"))
     } else if (time_unit == "month") {
@@ -225,7 +231,7 @@ utils::globalVariables(c(
   # map unique sorted keys to 1:T
   ux   <- sort(unique(keys))
   idx  <- match(keys, ux)
-  list(index = idx, keys = ux, n = length(ux))
+  list(index = idx, keys = ux, n = length(ux), unit = unit)
 }
 
 # =============================================================================
@@ -287,53 +293,66 @@ utils::globalVariables(c(
 #' values `u = 0.5`, `alpha = 0.01` are weakly informative and suitable for
 #' standardised disease mapping.
 #'
-#' @param df A `data.frame` or `climasus_df` at the `aggregate`, `spatial`, or
-#'   `climate` pipeline stage. Must contain `code_muni` (7-digit IBGE code),
-#'   the `outcome` column, the `time_col` column, all columns named in
-#'   `covariates`, and optionally an `offset` column. The data must form a
-#'   panel (one row per area-time combination).
-#' @param outcome Character. Name of the response (count) column in `df`.
-#' @param W A `climasus_weights` object produced by
-#'   [sus_mod_spatial_weights()]. Must contain either a `$W` dense matrix or
-#'   a `$nb` neighbour list used to build the INLA graph.
-#' @param time_col Character. Name of the column containing time information.
-#'   Can be a `Date`, `integer`, or `character` column. Default `"date"`.
-#' @param time_unit Character. Temporal aggregation unit used to build the
-#'   integer time index. One of `"year"`, `"month"`, `"week"`, or `"auto"`
-#'   (automatic detection based on date range). Default `"auto"`.
-#' @param covariates Character vector of covariate column names in `df` to
-#'   include as fixed effects. Default `NULL` (intercept-only model).
-#' @param offset Character. Name of a **population or expected counts** column
-#'   in `df` (natural scale). Entered as `log(offset)` in the linear
-#'   predictor. Default `NULL`.
-#' @param family Character. Likelihood family. One of `"poisson"` (default),
-#'   `"nbinomial"` (negative binomial), `"binomial"`, or `"gaussian"`.
-#' @param spatial_model Character. Spatial random effect structure. One of
-#'   `"bym2"` (default), `"bym"`, `"besag"`, or `"iid"`. See **Spatial model
-#'   options**.
-#' @param temporal_model Character. Temporal random effect structure. One of
-#'   `"rw1"` (default), `"rw2"`, `"ar1"`, or `"iid_time"`.
-#' @param interaction_type Character. Space-time interaction type following
-#'   Knorr-Held (2000). One of `"none"` (default), `"I"`, `"II"`, `"III"`,
-#'   or `"IV"`. See **Knorr-Held interaction types**.
-#' @param pc_prior_u Positive numeric. PC prior parameter \eqn{u} for the
-#'   BYM2 spatial precision: \eqn{P(\sigma > u) = \alpha}. Default `0.5`.
-#' @param pc_prior_alpha Numeric in (0, 1). PC prior parameter \eqn{\alpha}
-#'   (tail probability). Default `0.01`.
-#' @param compute_waic Logical. If `TRUE` (default), compute WAIC via
-#'   `control.compute = list(waic = TRUE)`.
-#' @param compute_cpo Logical. If `TRUE`, compute CPO/PIT values via
-#'   `control.compute = list(cpo = TRUE)`. Default `FALSE` (slower).
-#' @param exceedance_threshold Positive numeric. Compute \eqn{P(RR > threshold)}
-#'   for each space-time cell using the posterior marginals. Default `1.0`.
-#' @param n_samples Positive integer. Number of posterior samples drawn via
-#'   `INLA::inla.posterior.sample()` to compute RR credible intervals and
-#'   exceedance probabilities. Default `1000L`.
-#' @param seed Integer. Random seed for reproducibility. Default `42L`.
-#' @param lang Character. Language for CLI messages: `"pt"` (default),
-#'   `"en"`, `"es"`.
-#' @param verbose Logical. If `TRUE` (default), emit progress messages via
-#'   **cli**.
+#' @param df A `data.frame` or `climasus_df` (typically from
+#'   [sus_data_aggregate()] after [sus_spatial_join()] / climate joins) with
+#'   one row per area-time cell. Must contain `code_muni` (IBGE code), the
+#'   `outcome` column, the `time_col` column, every column in `covariates`
+#'   and `offset`. The panel must be (nearly) balanced: a missing-cell
+#'   fraction under 5% only warns, larger gaps error. The number of unique
+#'   `code_muni` must equal `W$n_regions`, and sorted `code_muni` order must
+#'   match the region order of `W`.
+#' @param outcome Character scalar. Name of the response (count) column in
+#'   `df`, e.g. `"deaths"`. `NA` values are passed to INLA as missing
+#'   (warning).
+#' @param W A `climasus_weights` object from [sus_mod_spatial_weights()]
+#'   with a `$W` matrix or a `$nb` neighbour list (used to build the INLA
+#'   graph). Errors otherwise.
+#' @param time_col Character scalar. Name of the time column in `df`: `Date`
+#'   or `POSIXt` (grouped by `time_unit`), numeric/integer (used as-is as the
+#'   time key, `time_unit` ignored), or character/factor (each unique value is
+#'   one period, sorted by factor level). Default `"date"`.
+#' @param time_unit Character scalar. How `Date` values are grouped into
+#'   periods: `"year"`, `"month"`, `"week"`, or `"auto"` (year if the range
+#'   exceeds 2 years, month if over 60 days, otherwise week). The signature
+#'   default is the first option, `"year"` (not `"auto"`). Ignored for
+#'   non-date `time_col`.
+#' @param covariates Character vector of column names in `df` included as
+#'   fixed effects, e.g. `c("temp_mean", "prec_total")`. `NULL` (default)
+#'   fits an intercept-only fixed part. Missing columns error.
+#' @param offset Character scalar or `NULL`. Name of a population or expected
+#'   counts column (natural scale, must be positive); entered as `log(offset)`.
+#'   Default `NULL` (no offset).
+#' @param family Character scalar. Likelihood: `"poisson"` (default),
+#'   `"nbinomial"`, `"binomial"`, or `"gaussian"`. RR and `p_exceed` are
+#'   computed on the log-link scale for `"poisson"`/`"nbinomial"`.
+#' @param spatial_model Character scalar. `"bym2"` (default), `"bym"`,
+#'   `"besag"`, or `"iid"`. See **Spatial model options**.
+#' @param temporal_model Character scalar. `"rw1"` (default), `"rw2"`,
+#'   `"ar1"`, or `"iid_time"` (INLA `iid`).
+#' @param interaction_type Character scalar. Knorr-Held (2000) space-time
+#'   interaction: `"none"` (default), `"I"`, `"II"`, `"III"`, or `"IV"`. See
+#'   **Knorr-Held interaction types**.
+#' @param pc_prior_u Positive numeric scalar. PC prior `u` in
+#'   \eqn{P(\sigma > u) = \alpha}. Default `0.5`.
+#' @param pc_prior_alpha Numeric scalar in (0, 1). PC prior tail probability
+#'   \eqn{\alpha}. Default `0.01`.
+#' @param compute_waic Logical scalar. Compute WAIC (`$waic`). Default `TRUE`.
+#'   DIC is always computed (`$dic`).
+#' @param compute_cpo Logical scalar. Ask INLA to compute CPO/PIT (slower;
+#'   kept in the INLA fit only, not returned as a separate slot). Default
+#'   `FALSE`.
+#' @param exceedance_threshold Positive numeric scalar. RR threshold for
+#'   `p_exceed` = \eqn{P(RR > threshold)}, from a normal approximation of the
+#'   linear-predictor posterior. Default `1.0`.
+#' @param n_samples Positive integer. Reserved and currently unused: no
+#'   posterior sampling is performed (credible intervals come from INLA
+#'   quantiles, exceedance from the normal approximation). Default `1000L`.
+#' @param seed Integer scalar. Passed to `set.seed()` before fitting. Default
+#'   `42L`.
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"`,
+#'   or `"es"`; anything else errors (`match.arg`).
+#' @param verbose Logical scalar. Emit progress messages via \pkg{cli}.
+#'   Default `TRUE`.
 #'
 #' @return A named list of class `c("climasus_spacetime_bayes", "list")` with
 #'   the following slots:
@@ -352,6 +371,15 @@ utils::globalVariables(c(
 #'       `interaction_type = "none"`.}
 #'     \item{`$fitted`}{Numeric vector of posterior mean fitted values
 #'       (response scale).}
+#'     \item{`$family`, `$temporal_model`}{Likelihood family and temporal
+#'       model used (also in `$model_spec`); read by
+#'       [sus_mod_spacetime_predict()].}
+#'     \item{`$data_last_obs`}{`data.frame` with `code_muni` and `covariates`
+#'       at each area's last observed period.}
+#'     \item{`$time_keys`, `$time_unit`}{Calendar key of each `time_idx`
+#'       (`1..T`): year (`2019`), `YYYYMM`, `YYYYWW`, or the raw integer when
+#'       `time_col` is not a date; `$time_unit` is `"year"`, `"month"`,
+#'       `"week"` or `"numeric"`.}
 #'     \item{`$waic`}{Named list with `$waic` (scalar) and `$p_eff` (effective
 #'       number of parameters), or `NULL` if `compute_waic = FALSE`.}
 #'     \item{`$dic`}{Named list with `$dic` (scalar) and `$p_d` (effective
@@ -969,6 +997,12 @@ sus_mod_spacetime_bayes <- function(
   }
 
   # ── 12. assemble output ────────────────────────────────────────────────────
+  # last observed covariate values per area (used by sus_mod_spacetime_predict)
+  last_obs_cols <- c("code_muni", covariates)
+  data_last_obs <- df[!duplicated(df[["code_muni"]], fromLast = TRUE),
+                      last_obs_cols, drop = FALSE]
+  row.names(data_last_obs) <- NULL
+
   structure(
     list(
       fixed          = fixed_df,
@@ -985,6 +1019,11 @@ sus_mod_spacetime_bayes <- function(
         interaction_type = interaction_type,
         family           = family
       ),
+      family         = family,
+      temporal_model = temporal_model,
+      data_last_obs  = data_last_obs,
+      time_keys      = time_info$keys,
+      time_unit      = time_info$unit,
       call     = .call,
       n_areas  = n_areas,
       n_times  = n_times

@@ -23,28 +23,34 @@ sus_grid_pollution_merra2(
 )
 }
 \arguments{
-\item{pollutants}{Character vector. Variables to download.
-Allowed: \code{"pm25"}, \code{"aod"}, \code{"so2"}. Default: \code{c("pm25", "aod")}.}
+\item{pollutants}{Character vector of variables, any of \code{"pm25"}, \code{"aod"}, \code{"so2"}
+(e.g. \code{"pm25"}, \code{c("pm25", "aod")}). Default \code{c("pm25", "aod")}. Other values
+(including \code{"all"}) error. \code{"so2"} is monthly-only: with
+\code{resolution = "daily"} it is dropped with a warning.}
 
-\item{resolution}{Character. Temporal resolution of source files.
-One of:
+\item{resolution}{Character scalar, \code{"monthly"} (default) or \code{"daily"}; other values
+error.
 \itemize{
-\item \code{"monthly"} (default) -- uses \code{M2TMNXAER}, one file per month,
-already monthly-averaged. Recommended for most analyses.
-\item \code{"daily"} -- uses \code{M2T1NXAER} (hourly), one file per day; 24
-hourly layers are aggregated to a single daily value using \code{agg_fun}.
-Note: \code{so2} only available in monthly resolution.
+\item \code{"monthly"} -- \code{M2TMNXAER}, one file per month (already monthly mean).
+Recommended for most analyses.
+\item \code{"daily"} -- \code{M2T1NXAER} (hourly), one file per day; the 24 hourly
+layers are aggregated to a daily value with \code{agg_fun}. Not available for
+\code{"so2"}.
 }}
 
-\item{years}{Integer vector. Years to download (1980 to current year).
-\code{NULL} defaults to the last two complete years.}
+\item{years}{Numeric vector or \code{NULL}. Accepted forms: scalar (\code{2020}), range
+(\code{2000:2010}) or explicit vector (\code{c(2000, 2010)} = exactly those two years,
+NOT the range -- use \code{2000:2010}). Valid range 1980 to the current year
+(outside values error; character values error); the current year triggers a
+data-latency warning. \code{NULL} (default) = last two complete years.}
 
-\item{months}{Integer vector (1-12). Months to include. Default \code{1:12}.}
+\item{months}{Numeric vector of months (1-12), e.g. \code{1:3}, \code{c(1, 7)}. Default
+\code{1:12}. Values outside 1-12 or \code{NA} error.}
 
-\item{municipalities}{An \code{sf} POLYGON object (e.g., from
-\code{\link[geobr:read_municipality]{geobr::read_municipality()}}). If provided, raster data are aggregated
-and a \code{climasus_df} is returned. If \code{NULL}, returns cached NetCDF paths
-(or a \code{SpatRaster} per \code{raster_area}).}
+\item{municipalities}{An \code{sf} polygon object (e.g. from \code{\link[geobr:read_municipality]{geobr::read_municipality()}})
+or \code{NULL} (default). Non-\code{sf} input errors. When provided, requires \code{terra}
+and \code{exactextractr}; a \code{climasus_df} is returned. If \code{NULL}, cached NetCDF
+paths (or a \code{SpatRaster}, see \code{raster_area}) are returned.}
 
 \item{raster_area}{Only used when \code{municipalities = NULL}. One of:
 \itemize{
@@ -69,31 +75,34 @@ final derived pollutant value. A user who needs the derived value
 layers themselves, or use the normal \code{municipalities}-based tabular
 workflow, which already computes the derived value correctly.}
 
-\item{agg_fun}{Character. Spatial aggregation function for
-\code{exactextractr::exact_extract()}. Default \code{"mean"} (area-weighted).}
+\item{agg_fun}{Character scalar. Spatial aggregation for
+\code{exactextractr::exact_extract()} (and daily aggregation of the hourly layers
+for \code{resolution = "daily"}): \code{"mean"} (default, area-weighted), \code{"sum"},
+\code{"median"}, \code{"min"} or \code{"max"}; other values error.}
 
-\item{earthdata_user}{Character. Earthdata username. Defaults to
+\item{earthdata_user}{Character scalar. NASA Earthdata username. Default
 \code{Sys.getenv("EARTHDATA_USER")}.}
 
-\item{earthdata_pass}{Character. Earthdata password. Defaults to
+\item{earthdata_pass}{Character scalar. NASA Earthdata password. Default
 \code{Sys.getenv("EARTHDATA_PASSWORD")}.}
 
-\item{netrc_path}{Character. Path to a \code{.netrc} file with Earthdata
-credentials. If provided, takes precedence over \code{earthdata_user} /
-\code{earthdata_pass}.}
+\item{netrc_path}{Character scalar or \code{NULL} (default). Path to a \code{.netrc} file with
+Earthdata credentials; if given, it takes precedence over \code{earthdata_user} /
+\code{earthdata_pass}. Missing credentials error.}
 
-\item{crop_brazil}{Logical. Crop rasters to Brazil's bounding box before
+\item{crop_brazil}{Logical scalar. Crop rasters to Brazil's bounding box before
 extraction to save memory. Default \code{TRUE}.}
 
-\item{use_cache}{Logical. Reuse previously downloaded NetCDF files and
-previously computed Parquet caches. Default \code{TRUE}.}
+\item{use_cache}{Logical scalar. Reuse downloaded NetCDF files and computed Parquet
+caches (\code{FALSE} recomputes). Default \code{TRUE}.}
 
-\item{cache_dir}{Character. Root cache directory.
-Default \code{"~/.climasus4r_cache/merra2"}.}
+\item{cache_dir}{Character scalar. Root cache directory. Default
+\code{"~/.climasus4r_cache/merra2"}.}
 
-\item{lang}{Character. Message language: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"} or
+\code{"es"}; other values error.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
 \itemize{
@@ -179,7 +188,7 @@ merra2 <- sus_grid_pollution_merra2(
 sus_meta(merra2, "stage")  # "climate"
 sus_meta(merra2, "type")   # "pollution_merra2"
 
-# Historical PM2.5 trend 2000-2010, annual summary
+# Historical PM2.5 trend 2000-2010 (monthly values)
 merra2_hist <- sus_grid_pollution_merra2(
   pollutants = "pm25", resolution = "monthly",
   years = 2000:2010, municipalities = mt_mun, lang = "en"
@@ -189,5 +198,6 @@ merra2_hist <- sus_grid_pollution_merra2(
 }
 \seealso{
 \code{\link[=sus_grid_pollution_cams]{sus_grid_pollution_cams()}}, \code{\link[=sus_grid_pollution_ghap]{sus_grid_pollution_ghap()}},
-\code{\link[=sus_climate_anomaly]{sus_climate_anomaly()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
+\code{\link[=sus_grid_join]{sus_grid_join()}}, \code{\link[=sus_grid_plot]{sus_grid_plot()}}, \code{\link[=sus_climate_anomaly]{sus_climate_anomaly()}},
+\code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
 }

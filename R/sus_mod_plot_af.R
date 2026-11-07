@@ -88,23 +88,34 @@ utils::globalVariables(c(
 #' | `"forest"` | Horizontal forest plot of AN +/- CI by component |
 #' | `"quantile"` | Bar chart of AF% across exposure quantile bands (requires `$by_quantile`) |
 #'
-#' @param fit A `climasus_af` object produced by [sus_mod_af()].
-#' @param type Character. Plot type: `"bar"` (default), `"forest"`, or
-#'   `"quantile"`.
-#' @param output_type Character. `"plot"` (default), `"table"`, or `"all"`
-#'   (named list `$plot`, `$table`, `$data`).
-#' @param interactive Logical. `TRUE` converts the ggplot2 output to an
-#'   interactive \pkg{plotly} widget. Default `FALSE`.
-#' @param base_size Numeric. ggplot2 base font size. Default `12`.
-#' @param save_plot Character or `NULL`. File path to save the plot (PNG/PDF
-#'   for static; HTML for interactive).
-#' @param lang Character. Language for labels: `"pt"` (default), `"en"`, `"es"`.
-#' @param verbose Logical. Print progress messages. Default `FALSE`.
+#' @param fit A `climasus_af` object produced by [sus_mod_af()]. Other classes
+#'   error.
+#' @param type Character scalar: `"bar"` (default; AF% by component),
+#'   `"forest"` (AN with CI by component) or `"quantile"` (AF% by exposure
+#'   percentile band; needs `fit$by_quantile`, which [sus_mod_af()] always
+#'   fills). Partial matching applies; other values error.
+#' @param output_type Character scalar: `"plot"` (default; returns the plot),
+#'   `"table"` (returns the plotted data) or `"all"` (list with `$plot`,
+#'   `$table`, `$data`).
+#' @param interactive Logical scalar. `TRUE` converts the ggplot to a
+#'   \pkg{plotly} widget (requires \pkg{plotly}). Default `FALSE`.
+#' @param base_size Numeric scalar. Base font size in points passed to the
+#'   ggplot2 theme. Default `12L`.
+#' @param save_plot Character scalar or `NULL` (default). Output file path, e.g.
+#'   `"af.png"` or `"af.pdf"` (saved with [ggplot2::ggsave()], 8 x 5 in); when
+#'   `interactive = TRUE` use an `.html` path (needs \pkg{htmlwidgets}).
+#'   `NULL` does not save.
+#' @param lang Character scalar: `"pt"` (default), `"en"`, `"es"`. Language of
+#'   labels; unsupported values warn and fall back to `"pt"`.
+#' @param verbose Logical scalar. If `TRUE` prints progress messages. Default
+#'   `FALSE`.
 #'
 #' @return Depending on `output_type`:
-#'   - `"plot"` -> a `ggplot` or `plotly` object.
-#'   - `"table"` -> a `tibble` of the plotted data.
-#'   - `"all"` -> a named list: `$plot`, `$table`, `$data`.
+#'   - `"plot"`: a `ggplot` (or `plotly` when `interactive = TRUE`) object.
+#'   - `"table"`: a tibble of the plotted data (`fit$total` for `"bar"` and
+#'     `"forest"`, `fit$by_quantile` for `"quantile"`).
+#'   - `"all"`: a named list with `$plot`, `$table` and `$data` (identical to
+#'     `$table`).
 #'
 #' @examples
 #' \dontrun{
@@ -118,7 +129,8 @@ utils::globalVariables(c(
 #' out$table
 #' }
 #'
-#' @seealso [sus_mod_af()], [sus_mod_plot_dlnm()]
+#' @seealso [sus_mod_af()], [sus_mod_burden()], [sus_mod_plot_burden()],
+#'   [sus_mod_plot_dlnm()]
 #'
 #' @export
 #' @importFrom cli cli_h1 cli_alert_success cli_alert_warning cli_abort

@@ -15,31 +15,35 @@ sus_mod_sensitivity(
 )
 }
 \arguments{
-\item{fits}{A named list of \code{climasus_dlnm} objects, one per stratum.
-All fits must use the same \code{climate_col} and were produced by
-\code{sus_mod_dlnm()}. If the list is unnamed, strata are labelled
-\code{"Stratum 1"}, \code{"Stratum 2"}, etc.}
+\item{fits}{A list of at least 2 \code{climasus_dlnm} objects from
+\code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, one per stratum, e.g.
+\code{list(elderly = fit1, adults = fit2)}. All must use the same
+\code{climate_col} (error otherwise). If unnamed, strata are labelled
+\code{"Stratum 1"}, \code{"Stratum 2"}, ... Errors if fewer than 2 fits or any
+element is not a \code{climasus_dlnm}.}
 
-\item{hot_percentile}{Numeric in (0, 1). Quantile of the observed exposure
-distribution used as the "hot" comparison point. Default: \code{0.99} (99th
-percentile — extreme heat). Must be greater than \code{cold_percentile}.}
+\item{hot_percentile}{Numeric scalar in (0, 1). Percentile of each
+stratum's observed exposure used as the "hot" point, e.g. \code{0.95}.
+Default \code{0.99}. Must be greater than \code{cold_percentile} (error otherwise).}
 
-\item{cold_percentile}{Numeric in (0, 1). Quantile of the observed exposure
-distribution used as the "cold" comparison point. Default: \code{0.01} (1st
-percentile — extreme cold). Must be less than \code{hot_percentile}.}
+\item{cold_percentile}{Numeric scalar in (0, 1). Percentile used as the
+"cold" point, e.g. \code{0.05}. Default \code{0.01}. Must be smaller than
+\code{hot_percentile}.}
 
-\item{stratum_labels}{Named character vector or \code{NULL}. Custom display labels
-for the strata, with names matching \code{names(fits)}. If \code{NULL}, the list
-names are used as-is. Useful for plotting (e.g.,
-\code{c(age_65plus = "65+ years", age_1864 = "18-64 years")}).}
+\item{stratum_labels}{Named character vector or \code{NULL}. Display labels,
+with names matching \code{names(fits)}, e.g.
+\code{c(elderly = "65+ years", adults = "18-64 years")}. Strata not named
+keep their list name; unmatched names are ignored. \code{NULL} (default) uses
+the list names.}
 
-\item{alpha}{Numeric. Significance level for confidence intervals.
-Default: \code{0.05}.}
+\item{alpha}{Numeric scalar in (0, 1). Significance level of the
+confidence intervals (\code{1 - alpha} level, normal approximation). Default
+\code{0.05} (95\% CI).}
 
-\item{lang}{Character. Language for messages: \code{"pt"} (default), \code{"en"},
-\code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"},
+or \code{"es"}; anything else warns and falls back to \code{"pt"}.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress messages. Default \code{TRUE}.}
 }
 \value{
 A \code{climasus_sensitivity} list with:
@@ -56,7 +60,8 @@ for each stratum (100-point grid from each \verb{$pred}): columns
 \code{stratum}, \code{label}, \code{exposure}, \code{rr}, \code{rr_lo}, \code{rr_hi}. Suitable
 for overlaid ERC plots.}
 \item{\verb{$meta}}{List: \code{climate_col}, \code{n_strata}, \code{stratum_names},
-\code{hot_percentile}, \code{cold_percentile}, \code{alpha}, \code{call_time}.}
+\code{stratum_labels}, \code{hot_percentile}, \code{cold_percentile}, \code{alpha},
+\code{call_time}.}
 }
 }
 \description{
@@ -121,5 +126,6 @@ Armstrong, B.G., et al. (2017). The role of humidity in associations of
 high temperature with mortality. \emph{Epidemiology}, 28(6), 781-789.
 }
 \seealso{
-\code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, \code{\link[=sus_mod_af]{sus_mod_af()}}, \code{\link[=sus_mod_pool]{sus_mod_pool()}}
+\code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, \code{\link[=sus_mod_af]{sus_mod_af()}}, \code{\link[=sus_mod_pool]{sus_mod_pool()}},
+\code{\link[=sus_mod_plot_dlnm]{sus_mod_plot_dlnm()}}
 }

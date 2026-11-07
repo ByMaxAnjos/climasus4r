@@ -122,7 +122,7 @@ utils::globalVariables(c(
 
 #' Meta-Regression of Pooled DLNM Estimates with City-Level Covariates
 #'
-#' Extends two-stage multivariate meta-analysis (`sus_mod_pool()`) by including
+#' Extends two-stage multivariate meta-analysis ([sus_mod_pool()]) by including
 #' city-level covariates (e.g., mean temperature, poverty index, age structure)
 #' to explain between-city heterogeneity in climate-health associations.
 #' Covariates are automatically standardized to mean 0, SD 1 so the intercept
@@ -154,28 +154,44 @@ utils::globalVariables(c(
 #' where \eqn{\hat{V}_j} is the estimated covariance of
 #' \eqn{\hat{\boldsymbol{B}}_j}.
 #'
-#' @param fits A named list of `climasus_dlnm` objects, one per city or region.
-#'   All fits must use the same `climate_col`, `lag_max`, `argvar`, and
-#'   `arglag`. Produced by `sus_mod_dlnm()`.
-#' @param covariates A `data.frame` with one row per city and city-level
-#'   predictors. City names must be stored as row names (default) or in the
-#'   column specified by `city_col`. Cities present in `fits` but absent in
-#'   `covariates` are excluded from the meta-regression with a warning.
-#' @param covariate_cols Character vector of column names to use as
-#'   meta-regression predictors. Default `NULL` uses all numeric columns in
-#'   `covariates` (after removing the city identifier column if any).
-#' @param city_col Character. Name of the column in `covariates` that holds
-#'   city identifiers. Default `NULL` uses row names of `covariates`.
-#' @param pred_at Numeric vector of quantile probabilities (0–1) for the
-#'   exposure-response summary table. Default `c(0.75, 0.90, 0.95, 0.99)`.
-#' @param blup Logical. Compute BLUP city-specific predictions? Default `TRUE`.
-#' @param method Character. `mvmeta` estimation method: `"reml"` (default),
-#'   `"ml"`, or `"fixed"`.
-#' @param alpha Numeric. Significance level for confidence intervals.
+#' @param fits Named list of `climasus_dlnm` objects (from [sus_mod_dlnm()]),
+#'   one per city/region, e.g. `list(fortaleza = fit_a, recife = fit_b)`. Names
+#'   identify cities and are matched to `covariates`; missing names become
+#'   `"city_1"`, ... Must be non-empty and all elements must be
+#'   `climasus_dlnm`. All fits must share the same `climate_col` and `lag_max`
+#'   (otherwise error) and should share `argvar`/`arglag` (those of the first
+#'   fit are used for prediction). Needs \pkg{mvmeta} and \pkg{dlnm}.
+#' @param covariates `data.frame` with one row per city and the city-level
+#'   predictors (e.g. mean temperature, poverty index). City identifiers are the
+#'   row names (default) or the column named by `city_col`. Cities in `fits`
+#'   absent from `covariates` are dropped with a warning; if none match, the
+#'   call errors. Non-data-frame input errors. Covariates are z-standardised
+#'   (mean 0, SD 1; constant columns are only centred) before fitting.
+#' @param covariate_cols Character vector or `NULL` (default). Columns of
+#'   `covariates` used as predictors, e.g. `c("mean_temp", "poverty_pct")`.
+#'   `NULL` uses all numeric columns (excluding `city_col`). Names not in
+#'   `covariates` are silently ignored; if none remain the call errors.
+#' @param city_col Character scalar or `NULL` (default). Column of `covariates`
+#'   holding city identifiers; `NULL` uses `rownames(covariates)`. Errors if the
+#'   column does not exist.
+#' @param pred_at Numeric vector of probabilities in (0, 1) (scalar or vector),
+#'   default `c(0.75, 0.90, 0.95, 0.99)`. Exposure percentiles (computed over
+#'   the pooled observations of all cities) at which the average-city RR is
+#'   reported in `$exposure_response`.
+#' @param blup Logical scalar. If `TRUE` (default) computes BLUP city-specific
+#'   predictions; requires at least 2 matched cities (otherwise skipped
+#'   silently) and a successful `mvmeta::blup()`.
+#' @param method Character scalar. Estimation method passed to
+#'   `mvmeta::mvmeta()`: `"reml"` (default), `"ml"`, `"fixed"` (no
+#'   between-city variance), or other `mvmeta` methods (`"mm"`, `"vc"`); not
+#'   validated here. If the covariate model fails to fit, a warning is issued
+#'   and the intercept-only model is used instead.
+#' @param alpha Numeric scalar in (0, 1). Significance level; the `crosspred`
+#'   confidence intervals use `ci.level = 1 - alpha`. Stored in `$meta$alpha`.
 #'   Default `0.05`.
-#' @param lang Character. Language for messages: `"pt"` (default), `"en"`,
-#'   `"es"`.
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param lang Character scalar: `"pt"` (default), `"en"`, `"es"`. Language of
+#'   messages; unsupported values warn and fall back to `"pt"`.
+#' @param verbose Logical scalar. If `TRUE` (default) prints progress messages.
 #'
 #' @return A `climasus_metaregression` list with:
 #'   \describe{
@@ -184,8 +200,12 @@ utils::globalVariables(c(
 #'       comparison).}
 #'     \item{`$pooled_pred`}{`dlnm::crosspred` for the average city (all
 #'       standardized covariates = 0, i.e., the intercept).}
-#'     \item{`$blup_preds`}{Named list of per-city BLUP `crosspred` objects
-#'       (when `blup = TRUE`).}
+#'     \item{`$pooled_curve`}{Tibble of the 100-point average-city curve:
+#'       `exposure`, `rr`, `rr_lo`, `rr_hi` (`NULL` if prediction failed).}
+#'     \item{`$exposure_response`}{Tibble with `pct`, `exposure`, `rr`,
+#'       `rr_lo`, `rr_hi` at the percentiles in `pred_at`.}
+#'     \item{`$blup_preds`}{Named list of per-city BLUP `crosspred` objects;
+#'       `NULL` when `blup = FALSE`, fewer than 2 cities, or BLUP failed.}
 #'     \item{`$city_table`}{Tibble: one row per city with raw and BLUP RRs at
 #'       the 75th percentile exposure.}
 #'     \item{`$covariate_tests`}{Tibble: one row per covariate with Wald
@@ -223,7 +243,8 @@ utils::globalVariables(c(
 #' tidy(mr)
 #' }
 #'
-#' @seealso [sus_mod_pool()], [sus_mod_dlnm()], [sus_mod_sensitivity()]
+#' @seealso [sus_mod_pool()], [sus_mod_dlnm()], [sus_mod_sensitivity()],
+#'   [sus_mod_plot_pool()]
 #'
 #' @export
 #' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_alert_warning cli_abort
@@ -331,7 +352,7 @@ sus_mod_metaregression <- function(
     cli::cli_alert_info(glue::glue(.smrl("step_validate", lang)))
 
   # 4. Compatibility check across fits
-  lag_maxes  <- vapply(fits, function(f) f$meta$lag_max,     integer(1L))
+  lag_maxes  <- vapply(fits, function(f) f$meta$lag_max,     numeric(1L))
   clim_cols  <- vapply(fits, function(f) f$meta$climate_col, character(1L))
 
   if (length(unique(lag_maxes)) > 1L) {
@@ -450,7 +471,8 @@ sus_mod_metaregression <- function(
       vcov       = vcov_intercept,
       model.link = "log",
       at         = expo_grid,
-      cen        = ref_value
+      cen        = ref_value,
+      ci.level   = 1 - alpha
     ),
     error = function(e) {
       cli::cli_alert_warning(
@@ -529,7 +551,8 @@ sus_mod_metaregression <- function(
             vcov       = vcov_b,
             model.link = "log",
             at         = expo_grid,
-            cen        = ref_value
+            cen        = ref_value,
+            ci.level   = 1 - alpha
           ),
           error = function(e) NULL
         )

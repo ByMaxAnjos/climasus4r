@@ -125,26 +125,33 @@ utils::globalVariables(c(
 #' * `"minmax"` — min/max normalisation
 #'
 #' @param municipalities An `sf` object with **polygon** or **multipolygon**
-#'   geometry. Typically the result of [geobr::read_municipality()] or any
-#'   shape file read with [sf::st_read()]. A column named `code_muni` is used
-#'   as row labels when present; otherwise integer indices are used.
-#' @param style Character. Weight normalisation style passed to
-#'   [spdep::nb2listw()]. One of `"W"` (default), `"B"`, `"C"`, `"U"`,
-#'   `"S"`, `"minmax"`. See **Weight styles** section.
-#' @param queen Logical. If `TRUE` (default) Queen contiguity is used (shared
-#'   edge or vertex). If `FALSE`, Rook contiguity (shared edge only).
-#' @param snap Numeric or `NULL`. Snap distance tolerance passed to
-#'   [spdep::poly2nb()]. `NULL` (default) uses `1e-3`. See **Snap distance**
-#'   section.
-#' @param zero_policy Logical. If `TRUE` (default) municipalities with no
-#'   neighbours ("islands") are allowed — their spatial lag is set to `NA`.
-#'   If `FALSE` an error is raised when islands are found.
-#' @param return_matrix Logical. If `TRUE`, a dense \eqn{n \times n} spatial
-#'   weights matrix `W` is included in the output (slot `$W`). This can be
-#'   memory-intensive for large datasets. Default `FALSE`.
-#' @param lang Character. Language for CLI messages: `"pt"` (default),
-#'   `"en"`, `"es"`.
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#'   geometry, e.g. from [geobr::read_municipality()] or [sf::st_read()].
+#'   Errors if not `sf` or if it has zero rows. Geometries are repaired with
+#'   `sf::st_make_valid()`. If a `code_muni` column exists it labels the
+#'   regions (`$nb`, `$W` dimnames, `$island_ids`); otherwise labels are
+#'   `"1"..."n"`. **Row order defines the unit order of the weights**: the
+#'   `sus_mod_spatial_*` models match data to `W` by position (and some sort
+#'   `df` by `code_muni`), so sort `municipalities` by `code_muni` first
+#'   (e.g. `muni[order(muni$code_muni), ]`).
+#' @param style Character scalar. Weight normalisation passed to
+#'   [spdep::nb2listw()]: `"W"` (default, row-standardised), `"B"`, `"C"`,
+#'   `"U"`, `"S"`, or `"minmax"`. Any other value errors. See **Weight
+#'   styles**.
+#' @param queen Logical scalar. `TRUE` (default) Queen contiguity (shared edge
+#'   or vertex); `FALSE` Rook (shared edge only).
+#' @param snap Numeric scalar or `NULL`. Distance tolerance (in CRS units)
+#'   passed to [spdep::poly2nb()], e.g. `1e-3` for degree CRS or `10` for
+#'   metres. `NULL` (default) uses `1e-3`. See **Snap distance**.
+#' @param zero_policy Logical scalar. `TRUE` (default) allows regions without
+#'   neighbours (islands); they have an empty neighbour set (zero lag) and
+#'   are reported in `$island_ids`. `FALSE` errors if any island exists.
+#' @param return_matrix Logical scalar. `TRUE` adds a dense \eqn{n \times n}
+#'   matrix to `$W` (memory-heavy for large `n`). Default `FALSE` (`$W` is
+#'   `NULL`; [sus_mod_spacetime_bayes()] and [sus_mod_spatial_bayes()] then
+#'   build the adjacency from `$nb`).
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"`,
+#'   or `"es"`; anything else errors (`match.arg`).
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
 #' @return A `climasus_weights` object (named list with class
 #'   `c("climasus_weights", "list")`) containing:
@@ -172,9 +179,10 @@ utils::globalVariables(c(
 #' *Spatial Econometrics: Methods and Models*. Kluwer Academic.
 #'
 #' @seealso
-#' [sus_mod_spatial_reg()] for spatial lag model (SAR/SLM),
-#' [sus_mod_spatial_reg()] for spatial error model (SEM),
-#' [sus_mod_spatial_bayes()] for Bayesian hierarchical spatial models,
+#' [sus_mod_spatial_moran()] for Moran's I / LISA,
+#' [sus_mod_spatial_reg()] for spatial lag / error / Durbin / SAC regression,
+#' [sus_mod_spatial_bayes()] and [sus_mod_spacetime_bayes()] for Bayesian
+#' hierarchical models,
 #' [sus_mod_spatial_scan()] for spatial scan statistics.
 #'
 #' @examples

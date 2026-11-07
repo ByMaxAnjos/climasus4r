@@ -10,13 +10,17 @@ sus_rap_gui(rap = NULL, launch.browser = TRUE, ...)
 \item{rap}{A \code{rap_object} (from \code{\link[=sus_rap_read]{sus_rap_read()}}) to pre-populate the
 interface. Pass \code{NULL} (default) to start from a blank template.}
 
-\item{launch.browser}{\code{logical(1)}  - Open in the system browser.
-Default \code{TRUE}.}
+\item{launch.browser}{\code{logical(1)}, default \code{TRUE}. Open the app in the
+system browser; \code{FALSE} uses the default Shiny launcher (e.g. RStudio
+viewer).}
 
-\item{...}{Additional arguments forwarded to \code{shiny::runApp()}.}
+\item{...}{Additional arguments forwarded to \code{shiny::runApp()}, e.g.
+\code{port = 3838}. Requires the \code{shiny} package (you are prompted to install
+it if missing).}
 }
 \value{
-Does not return; runs the Shiny application interactively.
+Does not return a value; runs the Shiny application until it is
+stopped.
 }
 \description{
 Opens a Shiny application that lets users visually configure pipeline
@@ -42,4 +46,7 @@ sus_rap_gui()
 rap <- sus_rap_read("pipeline_sp.R")
 sus_rap_gui(rap)
 }
+}
+\seealso{
+\code{\link[=sus_rap_read]{sus_rap_read()}}, \code{\link[=sus_rap_export]{sus_rap_export()}}, \code{\link[=sus_rap_recipe]{sus_rap_recipe()}}
 }

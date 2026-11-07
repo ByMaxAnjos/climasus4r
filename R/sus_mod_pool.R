@@ -136,21 +136,33 @@ utils::globalVariables(c(
 #'   \hat\Psi (\hat\Psi + S_i)^{-1}
 #'   (\hat{\boldsymbol{\theta}}_i - \hat{\boldsymbol{\theta}})}
 #'
-#' @param fits A named list of `climasus_dlnm` objects, one per city or region.
-#'   All fits must have been produced with the same `climate_col`, `argvar`,
-#'   `arglag`, and `lag_max`.
-#' @param exposure_range Numeric vector of length 2 specifying the exposure
-#'   grid range for the pooled prediction. Default `NULL` uses the combined
-#'   range across all city datasets.
-#' @param n_grid Integer. Number of exposure grid points for the pooled
-#'   prediction curve. Default `100L`.
-#' @param pred_at Numeric vector of quantile probabilities (0-1) for the
-#'   pooled exposure-response summary table. Default `c(0.75, 0.90, 0.95, 0.99)`.
-#' @param blup Logical. Compute BLUP city-specific predictions? Default `TRUE`.
-#' @param method Character. `mvmeta` estimation method: `"reml"` (default,
-#'   recommended), `"ml"`, or `"fixed"` (fixed-effects, no heterogeneity).
-#' @param lang Character. Language for messages: `"pt"` (default), `"en"`, `"es"`.
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param fits A list of `climasus_dlnm` objects from [sus_mod_dlnm()], one per
+#'   city or region, e.g. `list(manaus = fit1, belem = fit2)`. Names become the
+#'   city labels; if unnamed (or any name is empty) cities are labelled
+#'   `"city_1"`, `"city_2"`, ... Errors if empty, not a list, or if any
+#'   element is not a `climasus_dlnm`; a single fit only warns (meta-analysis
+#'   needs >= 2). All fits must share the same `climate_col`, `argvar`,
+#'   `arglag` and `lag_max` (incompatible fits error).
+#' @param exposure_range Numeric vector of length 2, `c(min, max)` in the
+#'   units of the climate variable (e.g. `c(15, 40)` degrees C), defining the
+#'   exposure grid of the pooled prediction. `NULL` (default) uses the
+#'   combined observed range across all cities.
+#' @param n_grid Integer scalar. Number of equally spaced grid points over
+#'   the exposure range. Default `100L`.
+#' @param pred_at Numeric vector of probabilities in (0, 1), e.g. `0.95` or
+#'   `c(0.75, 0.95, 0.99)`, giving the percentiles (of the pooled observed
+#'   exposure) reported in `$exposure_response`. Default
+#'   `c(0.75, 0.90, 0.95, 0.99)`. `$lag_response` and `$city_table` are
+#'   always evaluated at the 75th percentile.
+#' @param blup Logical scalar. Compute city-specific BLUP predictions
+#'   (requires >= 2 cities; skipped otherwise)? Default `TRUE`.
+#' @param method Character scalar. Estimation method passed to
+#'   `mvmeta::mvmeta()`: `"reml"` (default), `"ml"`, or `"fixed"`
+#'   (fixed-effects, no between-city heterogeneity). Other `mvmeta`
+#'   methods (e.g. `"mm"`, `"vc"`) are passed through unchecked.
+#' @param lang Character scalar. Message language: `"pt"` (default), `"en"`,
+#'   or `"es"`; anything else warns and falls back to `"pt"`.
+#' @param verbose Logical scalar. Print progress messages. Default `TRUE`.
 #'
 #' @return A `climasus_pool` list with components:
 #'   \describe{
@@ -180,6 +192,8 @@ utils::globalVariables(c(
 #' print(pool)
 #' plot_pool <- sus_mod_plot_dlnm(pool, lang = "en")
 #' }
+#'
+#' @seealso [sus_mod_dlnm()], [sus_mod_sensitivity()], [sus_mod_plot_dlnm()]
 #'
 #' @export
 #' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_alert_warning cli_abort

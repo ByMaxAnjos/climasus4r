@@ -12,8 +12,11 @@ cw_count_by_year(cw_result)
 }
 \value{
 A tibble with columns year, station_code, station_name, method,
-n_events, total_days_cw, mean_duration.
+n_events, total_days_cw, mean_duration (those present in the summary).
 }
 \description{
 Count coldwave events by year, station, and method
+}
+\seealso{
+\code{\link[=sus_climate_compute_coldwaves]{sus_climate_compute_coldwaves()}}
 }

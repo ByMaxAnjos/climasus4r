@@ -264,33 +264,53 @@ utils::globalVariables(c(
 #' percentiles, (3) lag peak summary, and (4) model diagnostics following
 #' reporting standards in Gasparrini et al. (2014) and Bhaskaran et al. (2013).
 #'
-#' @param fit A `climasus_dlnm` object produced by [sus_mod_dlnm()].
-#' @param type Character. Plot type (see **Plot types** section). Default
-#'   `"overall"`.
-#' @param output_type Character. What to return: `"plot"` (default), `"table"`,
-#'   or `"all"` (named list `$plot`, `$table`, `$data`).
-#' @param exposure_at Numeric or `NULL`. Exposure value used as the focal point
-#'   for the `"lag"` plot. `NULL` (default) uses the 75th percentile of lag-0
-#'   exposure.
-#' @param lags_at Integer vector. Lag times shown in the `"slice"` plot.
-#'   Default `c(0L, 3L, 7L, 14L, 21L)` -- automatically clipped to `lag_max`.
-#' @param pred_at Numeric vector (0-1). Quantile probabilities at which to
-#'   report cumulative RR in the statistical table. Default:
-#'   `c(0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.99)`.
-#' @param interactive Logical. `TRUE` -> [plotly::ggplotly()] / plotly 3-D for
-#'   `"surface"`; `FALSE` (default) -> static ggplot2.
-#' @param color_palette Character. Name of a \pkg{ggsci} palette. Default
-#'   `"npg"`. Other useful options: `"lancet"`, `"jama"`, `"nejm"`, `"aaas"`.
-#' @param base_size Numeric. ggplot2 base font size. Default `12`.
-#' @param save_plot Character or `NULL`. File path to save the output. PNG/PDF
-#'   for static; HTML for interactive.
-#' @param lang Character. Language for labels: `"pt"` (default), `"en"`, `"es"`.
-#' @param verbose Logical. Print progress messages. Default `FALSE`.
+#' @param fit A `climasus_dlnm` object produced by [sus_mod_dlnm()] (must
+#'   contain a `crosspred` in `$pred`). Other input errors. Needs \pkg{ggplot2},
+#'   \pkg{ggsci} and \pkg{patchwork} (plus \pkg{plotly} for `interactive = TRUE`
+#'   and for `type = "surface"`).
+#' @param type Character scalar, one of `"overall"` (default), `"lag"`,
+#'   `"surface"`, `"contour"`, `"slice"`, `"distribution"`, `"series"`. See
+#'   **Plot types**. `"surface"` always returns a \pkg{plotly} 3-D widget,
+#'   regardless of `interactive`. Partial matching applies; other values error.
+#' @param output_type Character scalar: `"plot"` (default), `"table"` (summary
+#'   table only) or `"all"` (list with `$plot`, `$table` and `$data`).
+#' @param exposure_at Numeric scalar or `NULL` (default). Exposure value (in the
+#'   units of the climate variable, e.g. `32`) at which the lag-specific curve of
+#'   `type = "lag"` is drawn; the nearest point of the 100-point prediction grid
+#'   is used. `NULL` uses the 75th percentile of lag-0 exposure. Ignored by
+#'   other types.
+#' @param lags_at Integer vector, default `c(0L, 3L, 7L, 14L, 21L)`. Lags drawn
+#'   by `type = "slice"`, e.g. `c(0, 7)` or `0:5`. Lags beyond the model's
+#'   `lag_max` are dropped; if none remain, five evenly spaced lags are used.
+#'   Ignored by other types.
+#' @param pred_at Numeric vector of probabilities in (0, 1) (scalar or vector),
+#'   default `c(0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.99)`. Exposure
+#'   percentiles at which cumulative RR is reported in the summary table
+#'   (`output_type = "table"` or `"all"`). Does not affect plots.
+#' @param interactive Logical scalar. `TRUE` converts the ggplot to an
+#'   interactive \pkg{plotly} widget; `FALSE` (default) returns a static ggplot.
+#' @param color_palette Character scalar. Name of a \pkg{ggsci} palette,
+#'   i.e. the suffix of `ggsci::pal_<name>`: `"npg"` (default), `"lancet"`,
+#'   `"jama"`, `"nejm"`, `"aaas"`, ... Unknown names warn and fall back to
+#'   `"npg"`.
+#' @param base_size Numeric scalar. Base font size in points for the ggplot2
+#'   theme. Default `12L`.
+#' @param save_plot Character scalar or `NULL` (default). Output path. A path
+#'   ending in `.html` with `interactive = TRUE` is saved as a self-contained
+#'   HTML widget (\pkg{htmlwidgets}); otherwise [ggplot2::ggsave()] is used
+#'   (10 x 7 in, 300 dpi; the extension selects PNG/PDF/...). Not saved when
+#'   `output_type = "table"`.
+#' @param lang Character scalar: `"pt"` (default), `"en"`, `"es"`. Language of
+#'   labels. Invalid values error (`match.arg`).
+#' @param verbose Logical scalar. If `TRUE` prints progress messages. Default
+#'   `FALSE`.
 #'
 #' @return Depending on `output_type`:
-#'   - `"plot"` -> a `ggplot` or `plotly` object.
-#'   - `"table"` -> a `gt_tbl` (or `tibble` when \pkg{gt} is unavailable).
-#'   - `"all"` -> a named list: `$plot`, `$table`, `$data`.
+#'   - `"plot"`: a `ggplot` (or `plotly` widget) object.
+#'   - `"table"`: a `gt_tbl` (or tibble when \pkg{gt} is unavailable).
+#'   - `"all"`: a named list with `$plot`, `$table` and `$data`, where `$data`
+#'     is a list (`exposure_response`, `lag_response`, `data_daily`,
+#'     `diagnostics`) taken from `fit`.
 #'
 #' @references
 #' Gasparrini, A., Armstrong, B., & Kenward, M.G. (2010). Distributed lag
@@ -332,7 +352,8 @@ utils::globalVariables(c(
 #' out$table
 #' }
 #'
-#' @seealso [sus_mod_dlnm()], [sus_climate_plot_heatwaves()]
+#' @seealso [sus_mod_dlnm()], [sus_mod_af()], [sus_mod_plot_af()],
+#'   [sus_mod_plot_sensitivity()], [sus_climate_plot_heatwaves()]
 #'
 #' @export
 #' @importFrom cli cli_h1 cli_alert_info cli_alert_success cli_alert_warning cli_abort

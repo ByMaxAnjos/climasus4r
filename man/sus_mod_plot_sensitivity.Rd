@@ -16,31 +16,42 @@ sus_mod_plot_sensitivity(
 )
 }
 \arguments{
-\item{x}{A \code{climasus_sensitivity} object produced by \code{\link[=sus_mod_sensitivity]{sus_mod_sensitivity()}}.}
+\item{x}{A \code{climasus_sensitivity} object produced by
+\code{\link[=sus_mod_sensitivity]{sus_mod_sensitivity()}}. Other classes error.}
 
-\item{type}{Character. Plot type: \code{"curves"} (default), \code{"scatter"}, or
-\code{"bar"}.}
+\item{type}{Character scalar: \code{"curves"} (default; exposure-response curve
+per stratum), \code{"scatter"} (hot RR vs cold RR per stratum) or \code{"bar"}
+(hot/cold RR per stratum, ordered by sensitivity index). Partial matching
+applies; other values error.}
 
-\item{output_type}{Character. \code{"plot"} (default), \code{"table"}, or \code{"all"}
-(named list \verb{$plot}, \verb{$table}, \verb{$data}).}
+\item{output_type}{Character scalar: \code{"plot"} (default), \code{"table"} (plotted
+data) or \code{"all"} (list with \verb{$plot}, \verb{$table}, \verb{$data}).}
 
-\item{interactive}{Logical. \code{TRUE} converts the ggplot2 output to an
-interactive \pkg{plotly} widget. Default \code{FALSE}.}
+\item{interactive}{Logical scalar. \code{TRUE} converts the ggplot to a
+\pkg{plotly} widget (requires \pkg{plotly}). Default \code{FALSE}.}
 
-\item{base_size}{Numeric. ggplot2 base font size. Default \code{12}.}
+\item{base_size}{Numeric scalar. Base font size in points for the ggplot2
+theme. Default \code{12L}.}
 
-\item{save_plot}{Character or \code{NULL}. File path to save the plot.}
+\item{save_plot}{Character scalar or \code{NULL} (default). Output path, e.g.
+\code{"sens.png"} (saved with \code{\link[ggplot2:ggsave]{ggplot2::ggsave()}}, 9 x 5 in); with
+\code{interactive = TRUE} use an \code{.html} path (needs \pkg{htmlwidgets}).
+\code{NULL} does not save.}
 
-\item{lang}{Character. Language for labels: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar: \code{"pt"} (default), \code{"en"}, \code{"es"}. Language of
+labels; unsupported values warn and fall back to \code{"pt"}.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{FALSE}.}
+\item{verbose}{Logical scalar. If \code{TRUE} prints progress messages. Default
+\code{FALSE}.}
 }
 \value{
 Depending on \code{output_type}:
 \itemize{
-\item \code{"plot"} -> a \code{ggplot} or \code{plotly} object.
-\item \code{"table"} -> a \code{tibble} of the plotted data.
-\item \code{"all"} -> a named list: \verb{$plot}, \verb{$table}, \verb{$data}.
+\item \code{"plot"}: a \code{ggplot} (or \code{plotly} when \code{interactive = TRUE}) object.
+\item \code{"table"}: the plotted data: \code{x$stratum_curves} (\code{"curves"}),
+\code{x$comparison} (\code{"scatter"}) or \code{x$rr_table} (\code{"bar"}).
+\item \code{"all"}: a named list with \verb{$plot}, \verb{$table} and \verb{$data} (identical to
+\verb{$table}).
 }
 }
 \description{
@@ -70,5 +81,5 @@ out$table
 
 }
 \seealso{
-\code{\link[=sus_mod_sensitivity]{sus_mod_sensitivity()}}, \code{\link[=sus_mod_plot_dlnm]{sus_mod_plot_dlnm()}}
+\code{\link[=sus_mod_sensitivity]{sus_mod_sensitivity()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}, \code{\link[=sus_mod_plot_dlnm]{sus_mod_plot_dlnm()}}
 }

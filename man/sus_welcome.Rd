@@ -7,17 +7,19 @@
 sus_welcome(lang = "pt", output = c("console", "html"), open = TRUE)
 }
 \arguments{
-\item{lang}{Character. Language: \code{"pt"} (default), \code{"en"}, or \code{"es"}.}
+\item{lang}{Character scalar, \code{"pt"} (default), \code{"en"} or \code{"es"}.}
 
-\item{output}{Character vector. Outputs to produce: \code{"console"}, \code{"html"},
-or both (default). Multiple values are accepted.}
+\item{output}{Character scalar or vector, subset of \code{"console"} and \code{"html"};
+the default \code{c("console", "html")} produces both, \code{"console"} only prints.
+Invalid values abort.}
 
-\item{open}{Logical. If \code{TRUE} (default) and the session is interactive,
-opens the HTML file automatically.}
+\item{open}{Logical scalar, default \code{TRUE}. If \code{TRUE} and the session is
+interactive, opens the HTML page in the browser/viewer; ignored when
+\code{"html"} is not in \code{output}.}
 }
 \value{
-Invisibly returns the path to the HTML file (or \code{NULL} when
-\code{"html"} is not in \code{output}). Called for its side effects.
+Invisibly, the path (character) of the generated HTML file, or
+\code{NULL} when \code{"html"} is not in \code{output}. Called for its side effects.
 }
 \description{
 Prints a colour-coded pipeline overview to the console and, optionally,
@@ -33,4 +35,7 @@ sus_welcome(output = "html", open = TRUE)
 sus_welcome(lang = "es", output = c("console", "html"))
 }
 
+}
+\seealso{
+\code{\link[=sus_data_import]{sus_data_import()}}, \code{\link[=sus_data_standardize]{sus_data_standardize()}}, \code{\link[=sus_data_create_variables]{sus_data_create_variables()}}
 }

@@ -24,11 +24,12 @@ utils::globalVariables(c(
 #'
 #' @param df A `climasus_df` or plain `data.frame`. Arrow objects are
 #'   materialised automatically.
-#' @param output_format Character. One of `"console"` (default), `"gt"`,
-#'   `"markdown"`, or `"html"`. The `"gt"` format returns a `gt_tbl` object
-#'   suitable for Quarto / R Markdown documents.
-#' @param output_file Character. File path for `"markdown"` and `"html"`
-#'   formats. Defaults to a timestamped filename in the working directory.
+#' @param output_format Character scalar, one of `"console"` (default),
+#'   `"gt"`, `"markdown"`, or `"html"`; anything else aborts. `"gt"` needs the
+#'   `gt` package and produces a `gt_tbl` suitable for Quarto / R Markdown.
+#' @param output_file Character scalar, file path for `"markdown"` and `"html"`
+#'   (e.g. `"reports/quality.md"`; the directory must exist). `NULL` (default)
+#'   uses a timestamped filename in the working directory.
 #' @param save_file Logical. For `"markdown"` and `"html"` formats, whether to
 #'   write the report to disk. Default `TRUE`. Set to `FALSE` to only compute
 #'   and return the metrics (e.g. `$score`) without creating a file.
@@ -38,9 +39,13 @@ utils::globalVariables(c(
 #'   interactive sessions.
 #' @param check_icd Logical. Include ICD-10 quality section. Default `TRUE`.
 #' @param check_dates Logical. Include date validation section. Default `TRUE`.
-#' @param top_n Integer. Rows shown in frequency tables. Default `10`.
+#' @param top_n Integer scalar, default `10`. Maximum rows shown in each
+#'   frequency table.
 #' @param lang Character. Output language: `"pt"` (default), `"en"`, `"es"`.
 #' @param verbose Logical. Print progress messages. Default `TRUE`.
+#'
+#' @seealso [sus_data_ts_quality()], [sus_data_standardize()],
+#'   [sus_data_filter_cid()]
 #'
 #' @return Invisibly returns a named list of quality metrics (always
 #'   available regardless of `output_format`):
@@ -242,7 +247,7 @@ print.climasus_quality_report <- function(x, ...) {
   derive     = "sus_data_create_variables()",
   aggregate  = "sus_data_aggregate()",
   spatial    = "sus_spatial_join()",
-  census     = "sus_socio_add_census()",
+  census     = "sus_census_join()",
   climate    = "sus_climate_*()"
 )
 
@@ -294,7 +299,7 @@ print.climasus_quality_report <- function(x, ...) {
     "sus_data_create_variables()" = "Derived variables created|Create variables",
     "sus_data_aggregate()" = "Temporal Data aggregated|Data aggregated",
     "sus_spatial_join()" = "Spatial Data aggregated|Spatial join",
-    "sus_socio_add_census()" = "Added census data",
+    "sus_census_join()" = "Added census data",
     "sus_climate_aggregate()" = "Climate aggregation",
     "sus_climate_inmet()" = "INMET data imported"
   )

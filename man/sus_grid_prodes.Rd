@@ -16,31 +16,41 @@ sus_grid_prodes(
 )
 }
 \arguments{
-\item{years}{Integer vector. Years to download. Availability by biome:
-Amazon 2007–present; all others 2000–present.}
+\item{years}{Numeric vector of PRODES years (required, no default; character
+values error). Accepted forms: scalar (\code{2022}), range (\code{2015:2022}) or
+explicit vector (\code{c(2015, 2020)} = exactly those two years, NOT the range --
+use \code{2015:2020}). De-duplicated, sorted, coerced with \code{as.integer()}.
+Values below 1988 or above the current year error. Per-biome availability:
+Amazon from 2007, all other biomes from 2000; years before a biome's start
+are skipped with a warning, and an error is raised if no requested year is
+available in any selected biome.}
 
-\item{biomes}{Character vector. Biomes to include. Any combination of:
-\code{"Amazon"}, \code{"Cerrado"}, \code{"MataAtlantica"}, \code{"Caatinga"}, \code{"Pampa"},
-\code{"Pantanal"}. Default: all six biomes.}
+\item{biomes}{Character vector of biome names, any subset of \code{"Amazon"},
+\code{"Cerrado"}, \code{"MataAtlantica"}, \code{"Caatinga"}, \code{"Pampa"}, \code{"Pantanal"} (exact
+spelling, no spaces/accents; others error), e.g. \code{"Amazon"} or
+\code{c("Amazon", "Cerrado")}. Default: all six biomes.}
 
-\item{uf}{Character vector. Optional state filter (e.g., \code{c("MT", "PA")}).
-Reduces download size. \code{NULL} = all states in the selected biome(s).}
+\item{uf}{Character vector of 2-letter state codes (e.g. \code{"MT"},
+\code{c("MT", "PA")}; case-insensitive; invalid codes error) or \code{NULL} (default,
+all states in the selected biomes). Used as a download filter; it is part of
+the cache file name.}
 
-\item{municipalities}{An \code{sf} POLYGON object (e.g., from
-\code{\link[geobr:read_municipality]{geobr::read_municipality()}}). When provided, deforestation polygons are
-spatially intersected with municipality boundaries and annual areas are
-aggregated. If \code{NULL}, raw deforestation polygons are returned as an sf
-\code{climasus_df}.}
+\item{municipalities}{An \code{sf} polygon object (e.g. from \code{\link[geobr:read_municipality]{geobr::read_municipality()}})
+or \code{NULL} (default). Non-\code{sf} input errors. When provided, deforestation
+polygons are intersected with the municipalities and annual areas are
+aggregated per municipality. If \code{NULL}, the raw deforestation polygons are
+returned.}
 
-\item{use_cache}{Logical. Reuse previously downloaded GeoJSON files and
-aggregated Parquet caches. Default \code{TRUE}.}
+\item{use_cache}{Logical scalar. Reuse previously downloaded GeoJSON files and
+aggregated Parquet caches (\code{FALSE} re-downloads). Default \code{TRUE}.}
 
-\item{cache_dir}{Character. Root cache directory.
-Default \code{"~/.climasus4r_cache/prodes"}.}
+\item{cache_dir}{Character scalar. Root cache directory. Default
+\code{"~/.climasus4r_cache/prodes"}.}
 
-\item{lang}{Character. Message language: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar. Message language: \code{"pt"} (default), \code{"en"} or
+\code{"es"}; other values error.}
 
-\item{verbose}{Logical. Print progress. Default \code{TRUE}.}
+\item{verbose}{Logical scalar. Print progress. Default \code{TRUE}.}
 }
 \value{
 \itemize{
@@ -113,5 +123,6 @@ prodes_raw <- sus_grid_prodes(
 
 }
 \seealso{
-\code{\link[=sus_grid_fires]{sus_grid_fires()}}, \code{\link[=sus_climate_anomaly]{sus_climate_anomaly()}}, \code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
+\code{\link[=sus_grid_fires]{sus_grid_fires()}}, \code{\link[=sus_grid_join]{sus_grid_join()}}, \code{\link[=sus_climate_anomaly]{sus_climate_anomaly()}},
+\code{\link[=sus_mod_dlnm]{sus_mod_dlnm()}}
 }

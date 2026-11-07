@@ -5,21 +5,56 @@
 #' It provides multiple visualization types including time series of events,
 #' calendar heatmaps, intensity distributions, and annual summaries.
 #'
-#' @param hw_result List. The output from `sus_climate_compute_heatwaves()`.
-#' @param type Character. Type of plot to generate:
-#'   * `"timeline"`: Gantt-style timeline of heatwave events.
-#'   * `"calendar"`: Calendar heatmap showing days with heatwaves.
-#'   * `"intensity"`: Scatter plot of duration vs. intensity (EHF peak).
-#'   * `"trend"`: Bar chart of number of events per year.
-#' @param station_code Character. Optional. Filter by a specific station code.
-#' @param method Character. Optional. Filter by a specific method (e.g., "EHF", "INMET").
-#' @param year Numeric. Optional. Filter by a specific year (useful for calendar plots).
-#' @param interactive Logical. If `TRUE`, returns an interactive Plotly chart. If `FALSE`, returns a static ggplot2 chart. Default is `TRUE`.
-#' @param color_palette Character. Name of the ggsci color palette to use. Default is `"npg"`.
-#' @param lang Character. Language for labels and titles: `"en"` (English), `"pt"` (Portuguese), or `"es"` (Spanish). Default is `"en"`.
-#' @param save_plot Character. Optional file path to save the plot (e.g., "plot.html" or "plot.png").
+#' Use it after [sus_climate_compute_heatwaves()]; data can be restricted to
+#' stations, methods and years before plotting.
 #'
-#' @return A ggplot or plotly object.
+#' @param hw_result A `climasus_hw` list (with elements `events`, `daily`,
+#'   `summary`) returned by [sus_climate_compute_heatwaves()]. Anything else
+#'   errors.
+#' @param type Single character string (partial matching allowed). Type of
+#'   plot to generate; default `"timeline"`:
+#'   * `"timeline"`: Gantt-style timeline of heatwave events.
+#'   * `"calendar"`: Calendar heatmap of heatwave days (all methods combined
+#'     via `hw_any` when `method = NULL`, otherwise the first method given).
+#'   * `"intensity"`: Scatter plot of duration vs. peak temperature (`temp_peak`), coloured by
+#'     intensity class.
+#'   * `"trend"`: Bar chart of number of events per year.
+#' @param station_code Character vector or `NULL` (default, all stations).
+#'   One or more station codes, e.g. `"A101"` or `c("A101", "A122")`.
+#' @param method Character vector or `NULL` (default, all methods). Method
+#'   name(s) as in the result, e.g. `"EHF"` or `c("WHO", "INMET")`. For
+#'   `type = "calendar"` only the first value is used.
+#' @param year Numeric vector or `NULL` (default, all years). A single year
+#'   (`2023`), a range (`2020:2023`) or explicit years (`c(2019, 2023)`; exactly
+#'   those years, not the span). Useful for calendar plots.
+#' @param interactive Logical scalar. If `TRUE` (default), returns an
+#'   interactive Plotly chart (requires \pkg{plotly}); if `FALSE`, a static
+#'   ggplot2 chart.
+#' @param color_palette Single character string. Name of a \pkg{ggsci} palette
+#'   without the `pal_` prefix (e.g. `"npg"`, `"lancet"`, `"jco"`). Default
+#'   `"npg"`; an unknown name warns and falls back to `"npg"`.
+#' @param lang Single character string: `"en"` (English, default), `"pt"`
+#'   (Portuguese) or `"es"` (Spanish) for labels and titles; other values error.
+#' @param save_plot Single character string or `NULL` (default, do not save).
+#'   File path to save the plot: use `".html"` when `interactive = TRUE`
+#'   (needs \pkg{htmlwidgets}) or an image extension such as `".png"` when
+#'   `interactive = FALSE` (saved at 10 x 6 inches, 300 dpi).
+#'
+#' @return A `ggplot` object (`interactive = FALSE`) or a `plotly` object
+#'   (`interactive = TRUE`). If no events remain after filtering, a warning is
+#'   issued and `NULL` is returned.
+#'
+#' @examples
+#' \dontrun{
+#' hw <- sus_climate_compute_heatwaves(df_indicators, method = c("WHO", "EHF"))
+#' sus_climate_plot_heatwaves(hw, type = "timeline", interactive = FALSE)
+#' sus_climate_plot_heatwaves(hw, type = "calendar", method = "EHF",
+#'                            year = 2023, lang = "pt")
+#' sus_climate_plot_heatwaves(hw, type = "trend", save_plot = "trend.html")
+#' }
+#'
+#' @seealso [sus_climate_compute_heatwaves()], [sus_climate_plot_coldwaves()],
+#'   [hw_get_events()]
 #' @export
 sus_climate_plot_heatwaves <- function(
   hw_result,

@@ -16,32 +16,43 @@ sus_mod_plot_af(
 )
 }
 \arguments{
-\item{fit}{A \code{climasus_af} object produced by \code{\link[=sus_mod_af]{sus_mod_af()}}.}
+\item{fit}{A \code{climasus_af} object produced by \code{\link[=sus_mod_af]{sus_mod_af()}}. Other classes
+error.}
 
-\item{type}{Character. Plot type: \code{"bar"} (default), \code{"forest"}, or
-\code{"quantile"}.}
+\item{type}{Character scalar: \code{"bar"} (default; AF\% by component),
+\code{"forest"} (AN with CI by component) or \code{"quantile"} (AF\% by exposure
+percentile band; needs \code{fit$by_quantile}, which \code{\link[=sus_mod_af]{sus_mod_af()}} always
+fills). Partial matching applies; other values error.}
 
-\item{output_type}{Character. \code{"plot"} (default), \code{"table"}, or \code{"all"}
-(named list \verb{$plot}, \verb{$table}, \verb{$data}).}
+\item{output_type}{Character scalar: \code{"plot"} (default; returns the plot),
+\code{"table"} (returns the plotted data) or \code{"all"} (list with \verb{$plot},
+\verb{$table}, \verb{$data}).}
 
-\item{interactive}{Logical. \code{TRUE} converts the ggplot2 output to an
-interactive \pkg{plotly} widget. Default \code{FALSE}.}
+\item{interactive}{Logical scalar. \code{TRUE} converts the ggplot to a
+\pkg{plotly} widget (requires \pkg{plotly}). Default \code{FALSE}.}
 
-\item{base_size}{Numeric. ggplot2 base font size. Default \code{12}.}
+\item{base_size}{Numeric scalar. Base font size in points passed to the
+ggplot2 theme. Default \code{12L}.}
 
-\item{save_plot}{Character or \code{NULL}. File path to save the plot (PNG/PDF
-for static; HTML for interactive).}
+\item{save_plot}{Character scalar or \code{NULL} (default). Output file path, e.g.
+\code{"af.png"} or \code{"af.pdf"} (saved with \code{\link[ggplot2:ggsave]{ggplot2::ggsave()}}, 8 x 5 in); when
+\code{interactive = TRUE} use an \code{.html} path (needs \pkg{htmlwidgets}).
+\code{NULL} does not save.}
 
-\item{lang}{Character. Language for labels: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar: \code{"pt"} (default), \code{"en"}, \code{"es"}. Language of
+labels; unsupported values warn and fall back to \code{"pt"}.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{FALSE}.}
+\item{verbose}{Logical scalar. If \code{TRUE} prints progress messages. Default
+\code{FALSE}.}
 }
 \value{
 Depending on \code{output_type}:
 \itemize{
-\item \code{"plot"} -> a \code{ggplot} or \code{plotly} object.
-\item \code{"table"} -> a \code{tibble} of the plotted data.
-\item \code{"all"} -> a named list: \verb{$plot}, \verb{$table}, \verb{$data}.
+\item \code{"plot"}: a \code{ggplot} (or \code{plotly} when \code{interactive = TRUE}) object.
+\item \code{"table"}: a tibble of the plotted data (\code{fit$total} for \code{"bar"} and
+\code{"forest"}, \code{fit$by_quantile} for \code{"quantile"}).
+\item \code{"all"}: a named list with \verb{$plot}, \verb{$table} and \verb{$data} (identical to
+\verb{$table}).
 }
 }
 \description{
@@ -72,5 +83,6 @@ out$table
 
 }
 \seealso{
-\code{\link[=sus_mod_af]{sus_mod_af()}}, \code{\link[=sus_mod_plot_dlnm]{sus_mod_plot_dlnm()}}
+\code{\link[=sus_mod_af]{sus_mod_af()}}, \code{\link[=sus_mod_burden]{sus_mod_burden()}}, \code{\link[=sus_mod_plot_burden]{sus_mod_plot_burden()}},
+\code{\link[=sus_mod_plot_dlnm]{sus_mod_plot_dlnm()}}
 }

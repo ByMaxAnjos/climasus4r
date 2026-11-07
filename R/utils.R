@@ -20,6 +20,17 @@ sus_climate_inmet_select <- function() {
 }
 
 #' Launch the climasus4r AI Assistant
+#'
+#' Opens the climasus4r web assistant (<https://climasus4r.manus.space/>) in
+#' the RStudio/Positron viewer when available, otherwise in the default web
+#' browser. Requires an internet connection and the `rstudioapi` package
+#' (you are prompted to install it if missing).
+#'
+#' @return Called for its side effect of opening the page; the return value is not meaningful.
+#' @examples
+#' \dontrun{
+#' sus_chat()
+#' }
 #' @export
 sus_chat <- function() {
   # Isso exibe o prompt: "The package 'rstudioapi' is required. Would you like to install it?"
@@ -744,9 +755,25 @@ get_system_description <- function(system, lang = "en") {
 
 #' Clear the Climasus4r cache
 #'
-#' @param cache_dir Character. Cache directory to clear. Default is "~/.climasus4r_cache".
-#' @param older_than_days Numeric. Only clear files older than this many days. NULL clears all.
-#' @param verbose Logical. If TRUE, prints information about what was cleared.
+#' Deletes cached data files (`.parquet`, `.rds`, `.dbf`, `.shp`, `.gpkg`,
+#' `.geojson`, `.csv`, `.txt`) found in `cache_dir` and its sub-folders (the search is
+#' recursive), including the downloads of [sus_data_import()] stored in
+#' `~/.climasus4r_cache/data` (Parquet files of the arrow backend in its `raw`
+#' sub-folder).
+#'
+#' @param cache_dir Character scalar, cache directory to clear. Default
+#'   `"~/.climasus4r_cache"`. A non-existent directory is reported and nothing
+#'   is done.
+#' @param older_than_days Numeric scalar, e.g. `30`. Only files whose age in days
+#'   exceeds this value are deleted. `NULL` (default) clears all matching files.
+#' @param verbose Logical scalar, default `TRUE`. Print what will be deleted;
+#'   in an interactive session (and only when `verbose = TRUE`) you are asked
+#'   to confirm.
+#'
+#' @return Invisibly, the number of files deleted, or `NULL` if nothing was
+#'   deleted (missing directory, no files or none matching, or cancelled).
+#'
+#' @seealso [sus_cache_info()], [sus_data_import()]
 #'
 #' @importFrom stats median sd quantile
 #' @export
@@ -770,7 +797,7 @@ sus_cache_clear <- function(cache_dir = "~/.climasus4r_cache",
     return(invisible(NULL))
   }
  
-  cache_files <- list.files(cache_dir, pattern =  "\\.(parquet|rds|dbf|shp|gpkg|geojson|csv|txt)$", full.names = TRUE, ignore.case = TRUE)
+  cache_files <- list.files(cache_dir, pattern =  "\\.(parquet|rds|dbf|shp|gpkg|geojson|csv|txt)$", full.names = TRUE, ignore.case = TRUE, recursive = TRUE)
   
   if (length(cache_files) == 0) {
     if (verbose) cli::cli_alert_info("No cache files found in {cache_dir}")
@@ -820,10 +847,21 @@ sus_cache_clear <- function(cache_dir = "~/.climasus4r_cache",
 
 #' Get cache information
 #'
-#' @param cache_dir Character. Cache directory to inspect. Default is "~/.climasus4r_cache".
-#' @param verbose Logical. If TRUE, prints detailed information.
+#' Summarises the cached data files inside `cache_dir` and its sub-folders
+#' (same file types as [sus_cache_clear()]; recursive).
 #'
-#' @return A list with cache statistics.
+#' @param cache_dir Character scalar, cache directory to inspect. Default
+#'   `"~/.climasus4r_cache"`. The import cache lives in the `data` (and
+#'   `data/raw`) sub-folders, which are searched recursively.
+#' @param verbose Logical scalar, default `TRUE`. Print the summary.
+#'
+#' @return A list with `exists` (logical), `cache_dir`, `file_count`,
+#'   `total_size` (bytes), and, when files exist, `newest_file`, `oldest_file`
+#'   (modification times), `avg_file_size` and `median_file_size`. For a missing
+#'   directory only `exists = FALSE`, `cache_dir`, `file_count = 0` and
+#'   `total_size = 0` are returned.
+#'
+#' @seealso [sus_cache_clear()]
 #' @export
 #'
 #' @examples
@@ -845,7 +883,7 @@ sus_cache_info <- function(cache_dir = "~/.climasus4r_cache",
     ))
   }
   
-  cache_files <- list.files(cache_dir, pattern =  "\\.(parquet|rds|dbf|shp|gpkg|geojson|csv|txt)$", full.names = TRUE, ignore.case = TRUE)
+  cache_files <- list.files(cache_dir, pattern =  "\\.(parquet|rds|dbf|shp|gpkg|geojson|csv|txt)$", full.names = TRUE, ignore.case = TRUE, recursive = TRUE)
   
   if (length(cache_files) == 0) {
     cache_stats <- list(
@@ -2041,19 +2079,6 @@ get_disease_group_info <- function(group_name, lang = "en") {
 }
 
 
-# ── Package startup message ───────────────────────────────────────────────────
-
-.onAttach <- function(libname, pkgname) {
-  if (!requireNamespace("arrow", quietly = TRUE)) {
-    packageStartupMessage(
-      "climasus4r: 'arrow' not found. ",
-      "Parquet cache will use DuckDB/nanoparquet fallbacks.\n",
-      "  For full performance: climasus4r::enable_arrow()"
-    )
-  }
-}
-
-
 # ── sus_install_deps() ────────────────────────────────────────────────────────
 
 #' Install Optional Dependencies for climasus4r
@@ -2063,13 +2088,13 @@ get_disease_group_info <- function(group_name, lang = "en") {
 #' Tries multiple installation strategies, including Posit Package Manager
 #' (PPM) for pre-compiled binaries on Posit Cloud / Linux.
 #'
-#' @param features Character vector. Feature groups to install.
-#'   One or more of `"parquet"`, `"spatial"`, `"plot"`, `"models"`, `"all"`.
-#'   Default `"all"`.
-#' @param force Logical. Re-install even if the package is already available.
-#'   Default `FALSE`.
-#' @param lang Character. Language for messages: `"pt"` (default), `"en"`,
-#'   `"es"`.
+#' @param features Character scalar or vector of feature groups: `"all"`
+#'   (default), `"parquet"`, `"spatial"`, `"plot"`, `"models"`; e.g.
+#'   `c("parquet", "plot")`. Other values abort.
+#' @param force Logical scalar, default `FALSE`. Re-install even if the package
+#'   is already available.
+#' @param lang Character scalar, `"pt"` (default), `"en"` or `"es"`. Language of
+#'   messages.
 #'
 #' @details
 #' \describe{
@@ -2082,6 +2107,8 @@ get_disease_group_info <- function(group_name, lang = "en") {
 #' }
 #'
 #' On Posit Cloud, PPM binaries are used automatically for faster installation.
+#'
+#' @return Called for its side effect of installing packages; the return value is not meaningful.
 #'
 #' @examples
 #' \dontrun{

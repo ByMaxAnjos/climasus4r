@@ -113,37 +113,42 @@ utils::globalVariables(c(
 #' are returned, matching the exclusion criteria used in large Brazilian
 #' heat-wave studies (Lowe et al. 2021, Anjos & Targino 2023).
 #'
-#' @param data A `climasus_df` at stage `"aggregate"`, or any `data.frame`
-#'   with a municipality identifier column, a date column, and a daily count
-#'   column.
-#' @param outcome_col Character. Name of the daily count column.
-#'   Default: `"n_obitos"`.
-#' @param muni_col Character. Name of the municipality identifier column.
-#'   Default: `"code_muni"`.
-#' @param date_col Character. Name of the date column. Default: `"date"`.
-#' @param min_completeness Numeric (0-1). Minimum completeness to recommend
-#'   inclusion. Default: `0.90` (90% of expected days present).
-#' @param max_gap Integer. Maximum tolerated consecutive zero/missing days
-#'   before flagging a temporal gap. Default: `7L`.
-#' @param break_alpha Numeric. Significance level for structural break test.
-#'   Default: `0.05`. Ignored if `strucchange` is not installed.
-#' @param max_outlier_months Integer. Maximum number of outlier months allowed
-#'   before exclusion. Default: `3L`.
-#' @param lang Character. Language for messages: `"pt"` (default), `"en"`,
-#'   `"es"`.
-#' @param verbose Logical. Print progress messages. Default `TRUE`.
+#' @param data A `climasus_df` at stage `"aggregate"` (see
+#'   [sus_data_aggregate()]), or any `data.frame` with a municipality
+#'   identifier column, a date column and a daily count column. Other classes
+#'   abort.
+#' @param outcome_col Character scalar, name of the daily count column.
+#'   Default `"n_obitos"` (Portuguese column of the SIM count; use e.g.
+#'   `"n_internacoes"`, `"n_casos"` or the English/Spanish names for other
+#'   systems/`lang`). Aborts if missing.
+#' @param muni_col Character scalar, name of the municipality identifier column.
+#'   Default `"code_muni"`; for output of [sus_data_aggregate()] pass the actual
+#'   column, e.g. `"codigo_municipio_residencia"`. Aborts if missing.
+#' @param date_col Character scalar, name of the date column (`Date` or
+#'   coercible with `as.Date()`). Default `"date"`. Aborts if missing.
+#' @param min_completeness Numeric in `[0, 1]`. Minimum fraction of expected
+#'   days present to recommend inclusion. Default `0.90`.
+#' @param max_gap Integer scalar, days. Runs of consecutive zero/missing days
+#'   longer than this are counted as temporal gaps. Default `7L`.
+#' @param break_alpha Numeric in `(0, 1)`. Significance level of the structural
+#'   break test. Default `0.05`. Ignored if `strucchange` is not installed.
+#' @param max_outlier_months Integer scalar. Maximum number of outlier months
+#'   allowed before exclusion. Default `3L`.
+#' @param lang Character scalar, `"pt"` (default), `"en"` or `"es"`; other values
+#'   fall back to `"pt"` with a warning.
+#' @param verbose Logical scalar, default `TRUE`. Print progress messages.
 #'
 #' @return A `climasus_ts_quality` list with:
 #'   \describe{
-#'     \item{`$flags`}{Tibble (one row per municipality) with columns:
-#'       `muni_col`, `n_obs`, `n_expected`, `completeness`, `has_break`,
-#'       `break_pval`, `n_outlier_months`, `n_gaps_gt{max_gap}d`, `score`,
-#'       `include`.}
-#'     \item{`$recommend_include`}{Character vector of municipality codes
-#'       recommended for inclusion.}
-#'     \item{`$recommend_exclude`}{Character vector of municipality codes
-#'       recommended for exclusion, with reason.}
-#'     \item{`$params`}{List of QC parameters used.}
+#'     \item{`$flags`}{Tibble, one row per municipality: the municipality
+#'       column (named as `muni_col`), `n_obs`, `n_expected`, `completeness`,
+#'       `has_break`, `break_pval`, `n_outlier_months`, `n_gaps`, `score`
+#'       (0-100), `include` (logical).}
+#'     \item{`$recommend_include`}{Vector of municipality codes recommended for
+#'       inclusion.}
+#'     \item{`$recommend_exclude`}{Named character vector: names are the
+#'       municipality codes to exclude, values the reasons.}
+#'     \item{`$params`}{List of the QC parameters used.}
 #'   }
 #'
 #' @references
@@ -156,13 +161,14 @@ utils::globalVariables(c(
 #' qc <- sus_data_ts_quality(
 #'   df_agg,
 #'   outcome_col       = "n_obitos",
+#'   muni_col          = "codigo_municipio_residencia",
 #'   min_completeness  = 0.90,
 #'   max_gap           = 7L
 #' )
 #' print(qc)
 #'
 #' # Filter series to include only QC-passing municipalities
-#' df_clean <- df_agg[df_agg$code_muni %in% qc$recommend_include, ]
+#' df_clean <- df_agg[df_agg$codigo_municipio_residencia %in% qc$recommend_include, ]
 #' }
 #'
 #' @seealso [sus_data_aggregate()], [sus_mod_casecrossover()], [sus_mod_dlnm()]

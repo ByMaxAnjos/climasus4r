@@ -17,40 +17,46 @@ sus_rap_export(
 )
 }
 \arguments{
-\item{pipeline}{A pipeline expression (created with \code{quote()} or
-\code{rlang::quo()}) containing \verb{sus_*} function calls connected by \verb{|>} or
-\verb{\%>\%}. Pass \code{NULL} to capture from the calling context.}
+\item{pipeline}{A pipeline expression created with \code{quote()} or
+\code{rlang::quo()}, containing \verb{sus_*} calls connected by \verb{|>} or \verb{\%>\%}, e.g.
+\code{quote(sus_data_import(...) |> sus_data_aggregate(...))}. The first step
+should be \code{sus_data_import()} with literal \code{uf}, \code{year}/\code{years} and
+\code{system} arguments (they are read to fill the parameters block; a warning
+is issued if they are not detected). \code{NULL} (default) is accepted with a
+warning but does not capture the calling context in practice, so supply
+the expression.}
 
-\item{file_path}{\code{character(1)}  - Output file path. Extension informs format
-detection. Pass \code{NULL} to return content without writing to disk.}
+\item{file_path}{\code{character(1)}, output file path, e.g.
+\code{"pipeline.R"}, \code{"analysis.qmd"}. \code{NULL} (default) returns the content
+without writing a file. The extension must match \code{format} (\code{.R}, \code{.Rmd},
+\code{.qmd}, \code{.R}), otherwise a warning is shown; the format is \strong{not}
+inferred from the extension. Missing folders are created. Aborts if the
+file exists and \code{overwrite = FALSE}.}
 
-\item{format}{\code{character(1)}  - One of \code{"script"}, \code{"rmarkdown"},
-\code{"quarto"}, or \code{"function"}. Inferred from \code{file_path} extension when
-possible.}
+\item{format}{\code{character(1)}, one of \code{"script"} (default), \code{"rmarkdown"},
+\code{"quarto"} or \code{"function"}.}
 
-\item{include_metadata}{\code{logical(1)}  - Embed R version, package versions,
-timestamp, and platform. Default \code{TRUE}.}
+\item{include_metadata}{\code{logical(1)}, default \code{TRUE}. Embed R version,
+package versions, timestamp and platform.}
 
-\item{include_validation}{\code{logical(1)}  - Add a validation block (\code{stopifnot}
-\itemize{
-\item NA-rate check). Default \code{TRUE}.
-}}
+\item{include_validation}{\code{logical(1)}, default \code{TRUE}. Add a validation
+block (\code{stopifnot} + NA-rate check).}
 
-\item{include_documentation}{\code{character(1)}  - Comment density in the
-exported code: \code{"minimal"}, \code{"standard"} (default), or \code{"comprehensive"}.}
+\item{include_documentation}{\code{character(1)}, one of \code{"standard"} (default),
+\code{"minimal"} or \code{"comprehensive"}: comment density of the exported code.}
 
-\item{output_type}{\code{character(1)}  - Purpose of the document:
-\code{"analysis"}, \code{"dashboard"}, or \code{"report"}. Affects visualisation
-sections in Rmd/Quarto outputs.}
+\item{output_type}{\code{character(1)}, one of \code{"analysis"} (default),
+\code{"dashboard"} or \code{"report"}. Affects visualisation sections in the Rmd/Quarto
+outputs.}
 
-\item{lang}{\code{character(1)}  - Language for comments and messages: \code{"pt"}
-(default), \code{"en"}, or \code{"es"}.}
+\item{lang}{\code{character(1)}, \code{"pt"} (default), \code{"en"} or \code{"es"}. Language of
+comments and messages; other values abort.}
 
-\item{overwrite}{\code{logical(1)}  - Overwrite an existing file. Default \code{FALSE}.}
+\item{overwrite}{\code{logical(1)}, default \code{FALSE}. Overwrite an existing file.}
 }
 \value{
-Invisibly, a \code{character} vector with the exported file content.
-Side-effect: writes to \code{file_path} when provided.
+Invisibly, a \code{character} vector with the exported file content (one
+element per line). Side effect: writes it to \code{file_path} when provided.
 }
 \description{
 Converts a \code{climasus4r} pipeline expression into a portable, self-contained
@@ -76,10 +82,10 @@ pipeline, validation, and optional visualisation section.}
 \examples{
 \dontrun{
 pipeline <- quote(
-  sus_data_import(uf = "SP", years = 2020:2022, system = "SIM-DO") |>
+  sus_data_import(uf = "SP", year = 2020:2022, system = "SIM-DO") |>
     sus_data_clean_encoding() |>
-    sus_data_filter_cid(cid_group = "respiratory") |>
-    sus_data_aggregate(by = "month")
+    sus_data_filter_cid(disease_group = "respiratory") |>
+    sus_data_aggregate(time_unit = "month")
 )
 
 # Export as R script
@@ -89,4 +95,8 @@ sus_rap_export(pipeline, "pipeline_respiratorio.R", lang = "pt")
 sus_rap_export(pipeline, "analise.qmd", format = "quarto",
                include_documentation = "comprehensive")
 }
+}
+\seealso{
+\code{\link[=sus_rap_read]{sus_rap_read()}}, \code{\link[=sus_rap_recipe]{sus_rap_recipe()}}, \code{\link[=sus_rap_template]{sus_rap_template()}},
+\code{\link[=sus_rap_targets]{sus_rap_targets()}}
 }

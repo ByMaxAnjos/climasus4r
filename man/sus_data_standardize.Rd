@@ -15,35 +15,35 @@ sus_data_standardize(
 )
 }
 \arguments{
-\item{df}{A \code{data.frame} or \code{tibble} to be standardized (typically output from \code{sus_data_import()}).}
+\item{df}{A \code{climasus_df}, tibble or data frame (typically from
+\code{\link[=sus_data_import]{sus_data_import()}} / \code{\link[=sus_data_clean_encoding]{sus_data_clean_encoding()}}), or a lazy Arrow
+dataset. The health system (SIM, SINAN, SIH, SIA, CNES, SINASC) is
+detected from the column names, or taken from \code{sus_meta}.}
 
-\item{lang}{Character. Output language for column names and values. Options: "en" (English),
-"pt" (Portuguese, Default), "es" (Spanish).}
+\item{lang}{Character scalar, \code{"pt"} (default), \code{"en"} or \code{"es"}. Language of
+the translated column names, standardized categorical values and
+messages; other values abort.}
 
-\item{translate_columns}{Logical. If TRUE, translates column names. Default is TRUE.}
+\item{translate_columns}{Logical scalar, default \code{TRUE}. Rename the original
+DATASUS columns to descriptive names in \code{lang}.}
 
-\item{standardize_values}{Logical. If TRUE, standardizes categorical values. Default is TRUE.}
+\item{standardize_values}{Logical scalar, default \code{TRUE}. Recode categorical
+values (e.g. sex, race, education) to labels in \code{lang}.}
 
-\item{keep_original}{Logical. If TRUE, keeps original columns alongside standardized ones. Default is FALSE.}
+\item{keep_original}{Logical scalar, default \code{FALSE}. If \code{TRUE}, keep the
+original columns alongside the standardized ones.}
 
-\item{backend}{Character string specifying the data processing backend.
-Use \code{"arrow"} for out-of-memory, lazy processing (recommended for large datasets),
-or \code{"tibble"} for in-memory processing (recommended for small to medium datasets).
-\itemize{
-\item \code{"arrow"}: operations are performed lazily using the Apache Arrow engine,
-avoiding loading the full dataset into memory. Ideal for large files
-(e.g., Parquet, Feather) and high-performance workflows.
-\item \code{"tibble"}: data is fully loaded into memory as a tibble and processed eagerly
-using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
-}
+\item{backend}{Character scalar, \code{"arrow"} (default) or \code{"tibble"}.
+\code{"arrow"} processes lazily and falls back to \code{"tibble"} (in memory) with a
+warning if it fails; \code{"tibble"} processes in memory.}
 
-If not specified, the function may automatically choose the backend based on
-the input data type.}
-
-\item{verbose}{Logical. If TRUE, prints a report of standardization actions. Default is TRUE.}
+\item{verbose}{Logical scalar, default \code{TRUE}. Print a report of the
+standardization actions.}
 }
 \value{
-A \code{data.frame} with standardized column names and values in the specified language.
+A \code{climasus_df} with standardized column names and values in \code{lang}
+(a lazy Arrow table if the input was lazy and the arrow backend succeeded).
+\code{sus_meta}: \code{stage = "stand"}, system preserved/detected.
 }
 \description{
 This function standardizes column names and categorical values in SUS datasets,
@@ -54,10 +54,15 @@ English (en), Portuguese (pt), and Spanish (es).
 The function builds upon the preprocessing done by \code{microdatasus}, adding an
 additional layer of standardization specifically designed for climate-health
 research workflows.
+
+Pipeline position: after \code{\link[=sus_data_clean_encoding]{sus_data_clean_encoding()}}, before the filtering
+(\code{\link[=sus_data_filter_cid]{sus_data_filter_cid()}}, \code{\link[=sus_data_filter_demographics]{sus_data_filter_demographics()}}) and
+\code{\link[=sus_data_create_variables]{sus_data_create_variables()}} steps. Column names change with \code{lang}, so use
+the same \code{lang} in the following steps.
 }
 \examples{
 \dontrun{
-# Standardize to English (default)
+# Standardize to English
 df_en <- sus_data_standardize(df_raw, lang = "en")
 
 # Standardize to Portuguese
@@ -91,4 +96,8 @@ df_analysis_ready <- sus_data_import(uf = "SP", year = 2023, system = "SIM-DO") 
 Brazilian Ministry of Health. DATASUS. \url{http://datasus.saude.gov.br}
 
 SALDANHA, Raphael de Freitas; BASTOS, Ronaldo Rocha; BARCELLOS, Christovam. Microdatasus: pacote para download e pre-processamento de microdados do Departamento de Informatica do SUS (DATASUS). Cad. Saude Publica, Rio de Janeiro , v. 35, n. 9, e00032419, 2019. Available from https://doi.org/10.1590/0102-311x00032419.
+}
+\seealso{
+\code{\link[=sus_data_clean_encoding]{sus_data_clean_encoding()}}, \code{\link[=sus_data_filter_cid]{sus_data_filter_cid()}},
+\code{\link[=sus_data_create_variables]{sus_data_create_variables()}}
 }

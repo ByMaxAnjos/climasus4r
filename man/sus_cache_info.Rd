@@ -7,18 +7,28 @@
 sus_cache_info(cache_dir = "~/.climasus4r_cache", verbose = TRUE)
 }
 \arguments{
-\item{cache_dir}{Character. Cache directory to inspect. Default is "~/.climasus4r_cache".}
+\item{cache_dir}{Character scalar, cache directory to inspect. Default
+\code{"~/.climasus4r_cache"}. The import cache lives in the \code{data} (and
+\code{data/raw}) sub-folders, which are searched recursively.}
 
-\item{verbose}{Logical. If TRUE, prints detailed information.}
+\item{verbose}{Logical scalar, default \code{TRUE}. Print the summary.}
 }
 \value{
-A list with cache statistics.
+A list with \code{exists} (logical), \code{cache_dir}, \code{file_count},
+\code{total_size} (bytes), and, when files exist, \code{newest_file}, \code{oldest_file}
+(modification times), \code{avg_file_size} and \code{median_file_size}. For a missing
+directory only \code{exists = FALSE}, \code{cache_dir}, \code{file_count = 0} and
+\code{total_size = 0} are returned.
 }
 \description{
-Get cache information
+Summarises the cached data files inside \code{cache_dir} and its sub-folders
+(same file types as \code{\link[=sus_cache_clear]{sus_cache_clear()}}; recursive).
 }
 \examples{
 \dontrun{
 cache_info <- sus_cache_info()
 }
+}
+\seealso{
+\code{\link[=sus_cache_clear]{sus_cache_clear()}}
 }

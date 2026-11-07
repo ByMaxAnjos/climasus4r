@@ -41,15 +41,15 @@ sus_data_plot_aggregate_ts(
 \code{n_procedimentos}, \code{n_estabelecimentos}, and their English / Spanish
 equivalents.}
 
-\item{group_col}{Character. Optional column used for colour-grouping in
+\item{group_col}{Character scalar, column name, default \code{NULL}. Optional column used for colour-grouping in
 \code{"epidemic"} and \code{"seasonal"} plots.}
 
 \item{facet_col}{Character. Optional column for \code{facet_wrap()} panels.}
 
 \item{facet_ncol}{Integer. Number of facet columns. Default \code{3L}.}
 
-\item{plot_type}{Character. One or more of \code{"epidemic"}, \code{"seasonal"},
-\code{"heatmap"}, \code{"trend"}. When multiple types are supplied, plots are
+\item{plot_type}{Character scalar or vector, one or more of \code{"epidemic"},
+\code{"seasonal"}, \code{"heatmap"}, \code{"trend"}, e.g. \code{c("epidemic", "trend")}. When multiple types are supplied, plots are
 assembled with \link[patchwork:patchwork-package]{patchwork::patchwork} (one per row). Default: \code{"epidemic"}.}
 
 \item{smooth_method}{Character. Smoothing method for the \code{"epidemic"} plot:
@@ -89,7 +89,8 @@ labels. Default \code{"\%b/\%y"}.}
 \item{interactive}{Logical. Return a \code{\link[plotly:ggplotly]{plotly::ggplotly()}} widget instead of
 a static ggplot2 object. Default \code{FALSE}.}
 
-\item{city}{Character vector of municipality names or 6-/7-digit IBGE codes.
+\item{city}{Character vector of municipality names (e.g. \code{"Natal"},
+\code{c("Natal", "Mossoro")}) or 6-/7-digit IBGE codes. \code{NULL} (default) = all.
 When supplied, the plot is filtered to those municipalities before
 rendering. Names are resolved through \code{municipio_meta}, with accent
 tolerance, using the same cache as \code{\link[=sus_data_filter_demographics]{sus_data_filter_demographics()}}.}
@@ -156,4 +157,8 @@ sus_data_plot_aggregate_ts(
 sus_data_plot_aggregate_ts(df_agg, interactive = TRUE)
 }
 
+}
+\seealso{
+\code{\link[=sus_data_aggregate]{sus_data_aggregate()}}, \code{\link[=sus_data_plot_aggregate_map]{sus_data_plot_aggregate_map()}},
+\code{\link[=sus_data_plot_demographics]{sus_data_plot_demographics()}}
 }

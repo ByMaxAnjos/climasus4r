@@ -17,34 +17,46 @@ sus_mod_plot_ml(
 )
 }
 \arguments{
-\item{x}{A \code{climasus_ml} object produced by \code{\link[=sus_mod_ml]{sus_mod_ml()}}.}
+\item{x}{A \code{climasus_ml} object produced by \code{\link[=sus_mod_ml]{sus_mod_ml()}}. Other classes
+error.}
 
-\item{type}{Character. Plot type: \code{"importance"} (default), \code{"fit"}, or
-\code{"cv_log"}.}
+\item{type}{Character scalar: \code{"importance"} (default; top features by
+XGBoost Gain), \code{"fit"} (observed vs out-of-fold predicted) or \code{"cv_log"}
+(train/test loss per boosting round). Partial matching applies; other
+values error.}
 
-\item{output_type}{Character. \code{"plot"} (default), \code{"table"}, or \code{"all"}
-(named list \verb{$plot}, \verb{$table}, \verb{$data}).}
+\item{output_type}{Character scalar: \code{"plot"} (default), \code{"table"} (plotted
+data) or \code{"all"} (list with \verb{$plot}, \verb{$table}, \verb{$data}).}
 
-\item{n_top}{Integer. Maximum number of features to show in the importance
-plot. Default \code{20L}.}
+\item{n_top}{Positive integer. Maximum number of features shown (and
+returned in the table) for \code{type = "importance"}, e.g. \code{10L}. Values below
+1 are raised to 1. Ignored by the other types. Default \code{20L}.}
 
-\item{interactive}{Logical. \code{TRUE} converts the ggplot2 output to an
-interactive \pkg{plotly} widget. Default \code{FALSE}.}
+\item{interactive}{Logical scalar. \code{TRUE} converts the ggplot to a
+\pkg{plotly} widget (requires \pkg{plotly}). Default \code{FALSE}.}
 
-\item{base_size}{Numeric. ggplot2 base font size. Default \code{12}.}
+\item{base_size}{Numeric scalar. Base font size in points for the ggplot2
+theme. Default \code{12L}.}
 
-\item{save_plot}{Character or \code{NULL}. File path to save the plot.}
+\item{save_plot}{Character scalar or \code{NULL} (default). Output path, e.g.
+\code{"ml.png"} (saved with \code{\link[ggplot2:ggsave]{ggplot2::ggsave()}}, 9 x 5 in); with
+\code{interactive = TRUE} use an \code{.html} path (needs \pkg{htmlwidgets}).
+\code{NULL} does not save.}
 
-\item{lang}{Character. Language for labels: \code{"pt"} (default), \code{"en"}, \code{"es"}.}
+\item{lang}{Character scalar: \code{"pt"} (default), \code{"en"}, \code{"es"}. Language of
+labels; unsupported values warn and fall back to \code{"pt"}.}
 
-\item{verbose}{Logical. Print progress messages. Default \code{FALSE}.}
+\item{verbose}{Logical scalar. If \code{TRUE} prints progress messages. Default
+\code{FALSE}.}
 }
 \value{
 Depending on \code{output_type}:
 \itemize{
-\item \code{"plot"} -> a \code{ggplot} or \code{plotly} object.
-\item \code{"table"} -> a \code{tibble} of the plotted data.
-\item \code{"all"} -> a named list: \verb{$plot}, \verb{$table}, \verb{$data}.
+\item \code{"plot"}: a \code{ggplot} (or \code{plotly} when \code{interactive = TRUE}) object.
+\item \code{"table"}: the plotted data: top \code{n_top} rows of \code{x$importance}
+(\code{"importance"}), \code{x$predictions} (\code{"fit"}) or \code{x$cv_log} (\code{"cv_log"}).
+\item \code{"all"}: a named list with \verb{$plot}, \verb{$table} and \verb{$data} (identical to
+\verb{$table}).
 }
 }
 \description{
@@ -74,5 +86,5 @@ out$table
 
 }
 \seealso{
-\code{\link[=sus_mod_ml]{sus_mod_ml()}}, \code{\link[=sus_mod_plot_dlnm]{sus_mod_plot_dlnm()}}
+\code{\link[=sus_mod_ml]{sus_mod_ml()}}, \code{\link[=predict.climasus_ml]{predict.climasus_ml()}}, \code{\link[=sus_mod_plot_dlnm]{sus_mod_plot_dlnm()}}
 }

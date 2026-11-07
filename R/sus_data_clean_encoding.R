@@ -6,25 +6,28 @@
 #' is properly encoded, complementing the preprocessing done by `microdatasus`.
 #' Supports multilingual output messages (English, Portuguese, Spanish).
 #'
-#' @param df A `data.frame` or `tibble` to be cleaned.
-#' @param backend Character string specifying the data processing backend.
-#'   Use `"arrow"` for out-of-memory, lazy processing (recommended for large datasets),
-#'   or `"tibble"` for in-memory processing (recommended for small to medium datasets).
+#' @param df A `climasus_df`, tibble or data frame (e.g. from
+#'   [sus_data_import()]), or a lazy Arrow dataset/table (a lazy input is
+#'   collected). Character columns are inspected and fixed.
+#' @param backend Character scalar, `"arrow"` (default) or `"tibble"`.
+#'   `"arrow"` uses the Arrow-aware implementation and falls back to
+#'   `"tibble"` (in memory) with a warning if it fails; `"tibble"` processes in
+#'   memory. Any other value uses the tibble path.
+#' @param lang Character scalar, `"pt"` (default), `"en"` or `"es"`. Language of
+#'   messages; other values abort.
+#' @param verbose Logical scalar, default `TRUE`. Print a report of columns
+#'   checked and corrected.
 #'
-#'   - `"arrow"`: operations are performed lazily using the Apache Arrow engine,
-#'     avoiding loading the full dataset into memory. Ideal for large files
-#'     (e.g., Parquet, Feather) and high-performance workflows.
+#' @return A `climasus_df` (tibble) with the same rows/columns and corrected
+#'   text columns. `sus_meta`: `stage = "clean"`, `type = "clean"`, system
+#'   preserved, history entry added.
 #'
-#'   - `"tibble"`: data is fully loaded into memory as a tibble and processed eagerly
-#'     using dplyr. Simpler and more predictable, but may be slow or fail for large datasets.
+#' @details
+#' Pipeline position: right after [sus_data_import()] and before
+#' [sus_data_standardize()]. It repairs mojibake (Latin1 text read as UTF-8) and
+#' invalid UTF-8; columns with no problem are left untouched.
 #'
-#'   If not specified, the function may automatically choose the backend based on
-#'   the input data type.
-#' @param lang Character. Language for UI messages. Options: "en" (English), 
-#'   "pt" (Portuguese, default), "es" (Spanish).
-#' @param verbose Logical. If TRUE, prints a report of columns checked and corrected. Default is TRUE.
-#'
-#' @return A `data.frame` with corrected text columns.
+#' @seealso [sus_data_import()], [sus_data_standardize()]
 #'
 #' @importFrom dplyr select_if
 #' @importFrom stringi stri_enc_isutf8 stri_conv
@@ -56,7 +59,7 @@
 #' df_clean_es <- sus_data_clean_encoding(df_problem, lang = "es")
 #'
 #' # Use in a pipeline
-#' df_clean <- sus_data_import(uf = "RJ", year = 2022, system = "SIM") %>%
+#' df_clean <- sus_data_import(uf = "RJ", year = 2022, system = "SIM-DO") %>%
 #'   sus_data_clean_encoding(lang = "pt")
 #' }
 sus_data_clean_encoding <- function(df, backend = "arrow", lang = "pt", verbose = TRUE) {
